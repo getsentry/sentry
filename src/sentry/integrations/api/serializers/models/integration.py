@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict, cast
+from datetime import datetime
+from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.constants import ObjectStatus
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.constants import ObjectStatus, ObjectStatusName
 from sentry.hybridcloud.rpc.service import RpcException
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.constants import SlackScope
@@ -37,37 +39,160 @@ class MissingFeature(TypedDict):
     """A feature the installation can no longer support, named by the permission
     tier it falls short of, so the update-permissions modal can list them."""
 
-    key: str
-    description: str
+    key: Annotated[str, ApiDescription("Key of the missing feature")]
+    description: Annotated[str, ApiDescription("Description of the missing feature")]
 
 
 class OrganizationIntegrationResponse(TypedDict):
-    id: str
-    name: str
-    icon: str | None
-    domainName: str | None
-    accountType: str | None
-    scopes: list[str] | None
-    outOfDate: bool | None
-    missingFeatures: list[MissingFeature] | None
-    status: str
-    provider: Any
-    configOrganization: Any
-    configData: Any
-    externalId: str
-    organizationId: int
-    organizationIntegrationStatus: str
-    gracePeriodEnd: str | None
+    id: Annotated[str, ApiDescription("ID of the integration")]
+    name: Annotated[
+        str, ApiDescription("Name of the integration, usually the connected account or workspace")
+    ]
+    icon: Annotated[str | None, ApiDescription("URL of the connected account's icon")]
+    domainName: Annotated[
+        str | None,
+        ApiDescription("Domain of the connected account, such as github.com/example-org"),
+    ]
+    accountType: Annotated[
+        str | None, ApiDescription("Type of the connected account, such as Organization or User")
+    ]
+    scopes: Annotated[
+        list[str] | None, ApiDescription("Permission scopes granted to the integration")
+    ]
+    outOfDate: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the installation lacks permissions the latest version of the integration needs. Null for providers without a permissions model"
+        ),
+    ]
+    missingFeatures: Annotated[
+        list[MissingFeature] | None,
+        ApiDescription(
+            "Features the installation can't support because of missing permissions. Null for providers without a permissions model"
+        ),
+    ]
+    status: Annotated[ObjectStatusName, ApiDescription("Status of the integration")]
+    provider: Annotated[IntegrationProviderInfo, ApiDescription("Integration provider details")]
+    configOrganization: Annotated[
+        Any, ApiDescription("Organization-level configuration fields of the integration")
+    ]
+    configData: Annotated[
+        Any, ApiDescription("Configuration values the organization set for the integration")
+    ]
+    externalId: Annotated[str, ApiDescription("ID of the connected account in the provider")]
+    organizationId: Annotated[
+        int, ApiDescription("ID of the organization the integration is installed in")
+    ]
+    organizationIntegrationStatus: Annotated[
+        ObjectStatusName, ApiDescription("Status of the integration in this organization")
+    ]
+    gracePeriodEnd: Annotated[
+        datetime | None,
+        ApiDescription(
+            "When the integration's grace period ends (ISO 8601). Null when there's no grace period"
+        ),
+    ]
+
+
+class IntegrationAlert(TypedDict):
+    type: Annotated[str, ApiDescription("Style of the alert, such as warning")]
+    icon: Annotated[str, ApiDescription("Icon shown with the alert, such as icon-warning-sm")]
+    text: Annotated[str, ApiDescription("Text of the alert, in Markdown")]
+
+
+class IntegrationDialog(TypedDict):
+    actionText: Annotated[str, ApiDescription("Label of the dialog's confirm button")]
+    body: Annotated[str, ApiDescription("Text of the dialog")]
+
+
+class IntegrationExternalInstall(TypedDict):
+    url: Annotated[
+        str, ApiDescription("URL to install the integration from, such as a marketplace")
+    ]
+    buttonText: Annotated[str, ApiDescription("Label of the install button")]
+    noticeText: Annotated[str, ApiDescription("Notice shown before the user leaves Sentry")]
+
+
+class IntegrationConfigureIntegration(TypedDict):
+    title: Annotated[str, ApiDescription("Title of the configuration step")]
+
+
+class IntegrationAspects(TypedDict, total=False):
+    """Matches `IntegrationAspects` in static/app/types/integrations.tsx."""
+
+    alerts: Annotated[list[IntegrationAlert], ApiDescription("Alerts shown during setup")]
+    configure_integration: Annotated[
+        IntegrationConfigureIntegration, ApiDescription("Configuration step after install")
+    ]
+    directEnable: Annotated[
+        bool, ApiDescription("Whether the integration is enabled without an install flow")
+    ]
+    disable_dialog: Annotated[
+        IntegrationDialog, ApiDescription("Dialog shown before the integration is disabled")
+    ]
+    externalInstall: Annotated[
+        IntegrationExternalInstall,
+        ApiDescription("Where to install the integration when it's installed outside Sentry"),
+    ]
+    removal_dialog: Annotated[
+        IntegrationDialog, ApiDescription("Dialog shown before the integration is removed")
+    ]
+
+
+class IntegrationFeatureDescription(TypedDict):
+    description: Annotated[str, ApiDescription("Description of the feature, in Markdown")]
+    featureGate: Annotated[
+        str | None,
+        ApiDescription(
+            "Organization feature flag that gates the feature, such as integrations-commits"
+        ),
+    ]
+
+
+class IntegrationMetadataResponse(TypedDict):
+    """`IntegrationMetadata.asdict()`."""
+
+    description: Annotated[str, ApiDescription("Description of the integration, in Markdown")]
+    features: Annotated[
+        list[IntegrationFeatureDescription], ApiDescription("Features the integration provides")
+    ]
+    author: Annotated[str, ApiDescription("Author of the integration")]
+    noun: Annotated[
+        str, ApiDescription("Noun for one installation, such as Installation or Account")
+    ]
+    issue_url: Annotated[str, ApiDescription("URL to report problems with the integration")]
+    source_url: Annotated[str, ApiDescription("URL of the integration's source or docs")]
+    aspects: Annotated[
+        IntegrationAspects,
+        ApiDescription(
+            "Extra provider details shown during setup, such as alerts and configuration instructions"
+        ),
+    ]
 
 
 class IntegrationProviderInfo(TypedDict):
-    key: str
-    slug: str
-    name: str
-    canAdd: bool
-    canDisable: bool
-    features: list[str]
-    aspects: dict[str, Any]
+    key: Annotated[str, ApiDescription("Key of the integration provider, such as github")]
+    slug: Annotated[str, ApiDescription("Slug of the integration provider, same as key")]
+    name: Annotated[str, ApiDescription("Display name of the integration provider")]
+    canAdd: Annotated[bool, ApiDescription("Whether the integration can be installed from Sentry")]
+    canDisable: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the integration must be uninstalled from the provider instead of in Sentry"
+        ),
+    ]
+    features: Annotated[
+        list[str],
+        ApiDescription(
+            "Features the integration provider supports, such as issue-basic or commits"
+        ),
+    ]
+    aspects: Annotated[
+        IntegrationAspects,
+        ApiDescription(
+            "Extra provider details shown during setup, such as alerts and configuration instructions"
+        ),
+    ]
 
 
 # converts the provider to JSON
@@ -79,23 +204,43 @@ def serialize_provider(provider: IntegrationProvider) -> IntegrationProviderInfo
         "canAdd": provider.can_add,
         "canDisable": provider.can_disable,
         "features": sorted(f.value for f in provider.features),
-        "aspects": getattr(provider.metadata, "aspects", {}),
+        # test_integration_provider_types checks every provider's aspects against the TypedDict.
+        "aspects": cast(IntegrationAspects, getattr(provider.metadata, "aspects", {})),
     }
 
 
 class IntegrationSerializerResponse(TypedDict):
-    id: str
-    name: str
-    icon: str | None
-    domainName: str | None
-    accountType: str | None
-    scopes: list[str] | None
-    outOfDate: bool | None
+    id: Annotated[str, ApiDescription("ID of the integration")]
+    name: Annotated[
+        str, ApiDescription("Name of the integration, usually the connected account or workspace")
+    ]
+    icon: Annotated[str | None, ApiDescription("URL of the connected account's icon")]
+    domainName: Annotated[
+        str | None,
+        ApiDescription("Domain of the connected account, such as github.com/example-org"),
+    ]
+    accountType: Annotated[
+        str | None, ApiDescription("Type of the connected account, such as Organization or User")
+    ]
+    scopes: Annotated[
+        list[str] | None, ApiDescription("Permission scopes granted to the integration")
+    ]
+    outOfDate: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the installation lacks permissions the latest version of the integration needs. Null for providers without a permissions model"
+        ),
+    ]
     # Features blocked by missing permissions. GitHub tiers are oldest first.
     # None for providers without a permissions model.
-    missingFeatures: list[MissingFeature] | None
-    status: str
-    provider: IntegrationProviderInfo
+    missingFeatures: Annotated[
+        list[MissingFeature] | None,
+        ApiDescription(
+            "Features the installation can't support because of missing permissions. Null for providers without a permissions model"
+        ),
+    ]
+    status: Annotated[ObjectStatusName, ApiDescription("Status of the integration")]
+    provider: Annotated[IntegrationProviderInfo, ApiDescription("Integration provider details")]
 
 
 @register(Integration)
@@ -157,7 +302,7 @@ class IntegrationSerializer(Serializer):
             "scopes": obj.metadata.get("scopes"),
             "outOfDate": out_of_date,
             "missingFeatures": missing_features,
-            "status": obj.get_status_display(),
+            "status": cast(ObjectStatusName, obj.get_status_display()),
             "provider": serialize_provider(provider),
         }
 
@@ -282,7 +427,7 @@ class OrganizationIntegrationSerializer(Serializer):
         organization_integration_fields = {
             "externalId": integration.external_id,
             "organizationId": obj.organization_id,
-            "organizationIntegrationStatus": obj.get_status_display(),
+            "organizationIntegrationStatus": cast(ObjectStatusName, obj.get_status_display()),
             "gracePeriodEnd": obj.grace_period_end,
         }
         if self.params.get("action") == "create":
@@ -332,13 +477,28 @@ class OrganizationIntegrationSerializer(Serializer):
 
 
 class IntegrationProviderResponse(TypedDict):
-    key: str
-    slug: str
-    name: str
-    metadata: Any
-    canAdd: bool
-    canDisable: bool
-    features: list[str]
+    key: Annotated[str, ApiDescription("Key of the integration provider, such as github")]
+    slug: Annotated[str, ApiDescription("Slug of the integration provider, same as key")]
+    name: Annotated[str, ApiDescription("Display name of the integration provider")]
+    metadata: Annotated[
+        IntegrationMetadataResponse | None,
+        ApiDescription(
+            "Provider metadata, such as description, author, source URL and setup details"
+        ),
+    ]
+    canAdd: Annotated[bool, ApiDescription("Whether the integration can be installed from Sentry")]
+    canDisable: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the integration must be uninstalled from the provider instead of in Sentry"
+        ),
+    ]
+    features: Annotated[
+        list[str],
+        ApiDescription(
+            "Features the integration provider supports, such as issue-basic or commits"
+        ),
+    ]
 
 
 class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
@@ -381,8 +541,10 @@ class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
-        metadata: Any = obj.metadata
-        metadata = metadata and metadata.asdict() or None
+        # test_integration_provider_types checks every provider's metadata against the TypedDict.
+        metadata = cast(
+            IntegrationMetadataResponse | None, obj.metadata and obj.metadata.asdict() or None
+        )
 
         can_add = obj.can_add
         if can_add and not obj.allow_multiple and attrs["has_existing_integration"]:

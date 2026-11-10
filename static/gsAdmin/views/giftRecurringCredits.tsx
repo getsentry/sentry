@@ -1,6 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import Papa from 'papaparse';
 
@@ -17,9 +17,8 @@ import {Client} from 'sentry/api';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategoryExact} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getCells} from 'sentry/utils/cells';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -154,9 +153,8 @@ export function GiftRecurringCredits() {
   const userPermissions = ConfigStore.get('user')?.permissions;
   const hasBillingAdmin = !!userPermissions?.has?.('billing.admin');
 
-  const {data: billingConfig} = useApiQuery<BillingConfig>(
-    [getApiUrl('/billing-config/')],
-    {staleTime: Infinity}
+  const {data: billingConfig} = useQuery(
+    apiOptions.as<BillingConfig>()('/billing-config/', {staleTime: Infinity})
   );
 
   const categoryOptions = useMemo(() => {

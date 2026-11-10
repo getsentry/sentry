@@ -1,9 +1,10 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -17,16 +18,34 @@ from sentry.utils.serializers import manytoone_to_dict
 
 
 class OutgoingNotificationActionResponse(TypedDict):
-    id: int
-    organizationId: int
-    integrationId: int | None
-    sentryAppId: int | None
-    projects: list[int]
-    serviceType: str | None
-    triggerType: str
-    targetType: str | None
-    targetIdentifier: str | None
-    targetDisplay: str | None
+    id: Annotated[int, ApiDescription("ID of the notification action")]
+    organizationId: Annotated[int, ApiDescription("ID of the organization")]
+    integrationId: Annotated[
+        int | None,
+        ApiDescription("ID of the integration that sends the notification. Null when none is used"),
+    ]
+    sentryAppId: Annotated[
+        int | None,
+        ApiDescription(
+            "ID of the Sentry app that receives the notification. Null when none is used"
+        ),
+    ]
+    projects: Annotated[list[int], ApiDescription("IDs of the projects the action applies to")]
+    serviceType: Annotated[
+        str | None,
+        ApiDescription("Service that sends the notification, such as email, slack or pagerduty"),
+    ]
+    triggerType: Annotated[
+        str, ApiDescription("What triggers the action, such as audit-log or spike-protection")
+    ]
+    targetType: Annotated[
+        str | None,
+        ApiDescription("Kind of target: specific, user, team, sentry_app or issue_owners"),
+    ]
+    targetIdentifier: Annotated[
+        str | None, ApiDescription("ID of the target in the service, such as a Slack channel ID")
+    ]
+    targetDisplay: Annotated[str | None, ApiDescription("Name of the target, such as #alerts")]
 
 
 class NotificationActionAttrs(TypedDict):

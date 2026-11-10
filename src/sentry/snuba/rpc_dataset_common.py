@@ -834,9 +834,10 @@ class RPCBase:
 
         series_by_label = {series.label: series for series in timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
-        for axis_index, pipeline in transformations.items():
+        for axis_index, axis_transformations in transformations.items():
             has_fill = any(
-                isinstance(transformation, FillTransformation) for transformation in pipeline
+                isinstance(transformation, FillTransformation)
+                for transformation in axis_transformations
             )
             series = series_by_label.get(y_axes[axis_index])
             timestamps = (
@@ -857,7 +858,7 @@ class RPCBase:
             )
             filled = [False] * len(values)
             smoothed = [False] * len(values)
-            for transformation in pipeline:
+            for transformation in axis_transformations:
                 if isinstance(transformation, FillTransformation):
                     filled_timeseries = fill_timeseries(timestamps, values, config=transformation)
                     values = filled_timeseries.values

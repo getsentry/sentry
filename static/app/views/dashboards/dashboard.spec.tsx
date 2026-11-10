@@ -50,9 +50,7 @@ describe('Dashboards > Dashboard', () => {
     window.IntersectionObserver = originalIntersectionObserver;
   });
 
-  const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
     id: '1',
@@ -685,11 +683,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('triggers the edit widget callback', async () => {
-      const testData = initializeOrg({
-        organization: {
-          features: ['dashboards-basic', 'dashboards-edit'],
-        },
-      });
+      const testData = initializeOrg();
       const dashboardWithOneWidget = {
         ...mockDashboard,
         widgets: [newWidget],
@@ -711,11 +705,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('does not show the add widget button if dashboard is in preview mode', async () => {
-      const testData = initializeOrg({
-        organization: {
-          features: ['dashboards-basic', 'dashboards-edit'],
-        },
-      });
+      const testData = initializeOrg();
       const dashboardWithOneWidget = {
         ...mockDashboard,
         widgets: [newWidget],

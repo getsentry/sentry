@@ -272,7 +272,7 @@ function GSBanner({organization, subscription}: Props) {
       // if there is a current guide active, delay Pendo until it's done
       // if no current active guide, can just start Pendo
       // TODO: should delay Pendo if there is any popup at all that's blocking and not just guides
-      const guideIsActive = !!GuideStore.state.currentGuide;
+      const guideIsActive = !!GuideStore.getState().currentGuide;
       window.pendo.initialize({
         guides: {
           delay: guideIsActive,

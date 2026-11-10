@@ -49,7 +49,13 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
+from sentry.seer.workflows.workflow import SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
 from sentry.sentry_apps.services.app.service import app_service
+from sentry.service_accounts.outbox import (
+    ServiceAccountOwner,
+    ServiceAccountOwnerKind,
+    create_owned_service_account,
+)
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
@@ -241,6 +247,23 @@ def process_disable_auth_provider(
     # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
+
+
+def _service_account_owner(kind: ServiceAccountOwnerKind) -> ServiceAccountOwner:
+    match kind:
+        case ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG:
+            return SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
+        case _:
+            assert_never(kind)
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_CREATE)
+def handle_service_account_create(shard_identifier: int, payload: Any, **kwds: Any) -> None:
+    create_owned_service_account(
+        shard_identifier,
+        payload,
+        _service_account_owner(ServiceAccountOwnerKind(payload["owner_kind"])),
+    )
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)

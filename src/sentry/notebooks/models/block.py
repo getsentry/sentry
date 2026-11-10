@@ -94,7 +94,12 @@ class NotebookBlock(DefaultFieldsModel):
                 fields=["notebook", "producer_revision", "producer_key"],
                 condition=Q(producer_key__isnull=False),
                 name="notebook_unique_producer_block",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["notebook", "producer_key"],
+                condition=Q(producer_key__isnull=False, deleted_at__isnull=True),
+                name="notebook_unique_live_producer_block",
+            ),
         ]
 
     __repr__ = sane_repr("notebook_id", "kind", "position")

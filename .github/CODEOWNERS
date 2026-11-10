@@ -14,6 +14,7 @@
 /src/sentry/middleware/staff.py                          @getsentry/foundations
 /src/sentry/middleware/superuser.py                      @getsentry/foundations
 /src/sentry/middleware/viewer_context.py                 @getsentry/machine-learning-ai
+/src/sentry/hybridcloud/                                 @getsentry/hybrid-cloud
 
 ## Distributed Ownership
 ## This is bad practice. Ideally each directory should be owned by a team
@@ -117,7 +118,6 @@
 /src/sentry/api/endpoints/project_transaction_names.py   @getsentry/ingest
 /src/sentry/ingest/                                      @getsentry/ingest
 /src/sentry/interfaces/                                  @getsentry/ingest
-/src/sentry/quotas/                                      @getsentry/ingest
 /src/sentry/relay/                                       @getsentry/ingest
 /src/sentry/tasks/relay.py                               @getsentry/ingest
 /tests/sentry/ingest/                                    @getsentry/ingest
@@ -128,7 +128,6 @@
 /src/sentry/tasks/symbolication.py                       @getsentry/ingest
 /src/sentry/tasks/assemble.py                            @getsentry/ingest
 /src/sentry/tasks/reprocessing2.py                       @getsentry/ingest
-/src/sentry/reprocessing2.py                             @getsentry/ingest
 /src/sentry/attachments/                                 @getsentry/ingest
 /src/sentry/debug_files/                                 @getsentry/ingest
 /src/sentry/models/debugfile.py                          @getsentry/ingest @getsentry/foundational-storage
@@ -265,7 +264,11 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
-/src/sentry/hybridcloud/                                 @getsentry/hybrid-cloud
+/src/sentry/hybridcloud/models/                          @getsentry/hybrid-cloud
+/src/sentry/hybridcloud/outbox/                          @getsentry/hybrid-cloud
+/src/sentry/hybridcloud/rpc/                             @getsentry/hybrid-cloud
+/src/sentry/hybridcloud/services/                        @getsentry/hybrid-cloud
+/src/sentry/hybridcloud/tasks/                           @getsentry/hybrid-cloud
 /src/sentry/api/endpoints/internal/rpc.py                @getsentry/hybrid-cloud
 /src/sentry/organizations/                               @getsentry/hybrid-cloud
 /tests/sentry/hybridcloud/                               @getsentry/hybrid-cloud
@@ -725,6 +728,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/analytics/conversationsAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/utils/analytics/mcpMonitoringAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/views/explore/conversations/                                               @getsentry/agent-tracing
+/static/app/views/classifiers/                                                         @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/agent-tracing
@@ -870,6 +874,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/snuba/search/                                        @getsentry/issues-feed
 ## End of Issues
 
+## Ingest services called from event processing
+# event_manager.py and grouping/ call these, so they must come after Issues.
+/src/sentry/quotas/                                      @getsentry/ingest
+/src/sentry/reprocessing2.py                             @getsentry/ingest
+## End of Ingest services called from event processing
+
 ## Onboarding (Value Discovery)
 # These must come after /src/sentry/api/endpoints/ catch-all above
 /src/sentry/api/endpoints/organization_onboarding_tasks.py                       @getsentry/value-discovery
@@ -986,7 +996,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of Universal Inbox
 
 # Telemetry Experience frontend (after Frontend Platform and gsApp, which would otherwise shadow these)
-/static/app/views/settings/dynamicSampling/                         @getsentry/telemetry-experience
 /static/app/views/settings/project/projectFilters/                  @getsentry/telemetry-experience
 /static/gsApp/components/features/disabledCustomInboundFilters.tsx  @getsentry/telemetry-experience
 # End of Telemetry Experience frontend

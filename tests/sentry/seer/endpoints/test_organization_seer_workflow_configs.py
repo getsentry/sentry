@@ -104,7 +104,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "version": 4,
             "projects": [project.id],
             "monitorIds": [],
-            "agent": None,
+            "serviceAccount": None,
             "environments": ["production"],
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
@@ -715,7 +715,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, workflow.config_id)
 
-        assert response.data["agent"]["projectIds"] == [accessible.id]
+        assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
         assert service_account_project_ids(get_service_account(workflow.config_id)) == sorted(
             [accessible.id, hidden.id]
         )
@@ -874,7 +874,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             self.organization.slug, workflow.config_id, method="put", monitorIds=[]
         )
 
-        assert response.data["agent"] == {
+        assert response.data["serviceAccount"] == {
             "serviceAccountId": str(account.id),
             "scopes": ["event:read"],
             "projectIds": sorted([self.project.id, additional_project.id]),
@@ -898,7 +898,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert not SeerWorkflowConfigProject.objects.filter(config_id=config.id).exists()
         assert not SeerWorkflowRun.objects.filter(id=run.id).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.filter(id=account.id).exists()
+            assert not ServiceAccount.objects.get(id=account.id).is_active
             assert AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"), target_object=account.id
             ).exists()
@@ -954,7 +954,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         monitor.refresh_from_db()
         assert monitor.status == ObjectStatus.ACTIVE
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.filter(id=account.id).exists()
+            assert not ServiceAccount.objects.get(id=account.id).is_active
 
     def create_metric_monitor(self, project: Project) -> Detector:
         return self.create_detector(project=project, type=MetricIssue.slug)
@@ -1012,7 +1012,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         self.login_as(user=self.user)
 
     def get_response(self, *args: Any, **params: Any) -> Response:
-        params.setdefault("agent", {"scopes": ["event:read"]})
+        params.setdefault("serviceAccount", {"scopes": ["event:read"]})
         return super().get_response(*args, **params)
 
     def test_feature_disabled_returns_404(self) -> None:
@@ -1036,7 +1036,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "version": 1,
             "projects": [],
             "monitorIds": [],
-            "agent": {
+            "serviceAccount": {
                 "serviceAccountId": str(config.service_account_id),
                 "scopes": ["event:read"],
                 "projectIds": [],
@@ -1079,7 +1079,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             strategy="breached_metric_investigation",
             name="Checkout errors",
             monitorIds=[monitor.id],
-            agent=agent,
+            serviceAccount=agent,
             status_code=201,
         )
 
@@ -1087,7 +1087,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert account.name.startswith("Seer: Checkout errors ")
         assert service_account_project_ids(account) == [self.project.id, additional_project.id]
         assert SeerWorkflowConfig.objects.get(id=response.data["id"]).version == 1
-        assert response.data["agent"] == {"serviceAccountId": str(account.id), **agent}
+        assert response.data["serviceAccount"] == {"serviceAccountId": str(account.id), **agent}
         assert response.data["projects"] == [self.project.id]
         assert response.data["monitorIds"] == [monitor.id]
 
@@ -1097,14 +1097,14 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization.slug,
             strategy="agentic_triage_v2",
             projectIds=[self.project.id],
-            agent={"scopes": ["event:read"], "allProjects": True},
+            serviceAccount={"scopes": ["event:read"], "allProjects": True},
             status_code=201,
         )
 
         account = get_service_account(int(response.data["id"]))
         assert account.name.startswith("Seer automation ")
         assert account.all_projects
-        assert response.data["agent"] == {
+        assert response.data["serviceAccount"] == {
             "serviceAccountId": str(account.id),
             "scopes": ["event:read"],
             "projectIds": [],
@@ -1122,19 +1122,19 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.get_error_response(
                 self.organization.slug,
                 strategy="agentic_triage_v2",
-                agent={"scopes": ["event:read"]},
+                serviceAccount={"scopes": ["event:read"]},
                 status_code=400,
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert not ServiceAccount.objects.exists()
+            assert not ServiceAccount.objects.filter(is_active=True).exists()
             assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
 
     def test_agent_ignores_duplicate_scopes_and_projects(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
             strategy="agentic_triage_v2",
-            agent={
+            serviceAccount={
                 "scopes": ["project:read", "event:read", "event:read"],
                 "projectIds": [self.project.id, self.project.id],
             },
@@ -1144,8 +1144,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         account = get_service_account(int(response.data["id"]))
         assert account.scope_list == ["event:read", "project:read"]
         assert service_account_project_ids(account) == [self.project.id]
-        assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
-        assert response.data["agent"]["projectIds"] == [self.project.id]
+        assert response.data["serviceAccount"]["scopes"] == ["event:read", "project:read"]
+        assert response.data["serviceAccount"]["projectIds"] == [self.project.id]
 
     def test_agent_grants_are_limited_to_the_callers_access(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/"
@@ -1156,7 +1156,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         lacks_scope = self.client.post(
             url,
-            {"strategy": "agentic_triage_v2", "agent": {"scopes": ["org:admin"]}},
+            {"strategy": "agentic_triage_v2", "serviceAccount": {"scopes": ["org:admin"]}},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
@@ -1164,17 +1164,19 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             url,
             {
                 "strategy": "agentic_triage_v2",
-                "agent": {"scopes": ["event:read"], "allProjects": True},
+                "serviceAccount": {"scopes": ["event:read"], "allProjects": True},
             },
             format="json",
             HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
         assert lacks_scope.status_code == 403
-        assert lacks_scope.data["detail"] == "You can't give an agent scopes you don't have."
+        assert (
+            lacks_scope.data["detail"] == "You can't give a service account scopes you don't have."
+        )
         assert all_projects_without_role.status_code == 403
         assert all_projects_without_role.data["detail"] == (
-            "Only a role with access to all projects can give an agent all projects."
+            "Only a role with access to all projects can give a service account all projects."
         )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):

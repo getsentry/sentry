@@ -610,7 +610,28 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'attributes/',
       name: t('Attributes'),
-      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributes')
+          ),
+        },
+        {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Attributes'),
+              to: '/settings/:orgId/projects/:projectId/attributes/',
+            },
+          },
+          path: ':attributeType/:attributeName/',
+          name: t('Attribute Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributeDetails')
+          ),
+        },
+      ],
     },
     {
       handle: {
@@ -1495,11 +1516,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/earlyFeatures')),
     },
     {
-      path: 'dynamic-sampling/',
-      name: t('Dynamic Sampling'),
-      component: make(() => import('sentry/views/settings/dynamicSampling')),
-    },
-    {
       path: 'mcp-cli/',
       name: t('MCP & CLI'),
       component: make(() => import('sentry/views/settings/organizationMcpCli')),
@@ -1681,7 +1697,7 @@ function buildRoutes(): RouteObject[] {
   const dashboardChildren: SentryRouteObject[] = [
     {
       path: '/dashboards/',
-      component: withDomainRequired(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRequired(NoOp),
       customerDomainOnlyRoute: true,
       children: [
         {
@@ -1693,7 +1709,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: '/organizations/:orgId/dashboards/',
-      component: withDomainRedirect(make(() => import('sentry/views/dashboards'))),
+      component: withDomainRedirect(NoOp),
       children: [
         {
           index: true,

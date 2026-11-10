@@ -424,7 +424,7 @@ describe('Sentry Application Details', () => {
       });
 
       it('returns to a blank form from the template header', async () => {
-        render(<SentryApplicationDetails />, {
+        const {router} = render(<SentryApplicationDetails />, {
           initialRouterConfig: templateRouterConfig,
           organization,
         });
@@ -435,6 +435,10 @@ describe('Sentry Application Details', () => {
 
         expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
         expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
+        expect(router.location.pathname).toBe(
+          '/settings/org-slug/developer-settings/new-internal/'
+        );
+        expect(router.location.query).toEqual({referrer: 'test_referrer'});
       });
     });
   });

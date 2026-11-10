@@ -47,7 +47,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['discover-query', 'dashboards-edit'],
+      features: ['discover-query'],
     });
 
     errorsQuery = {

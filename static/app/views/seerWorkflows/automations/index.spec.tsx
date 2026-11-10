@@ -2,6 +2,7 @@ import {Outlet} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -103,9 +104,7 @@ describe('AutomationsList', () => {
     });
 
     await userEvent.click(await screen.findByRole('link', {name: /Breached metrics/}));
-    await userEvent.click(
-      within(await screen.findByRole('tab', {name: 'Runs'})).getByRole('link')
-    );
+    await userEvent.click(await screen.findByRole('tab', {name: 'Runs'}));
 
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/seer/automations/42/runs/'
@@ -183,6 +182,32 @@ describe('AutomationsList', () => {
     await screen.findByRole('heading', {name: 'paused_strategy'});
     expect(getCard('paused_strategy').getByText('Paused')).toBeInTheDocument();
     expect(getCard('paused_strategy').queryByText(/Next run/)).not.toBeInTheDocument();
+  });
+  it('shows the creator avatar with a tooltip', async () => {
+    mockConfigs([SeerWorkflowConfigFixture({id: '1', createdBy: '7'})]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/7/`,
+      body: UserFixture({id: '7', name: 'Jane Doe', email: 'jane@example.com'}),
+    });
+
+    render(<AutomationsList />, {organization});
+
+    const avatar = await screen.findByTestId('letter_avatar-avatar');
+    await userEvent.hover(avatar);
+    expect(
+      await screen.findByText('Created by Jane Doe (jane@example.com)')
+    ).toBeInTheDocument();
+  });
+
+  it('shows the Sentry icon with a tooltip when there is no creator', async () => {
+    mockConfigs([SeerWorkflowConfigFixture({id: '1'})]);
+
+    render(<AutomationsList />, {organization});
+
+    const heading = await screen.findByRole('heading', {name: 'Agentic triage'});
+    expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
+    await userEvent.hover(heading.nextElementSibling!);
+    expect(await screen.findByText('Built and maintained by Sentry')).toBeInTheDocument();
   });
 });
 

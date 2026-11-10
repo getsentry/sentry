@@ -10,12 +10,12 @@ import {openModal} from '@sentry/scraps/modal';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
-import type {Client} from 'sentry/api';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {withApi} from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {
@@ -40,7 +40,6 @@ import {
 const CPE_DECIMAL_PRECISION = 8;
 
 type Props = {
-  api: Client;
   billingConfig: BillingConfig | null;
   onSuccess: () => void;
   orgId: string;
@@ -321,7 +320,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   };
 
   get endpoint() {
-    return `/customers/${this.props.orgId}/provision-subscription/`;
+    return getApiUrl('/customers/$organizationIdOrSlug/provision-subscription/', {
+      path: {organizationIdOrSlug: this.props.orgId},
+    });
   }
 
   isEnablingOnDemandMaxSpend = () =>
@@ -624,10 +625,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     delete postData.seerBudget;
 
     try {
-      await this.props.api.requestPromise(this.endpoint, {
+      await fetchMutation({
         method: 'POST',
+        url: this.endpoint,
         data: postData,
-        includeAllArgs: true,
       });
       this.props.onSuccess();
       this.props.closeModal();
@@ -1258,9 +1259,7 @@ const DollarsAndCentsContainer = styled('div')`
   }
 `;
 
-const Modal = withApi(ProvisionSubscriptionModal);
-
 type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'billingConfig'>;
 
 export const triggerProvisionSubscription = (opts: Options) =>
-  openModal(deps => <Modal {...deps} {...opts} />, {modalCss});
+  openModal(deps => <ProvisionSubscriptionModal {...deps} {...opts} />, {modalCss});

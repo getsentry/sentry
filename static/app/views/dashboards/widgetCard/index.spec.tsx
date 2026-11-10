@@ -1,6 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -35,7 +36,7 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 describe('Dashboards > WidgetCard', () => {
   const {organization} = initializeOrg({
     organization: OrganizationFixture({
-      features: ['dashboards-edit', 'discover-basic'],
+      features: ['discover-basic'],
     }),
   });
 
@@ -1000,6 +1001,61 @@ describe('Dashboards > WidgetCard', () => {
 
       await screen.findByLabelText('Widget actions');
       expect(screen.queryByLabelText('Widget warnings')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('confidence footer', () => {
+    it('shows the extrapolation confidence footer with data-browsing-time-series-confidence', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {
+          timeSeries: [
+            TimeSeriesFixture({
+              yAxis: 'count()',
+              values: [
+                {
+                  timestamp: 1729796400000,
+                  value: 10,
+                  sampleRate: 0.5,
+                  confidence: 'high',
+                },
+                {timestamp: 1729798200000, value: 2, sampleRate: 0.01, confidence: 'low'},
+              ],
+            }),
+          ],
+        },
+      });
+
+      renderWithProviders(
+        <WidgetCard
+          widget={{
+            title: 'Span Count',
+            interval: '5m',
+            displayType: DisplayType.LINE,
+            widgetType: WidgetType.SPANS,
+            queries: [
+              {
+                conditions: '',
+                fields: ['count()'],
+                aggregates: ['count()'],
+                columns: [],
+                name: '',
+                orderby: '',
+              },
+            ],
+          }}
+          selection={selection}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          showConfidenceWarning
+        />,
+        ['data-browsing-time-series-confidence']
+      );
+
+      expect(await screen.findByText('Low confidence data')).toBeInTheDocument();
     });
   });
 });

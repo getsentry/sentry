@@ -378,6 +378,8 @@ function updateCachedSourceFile(fileName: string, source: string): void {
   const modifiedTime = ts.sys.getModifiedTime?.(resolvedFileName)?.getTime();
   for (const resolver of staleResolvers) {
     resolver.sourceFiles.set(resolvedFileName, {modifiedTime, sourceFile});
+    // Resolved defaults may come from this file, directly or via re-exports.
+    resolver.defaultsByExport.clear();
   }
 }
 
@@ -809,8 +811,6 @@ export const noRedundantDefaultArgument = defineRule({
 
       if (syntacticResolver === undefined) {
         syntacticResolver = getSyntacticResolver(currentFileName) ?? null;
-        syntacticResolver?.defaultsByExport.clear();
-        syntacticResolver?.moduleResolutionCache.clear();
       }
       const defaults = syntacticResolver
         ? getSyntacticImportedDefaults(syntacticResolver, currentFileName, variable)

@@ -309,7 +309,7 @@ export function MetricQueryRows({
           )}
         </Stack>
       )}
-      <Flex gap="md" align="center">
+      <Flex gap="md" align="baseline">
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}

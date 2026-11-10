@@ -66,7 +66,7 @@ describe('StreamGroup', () => {
     render(<StreamGroupInTable group={group1} hasGuideAnchor />);
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
-    expect(GuideStore.state.anchors).toEqual(new Set(['issue_stream']));
+    expect(GuideStore.getState().anchors).toEqual(new Set(['issue_stream']));
   });
 
   it('shows not reviewed when group has inbox reason', async () => {

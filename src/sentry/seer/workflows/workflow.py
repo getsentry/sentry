@@ -6,13 +6,13 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, assert_never
-from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
 from pydantic import BaseModel
 
 from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
@@ -30,7 +30,13 @@ from sentry.seer.models.workflow import (
     WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.service_accounts.models import MAX_NAME_LENGTH, ServiceAccountReplica
+from sentry.service_accounts.models import (
+    MAX_NAME_LENGTH,
+    InvalidScopeError,
+    ServiceAccountReplica,
+    validate_grantable_scopes,
+)
+from sentry.service_accounts.outbox import ServiceAccountOwnerKind, service_account_create_outbox
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
@@ -114,41 +120,6 @@ class SeerWorkflow:
 
     @classmethod
     @contextmanager
-    def _create_service_account(
-        cls,
-        organization_id: int,
-        grant: SeerServiceAccountGrant,
-        *,
-        automation_name: str | None,
-        created_by_id: int | None,
-    ) -> Iterator[RpcServiceAccount]:
-        """Create the automation's service account, deleting it again if the block raises."""
-        if not grant.all_projects:
-            _validate_project_ids(organization_id, set(grant.project_ids))
-        # TODO(telkins): Suffix the name with the config ID instead. The account is created
-        # before the config exists, so this needs a rename after linking.
-        suffix = uuid4().hex[:8]
-        prefix = f"Seer: {automation_name}" if automation_name else "Seer automation"
-        account = service_account_service.create_service_account(
-            organization_id=organization_id,
-            name=f"{prefix[: MAX_NAME_LENGTH - len(suffix) - 1]} {suffix}",
-            scope_list=list(grant.scopes),
-            project_ids=[] if grant.all_projects else list(grant.project_ids),
-            all_projects=grant.all_projects,
-            created_by_id=created_by_id,
-        )
-        try:
-            yield account
-        except BaseException:
-            # TODO(telkins): Look for a transactional way to create the account and config
-            # together instead of deleting the account when the config fails.
-            service_account_service.delete_service_account(
-                organization_id=organization_id, service_account_id=account.id
-            )
-            raise
-
-    @classmethod
-    @contextmanager
     def _create_config(
         cls,
         *,
@@ -161,40 +132,59 @@ class SeerWorkflow:
         extras: SeerWorkflowConfigExtras | None = None,
     ) -> Iterator[SeerWorkflowConfig]:
         """
-        Create a config and its service account within the org's automation limit.
-        Writes in the block share the config's transaction, and the account is deleted if
-        the block raises.
-        """
-        extras = extras or SeerWorkflowConfigExtras()
-        with (
-            cls._create_service_account(
-                organization_id,
-                service_account_grant,
-                automation_name=extras.name,
-                created_by_id=extras.created_by,
-            ) as account,
-            transaction.atomic(database),
-        ):
-            existing = (
-                SeerWorkflowConfig.objects.using(database)
-                .filter(
-                    organization_id=organization_id,
-                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-                )
-                .count()
-            )
-            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-                raise WorkflowUpdateError(
-                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-                )
+        Create a config within the org's automation limit, with an outbox that creates its
+        service account in control. Writes in the block share the config's
+        transaction, so a config is never committed without the outbox that links its
+        account.
 
-            yield SeerWorkflowConfig.objects.using(database).create(
-                organization_id=organization_id,
-                strategy=strategy,
-                enabled=enabled,
-                filters=filters.dict(),
-                extras=extras.dict(exclude_none=True),
-                service_account_id=account.id,
+        The outbox drains when the transaction commits. If that fails, the config is kept
+        without an account and the outbox retries in the background.
+        """
+        if not service_account_grant.all_projects:
+            _validate_project_ids(organization_id, set(service_account_grant.project_ids))
+        try:
+            validate_grantable_scopes(service_account_grant.scopes)
+        except InvalidScopeError as e:
+            raise WorkflowUpdateError(" ".join(e.messages)) from e
+
+        extras = extras or SeerWorkflowConfigExtras()
+        try:
+            with outbox_context(transaction.atomic(database), flush=True):
+                existing = (
+                    SeerWorkflowConfig.objects.using(database)
+                    .filter(
+                        organization_id=organization_id,
+                        strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+                    )
+                    .count()
+                )
+                if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+                    raise WorkflowUpdateError(
+                        f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+                    )
+
+                config = SeerWorkflowConfig.objects.using(database).create(
+                    organization_id=organization_id,
+                    strategy=strategy,
+                    enabled=enabled,
+                    filters=filters.dict(),
+                    extras=extras.dict(exclude_none=True),
+                )
+                service_account_create_outbox(
+                    organization_id=organization_id,
+                    owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
+                    owner_id=config.id,
+                    name=_service_account_name(config.id, extras.name),
+                    scope_list=service_account_grant.scopes,
+                    project_ids=service_account_grant.project_ids,
+                    all_projects=service_account_grant.all_projects,
+                    created_by_id=extras.created_by,
+                ).save()
+                yield config
+        except (OutboxFlushError, OutboxDatabaseError):
+            logger.exception(
+                "seer.workflow.service_account.flush_failed",
+                extra={"organization_id": organization_id},
             )
 
     @classmethod
@@ -555,3 +545,28 @@ def _validate_project_ids(organization_id: int, project_ids: set[int]) -> None:
     )
     if project_ids != valid_project_ids:
         raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
+
+
+def _service_account_name(config_id: int, automation_name: str | None) -> str:
+    suffix = f"#{config_id}"
+    prefix = f"Seer: {automation_name}" if automation_name else "Seer automation"
+    return f"{prefix[: MAX_NAME_LENGTH - len(suffix) - 1]} {suffix}"
+
+
+class SeerWorkflowServiceAccountOwner:
+    def needs_service_account(self, organization_id: int, owner_id: int) -> bool:
+        return self._unlinked(organization_id, owner_id).exists()
+
+    def link_service_account(
+        self, organization_id: int, owner_id: int, service_account_id: int
+    ) -> None:
+        # Linking isn't a configuration change, so it doesn't bump the version.
+        self._unlinked(organization_id, owner_id).update(service_account_id=service_account_id)
+
+    def _unlinked(self, organization_id: int, config_id: int) -> QuerySet[SeerWorkflowConfig]:
+        return SeerWorkflowConfig.objects.filter(
+            id=config_id, organization_id=organization_id, service_account_id__isnull=True
+        )
+
+
+SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER = SeerWorkflowServiceAccountOwner()

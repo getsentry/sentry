@@ -1,18 +1,23 @@
 from collections.abc import Mapping
-from typing import Literal, NotRequired, Protocol, TypedDict, cast
+from typing import Annotated, Literal, NotRequired, Protocol, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
 class ActorSerializerResponse(TypedDict):
-    type: Literal["user", "team"]
-    id: str
-    name: str
-    email: NotRequired[str]
+    type: Annotated[
+        Literal["user", "team"], ApiDescription("Whether the actor is a user or a team")
+    ]
+    id: Annotated[str, ApiDescription("ID of the user or team")]
+    name: Annotated[str, ApiDescription("Display name of the user, or slug of the team")]
+    email: NotRequired[
+        Annotated[str, ApiDescription("Email address of the user. Only set for users")]
+    ]
 
 
 class _Actor(Protocol):
