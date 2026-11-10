@@ -121,13 +121,44 @@ describe('DropdownMenu', () => {
     }
   });
 
-  it('closes an open submenu when a trailing action in the parent menu is hovered', async () => {
-    const onTrailingClick = jest.fn();
-
+  it('treats hovering a trailing action as hovering its item', async () => {
+    const user = userEvent.setup();
     render(
       <DropdownMenu
         triggerLabel="Projects"
         items={[
+          {key: 'other', label: 'Other'},
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {icon: <IconStar />, label: 'Bookmark', onAction: jest.fn()},
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Projects'}));
+    await user.hover(screen.getByRole('menuitemradio', {name: 'Other'}));
+    await user.hover(screen.getByRole('button', {name: 'Bookmark'}));
+
+    // The focused item is the highlighted one.
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toHaveFocus();
+  });
+
+  it('closes a sibling submenu before a trailing action reached diagonally is pressed', async () => {
+    const user = userEvent.setup();
+    const onTrailingClick = jest.fn();
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: true,
+            children: [{key: 'other-project', label: 'Other Project'}],
+          },
           {
             key: 'project',
             label: 'Project',
@@ -137,33 +168,37 @@ describe('DropdownMenu', () => {
               onAction: onTrailingClick,
             },
           },
-          {
-            key: 'all-projects',
-            label: 'All Projects',
-            submenu: true,
-            children: [{key: 'other-project', label: 'Other Project'}],
-          },
         ]}
       />,
       {wrapper: ThemeWrapper}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Other Project'})
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', {name: 'Projects'}));
+    await user.pointer({
+      target: screen.getByRole('menuitemradio', {name: 'All Projects'}),
+      coords: {clientX: 80, clientY: 20},
+    });
+    const child = screen.getByRole('menuitemradio', {name: 'Other Project'});
+    // Geometry belongs to the floating position wrapper around the submenu.
+    // oxlint-disable-next-line testing-library/no-node-access
+    const submenu = screen.getAllByRole('menu')[1]!.parentElement!.parentElement!;
+    jest
+      .spyOn(submenu, 'getBoundingClientRect')
+      .mockReturnValue(new DOMRect(200, 0, 200, 240));
 
-    // The trailing action sits outside its item's hover area.
-    await userEvent.hover(screen.getByRole('button', {name: 'Bookmark'}));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('menuitemradio', {name: 'Other Project'})
-      ).not.toBeInTheDocument()
-    );
+    // Moving toward the submenu defers the item and trailing action hovers.
+    await user.pointer({
+      target: screen.getByRole('menuitemradio', {name: 'Project'}),
+      coords: {clientX: 150, clientY: 60},
+    });
+    const star = screen.getByRole('button', {name: 'Bookmark'});
+    await user.pointer({target: star, coords: {clientX: 180, clientY: 60}});
+    expect(child).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Bookmark'}));
+    await user.pointer({keys: '[MouseLeft]', target: star});
+
     expect(onTrailingClick).toHaveBeenCalledTimes(1);
+    expect(child).not.toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
   });
 

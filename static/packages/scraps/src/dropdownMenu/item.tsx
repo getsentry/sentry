@@ -330,6 +330,38 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
 
+  // Pointer handlers for the whole row. The trailing action sits beside the item
+  // rather than inside it, so it gets them too: hovering it then focuses the item
+  // and closes sibling submenus, as hovering the item does.
+  const rowPointerProps = {
+    onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+      // React clears currentTarget after dispatch, but hover may be deferred.
+      const savedEvent = {...event, currentTarget: event.currentTarget};
+      const enter = () => onPointerEnter?.(savedEvent);
+      if (safetyTriangle) {
+        safetyTriangle.defer(event, enter);
+      } else {
+        enter();
+      }
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+      onPointerMove?.(event);
+    },
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      safetyTriangle?.leave(event.currentTarget);
+      if (
+        event.pointerType === 'mouse' &&
+        submenuRef?.current &&
+        lastPointerPosition.current
+      ) {
+        safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
+      }
+      onPointerLeave?.(event);
+    },
+  };
+
   return (
     <ListItem
       ref={mergeRefs(ref, itemRef, rowProps?.ref)}
@@ -356,56 +388,13 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={{
-        ...mergedMenuItemContentProps,
-        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          // React clears currentTarget after dispatch, but hover may be deferred.
-          const savedEvent = {...event, currentTarget: event.currentTarget};
-          const enter = () => onPointerEnter?.(savedEvent);
-          if (safetyTriangle) {
-            safetyTriangle.defer(event, enter);
-          } else {
-            enter();
-          }
-        },
-        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          onPointerMove?.(event);
-        },
-        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
-          safetyTriangle?.leave(event.currentTarget);
-          if (
-            event.pointerType === 'mouse' &&
-            submenuRef?.current &&
-            lastPointerPosition.current
-          ) {
-            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
-          }
-          onPointerLeave?.(event);
-        },
-      }}
+      innerWrapProps={{...mergedMenuItemContentProps, ...rowPointerProps}}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
       trailingActionRef={trailingActionRef}
       trailingActionWrapperProps={{
-        // The trailing action sits outside the item's hover area. Close any open
-        // sibling submenu on hover, as hovering the item does, so a press on the
-        // action does not land outside that submenu and close the whole menu.
-        onPointerEnter: event => {
-          const enter = () => {
-            if (!state.selectionManager.isSelected(node.key)) {
-              state.selectionManager.clearSelection();
-            }
-          };
-          if (safetyTriangle) {
-            safetyTriangle.defer(event, enter);
-          } else {
-            enter();
-          }
-        },
-        onPointerLeave: event => safetyTriangle?.leave(event.currentTarget),
+        ...rowPointerProps,
         onKeyDown: event => {
           if (event.key === 'ArrowLeft') {
             event.preventDefault();
