@@ -10,6 +10,7 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
   FractionUnit,
+  parseFunction,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -389,10 +390,29 @@ export function getEquationMetricsTotalFilter(equation: string) {
     .filter(isTokenFunction)
     .map(token => normalizeFunctionToken(token).plainAggregate);
 
-  const traceMetricsUsed = aggregatesUsed.map(aggregate => {
-    const {traceMetric} = parseMetricAggregate(aggregate);
-    return traceMetric;
-  });
+  return getAggregatesMetricsTotalFilter(aggregatesUsed);
+}
 
-  return createTraceMetricEventsFilter(traceMetricsUsed);
+export function getAggregatesMetricsTotalFilter(aggregates: string[]) {
+  return aggregates
+    .map(aggregate => {
+      const {traceMetric} = parseMetricAggregate(aggregate);
+      if (!traceMetric.name || !traceMetric.type) {
+        return null;
+      }
+
+      // The backend reads a '-' unit in an aggregate as any unit, so the total must not filter by unit.
+      if (parseFunction(aggregate)?.arguments.at(-1) === '-') {
+        const search = new MutableSearch('');
+        search.addOp('(');
+        search.addFilterValue('metric.name', traceMetric.name);
+        search.addFilterValue('metric.type', traceMetric.type);
+        search.addOp(')');
+        return search.toString();
+      }
+
+      return createTraceMetricEventsFilter([traceMetric]);
+    })
+    .filter(defined)
+    .join(' OR ');
 }
