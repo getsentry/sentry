@@ -2776,11 +2776,6 @@
       "count": 1
     }
   },
-  "views/explore/components/attributeBreakdowns/floatingTrigger.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/explore/components/attributeBreakdowns/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2824,11 +2819,6 @@
       "count": 1
     }
   },
-  "views/explore/conversations/onboarding.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/explore/hooks/useTraceItemDetails.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
@@ -2855,9 +2845,6 @@
     }
   },
   "views/explore/logs/logsOnboarding.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
@@ -2914,21 +2901,8 @@
       "count": 1
     }
   },
-  "views/explore/metrics/metricsHeatMap.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/explore/metrics/metricsOnboarding.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
-  "views/explore/metrics/metricsTabSeerComboBox.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3218,18 +3192,8 @@
       "count": 1
     }
   },
-  "views/explore/savedFormulas/savedFormulasTable.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/explore/savedQueries/exploreParams.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/explore/savedQueries/savedQueriesLandingContent.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
