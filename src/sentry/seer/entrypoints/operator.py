@@ -210,8 +210,10 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+        from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
+        from sentry.seer.credits import SeerBillingFeature
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
@@ -271,6 +273,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             step=AutofixStep.ROOT_CAUSE,
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
+                            billing_feature=SeerBillingFeature.AUTOFIX,
                             user=user,
                         )
                         run_id = run.seer_run_state_id
@@ -302,6 +305,11 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        billing_feature=(
+                            get_run_billing_feature(existing_state)
+                            if existing_state and existing_state.run_id == run_id
+                            else SeerBillingFeature.AUTOFIX
+                        ),
                         user=user,
                     )
             except NoSeerQuotaException:

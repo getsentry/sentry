@@ -14,6 +14,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import get_automation_handoff
+from sentry.seer.credits import SeerBillingFeature
 from sentry.seer.models import SeerPermissionError
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
@@ -69,6 +70,7 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     user=user,
                     actor_user_id=actor.user_id,
                     single_run=True,

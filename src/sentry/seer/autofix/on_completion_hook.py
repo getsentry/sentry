@@ -29,6 +29,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
@@ -793,6 +794,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 step=next_step,
                 referrer=referrer,
                 run_id=run_id,
+                billing_feature=get_run_billing_feature(state),
             )
         except SeerOutOfCreditsException:
             logger.info(

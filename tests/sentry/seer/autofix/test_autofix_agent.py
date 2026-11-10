@@ -36,7 +36,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.credits import SeerFeature
+from sentry.seer.credits import SeerBillingFeature
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -346,6 +346,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.CODE_CHANGES,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=None,
         )
 
@@ -388,6 +389,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.ROOT_CAUSE,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=None,
         )
 
@@ -435,6 +437,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=777,
             user_context="Keep compatibility",
             insert_index=3,
@@ -473,6 +476,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
         )
 
         assert result == feature_run
@@ -509,6 +513,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.CODE_CHANGES,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=777,
             user_context="Keep compatibility",
             insert_index=3,
@@ -558,6 +563,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=777,
             actor_user_id=self.user.id,
         )
@@ -591,6 +597,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.ROOT_CAUSE,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
         )
 
         assert mock_record_activity.call_args.kwargs["activity_attribution"] is None
@@ -611,6 +618,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.CODE_CHANGES,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
         )
 
         assert result == feature_run
@@ -651,6 +659,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.PR_ITERATION,
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=67890,
             user_context="Rename the helper.",
             feedback=[
@@ -703,6 +712,7 @@ class TestTriggerAutofixAgent(TestCase):
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=AutofixReferrer.UNKNOWN,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 run_id=67890,
             )
 
@@ -726,6 +736,7 @@ class TestTriggerAutofixAgent(TestCase):
                 group=self.group,
                 step=AutofixStep.CODE_CHANGES,
                 referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 allow_free_cohort=True,
             )
 
@@ -745,6 +756,7 @@ class TestTriggerAutofixAgent(TestCase):
             group=self.group,
             step=AutofixStep.CODE_CHANGES,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             run_id=67890,
         )
 
@@ -768,6 +780,7 @@ class TestTriggerAutofixAgent(TestCase):
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=AutofixReferrer.UNKNOWN,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 run_id=67890,
             )
 
@@ -789,6 +802,7 @@ class TestTriggerAutofixAgent(TestCase):
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=AutofixReferrer.UNKNOWN,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 run_id=67890,
             )
 
@@ -821,6 +835,7 @@ class TestTriggerAutofixAgent(TestCase):
                 group=self.group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=AutofixReferrer.UNKNOWN,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 run_id=67890,
             )
 
@@ -846,6 +861,7 @@ class TestTriggerAutofixAgent(TestCase):
                 group=self.group,
                 step=AutofixStep.SOLUTION,
                 referrer=AutofixReferrer.UNKNOWN,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 run_id=777,
                 user_context="Find a solution",
             )
@@ -909,6 +925,7 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
             group=self.group,
             step=AutofixStep.CODE_CHANGES,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            billing_feature=SeerBillingFeature.AUTOFIX,
         )
 
         assert _trigger_attempts(mock_incr) == [
@@ -930,6 +947,7 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
                 self.group,
                 AutofixStep.ROOT_CAUSE,
                 AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+                billing_feature=SeerBillingFeature.AUTOFIX,
             )
 
         assert _trigger_attempts(mock_incr) == [
@@ -959,6 +977,7 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
                 self.group,
                 AutofixStep.ROOT_CAUSE,
                 AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+                billing_feature=SeerBillingFeature.AUTOFIX,
             )
 
         assert _trigger_attempts(mock_incr) == [
@@ -986,6 +1005,7 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
                 group=self.group,
                 step=AutofixStep.CODE_CHANGES,
                 referrer=AutofixReferrer.SLACK,
+                billing_feature=SeerBillingFeature.AUTOFIX,
             )
 
         assert _trigger_attempts(mock_incr) == [
@@ -1619,6 +1639,7 @@ class TestTriggerPushChanges(TestCase):
         self,
         mock_post: MagicMock,
         features: dict[str, bool] | None = None,
+        billing_feature: SeerBillingFeature | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Push with a minimal run state and return the payload sent to Seer."""
@@ -1631,6 +1652,7 @@ class TestTriggerPushChanges(TestCase):
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={},
             metadata={"group_id": self.group.id},
+            billing_feature=billing_feature,
         )
 
         with self.feature(features or {}):
@@ -1678,11 +1700,7 @@ class TestTriggerPushChanges(TestCase):
         self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
         with pytest.raises(SeerOutOfCreditsException):
-            trigger_push_changes(
-                group=self.group,
-                run_id=123,
-                referrer=AutofixReferrer.UNKNOWN,
-            )
+            self._push(mock_post)
 
         mock_post.assert_not_called()
 
@@ -1694,15 +1712,13 @@ class TestTriggerPushChanges(TestCase):
     def test_agentic_triage_run_skips_credit_check(
         self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
-        run = mirror_autofix_run(self, self.group, 123)
-        run.agent.update(extras={"seer_feature": SeerFeature.AGENTIC_TRIAGE.value})
-
         self._push(
             mock_post,
             features={
                 "organizations:seer-credit-checks": True,
                 "organizations:token-billed-seer-enabled": True,
             },
+            billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
         )
 
         mock_check_seer_credits.assert_not_called()
@@ -1863,6 +1879,7 @@ class TestSingleRunStartedEvents(TestCase):
             group=group,
             step=AutofixStep.ROOT_CAUSE,
             referrer=AutofixReferrer.UNKNOWN,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             single_run=True,
         )
 

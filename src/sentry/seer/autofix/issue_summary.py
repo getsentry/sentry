@@ -43,6 +43,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
+from sentry.seer.credits import SeerBillingFeature
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import IssueSummary, SummarizeIssueResponse
@@ -196,6 +197,7 @@ def _trigger_autofix_task(
                 step=AutofixStep.ROOT_CAUSE,
                 referrer=referrer,
                 run_id=None,
+                billing_feature=SeerBillingFeature.AUTOFIX,
                 stopping_point=stopping_point,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):

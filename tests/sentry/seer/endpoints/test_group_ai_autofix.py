@@ -6,6 +6,9 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from django.test import override_settings
 from django.utils import timezone
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
@@ -38,7 +41,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.credits import SeerFeature, SeerOperation
+from sentry.seer.credits import SeerBillingFeature, SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -1221,6 +1224,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             run_id=None,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             user_context=None,
             insert_index=None,
             user=ANY,
@@ -1258,6 +1262,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             stopping_point=None,
             run_id=42,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             user_context=None,
             insert_index=3,
             user=ANY,
@@ -1697,13 +1702,14 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "code": "seer_out_of_credits",
         }
         mock_can_run.assert_called_once_with(
-            group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+            group.organization, SeerBillingFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
         )
         mock_enqueue.assert_not_called()
 
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
-        "sentry.seer.autofix.pr_iteration.manual_trigger.can_run_seer_operation",
-        return_value=False,
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
@@ -1713,24 +1719,19 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_run_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_consume: MagicMock,
-        mock_can_run: MagicMock,
+        mock_check_seer_credits: MagicMock,
     ) -> None:
         """Runs agentic triage starts aren't billed yet."""
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        self.create_seer_agent_run(
-            run=run,
-            source="autofix",
-            group=group,
-            project=group.project,
-            extras={"seer_feature": SeerFeature.AGENTIC_TRIAGE.value},
-        )
+        self.create_seer_agent_run(run=run, source="autofix", group=group, project=group.project)
         mock_run_state.return_value = SeerRunState(
             run_id=123,
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
+            billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
         )
 
         self.login_as(user=self.user)
@@ -1741,6 +1742,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
+        mock_check_seer_credits.assert_not_called()
         mock_enqueue.assert_called_once()
         mock_consume.assert_called_once()
 

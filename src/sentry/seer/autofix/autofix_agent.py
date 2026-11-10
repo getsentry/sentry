@@ -36,7 +36,7 @@ from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     autofix_run_targets_other_issue,
     check_autofix_billing,
-    get_run_seer_feature,
+    get_run_billing_feature,
     require_autofix_run_for_group,
     trigger_autofix_feature,
 )
@@ -65,7 +65,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     read_preference_from_sentry_db,
 )
-from sentry.seer.credits import SeerFeature, SeerOperation
+from sentry.seer.credits import SeerBillingFeature, SeerOperation
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -439,7 +439,9 @@ def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
     referrer: AutofixReferrer,
+    *,
     run_id: int | None = None,
+    billing_feature: SeerBillingFeature,
     stopping_point: AutofixStoppingPoint | None = None,
     user_context: str | None = None,
     insert_index: int | None = None,
@@ -450,7 +452,6 @@ def trigger_autofix_agent(
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
     single_run: bool = False,
-    seer_feature: SeerFeature = SeerFeature.AUTOFIX,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -459,11 +460,11 @@ def trigger_autofix_agent(
         group: The Sentry group (issue) to analyze
         step: Which autofix step to run
         run_id: Existing run ID to continue, or None for new run
+        billing_feature: Internal-only. The feature the run is billed to for its whole life.
+            Not exposed via the API.
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by agentic triage to bypass
             quota for free cohort orgs. Not exposed via the API.
-        seer_feature: Internal-only. Agentic triage starts runs with AGENTIC_TRIAGE.
-            Not exposed via the API.
     """
     outcome = "success"
     try:
@@ -501,13 +502,13 @@ def trigger_autofix_agent(
         args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
+            step_args=step_args,
+            billing_feature=billing_feature,
             existing_run_id=run_id,
             insert_index=insert_index,
-            step_args=step_args,
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
-            seer_feature=seer_feature,
             user=user,
             single_run=single_run,
         )
@@ -838,25 +839,19 @@ def trigger_push_changes(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    seer_run = (
-        SeerRun.objects.filter(organization_id=group.organization.id, seer_run_state_id=run_id)
-        .select_related("agent")
-        .first()
-    )
-    seer_agent_run = getattr(seer_run, "agent", None)
-    check_autofix_billing(
-        group.organization,
-        SeerOperation.AUTOFIX_OPEN_PR,
-        is_new_run=False,
-        seer_feature=get_run_seer_feature(seer_agent_run),
-    )
-
     client = get_autofix_agent_client(group, user=user)
 
     if state is None:
         state = _get_group_run_state(client, group, run_id)
     else:
         _validate_run_belongs_to_group(state, group)
+
+    check_autofix_billing(
+        group.organization,
+        get_run_billing_feature(state),
+        SeerOperation.AUTOFIX_OPEN_PR,
+        is_new_run=False,
+    )
 
     record_autofix_event(
         AiAutofixPrCreatedStartedEvent(
@@ -867,6 +862,10 @@ def trigger_push_changes(
             run_id=run_id,
         )
     )
+
+    seer_run = SeerRun.objects.filter(
+        organization_id=group.organization.id, seer_run_state_id=run_id
+    ).first()
 
     # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(

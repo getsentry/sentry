@@ -26,7 +26,7 @@ from sentry.seer.autofix.feature.models import (
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.credits import SeerFeature
+from sentry.seer.credits import SeerBillingFeature
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -66,6 +66,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     existing_run_id=123,
                     insert_index=4,
@@ -162,6 +163,7 @@ class TestTriggerAutofixFeature(TestCase):
                     self.group,
                     AutofixFeatureArgs(
                         referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                        billing_feature=SeerBillingFeature.AUTOFIX,
                         step=AutofixStep.SOLUTION,
                         existing_run_id=123,
                         user_context="Find a solution",
@@ -190,6 +192,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.SOLUTION,
                     existing_run_id=123,
                     user_context="Find a solution",
@@ -213,6 +216,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     stopping_point=AutofixStoppingPoint.OPEN_PR,
@@ -237,9 +241,9 @@ class TestTriggerAutofixFeature(TestCase):
         assert start_kwargs["flush"] is True
         assert start_kwargs["extras"] == {
             "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
-            "seer_feature": SeerFeature.AUTOFIX.value,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
+        assert start_kwargs["billing_feature"] == SeerBillingFeature.AUTOFIX.value
 
     def test_raises_when_out_of_budget(self) -> None:
         with (
@@ -253,6 +257,7 @@ class TestTriggerAutofixFeature(TestCase):
                     self.group,
                     AutofixFeatureArgs(
                         referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                        billing_feature=SeerBillingFeature.AUTOFIX,
                         step=AutofixStep.ROOT_CAUSE,
                         step_args=RCAStepArgs(),
                     ),
@@ -275,6 +280,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     allow_free_cohort=True,
@@ -300,6 +306,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     allow_free_cohort=True,
@@ -327,6 +334,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                 ),
@@ -354,6 +362,7 @@ class TestTriggerAutofixFeature(TestCase):
                     self.group,
                     AutofixFeatureArgs(
                         referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                        billing_feature=SeerBillingFeature.AUTOFIX,
                         step=AutofixStep.ROOT_CAUSE,
                         step_args=RCAStepArgs(),
                     ),
@@ -385,6 +394,7 @@ class TestTriggerAutofixFeature(TestCase):
                     self.group,
                     AutofixFeatureArgs(
                         referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                        billing_feature=SeerBillingFeature.AUTOFIX,
                         step=AutofixStep.SOLUTION,
                         existing_run_id=123,
                         step_args=SolutionStepArgs(),
@@ -415,14 +425,14 @@ class TestTriggerAutofixFeature(TestCase):
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
-                    seer_feature=SeerFeature.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
                 ),
             )
 
         assert run is fake_run
         mock_check_seer_credits.assert_not_called()
-        extras = MockClient.return_value.start_feature_run.call_args.kwargs["extras"]
-        assert extras["seer_feature"] == SeerFeature.AGENTIC_TRIAGE
+        start_kwargs = MockClient.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["billing_feature"] == SeerBillingFeature.AGENTIC_TRIAGE
 
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
@@ -438,7 +448,6 @@ class TestTriggerAutofixFeature(TestCase):
             source=FEATURE_ID,
             group=self.group,
             project=self.group.project,
-            extras={"seer_feature": SeerFeature.AGENTIC_TRIAGE.value},
         )
 
         with (
@@ -454,6 +463,7 @@ class TestTriggerAutofixFeature(TestCase):
                     step=AutofixStep.SOLUTION,
                     existing_run_id=123,
                     step_args=SolutionStepArgs(),
+                    billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
                 ),
             )
 
@@ -474,6 +484,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     flush=False,
@@ -497,6 +508,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     user=user,
@@ -522,6 +534,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.UNKNOWN,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.CODE_CHANGES,
                     step_args=CodeChangesStepArgs(),
                 ),
@@ -554,6 +567,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.PR_ITERATION,
                     existing_run_id=123,
                     step_args=PrIterationStepArgs(
@@ -591,6 +605,7 @@ class TestTriggerAutofixFeature(TestCase):
                 self.group,
                 AutofixFeatureArgs(
                     referrer=AutofixReferrer.UNKNOWN,
+                    billing_feature=SeerBillingFeature.AUTOFIX,
                     step=AutofixStep.CODE_CHANGES,
                     step_args=CodeChangesStepArgs(),
                     existing_run_id=123,
@@ -746,7 +761,12 @@ class TestContinueSingleRun(TestCase):
         self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
         self.organization.update_option("sentry:enable_seer_coding", True)
 
-    def _reply(self, *, can_publish: bool = True) -> MagicMock:
+    def _reply(
+        self,
+        *,
+        can_publish: bool = True,
+        billing_feature: SeerBillingFeature = SeerBillingFeature.AUTOFIX,
+    ) -> MagicMock:
         with patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls:
             mock_client_cls.return_value.continue_feature_run.return_value = self.seer_run
             continue_single_run(
@@ -756,6 +776,7 @@ class TestContinueSingleRun(TestCase):
                 user=self.user,
                 can_publish=can_publish,
                 referrer=AutofixReferrer.SEER_EXPLORER,
+                billing_feature=billing_feature,
             )
         return mock_client_cls
 
@@ -811,6 +832,7 @@ class TestContinueSingleRun(TestCase):
                 user=self.user,
                 can_publish=True,
                 referrer=AutofixReferrer.SEER_EXPLORER,
+                billing_feature=SeerBillingFeature.AUTOFIX,
             )
 
         mock_client_cls.return_value.continue_feature_run.assert_not_called()
@@ -823,8 +845,6 @@ class TestContinueSingleRun(TestCase):
     def test_agentic_triage_run_skips_credit_check(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        self.agent_run.update(extras={"seer_feature": SeerFeature.AGENTIC_TRIAGE.value})
-
-        self._reply()
+        self._reply(billing_feature=SeerBillingFeature.AGENTIC_TRIAGE)
 
         mock_check_seer_credits.assert_not_called()

@@ -9,7 +9,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 
 from sentry.seer.credits import (
     SEER_OPERATION_ESTIMATES,
-    SeerFeature,
+    SeerBillingFeature,
     SeerOperation,
     can_run_seer_operation,
 )
@@ -31,7 +31,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SeerBillingFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_not_called()
 
@@ -44,7 +44,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SeerBillingFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_not_called()
 
@@ -57,7 +57,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert not can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SeerBillingFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_called_once_with(
             CheckSeerCreditsRequest(
@@ -77,5 +77,5 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            self.organization, SeerBillingFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
         )

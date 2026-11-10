@@ -20,20 +20,19 @@ from rest_framework.response import Response
 from sentry.models.group import Group
 from sentry.seer.autofix.autofix_agent import get_autofix_run_state
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feature.dispatch import get_run_seer_feature
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.utils import (
     SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
     SEER_OUT_OF_CREDITS_CODE,
     SEER_PERMISSION_DENIED,
 )
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.models.run import SeerAgentRun
 from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.users.services.user.service import user_service
 
@@ -89,17 +88,8 @@ def handle_ui_feedback(
         )
 
     # Check credits here, since the queued feedback is consumed after this request returns.
-    # Runs agentic triage starts aren't billed yet.
-    if (
-        not can_run_seer_operation(
-            group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
-        )
-        and get_run_seer_feature(
-            SeerAgentRun.objects.filter(
-                run__organization_id=group.organization.id, run__seer_run_state_id=run_id
-            ).first()
-        )
-        != SeerFeature.AGENTIC_TRIAGE
+    if not can_run_seer_operation(
+        group.organization, get_run_billing_feature(run_state), SeerOperation.AUTOFIX_PR_ITERATION
     ):
         return Response(
             {

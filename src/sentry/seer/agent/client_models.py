@@ -400,6 +400,8 @@ class SeerRunState(BaseModel):
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
     pr_push_log: list[PushLogEntry] | None = Field(default=None, exclude=True)
+    # The feature the run is billed to, set when it starts.
+    billing_feature: str | None = Field(default=None, exclude=True)
 
     class Config:
         extra = "ignore"

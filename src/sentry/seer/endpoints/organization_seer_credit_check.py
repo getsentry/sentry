@@ -10,12 +10,15 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerBillingFeature, SeerOperation, can_run_seer_operation
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class SeerCreditCheckSerializer(serializers.Serializer[dict[str, str]]):
     operation = serializers.ChoiceField(choices=[operation.value for operation in SeerOperation])
+    billing_feature = serializers.ChoiceField(
+        choices=[feature.value for feature in SeerBillingFeature], required=False
+    )
 
 
 @cell_silo_endpoint
@@ -46,12 +49,14 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         operation = SeerOperation(serializer.validated_data["operation"])
-        # TODO: Let the UI pass the feature once it can tell agentic triage runs apart.
-        feature = (
-            SeerFeature.EXPLORER
-            if operation == SeerOperation.AGENT_CHAT_MESSAGE
-            else SeerFeature.AUTOFIX
-        )
+
+        if "billing_feature" in serializer.validated_data:
+            feature = SeerBillingFeature(serializer.validated_data["billing_feature"])
+        elif operation == SeerOperation.AGENT_CHAT_MESSAGE:
+            feature = SeerBillingFeature.EXPLORER
+        else:
+            feature = SeerBillingFeature.AUTOFIX
+
         return Response(
             {"hasEnoughCredits": can_run_seer_operation(organization, feature, operation)}
         )
