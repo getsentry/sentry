@@ -128,9 +128,14 @@ def absolute_url(value: str) -> Url:
     """
     Returns ``value`` unchanged as the value of a ``uri`` field.
 
-    A value without a scheme and a host, such as a path or an empty string, is invalid.
+    A value without a scheme and a host, such as a path or an empty string, is invalid,
+    and so is one urlsplit() can't parse, such as a Windows path with `[` in it.
     """
-    parts = urlsplit(value)
+    try:
+        parts = urlsplit(value)
+    except ValueError as exc:
+        _invalid("uri", f"the URL can't be parsed: {exc}")
+        return UrlStr(value)
     if not parts.scheme or not parts.netloc:
         _invalid("uri", "the URL has no scheme or host")
     return UrlStr(value)
