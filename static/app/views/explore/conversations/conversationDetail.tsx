@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -107,10 +107,14 @@ function ConversationDetailPage() {
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
           <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
-            <TabList variant="floating">
-              <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
-              <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
-            </TabList>
+            {({TabList}) => (
+              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                <TabList variant="floating">
+                  <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+                  <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+                </TabList>
+              </Stack>
+            )}
           </Tabs>
           {queryState.tab === 'transcript' && messages.length > 0 && (
             <ExportTranscriptButton conversation={conversation} />

@@ -4,7 +4,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
@@ -48,26 +48,30 @@ export default function AutomationsLayout() {
         />
         <Flex justify="between" align="center" gap="lg">
           <Tabs value={activeTab} size="sm">
-            <TabList>
-              <TabList.Item
-                key="automations"
-                to={getAutomationsPath(organization.slug)}
-                textValue={t('Automations')}
-              >
-                <Text bold={activeTab === 'automations'} variant="inherit">
-                  {t('Automations')}
-                </Text>
-              </TabList.Item>
-              <TabList.Item
-                key="runs"
-                to={getAutomationRunsPath(organization.slug)}
-                textValue={t('Runs')}
-              >
-                <Text bold={activeTab === 'runs'} variant="inherit">
-                  {t('Runs')}
-                </Text>
-              </TabList.Item>
-            </TabList>
+            {({TabList}) => (
+              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                <TabList>
+                  <TabList.Item
+                    key="automations"
+                    to={getAutomationsPath(organization.slug)}
+                    textValue={t('Automations')}
+                  >
+                    <Text bold={activeTab === 'automations'} variant="inherit">
+                      {t('Automations')}
+                    </Text>
+                  </TabList.Item>
+                  <TabList.Item
+                    key="runs"
+                    to={getAutomationRunsPath(organization.slug)}
+                    textValue={t('Runs')}
+                  >
+                    <Text bold={activeTab === 'runs'} variant="inherit">
+                      {t('Runs')}
+                    </Text>
+                  </TabList.Item>
+                </TabList>
+              </Stack>
+            )}
           </Tabs>
           <LinkButton
             variant="primary"

@@ -6,9 +6,9 @@ import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from '
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -277,20 +277,24 @@ export default function ProjectEnvironments() {
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
         <Tabs value={isHidden ? 'hidden' : 'environments'}>
-          <TabList>
-            <TabList.Item
-              key="environments"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
-            >
-              {t('Environments')}
-            </TabList.Item>
-            <TabList.Item
-              key="hidden"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
-            >
-              {t('Hidden')}
-            </TabList.Item>
-          </TabList>
+          {({TabList}) => (
+            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+              <TabList>
+                <TabList.Item
+                  key="environments"
+                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+                >
+                  {t('Environments')}
+                </TabList.Item>
+                <TabList.Item
+                  key="hidden"
+                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+                >
+                  {t('Hidden')}
+                </TabList.Item>
+              </TabList>
+            </Stack>
+          )}
         </Tabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />

@@ -8,9 +8,9 @@ import {useQueryState} from 'nuqs';
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {Feature} from 'sentry/components/acl/feature';
@@ -248,32 +248,41 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         <Container maxWidth="100%">
           {props => (
             <Tabs
-              {...props}
               size="sm"
               value={selectedContentTab}
-              onChange={key => trackContentSelected(key as Tab)}
+              onChange={key => trackContentSelected(key)}
             >
-              <TabList variant="floating">
-                {contentTabs.map(tab => (
-                  <TabList.Item
-                    key={tab.key}
-                    hidden={tab.hidden}
-                    to={contentLocation(tab.key)}
-                    textValue={tab.name}
-                  >
-                    <Flex as="span" align="center" gap="xs">
-                      {tab.name}
-                      {tab.count === null ? null : (
-                        <Badge variant="muted">
-                          <Text tabular variant="inherit">
-                            {tab.count}
-                          </Text>
-                        </Badge>
-                      )}
-                    </Flex>
-                  </TabList.Item>
-                ))}
-              </TabList>
+              {({TabList}) => (
+                <Stack
+                  flexGrow={1}
+                  minWidth="0"
+                  flexBasis="0"
+                  alignSelf="stretch"
+                  {...props}
+                >
+                  <TabList variant="floating">
+                    {contentTabs.map(tab => (
+                      <TabList.Item
+                        key={tab.key}
+                        hidden={tab.hidden}
+                        to={contentLocation(tab.key)}
+                        textValue={tab.name}
+                      >
+                        <Flex as="span" align="center" gap="xs">
+                          {tab.name}
+                          {tab.count === null ? null : (
+                            <Badge variant="muted">
+                              <Text tabular variant="inherit">
+                                {tab.count}
+                              </Text>
+                            </Badge>
+                          )}
+                        </Flex>
+                      </TabList.Item>
+                    ))}
+                  </TabList>
+                </Stack>
+              )}
             </Tabs>
           )}
         </Container>

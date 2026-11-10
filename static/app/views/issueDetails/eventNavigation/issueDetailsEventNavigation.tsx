@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -152,27 +153,31 @@ export function IssueDetailsEventNavigation({
         />
       </Navigation>
       <Tabs value={currentEventKey} onChange={onTabChange} size="xs">
-        <TabList variant="floating">
-          {eventNavPresets.map(({key, label, tooltip}) => {
-            const eventPath =
-              key === currentEventKey
-                ? undefined
-                : {
-                    pathname: normalizeUrl(baseEventsPath + key + '/'),
-                    query: {...location.query, referrer: `${key}-event`},
-                  };
-            return (
-              <TabList.Item
-                to={eventPath}
-                key={key}
-                textValue={label}
-                tooltip={{title: tooltip}}
-              >
-                {label}
-              </TabList.Item>
-            );
-          })}
-        </TabList>
+        {({TabList}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList variant="floating">
+              {eventNavPresets.map(({key, label, tooltip}) => {
+                const eventPath =
+                  key === currentEventKey
+                    ? undefined
+                    : {
+                        pathname: normalizeUrl(baseEventsPath + key + '/'),
+                        query: {...location.query, referrer: `${key}-event`},
+                      };
+                return (
+                  <TabList.Item
+                    to={eventPath}
+                    key={key}
+                    textValue={label}
+                    tooltip={{title: tooltip}}
+                  >
+                    {label}
+                  </TabList.Item>
+                );
+              })}
+            </TabList>
+          </Stack>
+        )}
       </Tabs>
     </Fragment>
   );

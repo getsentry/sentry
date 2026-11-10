@@ -5,6 +5,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Tabs} from '@sentry/scraps/tabs';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -66,15 +68,20 @@ function renderHeader(data = initializeData()) {
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName={TRANSACTION_NAME}
-        currentTab={Tab.TRANSACTION_SUMMARY}
-      />
+      <Tabs<Tab> value={Tab.TRANSACTION_SUMMARY}>
+        {({TabList}) => (
+          <TransactionHeader
+            TabList={TabList}
+            eventView={eventView}
+            location={router.location}
+            organization={organization}
+            projects={[project]}
+            projectId={project.id}
+            transactionName={TRANSACTION_NAME}
+            currentTab={Tab.TRANSACTION_SUMMARY}
+          />
+        )}
+      </Tabs>
     </TopBar.Slot.Provider>,
     {organization}
   );

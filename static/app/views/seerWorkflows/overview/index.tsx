@@ -19,7 +19,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -484,14 +484,18 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                     setQueryParams({view: next === 'all' ? null : next});
                   }}
                 >
-                  <TabList>
-                    <TabList.Item key="all">
-                      {t('All Runs (%s)', assigneeRuns.length)}
-                    </TabList.Item>
-                    <TabList.Item key="in_progress">
-                      {t('In Progress (%s)', inProgressCount)}
-                    </TabList.Item>
-                  </TabList>
+                  {({TabList}) => (
+                    <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                      <TabList>
+                        <TabList.Item key="all">
+                          {t('All Runs (%s)', assigneeRuns.length)}
+                        </TabList.Item>
+                        <TabList.Item key="in_progress">
+                          {t('In Progress (%s)', inProgressCount)}
+                        </TabList.Item>
+                      </TabList>
+                    </Stack>
+                  )}
                 </Tabs>
                 <Button
                   size="sm"

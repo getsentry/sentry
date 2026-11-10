@@ -1,7 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import type {Location} from 'history';
 
-import {TabList} from '@sentry/scraps/tabs';
+import type {TabsComponents} from '@sentry/scraps/tabs';
 
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -46,6 +46,7 @@ import {transactionSummaryRouteWithQuery} from './utils';
 const REPLAY_COUNT_LIMIT = 50;
 
 type Props = {
+  TabList: TabsComponents<Tab>['TabList'];
   currentTab: Tab;
   eventView: EventView;
   location: Location;
@@ -58,6 +59,7 @@ type Props = {
 };
 
 export function TransactionHeader({
+  TabList: HeaderTabList,
   eventView,
   organization,
   projects,
@@ -104,13 +106,12 @@ export function TransactionHeader({
   );
 
   const onTabChange = useCallback(
-    (newTab: string) => {
+    (newTab: Tab) => {
       // Prevent infinite rerenders
       if (newTab === currentTab) {
         return;
       }
 
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const analyticsKey = TAB_ANALYTICS[newTab];
       if (analyticsKey) {
         trackAnalytics(analyticsKey, {
@@ -119,7 +120,7 @@ export function TransactionHeader({
         });
       }
 
-      navigate(normalizeUrl(getNewRoute(newTab as Tab)));
+      navigate(normalizeUrl(getNewRoute(newTab)));
     },
     [getNewRoute, organization, location, projects, currentTab, navigate]
   );
@@ -149,7 +150,7 @@ export function TransactionHeader({
     limit: REPLAY_COUNT_LIMIT,
   });
 
-  const tabList = (
+  const renderTabList = (TabList: TabsComponents<Tab>['TabList']) => (
     <TabList
       outerWrapStyles={{
         gridColumn: '1 / -1',
@@ -179,7 +180,7 @@ export function TransactionHeader({
       hideDefaultTabs: true,
       tabs: {
         onTabChange,
-        tabList,
+        renderTabList,
         value: currentTab,
       },
       breadcrumbs: getTransactionSummaryParentCrumbs({
@@ -264,29 +265,31 @@ export function TransactionHeader({
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <TabList
+      <HeaderTabList
         outerWrapStyles={{
           gridColumn: '1 / -1',
         }}
       >
-        <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
-        <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item
+        <HeaderTabList.Item key={Tab.TRANSACTION_SUMMARY}>
+          {t('Overview')}
+        </HeaderTabList.Item>
+        <HeaderTabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</HeaderTabList.Item>
+        <HeaderTabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}
           hidden={!hasSessionReplay}
         >
           {t('Replays')}
           <ReplayCountBadge count={replaysCount} limit={REPLAY_COUNT_LIMIT} />
-        </TabList.Item>
-        <TabList.Item
+        </HeaderTabList.Item>
+        <HeaderTabList.Item
           key={Tab.PROFILING}
           textValue={t('Profiling')}
           hidden={!hasProfiling}
         >
           {t('Profiles')}
-        </TabList.Item>
-      </TabList>
+        </HeaderTabList.Item>
+      </HeaderTabList>
     </Layout.Header>
   );
 }

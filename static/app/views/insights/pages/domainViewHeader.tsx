@@ -7,8 +7,8 @@ import type {
   BreadcrumbListProps,
   BreadcrumbTitleItem,
 } from '@sentry/scraps/breadcrumbList';
-import type {TabListItemProps} from '@sentry/scraps/tabs';
-import {TabList} from '@sentry/scraps/tabs';
+import {Stack} from '@sentry/scraps/layout';
+import {Tabs, type TabListItemProps, type TabsComponents} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -35,7 +35,7 @@ import {
   isModuleVisible,
 } from './utils';
 
-export type Props = {
+export type Props<T extends string = string> = {
   domainBaseUrl: string;
   domainTitle: string;
   modules: ModuleName[];
@@ -44,10 +44,14 @@ export type Props = {
   additonalHeaderActions?: React.ReactNode;
   headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
-  tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  tabs?: {
+    onTabChange: (key: T) => void;
+    renderTabList: (TabList: TabsComponents<T>['TabList']) => React.ReactNode;
+    value: T;
+  };
 };
 
-export function DomainViewHeader({
+export function DomainViewHeader<T extends string = string>({
   modules,
   headerTitle,
   domainTitle,
@@ -57,7 +61,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
-}: Props) {
+}: Props<T>) {
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -69,9 +73,6 @@ export function DomainViewHeader({
   const isNextJsInsights = isNextJsInsightsAvailable && isInOverviewPage;
   const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
-
-  const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = {
     ...extractSelectionParameters(location?.query),
@@ -91,7 +92,7 @@ export function DomainViewHeader({
         ]
       : undefined;
 
-  const tabList: TabListItemProps[] = [
+  const tabList = [
     {
       key: OVERVIEW_PAGE_TITLE,
       children: OVERVIEW_PAGE_TITLE,
@@ -108,7 +109,7 @@ export function DomainViewHeader({
           query: globalQuery,
         },
       })),
-  ];
+  ] satisfies TabListItemProps[];
 
   const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
     [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
@@ -151,16 +152,29 @@ export function DomainViewHeader({
             {null}
           </FeedbackButton>
         </TopBar.Slot>
-        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
-          {!hideDefaultTabs && (
-            <TabList>
-              {tabList.map(tab => (
-                <TabList.Item {...tab} key={tab.key} />
-              ))}
-            </TabList>
+        <Stack
+          flexGrow={1}
+          minWidth="0"
+          flexBasis="0"
+          alignSelf="stretch"
+          column="1 / -1"
+        >
+          {hideDefaultTabs && tabs ? (
+            <Tabs value={tabs.value} onChange={tabs.onTabChange}>
+              {({TabList}) => tabs.renderTabList(TabList)}
+            </Tabs>
+          ) : hideDefaultTabs ? null : (
+            <Tabs value={selectedModule ?? OVERVIEW_PAGE_TITLE}>
+              {({TabList}) => (
+                <TabList>
+                  {tabList.map(tab => (
+                    <TabList.Item {...tab} key={tab.key} />
+                  ))}
+                </TabList>
+              )}
+            </Tabs>
           )}
-          {hideDefaultTabs && tabs?.tabList}
-        </Layout.HeaderTabs>
+        </Stack>
       </Layout.Header>
     </Fragment>
   );

@@ -8,8 +8,8 @@ import {PlatformIcon} from 'platformicons';
 import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Grid} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {consoles, gaming} from 'sentry/data/platformCategories';
@@ -218,11 +218,15 @@ export function PlatformPicker({
               setFilter('');
             }}
           >
-            <TabList>
-              {categoryList.map(({id, name}) => (
-                <TabList.Item key={id}>{name}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                <TabList>
+                  {categoryList.map(({id, name}) => (
+                    <TabList.Item key={id}>{name}</TabList.Item>
+                  ))}
+                </TabList>
+              </Stack>
+            )}
           </Tabs>
         </Container>
         <Container width="100%" justifySelf="end">

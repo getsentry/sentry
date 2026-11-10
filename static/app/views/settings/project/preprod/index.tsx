@@ -3,7 +3,7 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {Feature} from 'sentry/components/acl/feature';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -69,10 +69,16 @@ export default function PreprodSettings() {
         <PreprodQuotaAlert />
         <Container borderBottom="primary">
           <Tabs value={tab} onChange={handleTabChange}>
-            <TabList>
-              <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>
-              <TabList.Item key="distribution">{t('Build Distribution')}</TabList.Item>
-            </TabList>
+            {({TabList}) => (
+              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                <TabList>
+                  <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>
+                  <TabList.Item key="distribution">
+                    {t('Build Distribution')}
+                  </TabList.Item>
+                </TabList>
+              </Stack>
+            )}
           </Tabs>
         </Container>
         {tab === 'size' && (

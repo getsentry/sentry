@@ -6,7 +6,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -395,10 +395,14 @@ export function ExternalIssueForm({
         <Stack area="content" align="stretch" gap="lg" minWidth={0}>
           <Heading as="h2">{title}</Heading>
           <Tabs value={action} onChange={handleClick}>
-            <TabList>
-              <TabList.Item key="create">{t('Create')}</TabList.Item>
-              <TabList.Item key="link">{t('Link')}</TabList.Item>
-            </TabList>
+            {({TabList}) => (
+              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                <TabList>
+                  <TabList.Item key="create">{t('Create')}</TabList.Item>
+                  <TabList.Item key="link">{t('Link')}</TabList.Item>
+                </TabList>
+              </Stack>
+            )}
           </Tabs>
         </Stack>
         <Container area="close" justifySelf="center">

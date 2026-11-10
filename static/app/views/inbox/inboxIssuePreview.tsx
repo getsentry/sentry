@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
@@ -70,29 +70,33 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
       <Container containerType="inline-size">
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
-          <Container padding="0 2xl" borderBottom="primary">
-            <TabList>
-              <TabList.Item key="activity">{t('Activity')}</TabList.Item>
-              <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
-            </TabList>
-          </Container>
-          <TabPanels>
-            <TabPanels.Item key="activity">
-              <InboxIssueActivity group={group} />
-            </TabPanels.Item>
-            <TabPanels.Item key="telemetry">
-              <PageFiltersContainer
-                key={project.id}
-                skipLoadLastUsed
-                skipInitializeUrlParams
-                disablePersistence
-                forceProject={project}
-                shouldForceProject
-              >
-                <InboxIssueTelemetry group={group} project={project} event={event} />
-              </PageFiltersContainer>
-            </TabPanels.Item>
-          </TabPanels>
+          {({TabList, TabPanels}) => (
+            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+              <Container padding="0 2xl" borderBottom="primary">
+                <TabList>
+                  <TabList.Item key="activity">{t('Activity')}</TabList.Item>
+                  <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
+                </TabList>
+              </Container>
+              <TabPanels>
+                <TabPanels.Item key="activity">
+                  <InboxIssueActivity group={group} />
+                </TabPanels.Item>
+                <TabPanels.Item key="telemetry">
+                  <PageFiltersContainer
+                    key={project.id}
+                    skipLoadLastUsed
+                    skipInitializeUrlParams
+                    disablePersistence
+                    forceProject={project}
+                    shouldForceProject
+                  >
+                    <InboxIssueTelemetry group={group} project={project} event={event} />
+                  </PageFiltersContainer>
+                </TabPanels.Item>
+              </TabPanels>
+            </Stack>
+          )}
         </Tabs>
       </Container>
     </GroupDataContextProvider>

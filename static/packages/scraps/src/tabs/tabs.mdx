@@ -16,43 +16,51 @@ import {Fragment, useState} from 'react';
 import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/tabs');
 
-`<Tabs>` is a compound component for creating tabbed interfaces. Built on React Aria, it provides full keyboard navigation, accessibility features, and automatic overflow handling out of the box.
+`<Tabs>` manages tab selection and gives its child function typed `TabList` and `TabPanels` components. It uses React Aria for keyboard navigation and accessibility, and moves tabs into an overflow menu when needed.
 
 Use `<Tabs>` to organize related content into separate views that users can switch between without leaving the page.
 
 ```jsx
 <Tabs>
-  <TabList>
-    <TabList.Item key="tab1">Tab 1</TabList.Item>
-    <TabList.Item key="tab2">Tab 2</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="tab1">Content for Tab 1</TabPanels.Item>
-    <TabPanels.Item key="tab2">Content for Tab 2</TabPanels.Item>
-  </TabPanels>
+  {({TabList, TabPanels}) => (
+    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+      <TabList>
+        <TabList.Item key="tab1">Tab 1</TabList.Item>
+        <TabList.Item key="tab2">Tab 2</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="tab1">Content for Tab 1</TabPanels.Item>
+        <TabPanels.Item key="tab2">Content for Tab 2</TabPanels.Item>
+      </TabPanels>
+    </Flex>
+  )}
 </Tabs>
 ```
 
 ## Compound Components
 
-`<Tabs>` uses a compound component pattern with four main parts:
+Import only `Tabs`. Get `TabList` and `TabPanels` from its child function. These components share the string key type of that `Tabs` instance. Use matching string keys for each tab and its panel. Numeric keys are not supported.
 
-- **`<Tabs>`**: Root component that manages state and provides context
+- **`<Tabs>`**: Root component that manages state and provides context without adding a DOM element
 - **`<TabList>`**: Container for tab buttons
 - **`<TabList.Item>`**: Individual tab button
 - **`<TabPanels>`**: Container for tab content panels
 - **`<TabPanels.Item>`**: Individual content panel
 
 > [!NOTE]
-> All tab content is rendered upfront, including React hooks. The tabs system manages visibility, not mounting/unmounting. This ensures state is preserved when switching tabs.
+> Only the selected panel content is mounted. Switching tabs unmounts the previous panel. Store state outside the panel if it must survive a tab change.
+
+## Layout
+
+`Tabs` adds no DOM element or layout styles. Use `Flex`, `Grid`, or an existing parent to arrange the list and panels. The examples use a column `Flex` for horizontal tabs and a row `Flex` for vertical tabs. Put sizing, spacing, and alignment props on that layout component.
 
 ## Basic Usage
 
@@ -66,16 +74,26 @@ export function BasicDemo() {
   ];
   return (
     <Tabs>
-      <TabList>
-        {TABS.map(tab => (
-          <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-        ))}
-      </TabList>
-      <TabPanels>
-        {TABS.map(tab => (
-          <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-        ))}
-      </TabPanels>
+      {({TabList, TabPanels}) => (
+        <Flex
+          direction="column"
+          flexGrow={1}
+          minWidth="0"
+          flexBasis="0"
+          alignSelf="stretch"
+        >
+          <TabList>
+            {TABS.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {TABS.map(tab => (
+              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Flex>
+      )}
     </Tabs>
   );
 }
@@ -86,16 +104,20 @@ export function BasicDemo() {
 
 ```jsx
 <Tabs>
-  <TabList>
-    <TabList.Item key="one">Label 1</TabList.Item>
-    <TabList.Item key="two">Label 2</TabList.Item>
-    <TabList.Item key="three">Label 3</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="one">Content 1</TabPanels.Item>
-    <TabPanels.Item key="two">Content 2</TabPanels.Item>
-    <TabPanels.Item key="three">Content 3</TabPanels.Item>
-  </TabPanels>
+  {({TabList, TabPanels}) => (
+    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+      <TabList>
+        <TabList.Item key="one">Label 1</TabList.Item>
+        <TabList.Item key="two">Label 2</TabList.Item>
+        <TabList.Item key="three">Label 3</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="one">Content 1</TabPanels.Item>
+        <TabPanels.Item key="two">Content 2</TabPanels.Item>
+        <TabPanels.Item key="three">Content 3</TabPanels.Item>
+      </TabPanels>
+    </Flex>
+  )}
 </Tabs>
 ```
 
@@ -108,59 +130,97 @@ export function BasicDemo() {
     <Stack key={size} gap="md">
       <Text>{size === 'md' ? 'md (default)' : size}</Text>
       <Tabs size={size}>
-        <TabList aria-label={`${size} tabs`}>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-          <TabPanels.Item key="three">Content 3</TabPanels.Item>
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Flex
+            direction="column"
+            flexGrow={1}
+            minWidth="0"
+            flexBasis="0"
+            alignSelf="stretch"
+          >
+            <TabList aria-label={`${size} tabs`}>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+              <TabPanels.Item key="three">Content 3</TabPanels.Item>
+            </TabPanels>
+          </Flex>
+        )}
       </Tabs>
     </Stack>
   ))}
 </Storybook.Demo>
 
 ```jsx
-<Tabs size="md">{/* tabs and panels */}</Tabs>
-<Tabs size="sm">{/* tabs and panels */}</Tabs>
-<Tabs size="xs">{/* tabs and panels */}</Tabs>
+<Tabs size="md">
+{({TabList, TabPanels}) => (
+<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
+)}
+</Tabs>
+<Tabs size="sm">
+{({TabList, TabPanels}) => (
+<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
+)}
+</Tabs>
+<Tabs size="xs">
+{({TabList, TabPanels}) => (
+<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
+)}
+</Tabs>
 ```
 
 ## Default Selection
 
-Set `defaultValue` to specify which tab is selected initially (uncontrolled):
+Set `defaultValue` to specify which tab is selected initially. For uncontrolled tabs, give `Tabs` an explicit key union when the keys are known. This lets every tab key be used while keeping the default selection typed.
 
 <Storybook.Demo>
   <Tabs defaultValue="two">
-    <TabList>
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2 (default)</TabList.Item>
-      <TabList.Item key="three">Tab 3</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Content 2 (initially visible)</TabPanels.Item>
-      <TabPanels.Item key="three">Content 3</TabPanels.Item>
-    </TabPanels>
+    {({TabList, TabPanels}) => (
+      <Flex
+        direction="column"
+        flexGrow={1}
+        minWidth="0"
+        flexBasis="0"
+        alignSelf="stretch"
+      >
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2 (default)</TabList.Item>
+          <TabList.Item key="three">Tab 3</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Content 2 (initially visible)</TabPanels.Item>
+          <TabPanels.Item key="three">Content 3</TabPanels.Item>
+        </TabPanels>
+      </Flex>
+    )}
   </Tabs>
 </Storybook.Demo>
 
-```jsx
-<Tabs defaultValue="two">
-  <TabList>
-    <TabList.Item key="two">Tab 2</TabList.Item>
-    {/* other tabs */}
-  </TabList>
-  {/* panels */}
-</Tabs>
+```tsx
+type TabKey = 'one' | 'two' | 'three';
+
+<Tabs<TabKey> defaultValue="two">
+  {({TabList}) => (
+    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+      <TabList>
+        <TabList.Item key="two">Tab 2</TabList.Item>
+        {/* other tabs */}
+      </TabList>
+      {/* panels */}
+    </Flex>
+  )}
+</Tabs>;
 ```
 
 ## Controlled Tabs
 
-For controlled tabs, use `value` and `onChange` to manage the active tab externally:
+For controlled tabs, use `value` and `onChange` to manage the active tab externally. `value` determines the allowed item keys and the `onChange` parameter type. Use a union for known keys.
 
 export function ControlledDemo() {
   const [selected, setSelected] = useState('two');
@@ -168,16 +228,26 @@ export function ControlledDemo() {
     <Fragment>
       <p>Selected: {selected}</p>
       <Tabs value={selected} onChange={setSelected}>
-        <TabList>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-          <TabPanels.Item key="three">Content 3</TabPanels.Item>
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Flex
+            direction="column"
+            flexGrow={1}
+            minWidth="0"
+            flexBasis="0"
+            alignSelf="stretch"
+          >
+            <TabList>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+              <TabPanels.Item key="three">Content 3</TabPanels.Item>
+            </TabPanels>
+          </Flex>
+        )}
       </Tabs>
     </Fragment>
   );
@@ -187,11 +257,16 @@ export function ControlledDemo() {
   <ControlledDemo />
 </Storybook.Demo>
 
-```jsx
-const [selected, setSelected] = useState('one');
+```tsx
+type TabKey = 'one' | 'two' | 'three';
+const [selected, setSelected] = useState<TabKey>('one');
 
 <Tabs value={selected} onChange={setSelected}>
-  {/* tabs and panels */}
+  {({TabList, TabPanels}) => (
+    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+      {/* tabs and panels */}
+    </Flex>
+  )}
 </Tabs>;
 ```
 
@@ -204,31 +279,51 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
     <div>
       <p>All tabs disabled</p>
       <Tabs disabled>
-        <TabList>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Flex
+            direction="column"
+            flexGrow={1}
+            minWidth="0"
+            flexBasis="0"
+            alignSelf="stretch"
+          >
+            <TabList>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+            </TabPanels>
+          </Flex>
+        )}
       </Tabs>
     </div>
     <div>
       <p>One tab disabled</p>
       <Tabs>
-        <TabList>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two" disabled>
-            Tab 2 (disabled)
-          </TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">Content 1</TabPanels.Item>
-          <TabPanels.Item key="two">Content 2</TabPanels.Item>
-          <TabPanels.Item key="three">Content 3</TabPanels.Item>
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Flex
+            direction="column"
+            flexGrow={1}
+            minWidth="0"
+            flexBasis="0"
+            alignSelf="stretch"
+          >
+            <TabList>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two" disabled>
+                Tab 2 (disabled)
+              </TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">Content 1</TabPanels.Item>
+              <TabPanels.Item key="two">Content 2</TabPanels.Item>
+              <TabPanels.Item key="three">Content 3</TabPanels.Item>
+            </TabPanels>
+          </Flex>
+        )}
       </Tabs>
     </div>
   </Storybook.SideBySide>
@@ -237,7 +332,11 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
 ```jsx
 // Disable all tabs
 <Tabs disabled>
+{({TabList, TabPanels}) => (
+<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
   {/* tabs and panels */}
+</Flex>
+)}
 </Tabs>
 
 // Disable individual tab
@@ -255,16 +354,26 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
     <Stack key={variant} gap="md">
       <Text>{variant === 'flat' ? 'flat (default)' : variant}</Text>
       <Tabs>
-        <TabList variant={variant} aria-label={`${variant} tabs`}>
-          <TabList.Item key="one">Tab 1</TabList.Item>
-          <TabList.Item key="two">Tab 2</TabList.Item>
-          <TabList.Item key="three">Tab 3</TabList.Item>
-        </TabList>
-        <TabPanels>
-          <TabPanels.Item key="one">{variant} variant content 1</TabPanels.Item>
-          <TabPanels.Item key="two">{variant} variant content 2</TabPanels.Item>
-          <TabPanels.Item key="three">{variant} variant content 3</TabPanels.Item>
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Flex
+            direction="column"
+            flexGrow={1}
+            minWidth="0"
+            flexBasis="0"
+            alignSelf="stretch"
+          >
+            <TabList variant={variant} aria-label={`${variant} tabs`}>
+              <TabList.Item key="one">Tab 1</TabList.Item>
+              <TabList.Item key="two">Tab 2</TabList.Item>
+              <TabList.Item key="three">Tab 3</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="one">{variant} variant content 1</TabPanels.Item>
+              <TabPanels.Item key="two">{variant} variant content 2</TabPanels.Item>
+              <TabPanels.Item key="three">{variant} variant content 3</TabPanels.Item>
+            </TabPanels>
+          </Flex>
+        )}
       </Tabs>
     </Stack>
   ))}
@@ -277,34 +386,64 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
 
 ## Orientation
 
-Tabs support both horizontal and vertical orientation:
+Set `orientation` to control keyboard navigation and tab styling. Choose the matching layout on the parent component.
 
 <Storybook.Demo direction="column" align="stretch" gap="3xl">
   <Tabs orientation="horizontal">
-    <TabList>
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
-    </TabPanels>
+    {({TabList, TabPanels}) => (
+      <Flex
+        direction="column"
+        flexGrow={1}
+        minWidth="0"
+        flexBasis="0"
+        alignSelf="stretch"
+      >
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
+        </TabPanels>
+      </Flex>
+    )}
   </Tabs>
   <Tabs orientation="vertical">
-    <TabList>
-      <TabList.Item key="one">Tab 1</TabList.Item>
-      <TabList.Item key="two">Tab 2</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
-      <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
-    </TabPanels>
+    {({TabList, TabPanels}) => (
+      <Flex
+        direction="row"
+        flexGrow={1}
+        minWidth="0"
+        flexBasis="auto"
+        alignSelf="auto"
+        height="100%"
+        align="stretch"
+      >
+        <TabList>
+          <TabList.Item key="one">Tab 1</TabList.Item>
+          <TabList.Item key="two">Tab 2</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
+          <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
+        </TabPanels>
+      </Flex>
+    )}
   </Tabs>
 </Storybook.Demo>
 
 ```jsx
-<Tabs orientation="horizontal">{/* default */}</Tabs>
-<Tabs orientation="vertical">{/* side-by-side layout */}</Tabs>
+<Tabs orientation="horizontal">
+{({TabList, TabPanels}) => (
+<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* default */}</Flex>
+)}
+</Tabs>
+<Tabs orientation="vertical">
+{({TabList, TabPanels}) => (
+<Flex direction="row" flexGrow={1} minWidth="0" flexBasis="auto" alignSelf="auto" height="100%" align="stretch">{/* side-by-side layout */}</Flex>
+)}
+</Tabs>
 ```
 
 ## Overflow Handling
@@ -315,40 +454,56 @@ Resize the demo to see tabs move into and out of the overflow menu.
 
 <Storybook.Demo resizable>
   <Tabs defaultValue="overview">
-    <TabList>
-      <TabList.Item key="overview">Overview</TabList.Item>
-      <TabList.Item key="activity">Activity</TabList.Item>
-      <TabList.Item key="feedback">User Feedback</TabList.Item>
-      <TabList.Item key="attachments">Attachments</TabList.Item>
-      <TabList.Item key="settings">Settings</TabList.Item>
-    </TabList>
-    <TabPanels>
-      <TabPanels.Item key="overview">Overview content</TabPanels.Item>
-      <TabPanels.Item key="activity">Activity content</TabPanels.Item>
-      <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
-      <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
-      <TabPanels.Item key="settings">Settings content</TabPanels.Item>
-    </TabPanels>
+    {({TabList, TabPanels}) => (
+      <Flex
+        direction="column"
+        flexGrow={1}
+        minWidth="0"
+        flexBasis="0"
+        alignSelf="stretch"
+      >
+        <TabList>
+          <TabList.Item key="overview">Overview</TabList.Item>
+          <TabList.Item key="activity">Activity</TabList.Item>
+          <TabList.Item key="feedback">User Feedback</TabList.Item>
+          <TabList.Item key="attachments">Attachments</TabList.Item>
+          <TabList.Item key="settings">Settings</TabList.Item>
+        </TabList>
+        <TabPanels>
+          <TabPanels.Item key="overview">Overview content</TabPanels.Item>
+          <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+          <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
+          <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
+          <TabPanels.Item key="settings">Settings content</TabPanels.Item>
+        </TabPanels>
+      </Flex>
+    )}
   </Tabs>
 </Storybook.Demo>
 
-```jsx
-<Tabs defaultValue="overview">
-  <TabList>
-    <TabList.Item key="overview">Overview</TabList.Item>
-    <TabList.Item key="activity">Activity</TabList.Item>
-    <TabList.Item key="feedback">User Feedback</TabList.Item>
-    <TabList.Item key="attachments">Attachments</TabList.Item>
-    <TabList.Item key="settings">Settings</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="overview">Overview content</TabPanels.Item>
-    <TabPanels.Item key="activity">Activity content</TabPanels.Item>
-    <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
-    <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
-    <TabPanels.Item key="settings">Settings content</TabPanels.Item>
-  </TabPanels>
-</Tabs>
+```tsx
+type TabKey = 'overview' | 'activity' | 'feedback' | 'attachments' | 'settings';
+
+<Tabs<TabKey> defaultValue="overview">
+  {({TabList, TabPanels}) => (
+    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+      <TabList>
+        <TabList.Item key="overview">Overview</TabList.Item>
+        <TabList.Item key="activity">Activity</TabList.Item>
+        <TabList.Item key="feedback">User Feedback</TabList.Item>
+        <TabList.Item key="attachments">Attachments</TabList.Item>
+        <TabList.Item key="settings">Settings</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="overview">Overview content</TabPanels.Item>
+        <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+        <TabPanels.Item key="feedback">User feedback content</TabPanels.Item>
+        <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
+        <TabPanels.Item key="settings">Settings content</TabPanels.Item>
+      </TabPanels>
+    </Flex>
+  )}
+</Tabs>;
 ```
 
 ## Linked tabs
@@ -373,24 +528,34 @@ export function LinkedTabsDemo() {
   const serialize = createSerializer({linkedTab: parser});
   return (
     <Tabs value={value}>
-      <TabList aria-label="Linked tabs">
-        {tabs.map(({key, label}) => (
-          <TabList.Item
-            key={key}
-            to={{
-              search: serialize(location.search, {linkedTab: key}),
-              hash: location.hash,
-            }}
-          >
-            {label}
-          </TabList.Item>
-        ))}
-      </TabList>
-      <TabPanels>
-        {tabs.map(({key, label}) => (
-          <TabPanels.Item key={key}>{label} content</TabPanels.Item>
-        ))}
-      </TabPanels>
+      {({TabList, TabPanels}) => (
+        <Flex
+          direction="column"
+          flexGrow={1}
+          minWidth="0"
+          flexBasis="0"
+          alignSelf="stretch"
+        >
+          <TabList aria-label="Linked tabs">
+            {tabs.map(({key, label}) => (
+              <TabList.Item
+                key={key}
+                to={{
+                  search: serialize(location.search, {linkedTab: key}),
+                  hash: location.hash,
+                }}
+              >
+                {label}
+              </TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {tabs.map(({key, label}) => (
+              <TabPanels.Item key={key}>{label} content</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Flex>
+      )}
     </Tabs>
   );
 }
@@ -403,7 +568,8 @@ export function LinkedTabsDemo() {
 import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Flex} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 function LinkedTabsDemo() {
   const location = useLocation();
@@ -419,24 +585,34 @@ function LinkedTabsDemo() {
   const serialize = createSerializer({linkedTab: parser});
   return (
     <Tabs value={value}>
-      <TabList aria-label="Linked tabs">
-        {tabs.map(({key, label}) => (
-          <TabList.Item
-            key={key}
-            to={{
-              search: serialize(location.search, {linkedTab: key}),
-              hash: location.hash,
-            }}
-          >
-            {label}
-          </TabList.Item>
-        ))}
-      </TabList>
-      <TabPanels>
-        {tabs.map(({key, label}) => (
-          <TabPanels.Item key={key}>{label} content</TabPanels.Item>
-        ))}
-      </TabPanels>
+      {({TabList, TabPanels}) => (
+        <Flex
+          direction="column"
+          flexGrow={1}
+          minWidth="0"
+          flexBasis="0"
+          alignSelf="stretch"
+        >
+          <TabList aria-label="Linked tabs">
+            {tabs.map(({key, label}) => (
+              <TabList.Item
+                key={key}
+                to={{
+                  search: serialize(location.search, {linkedTab: key}),
+                  hash: location.hash,
+                }}
+              >
+                {label}
+              </TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {tabs.map(({key, label}) => (
+              <TabPanels.Item key={key}>{label} content</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Flex>
+      )}
     </Tabs>
   );
 }
@@ -460,22 +636,26 @@ Use tabs to organize related content into distinct views:
 
 ```jsx
 <Tabs>
-  <TabList>
-    <TabList.Item key="overview">Overview</TabList.Item>
-    <TabList.Item key="activity">Activity</TabList.Item>
-    <TabList.Item key="settings">Settings</TabList.Item>
-  </TabList>
-  <TabPanels>
-    <TabPanels.Item key="overview">
-      <OverviewContent />
-    </TabPanels.Item>
-    <TabPanels.Item key="activity">
-      <ActivityFeed />
-    </TabPanels.Item>
-    <TabPanels.Item key="settings">
-      <SettingsForm />
-    </TabPanels.Item>
-  </TabPanels>
+  {({TabList, TabPanels}) => (
+    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+      <TabList>
+        <TabList.Item key="overview">Overview</TabList.Item>
+        <TabList.Item key="activity">Activity</TabList.Item>
+        <TabList.Item key="settings">Settings</TabList.Item>
+      </TabList>
+      <TabPanels>
+        <TabPanels.Item key="overview">
+          <OverviewContent />
+        </TabPanels.Item>
+        <TabPanels.Item key="activity">
+          <ActivityFeed />
+        </TabPanels.Item>
+        <TabPanels.Item key="settings">
+          <SettingsForm />
+        </TabPanels.Item>
+      </TabPanels>
+    </Flex>
+  )}
 </Tabs>
 ```
 
@@ -494,7 +674,11 @@ const [tab, setTab] = useQueryState(
 );
 
 <Tabs value={tab} onChange={setTab}>
+{({TabList, TabPanels}) => (
+<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
   {/* tabs */}
+</Flex>
+)}
 </Tabs>;
 ```
 
@@ -538,8 +722,8 @@ The component automatically includes:
 
 **State Preservation**
 
-- Remember that all panel content is rendered upfront
-- Tab switches don't remount components—state is preserved
-- This is good for preserving form data, scroll positions, etc.
+- Only the selected panel content is mounted
+- Switching tabs unmounts the previous panel and mounts the next panel
+- Keep form data or other shared state above `Tabs` when it must survive tab changes
 
 For more information, see the [WAI-ARIA Tabs practices](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/).

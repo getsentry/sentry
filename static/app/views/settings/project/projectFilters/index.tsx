@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -54,20 +55,28 @@ export default function ProjectFilters() {
         {hasDiscardGroups && (
           <TabsContainer>
             <Tabs value={activeTab}>
-              <TabList>
-                <TabList.Item
-                  key="data-filters"
-                  to={recreateRoute('data-filters/', {routes, params, stepBack: -1})}
-                >
-                  {t('Data Filters')}
-                </TabList.Item>
-                <TabList.Item
-                  key="discarded-groups"
-                  to={recreateRoute('discarded-groups/', {routes, params, stepBack: -1})}
-                >
-                  {t('Discarded Issues')}
-                </TabList.Item>
-              </TabList>
+              {({TabList}) => (
+                <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                  <TabList>
+                    <TabList.Item
+                      key="data-filters"
+                      to={recreateRoute('data-filters/', {routes, params, stepBack: -1})}
+                    >
+                      {t('Data Filters')}
+                    </TabList.Item>
+                    <TabList.Item
+                      key="discarded-groups"
+                      to={recreateRoute('discarded-groups/', {
+                        routes,
+                        params,
+                        stepBack: -1,
+                      })}
+                    >
+                      {t('Discarded Issues')}
+                    </TabList.Item>
+                  </TabList>
+                </Stack>
+              )}
             </Tabs>
           </TabsContainer>
         )}

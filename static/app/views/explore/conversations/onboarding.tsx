@@ -13,7 +13,7 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -304,56 +304,60 @@ function ConversationOnboardingPanel({
                       });
                     }}
                   >
-                    <TabList variant="floating">
-                      <TabList.Item
-                        key="agent"
-                        textValue={t('For your agent')}
-                        disabled={!prompt}
-                        tooltip={
-                          prompt
-                            ? undefined
-                            : {
-                                title: t(
-                                  'A project DSN is required to copy a setup prompt.'
-                                ),
-                              }
-                        }
-                      >
-                        <IconBot />
-                        {t('For your agent')}
-                      </TabList.Item>
-                      <TabList.Item
-                        key="human"
-                        textValue={t('For you')}
-                        disabled={isHumanTabDisabled}
-                        tooltip={
-                          isHumanTabDisabled
-                            ? {
-                                title: t(
-                                  "Step-by-step instructions aren't available for this platform."
-                                ),
-                              }
-                            : undefined
-                        }
-                      >
-                        <IconUser />
-                        {t('For you')}
-                      </TabList.Item>
-                    </TabList>
-                    <TabPanels>
-                      <TabPanels.Item key="agent">
-                        {prompt && (
-                          <AgentSetupInstructions
-                            project={project}
-                            prompt={prompt}
-                            onDismiss={onDismiss}
-                          />
-                        )}
-                      </TabPanels.Item>
-                      <TabPanels.Item key="human">
-                        <Container paddingTop="md">{children}</Container>
-                      </TabPanels.Item>
-                    </TabPanels>
+                    {({TabList, TabPanels}) => (
+                      <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                        <TabList variant="floating">
+                          <TabList.Item
+                            key="agent"
+                            textValue={t('For your agent')}
+                            disabled={!prompt}
+                            tooltip={
+                              prompt
+                                ? undefined
+                                : {
+                                    title: t(
+                                      'A project DSN is required to copy a setup prompt.'
+                                    ),
+                                  }
+                            }
+                          >
+                            <IconBot />
+                            {t('For your agent')}
+                          </TabList.Item>
+                          <TabList.Item
+                            key="human"
+                            textValue={t('For you')}
+                            disabled={isHumanTabDisabled}
+                            tooltip={
+                              isHumanTabDisabled
+                                ? {
+                                    title: t(
+                                      "Step-by-step instructions aren't available for this platform."
+                                    ),
+                                  }
+                                : undefined
+                            }
+                          >
+                            <IconUser />
+                            {t('For you')}
+                          </TabList.Item>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanels.Item key="agent">
+                            {prompt && (
+                              <AgentSetupInstructions
+                                project={project}
+                                prompt={prompt}
+                                onDismiss={onDismiss}
+                              />
+                            )}
+                          </TabPanels.Item>
+                          <TabPanels.Item key="human">
+                            <Container paddingTop="md">{children}</Container>
+                          </TabPanels.Item>
+                        </TabPanels>
+                      </Stack>
+                    )}
                   </Tabs>
                 </Setup>
                 <Container padding="xl" paddingTop="3xl">

@@ -1,5 +1,5 @@
 import {Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {t} from 'sentry/locale';
@@ -60,11 +60,15 @@ export function AgentsTable({
   return (
     <Stack gap="md">
       <Tabs value={activeTab} onChange={onTabChange} size="sm">
-        <TabList variant="floating">
-          <TabList.Item key="conversations">{t('Conversations')}</TabList.Item>
-          <TabList.Item key="traces">{t('Traces')}</TabList.Item>
-          <TabList.Item key="spans">{t('LLM Calls')}</TabList.Item>
-        </TabList>
+        {({TabList}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList variant="floating">
+              <TabList.Item key="conversations">{t('Conversations')}</TabList.Item>
+              <TabList.Item key="traces">{t('Traces')}</TabList.Item>
+              <TabList.Item key="spans">{t('LLM Calls')}</TabList.Item>
+            </TabList>
+          </Stack>
+        )}
       </Tabs>
       {searchBar}
       {activeTab === 'conversations' &&

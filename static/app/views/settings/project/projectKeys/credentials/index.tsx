@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
@@ -460,11 +460,15 @@ export function ProjectKeyCredentials({
       {availableTabs.length > 0 && (
         <Fragment>
           <Tabs value={activeTab} onChange={setActiveTab}>
-            <TabList>
-              {availableTabs.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                <TabList>
+                  {availableTabs.map(tab => (
+                    <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                  ))}
+                </TabList>
+              </Stack>
+            )}
           </Tabs>
           {renderTabContent()}
         </Fragment>

@@ -1,8 +1,6 @@
-import styled from '@emotion/styled';
-
 import {Badge} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Flex, Container, Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -58,67 +56,71 @@ export function CommitsFilesSection({
 
   return (
     <Tabs disabled={isError}>
-      <TabListWithSpace>
-        <TabList.Item key="commits" textValue={t('Commits')}>
-          <Flex>
-            <span>{t('Commits')}</span>
-            <Badge variant="muted">
-              {isLoadingMeta
-                ? '-'
-                : isMetaError
-                  ? 'x'
-                  : (releaseMeta?.commitCount ?? '0')}
-            </Badge>
-          </Flex>
-        </TabList.Item>
-        <TabList.Item key="files" textValue={t('File Changes')}>
-          <Flex>
-            <span>{t('File Changes')}</span>
-            <Badge variant="muted">
-              {isLoadingMeta
-                ? '-'
-                : isMetaError
-                  ? 'x'
-                  : (releaseMeta?.commitFilesChanged ?? '0')}
-            </Badge>
-          </Flex>
-        </TabList.Item>
-      </TabListWithSpace>
-      {isLoading ? (
-        <Placeholder height="100px" />
-      ) : isError ? (
-        <LoadingError
-          onRetry={() => {
-            releaseReposQuery.refetch();
-            repositoriesQuery.refetch();
-          }}
-        />
-      ) : noReleaseReposFound ? (
-        <NoReleaseRepos />
-      ) : noRepositoryOrgRelatedFound ? (
-        <NoRepositories orgSlug={organization.slug} />
-      ) : (
-        <TabPanels>
-          <TabPanels.Item key="commits">
-            {releaseRepos?.length && projectSlug && (
-              <CommitsList
-                release={release}
-                releaseRepos={releaseRepos}
-                projectSlug={projectSlug}
-              />
+      {({TabList, TabPanels}) => (
+        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Container marginBottom="md">
+            {layoutProps => (
+              <TabList {...layoutProps}>
+                <TabList.Item key="commits" textValue={t('Commits')}>
+                  <Flex>
+                    <span>{t('Commits')}</span>
+                    <Badge variant="muted">
+                      {isLoadingMeta
+                        ? '-'
+                        : isMetaError
+                          ? 'x'
+                          : (releaseMeta?.commitCount ?? '0')}
+                    </Badge>
+                  </Flex>
+                </TabList.Item>
+                <TabList.Item key="files" textValue={t('File Changes')}>
+                  <Flex>
+                    <span>{t('File Changes')}</span>
+                    <Badge variant="muted">
+                      {isLoadingMeta
+                        ? '-'
+                        : isMetaError
+                          ? 'x'
+                          : (releaseMeta?.commitFilesChanged ?? '0')}
+                    </Badge>
+                  </Flex>
+                </TabList.Item>
+              </TabList>
             )}
-          </TabPanels.Item>
-          <TabPanels.Item key="files">
-            {releaseRepos?.length && (
-              <FilesChangedList release={release} releaseRepos={releaseRepos} />
-            )}
-          </TabPanels.Item>
-        </TabPanels>
+          </Container>
+          {isLoading ? (
+            <Placeholder height="100px" />
+          ) : isError ? (
+            <LoadingError
+              onRetry={() => {
+                releaseReposQuery.refetch();
+                repositoriesQuery.refetch();
+              }}
+            />
+          ) : noReleaseReposFound ? (
+            <NoReleaseRepos />
+          ) : noRepositoryOrgRelatedFound ? (
+            <NoRepositories orgSlug={organization.slug} />
+          ) : (
+            <TabPanels>
+              <TabPanels.Item key="commits">
+                {releaseRepos?.length && projectSlug && (
+                  <CommitsList
+                    release={release}
+                    releaseRepos={releaseRepos}
+                    projectSlug={projectSlug}
+                  />
+                )}
+              </TabPanels.Item>
+              <TabPanels.Item key="files">
+                {releaseRepos?.length && (
+                  <FilesChangedList release={release} releaseRepos={releaseRepos} />
+                )}
+              </TabPanels.Item>
+            </TabPanels>
+          )}
+        </Stack>
       )}
     </Tabs>
   );
 }
-
-const TabListWithSpace = styled(TabList)`
-  margin-bottom: ${p => p.theme.space.md};
-`;

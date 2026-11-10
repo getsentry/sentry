@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {
   act,
@@ -8,8 +8,10 @@ import {
   within,
 } from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
+import {expectTypeOf} from 'expect-type';
 
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Tabs} from '@sentry/scraps/tabs';
 import {lightTheme} from '@sentry/scraps/theme';
 
 const TABS = [
@@ -33,19 +35,207 @@ const TABS = [
 ] as const;
 
 describe('Tabs', () => {
+  it('renders caller content as direct Grid children', async () => {
+    render(
+      <Grid role="group" aria-label="Tabs layout" columns="auto 1fr">
+        <Tabs>
+          {({TabList, TabPanels}) => (
+            <Fragment>
+              <TabList aria-label="Sections">
+                <TabList.Item key="details">Details</TabList.Item>
+                <TabList.Item key="activity">Activity</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="details">Details content</TabPanels.Item>
+                <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+              </TabPanels>
+            </Fragment>
+          )}
+        </Tabs>
+      </Grid>,
+      {wrapper: ThemeWrapper}
+    );
+
+    const layout = screen.getByRole('group', {name: 'Tabs layout'});
+    const panel = screen.getByRole('tabpanel');
+    // oxlint-disable-next-line testing-library/no-node-access -- The root API must not insert a DOM element around caller content.
+    expect(panel.parentElement).toBe(layout);
+    // oxlint-disable-next-line testing-library/no-node-access -- The tab list wrapper must remain a direct child of the caller's layout.
+    expect(layout.children).toHaveLength(2);
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
+
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Activity content');
+    expect(screen.queryByText('Details content')).not.toBeInTheDocument();
+  });
+
+  it('infers the same key union for selection, list items, and panels', async () => {
+    const onChange = jest.fn();
+    render(
+      <Tabs
+        value={'details' as 'details' | 'activity'}
+        onChange={key => {
+          expectTypeOf(key).toEqualTypeOf<'details' | 'activity'>();
+          onChange(key);
+        }}
+      >
+        {({TabList, TabPanels}) => {
+          expectTypeOf<Parameters<typeof TabList.Item>[0]['key']>().toEqualTypeOf<
+            'details' | 'activity'
+          >();
+          expectTypeOf<Parameters<typeof TabPanels.Item>[0]['key']>().toEqualTypeOf<
+            'details' | 'activity'
+          >();
+          return (
+            <Fragment>
+              <TabList>
+                <TabList.Item key="details">Details</TabList.Item>
+                <TabList.Item key="activity">Activity</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="details">Details content</TabPanels.Item>
+                <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+              </TabPanels>
+            </Fragment>
+          );
+        }}
+      </Tabs>,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
+    expect(onChange).toHaveBeenCalledWith('activity');
+  });
+
+  it('checks keys without widening from a broad selection callback', () => {
+    const element = (
+      <Tabs
+        value={'details' as 'details' | 'activity'}
+        onChange={(_key: string | number) => {}}
+        // @ts-expect-error Disabled keys must belong to the selected key type.
+        disabledKeys={['unknown']}
+      >
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              {/* @ts-expect-error List keys must belong to the selected key type. */}
+              <TabList.Item key="unknown">Unknown</TabList.Item>
+            </TabList>
+            <TabPanels>
+              {/* @ts-expect-error Panel keys must belong to the selected key type. */}
+              <TabPanels.Item key="unknown">Unknown content</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
+      </Tabs>
+    );
+    expectTypeOf(element).not.toBeAny();
+
+    const narrowCallback = (
+      <Tabs
+        value={'details' as 'details' | 'activity'}
+        // @ts-expect-error A callback must accept every possible selected key.
+        onChange={(_key: 'details') => {}}
+      >
+        {() => null}
+      </Tabs>
+    );
+    expectTypeOf(narrowCallback).not.toBeAny();
+  });
+
+  it('accepts an explicit key union for uncontrolled default selection', async () => {
+    const onChange = jest.fn();
+    render(
+      <Tabs<'details' | 'activity'>
+        defaultValue="activity"
+        onChange={key => {
+          expectTypeOf(key).toEqualTypeOf<'details' | 'activity'>();
+          onChange(key);
+        }}
+      >
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              <TabList.Item key="details">Details</TabList.Item>
+              <TabList.Item key="activity">Activity</TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="details">Details content</TabPanels.Item>
+              <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
+      </Tabs>,
+      {wrapper: ThemeWrapper}
+    );
+
+    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Activity content');
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Details'}));
+
+    expect(onChange).toHaveBeenCalledWith('details');
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('Details content');
+  });
+
+  it('rejects numeric selection values and item keys', () => {
+    const element = (
+      <Tabs value={'details' as 'details' | 'activity'}>
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              {/* @ts-expect-error Tab keys must be strings. */}
+              <TabList.Item key={1}>Numeric key</TabList.Item>
+            </TabList>
+            <TabPanels>
+              {/* @ts-expect-error Panel keys must be strings. */}
+              <TabPanels.Item key={1}>Numeric content</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
+      </Tabs>
+    );
+    expectTypeOf(element).not.toBeAny();
+
+    const controlled = (
+      // @ts-expect-error Selected values must be strings.
+      <Tabs value={1}>{() => null}</Tabs>
+    );
+    expectTypeOf(controlled).not.toBeAny();
+
+    const uncontrolled = (
+      // @ts-expect-error Default values must be strings.
+      <Tabs defaultValue={1}>{() => null}</Tabs>
+    );
+    expectTypeOf(uncontrolled).not.toBeAny();
+
+    const numericType = (
+      // @ts-expect-error The key type must extend string.
+      <Tabs<0 | 1>>{() => null}</Tabs>
+    );
+    expectTypeOf(numericType).not.toBeAny();
+  });
+
   it('renders tabs list', () => {
     render(
       <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -68,16 +258,20 @@ describe('Tabs', () => {
   it('renders tabs list when disabled', () => {
     render(
       <Tabs disabled>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -101,16 +295,20 @@ describe('Tabs', () => {
   it('changes tabs on click', async () => {
     render(
       <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -129,11 +327,15 @@ describe('Tabs', () => {
   it('keeps local selection controlled by the consumer', async () => {
     const onChange = jest.fn();
     const {rerender} = render(
-      <Tabs value="details" onChange={onChange}>
-        <TabList>
-          <TabList.Item key="details">Details</TabList.Item>
-          <TabList.Item key="activity">Activity</TabList.Item>
-        </TabList>
+      <Tabs<'details' | 'activity'> value="details" onChange={onChange}>
+        {({TabList}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              <TabList.Item key="details">Details</TabList.Item>
+              <TabList.Item key="activity">Activity</TabList.Item>
+            </TabList>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -147,11 +349,15 @@ describe('Tabs', () => {
     );
 
     rerender(
-      <Tabs value="activity" onChange={onChange}>
-        <TabList>
-          <TabList.Item key="details">Details</TabList.Item>
-          <TabList.Item key="activity">Activity</TabList.Item>
-        </TabList>
+      <Tabs<'details' | 'activity'> value="activity" onChange={onChange}>
+        {({TabList}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              <TabList.Item key="details">Details</TabList.Item>
+              <TabList.Item key="activity">Activity</TabList.Item>
+            </TabList>
+          </Stack>
+        )}
       </Tabs>
     );
 
@@ -170,16 +376,20 @@ describe('Tabs', () => {
     async ({activation, keys}) => {
       render(
         <Tabs keyboardActivation={activation}>
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
-          <TabPanels>
-            {TABS.map(tab => (
-              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-            ))}
-          </TabPanels>
+          {({TabList, TabPanels}) => (
+            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+              <TabList>
+                {TABS.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+              <TabPanels>
+                {TABS.map(tab => (
+                  <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+                ))}
+              </TabPanels>
+            </Stack>
+          )}
         </Tabs>,
         {wrapper: ThemeWrapper}
       );
@@ -202,16 +412,28 @@ describe('Tabs', () => {
   it('changes tabs on key press in vertical orientation', async () => {
     render(
       <Tabs orientation="vertical">
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Flex
+            direction="row"
+            flexGrow={1}
+            minWidth="0"
+            flexBasis="auto"
+            alignSelf="auto"
+            height="100%"
+            align="stretch"
+          >
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Flex>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -234,18 +456,22 @@ describe('Tabs', () => {
   it('renders disabled tabs', () => {
     render(
       <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key} disabled>
-              {tab.label}
-            </TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} disabled>
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -261,18 +487,22 @@ describe('Tabs', () => {
   it('renders tab links', async () => {
     render(
       <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="/#some-link">
-              {tab.label}
-            </TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} to="/#some-link">
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -311,18 +541,22 @@ describe('Tabs', () => {
   it('should not allow disabled tabs to be links', () => {
     render(
       <Tabs>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="/#some-link" disabled>
-              {tab.label}
-            </TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
+        {({TabList, TabPanels}) => (
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} to="/#some-link" disabled>
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
+            <TabPanels>
+              {TABS.map(tab => (
+                <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+              ))}
+            </TabPanels>
+          </Stack>
+        )}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -406,27 +640,9 @@ describe('Tabs overflow', () => {
     });
   }
 
-  function renderTabs(orientation?: 'horizontal' | 'vertical') {
-    return render(
-      <Tabs orientation={orientation}>
-        <TabList>
-          {TABS.map(tab => (
-            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-          ))}
-        </TabList>
-        <TabPanels>
-          {TABS.map(tab => (
-            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
-          ))}
-        </TabPanels>
-      </Tabs>,
-      {wrapper: ThemeWrapper}
-    );
-  }
-
   it('does not render an overflow menu when all tabs fit', () => {
     containerWidth = 1000;
-    renderTabs();
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
@@ -448,7 +664,7 @@ describe('Tabs overflow', () => {
     tabWidth = 100.125;
     const tabsWithGaps = TABS.length * tabWidth + (TABS.length - 1) * gap;
     containerWidth = tabsWithGaps;
-    renderTabs();
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
     expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
@@ -463,7 +679,7 @@ describe('Tabs overflow', () => {
   it('moves tabs that do not fit into an overflow menu', async () => {
     // Fits the first two tabs (budget = 260 - 48 = 212 => 2 * 100).
     containerWidth = 260;
-    renderTabs();
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
 
@@ -481,7 +697,7 @@ describe('Tabs overflow', () => {
 
   it('keeps the first tab visible when only it and the overflow trigger fit', async () => {
     containerWidth = 120;
-    renderTabs();
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     expect(screen.getByRole('tab', {name: 'Details'})).toBeInTheDocument();
 
@@ -499,7 +715,7 @@ describe('Tabs overflow', () => {
 
   it('recomputes overflow when the container is resized', async () => {
     containerWidth = 1000;
-    renderTabs();
+    render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
 
@@ -520,7 +736,7 @@ describe('Tabs overflow', () => {
     'activates an overflowing tab by %s and closes the menu',
     async interaction => {
       containerWidth = 260;
-      renderTabs();
+      render(<OverflowTabs />, {wrapper: ThemeWrapper});
 
       await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
       if (interaction === 'click') {
@@ -539,7 +755,7 @@ describe('Tabs overflow', () => {
 
   it('never overflows tabs in vertical orientation', () => {
     containerWidth = 260;
-    renderTabs('vertical');
+    render(<OverflowTabs orientation="vertical" />, {wrapper: ThemeWrapper});
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
@@ -555,11 +771,15 @@ describe('Tabs overflow', () => {
     }) {
       return (
         <Tabs>
-          <TabList>
-            {items.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
+          {({TabList}) => (
+            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+              <TabList>
+                {items.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+            </Stack>
+          )}
         </Tabs>
       );
     }
@@ -596,4 +816,33 @@ describe('Tabs overflow', () => {
 
 function ThemeWrapper({children}: {children: ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
+
+function OverflowTabs({orientation}: {orientation?: 'horizontal' | 'vertical'}) {
+  return (
+    <Tabs orientation={orientation}>
+      {({TabList, TabPanels}) => (
+        <Flex
+          direction={orientation === 'vertical' ? 'row' : 'column'}
+          flexGrow={1}
+          minWidth="0"
+          flexBasis={orientation === 'vertical' ? 'auto' : '0'}
+          alignSelf={orientation === 'vertical' ? 'auto' : 'stretch'}
+          height={orientation === 'vertical' ? '100%' : undefined}
+          align={orientation === 'vertical' ? 'stretch' : undefined}
+        >
+          <TabList>
+            {TABS.map(tab => (
+              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
+          <TabPanels>
+            {TABS.map(tab => (
+              <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
+            ))}
+          </TabPanels>
+        </Flex>
+      )}
+    </Tabs>
+  );
 }

@@ -1,15 +1,28 @@
-import type {ReactNode} from 'react';
-import {createContext, useState} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import type {JSX, ReactNode} from 'react';
+import {useState} from 'react';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
-import type {Orientation} from '@react-types/shared';
 
+import {TabsContext} from './context';
+import type {TabListItemProps, TabPanelItemProps} from './item';
 import type {TabProps} from './tab';
-import {tabsShouldForwardProp} from './utils';
+import {TabList, type TabListProps} from './tabList';
+import {TabPanels, type TabPanelsProps} from './tabPanels';
 
-interface TabsProps<T>
+export type TabKey = string;
+
+export interface TabsComponents<T extends TabKey> {
+  TabList: {
+    (props: TabListProps): JSX.Element;
+    Item: (props: TabListItemProps<T>) => JSX.Element;
+  };
+  TabPanels: {
+    (props: TabPanelsProps): JSX.Element | null;
+    Item: (props: TabPanelItemProps<T>) => JSX.Element;
+  };
+}
+
+export interface TabsProps<T extends TabKey>
   extends
     Omit<
       AriaTabListOptions<any>,
@@ -23,93 +36,39 @@ interface TabsProps<T>
       | 'onSelectionChange'
       | 'isDisabled'
     > {
-  children?: ReactNode;
-  className?: string;
-  /**
-   * [Uncontrolled] Default selected tab. Must match the `key` prop on the
-   * selected tab item.
-   */
+  children: (components: TabsComponents<T>) => ReactNode;
+  /** Initial selected key for uncontrolled tabs. */
   defaultValue?: T;
   disabled?: boolean;
-  /**
-   * Callback when the selected tab changes.
-   */
-  onChange?: (key: T) => void;
+  disabledKeys?: Iterable<NoInfer<T>>;
+  onChange?: (key: NoInfer<T>) => void;
   size?: TabProps['size'];
-  /**
-   * [Controlled] Selected tab. Must match the `key` prop on the selected tab
-   * item.
-   */
+  /** Selected key for controlled tabs. */
   value?: T;
 }
 
-interface TabContext {
-  rootProps: Omit<TabsProps<any>, 'children' | 'className' | 'orientation' | 'size'> &
-    Required<Pick<TabsProps<any>, 'orientation' | 'size'>>;
-  setTabListState: (state: TabListState<any>) => void;
-  tabListState?: TabListState<any>;
-}
-
-export const TabsContext = createContext<TabContext>({
-  rootProps: {orientation: 'horizontal', size: 'md'},
-  setTabListState: () => {},
-});
-
-export function TabStateProvider<T extends string | number>({
+function TabStateProvider({
   children,
+  orientation = 'horizontal',
+  size = 'md',
   ...props
-}: Omit<TabsProps<T>, 'className'>) {
+}: Omit<TabsProps<TabKey>, 'children'> & {children: ReactNode}) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
     <TabsContext
-      value={{
-        rootProps: {orientation: 'horizontal', size: 'md', ...props},
-        tabListState,
-        setTabListState,
-      }}
+      value={{rootProps: {orientation, size, ...props}, tabListState, setTabListState}}
     >
       {children}
     </TabsContext>
   );
 }
 
-/**
- * Root tabs component. Provides the necessary data (via React context) for
- * child components (TabList and TabPanels) to work together. See example
- * usage in tabs.stories.js
- */
-export function Tabs<T extends string | number>({
-  orientation = 'horizontal',
-  size = 'md',
-  className,
-  children,
-  ...props
-}: TabsProps<T>) {
-  return (
-    <TabStateProvider orientation={orientation} size={size} {...props}>
-      <TabsWrap orientation={orientation} className={className}>
-        {children}
-      </TabsWrap>
-    </TabStateProvider>
-  );
+const components = {TabList, TabPanels};
+
+function TabsRoot({children, ...props}: TabsProps<TabKey>) {
+  return <TabStateProvider {...props}>{children(components)}</TabStateProvider>;
 }
 
-const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
-  orientation: Orientation;
-}>`
-  display: flex;
-  flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
-  flex-grow: 1;
-  min-width: 0;
-  /* Let horizontal tabs share a wrapping row and fill a column layout. */
-  flex-basis: ${p => (p.orientation === 'horizontal' ? '0' : 'auto')};
-  align-self: ${p => (p.orientation === 'horizontal' ? 'stretch' : 'auto')};
-
-  ${p =>
-    p.orientation === 'vertical' &&
-    css`
-      height: 100%;
-      align-items: stretch;
-    `}
-`;
+// Bind the key type without wrapping the collection items or changing their identity.
+export const Tabs = TabsRoot as <T extends TabKey>(props: TabsProps<T>) => JSX.Element;

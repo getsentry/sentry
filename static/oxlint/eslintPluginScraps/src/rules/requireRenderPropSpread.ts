@@ -11,6 +11,7 @@ const SCRAPS_SOURCE_EXCEPTIONS = new Set([
   '@sentry/scraps/confirm',
   '@sentry/scraps/form',
   '@sentry/scraps/slideOverPanel',
+  '@sentry/scraps/tabs',
 ]);
 
 function isScrapsSource(source: string): boolean {
