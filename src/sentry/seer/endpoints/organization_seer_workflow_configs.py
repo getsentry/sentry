@@ -742,10 +742,22 @@ def serialize_workflow_configs(
         )
         for account in accounts
     }
-    selected_projects = get_selected_project_ids(
-        configs, accessible_project_ids=accessible_project_ids
+    monitor_configs = [
+        config
+        for config in configs
+        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+    ]
+    project_configs = [
+        config
+        for config in configs
+        if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+    ]
+    selected_projects = get_config_projects_bulk(
+        project_configs, accessible_project_ids=accessible_project_ids
     )
-    connected_monitors = get_config_monitors_bulk(configs, project_filter=accessible_project_ids)
+    connected_monitors = get_config_monitors_bulk(
+        monitor_configs, project_filter=accessible_project_ids
+    )
     last_runs = get_config_last_runs(
         configs,
         accessible_project_ids=accessible_project_ids,
@@ -757,8 +769,16 @@ def serialize_workflow_configs(
         "configs": [
             serialize_workflow_config(
                 config,
-                selected_project_ids=selected_projects[config.id],
-                connected_monitors=connected_monitors.get(config.id, []),
+                selected_project_ids=(
+                    []
+                    if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+                    else selected_projects[config.id]
+                ),
+                connected_monitors=(
+                    connected_monitors.get(config.id, [])
+                    if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+                    else []
+                ),
                 last_run=last_runs_by_config_id.get(config.id),
                 service_account=(
                     service_accounts.get(config.service_account_id)
@@ -772,9 +792,14 @@ def serialize_workflow_configs(
     }
 
 
-def get_selected_project_ids(
+def get_config_projects_bulk(
     configs: Sequence[SeerWorkflowConfig], *, accessible_project_ids: Sequence[int]
 ) -> defaultdict[int, list[int]]:
+    """
+    Return each config's selected project IDs from its project links. Only valid for
+    project-based automations; monitor-based automations derive projects from their
+    connected monitors and have no project links.
+    """
     selected_projects: defaultdict[int, list[int]] = defaultdict(list)
     links = SeerWorkflowConfigProject.objects.filter(
         config__in=configs, project_id__in=accessible_project_ids
@@ -837,6 +862,11 @@ def serialize_workflow_config(
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
 ) -> SeerWorkflowConfigResponse:
+    """
+    ``selected_project_ids`` is ignored for monitor-based automations, whose projects come
+    from ``connected_monitors``. ``connected_monitors`` is ignored for project-based
+    automations.
+    """
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
     if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:

@@ -243,6 +243,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         config_id = serializer.validated_data.get("config")
         if config_id is not None:
             runs = runs.filter(workflow_config_id=config_id)
+        # Must have access to all connected projects (workflow._get_project_ids)
         if not request.access.has_global_access:
             projects = self.get_projects(request, organization, include_all_accessible=True)
             runs = runs.filter(
