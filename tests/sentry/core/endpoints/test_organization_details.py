@@ -41,7 +41,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.replays.models import OrganizationMemberReplayAccess, TeamReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
@@ -1599,6 +1599,71 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             organizationmember__organization=self.organization
         ).count()
         assert access_count == 0
+
+    def test_replay_access_teams_add_and_remove(self) -> None:
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+        team3 = self.create_team(organization=self.organization)
+        TeamReplayAccess.objects.create(team=team1)
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug, replayAccessTeams=[team2.id, team3.id]
+            )
+
+        access_teams = set(
+            TeamReplayAccess.objects.filter(team__organization=self.organization).values_list(
+                "team_id", flat=True
+            )
+        )
+        assert access_teams == {team2.id, team3.id}
+
+        with assume_test_silo_mode_of(AuditLogEntry):
+            log = AuditLogEntry.objects.get(organization_id=self.organization.id)
+        assert "added 2 team(s)" in log.data["replayAccessTeams"]
+        assert "removed 1 team(s)" in log.data["replayAccessTeams"]
+        assert "total: 2 team(s)" in log.data["replayAccessTeams"]
+
+    def test_replay_access_teams_clear_all(self) -> None:
+        team = self.create_team(organization=self.organization)
+        TeamReplayAccess.objects.create(team=team)
+
+        self.get_success_response(self.organization.slug, replayAccessTeams=None)
+
+        assert not TeamReplayAccess.objects.filter(team__organization=self.organization).exists()
+
+    def test_replay_access_teams_requires_admin_scope(self) -> None:
+        member_user = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member_user, role="member", teams=[]
+        )
+        self.login_as(member_user)
+
+        team = self.create_team(organization=self.organization)
+        self.get_error_response(
+            self.organization.slug, replayAccessTeams=[team.id], status_code=403
+        )
+
+    def test_replay_access_teams_from_other_organization(self) -> None:
+        other_org = self.create_organization(owner=self.create_user())
+        other_team = self.create_team(organization=other_org)
+
+        response = self.get_error_response(
+            self.organization.slug, replayAccessTeams=[other_team.id], status_code=400
+        )
+        assert str(other_team.id) in response.data["replayAccessTeams"]
+        assert not TeamReplayAccess.objects.exists()
+
+    def test_replay_access_teams_serialized(self) -> None:
+        team = self.create_team(organization=self.organization)
+        TeamReplayAccess.objects.create(team=team)
+
+        response = self.get_success_response(
+            self.organization.slug, hasGranularReplayPermissions=True
+        )
+        assert response.data["replayAccessTeams"] == [str(team.id)]
 
     def test_granular_replay_permissions_owner_can_edit(self) -> None:
         owner = self.create_user()
