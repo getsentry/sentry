@@ -1,6 +1,6 @@
 ---
 title: Linear Installation
-description: Authorize Seer to read a Linear workspace.
+description: Authorize Seer to read and write a Linear workspace.
 category: forms
 source: sentry/components/pipeline/integrationLinear
 ---
@@ -10,7 +10,7 @@ import * as Storybook from 'sentry/stories';
 
 export const LinearOAuthLoginStep = linearIntegrationPipeline.steps[0].component;
 
-The Linear pipeline opens an authorization popup for the Sentry app. A Linear workspace admin approves read-only access for the organization. Sentry checks workspace access before completing installation and renews tokens automatically for background investigations. Seer reaches Linear through its read-only MCP endpoint.
+The Linear pipeline opens an authorization popup for the Sentry app. A Linear workspace admin approves read and write access for the organization. Sentry checks workspace access before completing installation and renews tokens automatically for background investigations. Seer reaches Linear through its MCP endpoint.
 
 ## Authorization
 
