@@ -318,6 +318,63 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
             assert status is None
 
+    def test_project_artifact_bundle_has_debug_ids(self) -> None:
+        for fixture_path, has_debug_ids in [
+            ("artifact_bundle_debug_ids", True),
+            ("artifact_bundle", False),
+        ]:
+            with self.subTest(fixture_path=fixture_path):
+                bundle_file = self.create_artifact_bundle_zip(
+                    fixture_path=fixture_path, project=self.project.id
+                )
+                blob = FileBlob.from_file_with_organization(
+                    ContentFile(bundle_file), self.organization
+                )
+                checksum = sha1(bundle_file).hexdigest()
+
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    checksum=checksum,
+                    chunks=[blob.checksum],
+                )
+
+                artifact_bundle = ArtifactBundle.objects.get(file__checksum=checksum)
+                project_artifact_bundle = ProjectArtifactBundle.objects.get(
+                    artifact_bundle=artifact_bundle
+                )
+                assert project_artifact_bundle.has_debug_ids is has_debug_ids
+                assert (
+                    DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
+                    is has_debug_ids
+                )
+
+    def test_upload_same_bundle_id_to_new_project_has_debug_ids(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        checksum = sha1(bundle_file).hexdigest()
+
+        for project_id in (self.project.id, other_project.id):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[project_id],
+                version="1.0",
+                checksum=checksum,
+                chunks=[blob.checksum],
+            )
+
+        artifact_bundle = ArtifactBundle.objects.get()
+        # The second upload writes no debug-ID rows, but links the bundle that has them.
+        links = ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle)
+        assert {(link.project_id, link.has_debug_ids) for link in links} == {
+            (self.project.id, True),
+            (other_project.id, True),
+        }
+
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
     def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(
         self, post_assemble: MagicMock
