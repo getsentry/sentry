@@ -1,3 +1,4 @@
+import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Select, type ControlProps, type SelectValue} from '@sentry/scraps/select';
@@ -22,8 +23,8 @@ const StyledSelect = styled(Select)`
 // never contribute to the select's width and long labels get truncated at the
 // min-width. Stacking them with the input in one grid cell lets the select grow
 // to fit its value.
-const inGridCell = (provided: any, state: any) =>
-  state.isMulti
+const inGridCell = (provided: CSSObject, state: unknown): CSSObject =>
+  isMultiState(state)
     ? provided
     : {
         ...provided,
@@ -34,16 +35,27 @@ const inGridCell = (provided: any, state: any) =>
         maxWidth: '100%',
       };
 
+// react-select passes isMulti to every style function, but the scraps
+// StylesConfig state type does not include it.
+function isMultiState(state: unknown): boolean {
+  return (
+    typeof state === 'object' &&
+    state !== null &&
+    'isMulti' in state &&
+    state.isMulti === true
+  );
+}
+
 export const selectControlStyles = {
   control: (provided: any) => ({
     ...provided,
     minHeight: '32px',
     padding: 0,
   }),
-  valueContainer: (provided: any, state: any) =>
-    state.isMulti ? provided : {...provided, display: 'grid'},
+  valueContainer: (provided: CSSObject, state: unknown): CSSObject =>
+    isMultiState(state) ? provided : {...provided, display: 'grid'},
   singleValue: inGridCell,
   placeholder: inGridCell,
-  input: (provided: any, state: any) =>
-    state.isMulti ? provided : {...provided, gridArea: '1 / 1'},
+  input: (provided: CSSObject, state: unknown): CSSObject =>
+    isMultiState(state) ? provided : {...provided, gridArea: '1 / 1'},
 };
