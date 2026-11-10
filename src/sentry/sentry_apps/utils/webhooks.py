@@ -78,6 +78,9 @@ class SentryAppResourceType(StrEnum):
     METRIC_ALERT = "metric_alert"
     SEER = "seer"
     PREPROD_ARTIFACT = "preprod_artifact"
+    # A workflow-engine alert, sent to every subscribed app rather than
+    # only to apps configured as an action on that alert.
+    ALERT = "alert"
 
     # Represents an issue alert resource
     EVENT_ALERT = "event_alert"
@@ -117,6 +120,7 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED,
         SentryAppEventType.PREPROD_ARTIFACT_BUILD_DISTRIBUTION_COMPLETED,
     ],
+    SentryAppResourceType.ALERT: [SentryAppEventType.ALERT_TRIGGERED],
 }
 # We present Webhook Subscriptions per-resource (Issue, Project, etc.), not
 # per-event-type (issue.created, project.deleted, etc.). These are valid

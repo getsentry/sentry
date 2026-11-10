@@ -1147,6 +1147,19 @@ def send_activity_alert_webhook(
     send_and_save_webhook_request(sentry_app, app_platform_event)
 
 
+def installations_subscribed_to(
+    organization_id: int, event_type: str
+) -> list[RpcSentryAppInstallation]:
+    """The organization's installations whose app subscribes to `event_type`."""
+    return [
+        installation
+        for installation in app_service.installations_for_organization(
+            organization_id=organization_id
+        )
+        if is_subscribed(installation.sentry_app.events, event_type)
+    ]
+
+
 @instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization",
     namespace=sentryapp_tasks,
@@ -1192,14 +1205,7 @@ def broadcast_webhooks_for_organization(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event_type,
     ).capture():
-        # Get installations for this organization
-        installations = app_service.installations_for_organization(organization_id=organization_id)
-
-        relevant_installations = [
-            installation
-            for installation in installations
-            if is_subscribed(installation.sentry_app.events, event_type)
-        ]
+        relevant_installations = installations_subscribed_to(organization_id, event_type)
 
         if not relevant_installations:
             logger.info(

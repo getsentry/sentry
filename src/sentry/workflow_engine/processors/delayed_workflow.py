@@ -58,6 +58,7 @@ from sentry.workflow_engine.processors.evaluations.workflow import (
 )
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.tasks.alert_webhooks import enqueue_alert_triggered_webhooks
 from sentry.workflow_engine.types import (
     ConditionError,
     DataConditionGroupId,
@@ -865,6 +866,7 @@ def fire_actions_for_groups(
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )
+                enqueue_alert_triggered_webhooks(workflow_fire_histories, workflow_event_data)
 
                 # Create mapping: workflow_id -> notification_uuid for propagation
                 workflow_uuid_map: dict[WorkflowId, str] = {}

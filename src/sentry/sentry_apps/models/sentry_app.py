@@ -61,6 +61,8 @@ REQUIRED_EVENT_PERMISSIONS = {
     "team": "team:read",
     "comment": "event:read",
     "preprod_artifact": "project:read",
+    # The payload embeds the serialized issue, same as issue webhooks.
+    "alert": "event:read",
 }
 
 # The only events valid for Sentry Apps are the ones listed in the values of
