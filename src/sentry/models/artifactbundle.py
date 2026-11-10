@@ -209,6 +209,9 @@ class ProjectArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    # Whether the bundle has any `DebugIdArtifactBundle` rows. It is on the link and not on the bundle, so that
+    # checking if a project uploaded any file with a debug ID reads only the project's flagged links.
+    has_debug_ids = models.BooleanField(db_default=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
