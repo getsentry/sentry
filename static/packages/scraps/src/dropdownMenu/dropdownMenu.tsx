@@ -11,9 +11,10 @@ import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {DropdownMenuContent} from './content';
+import type {DropdownMenuContentProps} from './content';
 import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
-import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
+import type {DropdownMenuListProps} from './list';
 
 export type {MenuItemProps};
 
