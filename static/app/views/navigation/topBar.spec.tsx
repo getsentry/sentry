@@ -10,12 +10,19 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {
+  SeerExplorerContext,
+  type SeerExplorerContextValue,
+} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
 import {TopBar} from './topBar';
 
 const theme = ThemeFixture();
 
+const mockOpenFeedbackForm = jest.fn();
 jest.mock('sentry/utils/useFeedbackForm', () => ({
-  useFeedbackForm: () => jest.fn(),
+  useFeedbackForm: () => mockOpenFeedbackForm,
 }));
 
 jest.mock('sentry/utils/seer/isSeerExplorerEnabled', () => ({
@@ -178,22 +185,145 @@ describe('TopBar', () => {
     }>().toMatchTypeOf<Props>();
   });
 
-  it('uses icon-only actions below sm', () => {
+  it('uses icon-only actions below sm', async () => {
     renderTopBar(Number.parseFloat(theme.container.sm) - 1);
 
     expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Give Feedback')).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Give Feedback'}));
+    expect(await screen.findByText('Give Feedback')).toBeInTheDocument();
   });
 
-  it('shows the Ask Seer label while keeping other actions compact at sm', () => {
+  it('shows the Ask Seer and Give Feedback labels at sm', () => {
     renderTopBar(Number.parseFloat(theme.container.sm));
     const askSeerButton = screen.getByRole('button', {name: 'Ask Seer'});
 
     expect(screen.getByText('Ask Seer')).toBeInTheDocument();
+    expect(screen.getByText('Give Feedback')).toBeInTheDocument();
     expect(screen.queryByText('/')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button')).toEqual([
       askSeerButton,
       screen.getByRole('button', {name: 'Give Feedback'}),
     ]);
+  });
+
+  describe('feedback slot', () => {
+    const seerExplorerOpen: SeerExplorerContextValue = {
+      closeSeerExplorer: jest.fn(),
+      isOpen: true,
+      openChatPrompt: jest.fn(),
+      openSeerExplorer: jest.fn(),
+      sessionState: 'inactive',
+      sidebarContainerRef: {current: null},
+      setSidebarPosition: jest.fn(),
+      sidebarAppendInitialQuery: false,
+      sidebarInitialQuery: undefined,
+      sidebarKey: 0,
+      sidebarPosition: 'auto',
+      toggleSeerExplorer: jest.fn(),
+      unreadCount: 0,
+    };
+
+    function renderFeedbackSlot(
+      slot: React.ReactNode,
+      {seerExplorer}: {seerExplorer?: SeerExplorerContextValue} = {}
+    ) {
+      jest
+        .spyOn(Element.prototype, 'clientWidth', 'get')
+        .mockReturnValue(Number.parseFloat(theme.container.sm));
+
+      const content = (
+        <TopBar.Slot.Provider>
+          <TopBar />
+          {slot}
+        </TopBar.Slot.Provider>
+      );
+
+      render(
+        <Flex containerType="inline-size">
+          {seerExplorer ? (
+            <SeerExplorerContext.Provider value={seerExplorer}>
+              {content}
+            </SeerExplorerContext.Provider>
+          ) : (
+            content
+          )}
+        </Flex>,
+        {organization: OrganizationFixture()}
+      );
+    }
+
+    beforeEach(() => {
+      mockOpenFeedbackForm.mockClear();
+    });
+
+    it('uses the top navigation tags by default', async () => {
+      renderFeedbackSlot(null);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+      expect(mockOpenFeedbackForm).toHaveBeenCalledWith({
+        tags: {'feedback.source': 'top_navigation'},
+      });
+    });
+
+    it('replaces the default button with page feedback options', async () => {
+      const feedbackOptions = {tags: {'feedback.source': 'page'}};
+      renderFeedbackSlot(
+        <TopBar.Slot name="feedback" feedbackOptions={feedbackOptions} />
+      );
+
+      expect(screen.getAllByRole('button', {name: 'Give Feedback'})).toHaveLength(1);
+      expect(screen.getByText('Give Feedback')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+      expect(mockOpenFeedbackForm).toHaveBeenCalledWith(feedbackOptions);
+    });
+
+    it('keeps the visible label when given a custom accessible name', () => {
+      renderFeedbackSlot(
+        <TopBar.Slot
+          name="feedback"
+          aria-label="Give feedback on this page"
+          feedbackOptions={{tags: {'feedback.source': 'page'}}}
+        />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Give feedback on this page'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('Give Feedback')).toBeInTheDocument();
+    });
+
+    it('prefers Seer Explorer feedback options while the explorer is open', async () => {
+      renderFeedbackSlot(
+        <TopBar.Slot
+          name="feedback"
+          feedbackOptions={{tags: {'feedback.source': 'page'}}}
+        />,
+        {seerExplorer: seerExplorerOpen}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+      expect(mockOpenFeedbackForm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: expect.objectContaining({'feedback.source': 'seer_explorer'}),
+        })
+      );
+    });
+
+    it('still renders custom children', () => {
+      renderFeedbackSlot(
+        <TopBar.Slot name="feedback">
+          <FeedbackButton aria-label="Custom feedback">{null}</FeedbackButton>
+        </TopBar.Slot>
+      );
+
+      expect(screen.getByRole('button', {name: 'Custom feedback'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Give Feedback'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('does not render the command palette button', () => {
