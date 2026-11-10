@@ -12,6 +12,7 @@ from sentry.issues.unmerge_recovery import (
     UnmergeNeedsRecovery,
     client,
     owner_key,
+    release_hashes,
     reserve_legacy_hashes,
 )
 from sentry.models.grouphash import GroupHash
@@ -226,6 +227,131 @@ class UnmergeRecoveryTest(TestCase):
         self.group_hash.refresh_from_db()
         assert self.group_hash.state == GroupHash.State.UNLOCKED
         assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_moved_hash_releases_ownership_and_retires_request(self, query: Mock) -> None:
+        self.group_hash.update(group=self.create_group(project=self.project))
+        with pytest.raises(UnmergeNeedsRecovery, match="no longer belong"):
+            unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_moved_hash_releases_previously_acquired_sql_lock(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        self.group_hash.update(group=self.create_group(project=self.project))
+        with pytest.raises(UnmergeNeedsRecovery, match="no longer belong"):
+            unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_does_not_unlock_an_unowned_sql_lock(self, query: Mock) -> None:
+        self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        client().set(owner_key(self.project.id, self.fingerprint), "another-operation", ex=600)
+        with self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}):
+            unmerge(**self.args.dump_arguments())
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+        assert client().get(owner_key(self.project.id, self.fingerprint)) == "another-operation"
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_deleted_hash_releases_previously_acquired_ownership(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        self.group_hash.delete()
+        with pytest.raises(UnmergeNeedsRecovery, match="no longer belong"):
+            unmerge(**self.args.dump_arguments())
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            assert checkpoint.finished
+        unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_cleanup_resumes_before_sql_unlock(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        with (
+            self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}),
+            patch.object(type(GroupHash.objects.all()), "update", side_effect=KeyboardInterrupt),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**self.args.dump_arguments())
+        # Cleanup must continue even if the killswitch has since been disabled.
+        unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_cleanup_resumes_after_sql_unlock(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        original_save = UnmergeCheckpoint.save
+
+        def interrupted_save(checkpoint: UnmergeCheckpoint, phase: str, **updates: object) -> None:
+            if phase == "releasing":
+                raise KeyboardInterrupt()
+            original_save(checkpoint, phase, **updates)
+
+        with (
+            self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}),
+            patch.object(UnmergeCheckpoint, "save", interrupted_save),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**self.args.dump_arguments())
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_cleanup_resumes_partial_release_without_unlocking_new_owner(
+        self, query: Mock
+    ) -> None:
+        other_hash = "b" * 32
+        other_group_hash = Factories.create_group_hash(group=self.source, hash=other_hash)
+        args = replace(
+            self.args,
+            replacement=PrimaryHashUnmergeReplacement(fingerprints=[self.fingerprint, other_hash]),
+        )
+        with UnmergeCheckpoint(args) as checkpoint:
+            checkpoint.lock_hashes()
+
+        def interrupted_release(project_id: int, fingerprints: list[str], owner: str) -> None:
+            release_hashes(project_id, fingerprints[:1], owner)
+            raise KeyboardInterrupt()
+
+        with (
+            self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}),
+            patch("sentry.issues.unmerge_recovery.release_hashes", side_effect=interrupted_release),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**args.dump_arguments())
+        with UnmergeCheckpoint(replace(self.args, operation_id=uuid.uuid4().hex)) as newer:
+            newer.lock_hashes()
+            newer_owner = newer.owner
+        unmerge(**args.dump_arguments())
+        other_group_hash.refresh_from_db()
+        assert other_group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, other_hash)) is None
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+        assert client().get(owner_key(self.project.id, self.fingerprint)) == newer_owner
+        with UnmergeCheckpoint(args) as checkpoint:
+            assert checkpoint.finished
+        query.assert_not_called()
+
+    def assert_cleanup_complete(self) -> None:
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            assert checkpoint.finished
 
     @patch("sentry.tasks.unmerge.truncate_denormalizations")
     @patch("sentry.tasks.unmerge.task_run_batch_query")

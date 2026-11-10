@@ -149,9 +149,12 @@ class UnmergeCheckpoint:
             self.check_ownership(fingerprints)
         with transaction.atomic(router.db_for_write(GroupHash)):
             rows = list(hashes.order_by("id").select_for_update())
-            if len(rows) != len(fingerprints):
-                raise UnmergeNeedsRecovery("Requested fingerprints no longer belong to the source")
-            hashes.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+            if len(rows) == len(fingerprints):
+                hashes.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        if len(rows) != len(fingerprints):
+            # Redis cleanup must happen outside the SQL transaction.
+            self.release_locks()
+            raise UnmergeNeedsRecovery("Requested fingerprints no longer belong to the source")
         return fingerprints
 
     def check_ownership(self, fingerprints: Sequence[str]) -> None:
@@ -159,6 +162,25 @@ class UnmergeCheckpoint:
             [owner_key(self.args.project_id, fingerprint) for fingerprint in fingerprints]
         ) != [self.owner] * len(fingerprints):
             raise UnmergeNeedsRecovery("Unmerge fingerprint ownership is missing or has changed")
+
+    def release_locks(self) -> None:
+        fingerprints = sorted(set(self.args.replacement.primary_hashes_to_lock))
+        if self.phase == "new":
+            # No SQL locks were acquired by this operation.
+            self.save("releasing", continuation=None)
+        elif self.phase != "releasing":
+            self.check_ownership(fingerprints)
+            self.save("unlocking", continuation=None)
+            GroupHash.objects.filter(
+                project_id=self.args.project_id,
+                hash__in=fingerprints,
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
+            ).update(state=GroupHash.State.UNLOCKED)
+            # Once owners start being released, retries must not unlock SQL:
+            # a different operation may already have acquired a released hash.
+            self.save("releasing")
+        release_hashes(self.args.project_id, fingerprints, self.owner)
+        self.complete()
 
     def begin_mutations(self) -> None:
         self.save("applying")

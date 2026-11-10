@@ -594,6 +594,9 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         with checkpoint:
             if checkpoint.finished:
                 return
+            if checkpoint.phase in ("unlocking", "releasing"):
+                checkpoint.release_locks()
+                return
             if checkpoint.phase == "applying":
                 raise UnmergeNeedsRecovery("Unmerge batch may have partially applied mutations")
             if checkpoint.phase != "handoff":
@@ -644,16 +647,14 @@ def _unmerge(args: UnmergeArgs, checkpoint: UnmergeCheckpoint | None = None) -> 
             hashes = list(args.replacement.primary_hashes_to_lock)
             if checkpoint and checkpoint.phase != "new":
                 checkpoint.check_ownership(hashes)
-                checkpoint.begin_mutations()
-                unlock_hashes(args.project_id, hashes)
             if isinstance(args, SuccessiveUnmergeArgs):
-                unlock_hashes(args.project_id, list(args.locked_primary_hashes))
+                if checkpoint is None:
+                    unlock_hashes(args.project_id, list(args.locked_primary_hashes))
                 for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
                     if eventstream_state:
                         args.replacement.stop_snuba_replacement(eventstream_state)
             if checkpoint:
-                release_hashes(args.project_id, hashes, checkpoint.owner)
-                checkpoint.complete()
+                checkpoint.release_locks()
             return
 
         source = Group.objects.get(project_id=args.project_id, id=args.source_id)
