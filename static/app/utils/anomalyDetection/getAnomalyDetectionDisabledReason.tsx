@@ -2,32 +2,15 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {t} from 'sentry/locale';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 
 /**
- * Intervals (in seconds) that metric monitors support, so the anomaly
- * detection endpoint can score them.
+ * Seer's smallest interval. A shorter range wouldn't have a single bucket.
  */
-const SUPPORTED_INTERVAL_SECONDS = new Set([
-  5 * 60,
-  10 * 60,
-  15 * 60,
-  30 * 60,
-  60 * 60,
-  2 * 60 * 60,
-  4 * 60 * 60,
-  24 * 60 * 60,
-]);
-
-const MAX_RANGE_MINUTES = 7 * 24 * 60;
+const MIN_RANGE_MINUTES = 5;
 
 interface AnomalyDetectionChartState {
   datetime: DateTimeObject;
   groupBys: readonly string[];
-  /**
-   * The chart's interval, e.g. `5m`, `1h`
-   */
-  interval: string;
   projects: readonly number[];
   /**
    * Number of aggregate functions plotted on the chart
@@ -37,11 +20,12 @@ interface AnomalyDetectionChartState {
 
 /**
  * Returns why anomaly detection can't run for a chart, or `null` when it can.
+ * Any interval and range works: see `getAnomalyScoringPlan` for how charts
+ * Seer can't score as-is are handled.
  */
 export function getAnomalyDetectionDisabledReason({
   datetime,
   groupBys,
-  interval,
   projects,
   yAxisCount,
 }: AnomalyDetectionChartState): string | null {
@@ -55,11 +39,8 @@ export function getAnomalyDetectionDisabledReason({
   if (yAxisCount > 1) {
     return t('Plot a single function');
   }
-  if (!SUPPORTED_INTERVAL_SECONDS.has(intervalToMilliseconds(interval) / 1000)) {
-    return t('Use a 5m, 10m, 15m, 30m, 1h, 2h, 4h or 1d interval');
-  }
-  if (getDiffInMinutes(datetime) > MAX_RANGE_MINUTES) {
-    return t('Select a time range of 7 days or less');
+  if (getDiffInMinutes(datetime) < MIN_RANGE_MINUTES) {
+    return t('Select a time range of at least 5 minutes');
   }
   return null;
 }

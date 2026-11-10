@@ -73,39 +73,56 @@ describe('AnomalyMarkers', () => {
 });
 
 describe('makeAnomalyTooltipDetails', () => {
-  const renderDetails = makeAnomalyTooltipDetails({
-    anomalousTimestamps: new Set([1000, 2000, 3000, 5000]),
-    periods,
-    theme,
-    utc: true,
-  })!;
+  // `end` is exclusive: the first period covers buckets 1000 and 2000
+  const tooltipPeriods = [
+    {start: 1000, end: 3000, priority: 'high' as const},
+    {start: 5000, end: 6000, priority: 'medium' as const},
+  ];
 
-  it('shows when the anomaly started and ended for a flagged bucket', () => {
+  it('shows when the anomaly started and ended for an overlapping bucket', () => {
+    const renderDetails = makeAnomalyTooltipDetails({
+      bucketMs: 1000,
+      periods: tooltipPeriods,
+      theme,
+      utc: true,
+    })!;
     const html = renderDetails([], 2000);
 
     expect(html).toContain('Anomaly (high confidence)');
     expect(html).toContain('Started');
     expect(html).toContain('Ended');
-  });
-
-  it('labels low confidence anomalies', () => {
     expect(renderDetails([], 5000)).toContain('Anomaly (low confidence)');
   });
 
-  it('adds nothing for buckets Seer did not flag', () => {
-    // 6000 is inside the second period's shading but wasn't flagged itself
-    expect(renderDetails([], 6000)).toBe('');
+  it('adds nothing for buckets outside every period', () => {
+    const renderDetails = makeAnomalyTooltipDetails({
+      bucketMs: 1000,
+      periods: tooltipPeriods,
+      theme,
+      utc: true,
+    })!;
+
+    expect(renderDetails([], 3000)).toBe('');
     expect(renderDetails([], 4000)).toBe('');
+    expect(renderDetails([], 6000)).toBe('');
+  });
+
+  it('lists every period inside a coarser bucket', () => {
+    const renderDetails = makeAnomalyTooltipDetails({
+      bucketMs: 10_000,
+      periods: tooltipPeriods,
+      theme,
+      utc: true,
+    })!;
+    const html = renderDetails([], 0);
+
+    expect(html).toContain('Anomaly (high confidence)');
+    expect(html).toContain('Anomaly (low confidence)');
   });
 
   it('returns no renderer without periods', () => {
     expect(
-      makeAnomalyTooltipDetails({
-        anomalousTimestamps: new Set(),
-        periods: [],
-        theme,
-        utc: true,
-      })
+      makeAnomalyTooltipDetails({bucketMs: 1000, periods: [], theme, utc: true})
     ).toBeUndefined();
   });
 });

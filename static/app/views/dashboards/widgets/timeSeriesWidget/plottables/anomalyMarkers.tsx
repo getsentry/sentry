@@ -183,19 +183,24 @@ function formatTime(timestamp: number, utc: boolean) {
 }
 
 /**
- * Adds the anomaly's start and end times to the chart tooltip when hovering an
- * anomalous bucket, like the monitor chart's anomaly tooltip.
+ * Adds the start and end times of any anomaly overlapping the hovered bucket to
+ * the chart tooltip, like the monitor chart's anomaly tooltip. Periods are
+ * matched by time range, so they work when the chart's buckets are finer or
+ * coarser than the interval the anomalies were detected at.
  */
 export function makeAnomalyTooltipDetails({
-  anomalousTimestamps,
+  bucketMs,
   periods,
   theme,
   utc,
 }: {
   /**
-   * Timestamps (ms) of the buckets Seer flagged
+   * Width of the chart's buckets, in milliseconds
    */
-  anomalousTimestamps: ReadonlySet<number>;
+  bucketMs: number;
+  /**
+   * Anomalous periods; `end` is exclusive
+   */
   periods: readonly AnomalyPeriod[];
   theme: Theme;
   utc: boolean;
@@ -204,34 +209,33 @@ export function makeAnomalyTooltipDetails({
     return undefined;
   }
 
+  const dividerStyle = [
+    `border-top: solid 1px ${theme.tokens.border.secondary}`,
+    `margin: ${theme.space.md} calc(-1 * ${theme.space.xl}) 0`,
+    `padding: ${theme.space.md} ${theme.space.xl} 0`,
+  ].join('; ');
+
   return (_seriesNames, timestamp) => {
-    if (!anomalousTimestamps.has(timestamp)) {
-      return '';
-    }
-    const period = periods.find(
-      candidate => candidate.start <= timestamp && timestamp <= candidate.end
+    const overlapping = periods.filter(
+      period => period.start < timestamp + bucketMs && period.end > timestamp
     );
-    if (!period) {
+    if (overlapping.length === 0) {
       return '';
     }
 
-    const color = getAnomalyPriorityColor(period.priority, theme);
-    const dividerStyle = [
-      `border-top: solid 1px ${theme.tokens.border.secondary}`,
-      `margin: ${theme.space.md} calc(-1 * ${theme.space.xl}) 0`,
-      `padding: ${theme.space.md} ${theme.space.xl} 0`,
-    ].join('; ');
-    const title =
-      period.priority === 'high'
-        ? t('Anomaly (high confidence)')
-        : t('Anomaly (low confidence)');
+    const blocks = overlapping.map(period => {
+      const color = getAnomalyPriorityColor(period.priority, theme);
+      const title =
+        period.priority === 'high'
+          ? t('Anomaly (high confidence)')
+          : t('Anomaly (low confidence)');
+      return [
+        `<div><span class="tooltip-label" style="color: ${color}"><strong>${escape(title)}</strong></span></div>`,
+        `<div><span class="tooltip-label">${escape(t('Started'))}</span> ${escape(String(formatTime(period.start, utc)))}</div>`,
+        `<div><span class="tooltip-label">${escape(t('Ended'))}</span> ${escape(String(formatTime(period.end, utc)))}</div>`,
+      ].join('');
+    });
 
-    return [
-      `<div style="${dividerStyle}">`,
-      `<div><span class="tooltip-label" style="color: ${color}"><strong>${escape(title)}</strong></span></div>`,
-      `<div><span class="tooltip-label">${escape(t('Started'))}</span> ${escape(String(formatTime(period.start, utc)))}</div>`,
-      `<div><span class="tooltip-label">${escape(t('Ended'))}</span> ${escape(String(formatTime(period.end, utc)))}</div>`,
-      '</div>',
-    ].join('');
+    return `<div style="${dividerStyle}">${blocks.join('')}</div>`;
   };
 }

@@ -284,6 +284,29 @@ describe('VisualizeTransformations', () => {
       expect(option).toHaveTextContent('Select a single project');
     });
 
+    it('shows the scoring warning on the option and the row', async () => {
+      const warning = 'Detected at 1h, so markers may not line up with 3h buckets';
+      const {rerender} = render(
+        <AddTransformationButton
+          traceItemDataset={TraceItemDataset.SPANS}
+          transformations={[]}
+          onChange={jest.fn()}
+          anomalies={{enabled: false, onChange: jest.fn(), disabledReason: null, warning}}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+      expect(screen.getByRole('option', {name: /Anomalies/})).toHaveTextContent(warning);
+
+      rerender(
+        <AnomaliesTransformationRow
+          anomalies={{enabled: true, onChange: jest.fn(), disabledReason: null, warning}}
+        />
+      );
+      expect(screen.getByRole('group', {name: 'Anomalies'})).toHaveTextContent(warning);
+    });
+
     it('shows the status note on the row', () => {
       render(
         <AnomaliesTransformationRow

@@ -724,9 +724,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
               }),
             ]}
             renderTooltipSeriesDetails={makeAnomalyTooltipDetails({
-              anomalousTimestamps: new Set(
-                [10, 11, 12, 13, 30].map(index => values[index]!.timestamp)
-              ),
+              bucketMs: interval,
               periods,
               theme,
               utc: false,

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconSettings} from '@sentry/icons/settings';
@@ -245,6 +246,10 @@ export interface AnomaliesToggle {
    * A short status shown next to the row, e.g. while detecting
    */
   note?: string;
+  /**
+   * Caveat about how the chart is scored, shown on the option and the row
+   */
+  warning?: string;
 }
 
 const ANOMALIES_OPTION_VALUE = 'anomalies';
@@ -271,7 +276,7 @@ export function AddTransformationButton({
     kindOptions.push({
       value: ANOMALIES_OPTION_VALUE,
       label: t('Anomalies'),
-      details: anomalies.disabledReason ?? undefined,
+      details: anomalies.disabledReason ?? anomalies.warning,
       disabled: anomalies.enabled || anomalies.disabledReason !== null,
     });
   }
@@ -338,11 +343,24 @@ export function AnomaliesTransformationRow({anomalies}: AnomaliesTransformationR
         onClick={() => anomalies.onChange(false)}
       />
       <Text size="sm">{t('Anomalies')}</Text>
-      {anomalies.disabledReason || anomalies.note ? (
+      {anomalies.disabledReason ? (
         <Text size="sm" variant="muted">
-          {anomalies.disabledReason ?? anomalies.note}
+          {anomalies.disabledReason}
         </Text>
-      ) : null}
+      ) : (
+        <Fragment>
+          {anomalies.note ? (
+            <Text size="sm" variant="muted">
+              {anomalies.note}
+            </Text>
+          ) : null}
+          {anomalies.warning ? (
+            <Text size="sm" variant="warning">
+              {anomalies.warning}
+            </Text>
+          ) : null}
+        </Fragment>
+      )}
     </Flex>
   );
 }

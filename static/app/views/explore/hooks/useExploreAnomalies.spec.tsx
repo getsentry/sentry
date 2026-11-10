@@ -1,46 +1,68 @@
+import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {PageFilterDatetime} from 'sentry/types/core';
+import type {AnomalyDataPoint} from 'sentry/utils/anomalyDetection/anomalyDetectionPayload';
+import {getAnomalyDetectionDisabledReason} from 'sentry/utils/anomalyDetection/getAnomalyDetectionDisabledReason';
+import {
+  getAnomalyScoringPlan,
+  getAnomalyScoringWarning,
+  getIntervalMinutes,
+  SEER_INTERVALS,
+} from 'sentry/utils/anomalyDetection/getAnomalyScoringPlan';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {AnomalyType} from 'sentry/views/alerts/types';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 import {
   getAnomalyAggregate,
-  getHistoricalDatetime,
+  getAnomalyFetchDatetime,
   SETTLE_WAIT_MS,
+  splitAnomalyDataPoints,
   timeSeriesToAnomalyDataPoints,
   useExploreAnomalies,
 } from './useExploreAnomalies';
 
 const organization = OrganizationFixture();
+const DAY = 24 * 60;
 
-describe('getHistoricalDatetime', () => {
+function relative(period: string): PageFilterDatetime {
+  return {period, start: null, end: null, utc: false};
+}
+
+describe('getAnomalyFetchDatetime', () => {
   it.each([
-    ['1h', '678h'],
-    ['24h', '29d'],
-    ['3d', '31d'],
-    ['7d', '28d'],
-  ])('maps a %s range to %s of history', (period, expected) => {
-    expect(getHistoricalDatetime({period, start: null, end: null, utc: false})).toEqual({
-      period: expected,
-      start: null,
-      end: null,
-      utc: false,
-    });
+    // scored minutes + (Seer's history days + 1) * 1440
+    ['1h', '5m', 60 + 8 * DAY],
+    ['24h', '5m', DAY + 8 * DAY],
+    ['24h', '30m', DAY + 22 * DAY],
+    ['3d', '1h', 3 * DAY + 29 * DAY],
+    ['7d', '3h', 7 * DAY + 29 * DAY],
+    // Only the last 28 days are scored, so the fetch doesn't grow past that
+    ['90d', '1d', 28 * DAY + 29 * DAY],
+  ])('fetches %s at %s as %s minutes', (period, interval, minutes) => {
+    const datetime = relative(period);
+    expect(
+      getAnomalyFetchDatetime(datetime, getAnomalyScoringPlan(datetime, interval))
+    ).toEqual({period: `${minutes}m`, start: null, end: null, utc: false});
   });
 
   it('reaches back from the end of an absolute range', () => {
+    const datetime = {
+      period: null,
+      start: '2026-11-01T00:00:00',
+      end: '2026-11-03T00:00:00',
+      utc: true,
+    };
     expect(
-      getHistoricalDatetime({
-        period: null,
-        start: '2026-11-01T00:00:00',
-        end: '2026-11-03T00:00:00',
-        utc: true,
-      })
+      getAnomalyFetchDatetime(datetime, getAnomalyScoringPlan(datetime, '1h'))
     ).toEqual({
       period: null,
       start: '2026-10-03T00:00:00',
@@ -48,6 +70,123 @@ describe('getHistoricalDatetime', () => {
       utc: true,
     });
   });
+});
+
+describe('splitAnomalyDataPoints', () => {
+  const points: AnomalyDataPoint[] = Array.from({length: 10}, (_, i) => [
+    i * 300,
+    {count: i},
+  ]);
+
+  it('scores the last stretch and uses the rest as history', () => {
+    // A 15 minute chart at 5m is the last 3 points
+    const plan = getAnomalyScoringPlan(relative('15m'), '5m');
+    const {currentData, historicalData} = splitAnomalyDataPoints(points, plan);
+
+    expect(currentData).toEqual(points.slice(7));
+    expect(historicalData).toEqual(points.slice(0, 7));
+  });
+
+  it('leaves no history when the fetch only covers the chart', () => {
+    const plan = getAnomalyScoringPlan(relative('24h'), '5m');
+    const {currentData, historicalData} = splitAnomalyDataPoints(points, plan);
+
+    expect(currentData).toEqual(points);
+    expect(historicalData).toEqual([]);
+  });
+});
+
+describe('every time range and interval', () => {
+  const MAX_POINTS = 10_100; // MAX_ROLLUP_POINTS on the backend
+
+  const relativeRanges = [
+    '5m',
+    '10m',
+    '30m',
+    '1h',
+    '3h',
+    '6h',
+    '12h',
+    '24h',
+    '2d',
+    '3d',
+    '4d',
+    '5d',
+    '7d',
+    '10d',
+    '14d',
+    '30d',
+    '60d',
+    '90d',
+  ];
+  const absoluteRanges: Array<[string, string]> = [
+    ['2026-11-01T00:00:00', '2026-11-01T02:00:00'],
+    ['2026-11-01T00:00:00', '2026-11-03T00:00:00'],
+    ['2026-11-01T00:00:00', '2026-11-07T12:00:00'],
+    ['2026-10-01T00:00:00', '2026-11-09T00:00:00'],
+    ['2026-08-01T00:00:00', '2026-11-01T00:00:00'],
+  ];
+  const ranges: PageFilterDatetime[] = [
+    ...relativeRanges.map(relative),
+    ...absoluteRanges.map(([start, end]) => ({period: null, start, end, utc: true})),
+  ];
+
+  const cases = ranges.flatMap(datetime => {
+    const options = getIntervalOptionsForPageFilter(datetime).map(o => o.value);
+    // The interval picker adds 1d for ranges of two weeks or more
+    if (getDiffInMinutes(datetime) >= 14 * DAY) {
+      options.push('1d');
+    }
+    return options.map(interval => ({datetime, interval}));
+  });
+
+  it.each(cases)(
+    '$datetime.period $datetime.start at $interval is scored safely',
+    ({datetime, interval}) => {
+      const chartMinutes = getDiffInMinutes(datetime);
+      expect(
+        getAnomalyDetectionDisabledReason({
+          datetime,
+          groupBys: [''],
+          projects: [1],
+          yAxisCount: 1,
+        })
+      ).toBeNull();
+
+      const plan = getAnomalyScoringPlan(datetime, interval);
+      const seerInterval = SEER_INTERVALS.find(i => i.minutes === plan.intervalMinutes);
+
+      // Seer accepts the interval, and the scored stretch fits in one request,
+      // so its flags line up with their timestamps
+      expect(seerInterval).toBeDefined();
+      expect(plan.historyDays).toBe(seerInterval!.days);
+      expect(plan.scoredMinutes).toBeLessThanOrEqual(plan.historyDays * DAY);
+      expect(plan.scoredMinutes).toBe(Math.min(chartMinutes, plan.historyDays * DAY));
+
+      // Never coarser than the chart unless the range needs it
+      if (
+        !plan.isPartial &&
+        plan.intervalMinutes > Math.max(5, getIntervalMinutes(interval))
+      ) {
+        const finer = SEER_INTERVALS.filter(i => i.minutes < plan.intervalMinutes);
+        expect(finer.every(i => i.days * DAY < chartMinutes)).toBe(true);
+      }
+
+      // The fetch covers Seer's history before the scored stretch and stays
+      // under the backend's point limit
+      const fetch = getAnomalyFetchDatetime(datetime, plan);
+      const fetchMinutes = getDiffInMinutes(fetch);
+      expect(fetchMinutes - plan.scoredMinutes).toBe((plan.historyDays + 1) * DAY);
+      expect(fetchMinutes / plan.intervalMinutes).toBeLessThanOrEqual(MAX_POINTS);
+      if (datetime.end) {
+        expect(fetch.end).toBe(getUtcDateString(moment.utc(datetime.end)));
+      }
+
+      // There's a warning exactly when the chart isn't scored as shown
+      const warning = getAnomalyScoringWarning(plan, interval);
+      expect(warning !== null).toBe(plan.isResampled || plan.isPartial);
+    }
+  );
 });
 
 describe('getAnomalyAggregate', () => {
@@ -97,7 +236,7 @@ describe('useExploreAnomalies', () => {
     PageFiltersStore.reset();
   });
 
-  it('re-runs the chart query over the historical range without a group by', async () => {
+  it('re-runs the chart query at the scoring interval without a group by', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       body: {
@@ -115,17 +254,18 @@ describe('useExploreAnomalies', () => {
           query: 'span.op:db',
           queryExtras: {caseInsensitive: true},
           visualize,
-          currentTimeSeries: [],
         }),
       {organization}
     );
 
-    await waitFor(() => expect(result.current.historicalTimeSeries).toHaveLength(1));
+    await waitFor(() => expect(request).toHaveBeenCalled());
+    expect(result.current.plan.interval).toBe('5m');
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          statsPeriod: '29d',
+          statsPeriod: `${DAY + 8 * DAY}m`,
+          interval: '5m',
           yAxis: ['count(span.duration)'],
           groupBy: [],
           query: 'span.op:db',
@@ -135,6 +275,48 @@ describe('useExploreAnomalies', () => {
       })
     );
     expect(request.mock.calls[0][1].query.topEvents).toBeUndefined();
+  });
+
+  it('scores a long, coarse chart at 1h over its last 28 days', async () => {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {period: '90d', start: null, end: null, utc: false},
+        projects: [2],
+      })
+    );
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {timeSeries: [], meta: {dataset: 'spans', start: 0, end: 0}},
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useExploreAnomalies({
+          enabled: true,
+          extrapolate: true,
+          isMainChartLoaded: true,
+          query: '',
+          visualize,
+        }),
+      {organization}
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalled());
+    // The chart defaults to 3h for 90 days
+    expect(result.current.plan).toMatchObject({
+      interval: '1h',
+      isResampled: true,
+      isPartial: true,
+    });
+    expect(request).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          interval: '1h',
+          statsPeriod: `${28 * DAY + 29 * DAY}m`,
+        }),
+      })
+    );
   });
 
   it.each([
@@ -153,7 +335,6 @@ describe('useExploreAnomalies', () => {
           extrapolate: true,
           query: '',
           visualize,
-          currentTimeSeries: [],
         }),
       {organization}
     );
@@ -164,30 +345,21 @@ describe('useExploreAnomalies', () => {
   describe('Seer call', () => {
     const MINUTE = 60_000;
     const NOW = 1_800_000_000_000;
-    // Five-minute buckets: some history, then the chart's current points
-    const historyValues = Array.from({length: 10}, (_, i) => ({
-      timestamp: NOW - 2 * 24 * 60 * MINUTE + i * 5 * MINUTE,
+    // The default 24h chart is scored at 5m: its last 288 points are scored and
+    // the 20 before them are the history
+    const SCORED = 288;
+    const values = Array.from({length: SCORED + 20}, (_, i) => ({
+      timestamp: NOW - (SCORED + 20 - i) * 5 * MINUTE,
       value: i,
     }));
-    const currentValues = [
-      {timestamp: NOW - 10 * MINUTE, value: 1},
-      {timestamp: NOW - 5 * MINUTE, value: 2},
-    ];
-    const currentTimeSeries = [
-      TimeSeriesFixture({yAxis: 'count(span.duration)', values: currentValues}),
-    ];
+    const historyValues = values.slice(0, 20);
+    const currentValues = values.slice(20);
 
     function mockHistory() {
       return MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-timeseries/`,
         body: {
-          timeSeries: [
-            TimeSeriesFixture({
-              yAxis: 'count(span.duration)',
-              // Includes the current points, which should be removed
-              values: [...historyValues, ...currentValues],
-            }),
-          ],
+          timeSeries: [TimeSeriesFixture({yAxis: 'count(span.duration)', values})],
           meta: {dataset: 'spans', start: 0, end: 0},
         },
       });
@@ -214,7 +386,6 @@ describe('useExploreAnomalies', () => {
     });
 
     const baseProps = {
-      currentTimeSeries,
       enabled: true,
       extrapolate: true,
       isMainChartLoaded: true,
@@ -222,7 +393,7 @@ describe('useExploreAnomalies', () => {
       visualize,
     };
 
-    it('sends the current series, the history and the config', async () => {
+    it('sends the scored stretch, the history and the config', async () => {
       mockHistory();
       const seer = mockSeer();
 
@@ -293,13 +464,10 @@ describe('useExploreAnomalies', () => {
       expect(result.current.anomalyPeriods).toEqual([
         expect.objectContaining({
           start: currentValues[0]!.timestamp,
-          // Single points are widened by one interval so they're visible
+          // Periods cover their buckets in full
           end: currentValues[0]!.timestamp + 5 * MINUTE,
           priority: 'high',
         }),
-      ]);
-      expect([...result.current.anomalousTimestamps]).toEqual([
-        currentValues[0]!.timestamp,
       ]);
     });
 

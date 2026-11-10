@@ -20,7 +20,9 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {getAnomalyDetectionDisabledReason} from 'sentry/utils/anomalyDetection/getAnomalyDetectionDisabledReason';
+import {getAnomalyScoringWarning} from 'sentry/utils/anomalyDetection/getAnomalyScoringPlan';
 import {defined} from 'sentry/utils/defined';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -342,7 +344,6 @@ function Chart({
   const anomaliesDisabledReason = getAnomalyDetectionDisabledReason({
     datetime: selection.datetime,
     groupBys,
-    interval,
     projects: selection.projects,
     yAxisCount: visualizes.length,
   });
@@ -383,7 +384,6 @@ function Chart({
   const plottables = useChartInfosPlottables(chartInfos);
 
   const detectedAnomalies = useExploreAnomalies({
-    currentTimeSeries: chartInfo.series,
     enabled:
       showTransformationControls &&
       showAnomalies &&
@@ -400,6 +400,7 @@ function Chart({
     onChange: setShowAnomalies,
     disabledReason: anomaliesDisabledReason,
     note: ANOMALY_STATUS_NOTES[detectedAnomalies.status],
+    warning: getAnomalyScoringWarning(detectedAnomalies.plan, interval) ?? undefined,
   };
 
   // Shading is drawn on top of the chart's own series, which load and render
@@ -422,17 +423,12 @@ function Chart({
   const renderAnomalyTooltipDetails = useMemo(
     () =>
       makeAnomalyTooltipDetails({
-        anomalousTimestamps: detectedAnomalies.anomalousTimestamps,
+        bucketMs: intervalToMilliseconds(interval),
         periods: detectedAnomalies.anomalyPeriods,
         theme,
         utc: selection.datetime.utc ?? false,
       }),
-    [
-      detectedAnomalies.anomalousTimestamps,
-      detectedAnomalies.anomalyPeriods,
-      selection.datetime.utc,
-      theme,
-    ]
+    [interval, detectedAnomalies.anomalyPeriods, selection.datetime.utc, theme]
   );
 
   const Title = (

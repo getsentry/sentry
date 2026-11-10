@@ -3,14 +3,21 @@ import {getAnomalyDetectionDisabledReason} from './getAnomalyDetectionDisabledRe
 const valid = {
   datetime: {period: '7d', start: null, end: null, utc: null},
   groupBys: [''],
-  interval: '1h',
   projects: [1],
   yAxisCount: 1,
 };
 
 describe('getAnomalyDetectionDisabledReason', () => {
-  it('allows a single project, single function, supported interval and range', () => {
+  it('allows a single project and function over any range of 5 minutes or more', () => {
     expect(getAnomalyDetectionDisabledReason(valid)).toBeNull();
+    for (const period of ['5m', '1h', '24h', '14d', '30d', '90d']) {
+      expect(
+        getAnomalyDetectionDisabledReason({
+          ...valid,
+          datetime: {period, start: null, end: null, utc: null},
+        })
+      ).toBeNull();
+    }
   });
 
   it.each([[[]], [[-1]], [[1, 2]]])('requires a single project (%j)', projects => {
@@ -31,36 +38,12 @@ describe('getAnomalyDetectionDisabledReason', () => {
     );
   });
 
-  it.each(['5m', '10m', '15m', '30m', '1h', '2h', '4h', '1d', '60m'])(
-    'allows the %s interval',
-    interval => {
-      expect(getAnomalyDetectionDisabledReason({...valid, interval})).toBeNull();
-    }
-  );
-
-  it.each(['1m', '3h', '6h', '12h'])('disables the %s interval', interval => {
-    expect(getAnomalyDetectionDisabledReason({...valid, interval})).toBe(
-      'Use a 5m, 10m, 15m, 30m, 1h, 2h, 4h or 1d interval'
-    );
-  });
-
-  it('disables ranges over 7 days', () => {
+  it('disables ranges shorter than 5 minutes', () => {
     expect(
       getAnomalyDetectionDisabledReason({
         ...valid,
-        datetime: {period: '14d', start: null, end: null, utc: null},
+        datetime: {period: '3m', start: null, end: null, utc: null},
       })
-    ).toBe('Select a time range of 7 days or less');
-    expect(
-      getAnomalyDetectionDisabledReason({
-        ...valid,
-        datetime: {
-          period: null,
-          start: '2026-11-01T00:00:00',
-          end: '2026-11-08T00:01:00',
-          utc: null,
-        },
-      })
-    ).toBe('Select a time range of 7 days or less');
+    ).toBe('Select a time range of at least 5 minutes');
   });
 });
