@@ -308,6 +308,9 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
 from sentry.integrations.slack.endpoints.link_team_context import SlackLinkTeamContextEndpoint
+from sentry.integrations.slack.endpoints.organization_link_team import (
+    OrganizationSlackLinkTeamEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
@@ -2087,6 +2090,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/channel-validate/$",
         OrganizationIntegrationChannelValidateEndpoint.as_view(),
         name="sentry-api-0-organization-integration-channel-validate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/slack/link-team/(?P<signed_params>[^/]+)/$",
+        OrganizationSlackLinkTeamEndpoint.as_view(),
+        name="sentry-api-0-organization-slack-link-team",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/integrations/(?P<integration_id>[^/]+)/issues/$",
