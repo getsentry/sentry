@@ -37,7 +37,7 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.feature.dispatch import continue_single_run
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.single_run import is_single_run
-from sentry.seer.credits import SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -439,7 +439,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             raise PermissionDenied(error)
         # Do not bill for dashboard generation.
         if not is_dashboard_generate_run and not can_run_seer_operation(
-            organization, SeerOperation.AGENT_CHAT_MESSAGE
+            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
         ):
             return Response(
                 {

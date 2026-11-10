@@ -9,7 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 from sentry_sdk import traces
 
-from sentry import features, quotas
+from sentry import features
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -23,7 +23,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixSolutionCompletedEvent,
     AiAutofixSolutionStartedEvent,
 )
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
@@ -31,10 +31,11 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     autofix_run_targets_other_issue,
+    check_autofix_billing,
     require_autofix_run_for_group,
     trigger_autofix_feature,
 )
@@ -63,6 +64,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     read_preference_from_sentry_db,
 )
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -461,20 +463,6 @@ def trigger_autofix_agent(
     """
     outcome = "success"
     try:
-        # check billing quota for triggering a new autofix run
-        # Free cohort orgs bypass quota only when called from agentic triage
-        # (allow_free_cohort=True). The API endpoint never sets this flag,
-        # so manual triggers still require quota.
-        if run_id is None:
-            skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
-            if not skip_quota_check:
-                has_budget: bool = quotas.backend.check_seer_quota(
-                    org_id=group.organization.id,
-                    data_category=DataCategory.SEER_AUTOFIX,
-                )
-                if not has_budget:
-                    raise NoSeerQuotaException()
-
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
@@ -548,7 +536,12 @@ def trigger_autofix_agent(
                 actor_user_id=actor_user_id,
             )
         return feature_run
-    except (NoSeerQuotaException, SeerPermissionError, PrIterationNoPullRequestException):
+    except (
+        NoSeerQuotaException,
+        SeerOutOfCreditsException,
+        SeerPermissionError,
+        PrIterationNoPullRequestException,
+    ):
         outcome = "declined"
         raise
     except BaseException:
@@ -838,6 +831,8 @@ def trigger_push_changes(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
+
+    check_autofix_billing(group.organization, SeerOperation.AUTOFIX_OPEN_PR, is_new_run=False)
 
     client = get_autofix_agent_client(group, user=user)
 
