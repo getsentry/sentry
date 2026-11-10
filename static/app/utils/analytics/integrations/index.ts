@@ -23,7 +23,6 @@ export type IntegrationView = {
     | 'developer_settings'
     | 'new_integration_modal'
     | 'seer_onboarding_github'
-    | 'seer_onboarding_code_review'
     | 'test_analytics_onboarding'
     | 'test_analytics_org_selector';
 };

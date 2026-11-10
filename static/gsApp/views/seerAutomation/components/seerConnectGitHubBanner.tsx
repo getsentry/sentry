@@ -14,7 +14,6 @@ import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboarding
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GithubButton} from 'getsentry/views/seerAutomation/onboarding/githubButton';
-import {SeerOnboardingProvider} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
 export function SeerConnectGitHubBanner() {
   const organization = useOrganization();
@@ -47,12 +46,7 @@ export function SeerConnectGitHubBanner() {
               </Text>
 
               <Flex paddingTop="lg">
-                <SeerOnboardingProvider>
-                  <GithubButton
-                    onAddIntegration={handleAddIntegration}
-                    analyticsView="seer_onboarding_github"
-                  />
-                </SeerOnboardingProvider>
+                <GithubButton onAddIntegration={handleAddIntegration} />
               </Flex>
             </Stack>
           </Grid>
