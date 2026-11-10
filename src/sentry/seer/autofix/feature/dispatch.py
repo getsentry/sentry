@@ -42,7 +42,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_free_cohort_org,
 )
-from sentry.seer.credits import SeerOperation, has_enough_seer_credits
+from sentry.seer.credits import SeerFeature, SeerOperation, has_enough_seer_credits
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -166,7 +166,7 @@ def check_autofix_billing(
     if features.has("organizations:token-billed-seer-enabled", organization):
         if features.has(
             "organizations:seer-credit-checks", organization
-        ) and not has_enough_seer_credits(organization, operation):
+        ) and not has_enough_seer_credits(organization, SeerFeature.AUTOFIX, operation):
             raise SeerOutOfCreditsException()
         return False
 

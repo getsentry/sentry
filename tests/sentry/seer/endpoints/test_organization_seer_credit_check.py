@@ -7,7 +7,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
-from sentry.seer.credits import SEER_OPERATIONS, SeerOperation
+from sentry.seer.credits import SEER_OPERATION_ESTIMATES, SeerOperation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -34,7 +34,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
             CheckSeerCreditsRequest(
                 organization_id=self.organization.id,
                 feature_id="autofix",
-                predicted_credit_usage=SEER_OPERATIONS[SeerOperation.AUTOFIX_ROOT_CAUSE].estimate(),
+                predicted_credit_usage=SEER_OPERATION_ESTIMATES[SeerOperation.AUTOFIX_ROOT_CAUSE](),
                 take_lease=False,
             )
         )
