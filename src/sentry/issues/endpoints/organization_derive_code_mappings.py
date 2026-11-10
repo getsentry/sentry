@@ -44,8 +44,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     max_acceptable_duration = 10.0
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (OrganizationIntegrationsLoosePermission,)
