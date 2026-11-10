@@ -61,6 +61,16 @@ describe('SubscriptionStore', () => {
     ).toBeUndefined();
   });
 
+  it('notifies subscribers when a subscription is set', () => {
+    const listener = jest.fn();
+    const unsubscribe = SubscriptionStore.subscribe(listener);
+
+    SubscriptionStore.set(organization.slug, subscription);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
   it('allows a new load after a failed load', async () => {
     const failedRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
