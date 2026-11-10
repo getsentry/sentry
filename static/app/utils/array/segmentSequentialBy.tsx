@@ -1,8 +1,8 @@
-type Predicate<T> = (datum: T) => boolean;
+type Predicate<T, K> = (datum: T) => K;
 
-interface Partition<T> {
+interface Partition<T, K> {
   data: T[];
-  predicateValue: boolean;
+  predicateValue: K;
 }
 
 /**
@@ -12,10 +12,10 @@ interface Partition<T> {
  * @param predicate - A function to evaluate against each item.
  * @returns An array of partitions. Each partition has a `data` key that contains the items that satisfied the predicate, and a `predicateValue` key that indicates what the predicate returned for every item in the partition.
  */
-export function segmentSequentialBy<T>(
+export function segmentSequentialBy<T, K extends string | boolean = boolean>(
   data: T[],
-  predicate: Predicate<T>
-): Array<Partition<T>> {
+  predicate: Predicate<T, K>
+): Array<Partition<T, K>> {
   if (!data.length) {
     return [];
   }
@@ -23,12 +23,12 @@ export function segmentSequentialBy<T>(
   const firstDatum: T = data.at(0)!;
   let previousPredicateValue = predicate(firstDatum);
 
-  let previousPartition: Partition<T> = {
+  let previousPartition: Partition<T, K> = {
     predicateValue: previousPredicateValue,
     data: [firstDatum],
   };
 
-  const partitions: Array<Partition<T>> = [previousPartition];
+  const partitions: Array<Partition<T, K>> = [previousPartition];
 
   for (const currentDatum of data.slice(1)) {
     const currentPredicateValue = predicate(currentDatum);

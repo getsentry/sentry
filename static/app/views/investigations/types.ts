@@ -23,6 +23,18 @@ type InvestigationOrchestrationSummary = {
   status: InvestigationOrchestrationStatus;
 };
 
+/**
+ * What started an investigation: the automation run that created it, else the
+ * user who did.
+ */
+export type InvestigationTrigger =
+  | {
+      automation: {id: string; name: string | null; strategy: string};
+      runId: string;
+      type: 'automation';
+    }
+  | {type: 'user'; user: AvatarUser};
+
 export type InvestigationListItem = {
   blockCount: number;
   createdBy: string | null;
@@ -40,6 +52,7 @@ export type InvestigationListItem = {
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
+  trigger?: InvestigationTrigger | null;
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.

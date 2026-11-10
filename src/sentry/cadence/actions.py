@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 # Spread out, since LOG exists to validate scheduling.
-@register_trigger_action(ScheduledTriggerType.LOG, spread_window=timedelta(minutes=5))
+@register_trigger_action(ScheduledTriggerType.LOG, spread_window=timedelta(seconds=30))
 def log_firings(firings: Sequence[TriggerFiring]) -> None:
     """
-    Log each firing. For testing. lag_seconds is from scheduled_for, so includes the
-    firing's offset within the LOG spread window; cadence.trigger.dispatch_lag excludes it.
+    Log each firing. For testing. seconds_since_scheduled includes the firing's offset
+    within the LOG spread window, so it isn't lag; see cadence.trigger.dispatch_lag for that.
     """
     now = timezone.now()
     for firing in firings:
@@ -27,6 +27,6 @@ def log_firings(firings: Sequence[TriggerFiring]) -> None:
                 "organization_id": firing.organization_id,
                 "target_id": firing.target_id,
                 "scheduled_for": firing.scheduled_for.isoformat(),
-                "lag_seconds": (now - firing.scheduled_for).total_seconds(),
+                "seconds_since_scheduled": (now - firing.scheduled_for).total_seconds(),
             },
         )

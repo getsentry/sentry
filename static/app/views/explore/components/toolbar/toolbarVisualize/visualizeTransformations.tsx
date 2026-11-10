@@ -263,12 +263,7 @@ export function AddTransformationButton({
             tooltipProps={{title: t('Add Transformation')}}
           />
         ) : (
-          <OverlayTrigger.Button
-            {...props}
-            variant="transparent"
-            size="zero"
-            icon={<IconAdd />}
-          >
+          <OverlayTrigger.Button {...props} variant="link" icon={<IconAdd />}>
             {t('Add Transformation')}
           </OverlayTrigger.Button>
         )

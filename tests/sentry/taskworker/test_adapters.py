@@ -1,4 +1,5 @@
 import contextlib
+from unittest import mock
 
 import orjson
 import pytest
@@ -7,12 +8,21 @@ from taskbroker_client.metrics import NoOpMetricsBackend
 from taskbroker_client.registry import TaskRegistry
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.models.groupmeta import GroupMeta
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.silo.base import SiloMode
 from sentry.taskworker.adapters import (
+    LocalCacheClearHook,
     SentryRouter,
     ViewerContextHook,
     make_producer,
 )
+from sentry.taskworker.runtime import app
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user_option import UserOption
+from sentry.utils.cache import cache
 from sentry.viewer_context import (
     Actor,
     ActorType,
@@ -187,3 +197,70 @@ class TestViewerContextHook:
         headers = {"sentry-viewer-context": "[1, 2, 3]"}
         cm = hook.on_execute(headers)
         assert isinstance(cm, contextlib.nullcontext)
+
+
+class TestLocalCacheClearHook(TestCase):
+    def test_a_later_task_reads_options_saved_after_an_earlier_task(self) -> None:
+        hook = LocalCacheClearHook()
+        OrganizationOption.objects.set_value(self.organization, "foo", "bar")
+        ProjectOption.objects.set_value(self.project, "foo", "bar")
+
+        # The first task reads the options; the worker caches them locally.
+        with hook.on_execute({}):
+            assert OrganizationOption.objects.get_value(self.organization, "foo") == "bar"
+            assert ProjectOption.objects.get_value(self.project, "foo") == "bar"
+
+        # Another process saves new values: the database and the shared cache
+        # change, and nothing tells this worker.
+        OrganizationOption.objects.filter(organization=self.organization, key="foo").update(
+            value="baz"
+        )
+        cache.set(OrganizationOption.objects._make_key(self.organization.id), {"foo": "baz"})
+        ProjectOption.objects.filter(project=self.project, key="foo").update(value="baz")
+        cache.set(ProjectOption.objects._make_key(self.project.id), {"foo": "baz"})
+
+        # The next task in the same worker sees them.
+        with hook.on_execute({}):
+            assert OrganizationOption.objects.get_value(self.organization, "foo") == "baz"
+            assert ProjectOption.objects.get_value(self.project, "foo") == "baz"
+
+    def test_clears_the_option_caches_when_a_task_finishes(self) -> None:
+        hook = LocalCacheClearHook()
+        with hook.on_execute({}):
+            OrganizationOption.objects.get_all_values(self.organization)
+            ProjectOption.objects.get_all_values(self.project)
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                UserOption.objects.get_all_values(self.user)
+            assert OrganizationOption.objects._option_cache
+
+        # All OptionManagers share one process-local dict, so this one check
+        # covers the organization, project and user options read above.
+        assert not OrganizationOption.objects._option_cache
+
+    def test_clears_the_caches_when_a_task_fails(self) -> None:
+        hook = LocalCacheClearHook()
+        with pytest.raises(ValueError):
+            with hook.on_execute({}):
+                OrganizationOption.objects.get_all_values(self.organization)
+                raise ValueError("task failed")
+
+        assert not OrganizationOption.objects._option_cache
+
+    def test_clears_the_group_meta_cache(self) -> None:
+        hook = LocalCacheClearHook()
+        with mock.patch.object(GroupMeta.objects, "clear_local_cache") as group_meta:
+            with hook.on_execute({}):
+                pass
+
+        group_meta.assert_called_once_with()
+
+    def test_a_failure_to_clear_does_not_fail_the_task(self) -> None:
+        hook = LocalCacheClearHook()
+        with mock.patch.object(
+            OrganizationOption.objects, "clear_local_cache", side_effect=RuntimeError("boom")
+        ):
+            with hook.on_execute({}):
+                pass
+
+    def test_the_sentry_task_app_uses_the_hook(self) -> None:
+        assert any(isinstance(hook, LocalCacheClearHook) for hook in app.context_hooks)

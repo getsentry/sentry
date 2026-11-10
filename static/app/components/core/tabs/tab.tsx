@@ -1,31 +1,17 @@
+import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
 import type {TabListState} from '@react-stately/tabs';
-import type {DOMAttributes, Node, Orientation} from '@react-types/shared';
+import type {Node, Orientation} from '@react-types/shared';
 
 import {Link} from '@sentry/scraps/link';
 import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {tabsShouldForwardProp} from './utils';
-
-interface BaseTabProps {
-  children: React.ReactNode;
-  disabled: boolean;
-  hidden: boolean;
-  isSelected: boolean;
-  orientation: Orientation;
-  overflowing: boolean;
-  size: 'md' | 'sm' | 'xs';
-  tabProps: DOMAttributes;
-  as?: React.ElementType;
-  ref?: React.Ref<HTMLLIElement>;
-  to?: string;
-  variant?: 'flat' | 'floating';
-}
+import {isModifiedClick, tabsShouldForwardProp} from './utils';
 
 const StyledTabWrap = styled('li', {
   shouldForwardProp: tabsShouldForwardProp,
@@ -80,9 +66,9 @@ const innerWrapStyles = ({
 }: {
   orientation: Orientation;
   selected: boolean;
-  size: BaseTabProps['size'];
+  size: TabProps['size'];
   theme: Theme;
-  variant: BaseTabProps['variant'];
+  variant: TabProps['variant'];
 }) => css`
   display: flex;
   align-items: center;
@@ -120,6 +106,7 @@ const innerWrapStyles = ({
     background-color: transparent;
   }
 
+  &:focus-visible,
   li:focus-visible & {
     outline: none;
     box-shadow: inset 0 0 0 2px ${theme.tokens.focus.default};
@@ -209,155 +196,101 @@ export interface TabProps extends AriaTabProps {
    * menu.
    */
   overflowing: boolean;
-  size: BaseTabProps['size'];
+  size: 'md' | 'sm' | 'xs';
   state: TabListState<any>;
   as?: React.ElementType;
   ref?: React.Ref<HTMLLIElement>;
   tooltipProps?: TooltipProps;
-  variant?: BaseTabProps['variant'];
+  variant?: 'flat' | 'floating';
 }
 
-/**
- * Stops event propagation if the command/ctrl/shift key is pressed, in effect
- * preventing any state change. This is useful because when a user
- * command/ctrl/shift-clicks on a tab link, the intention is to view the tab
- * in a new browser tab/window, not to update the current view.
- */
-function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
-  if (e.metaKey || e.ctrlKey || e.shiftKey) {
-    e.stopPropagation();
-  }
-}
-
-function InnerWrap({
-  children,
-  to,
-  disabled,
-  ...props
-}: Pick<BaseTabProps, 'children' | 'to' | 'orientation' | 'disabled' | 'size'> & {
-  selected: boolean;
-  variant: NonNullable<BaseTabProps['variant']>;
-}) {
-  return to && !disabled ? (
-    <TabLink
-      to={to}
-      onMouseDown={handleLinkClick}
-      onPointerDown={handleLinkClick}
-      tabIndex={-1}
-      {...props}
-    >
-      {children}
-    </TabLink>
-  ) : (
-    <TabInnerWrap {...props}>{children}</TabInnerWrap>
-  );
-}
-
-function BaseTab({
-  to,
-  children,
-  ref,
-  orientation,
-  overflowing,
-  tabProps,
-  hidden,
-  disabled,
-  isSelected,
-  size,
-  variant = 'flat',
-  as = 'li',
-}: BaseTabProps) {
-  return (
-    <TabWrap
-      {...tabProps}
-      hidden={hidden}
-      selected={isSelected}
-      overflowing={overflowing}
-      ref={ref}
-      as={as}
-    >
-      <InnerWrap
-        to={to}
-        orientation={orientation}
-        disabled={disabled}
-        variant={variant}
-        selected={isSelected}
-        size={size}
-      >
-        {children}
-        {variant === 'flat' ? (
-          <StyledTabSelectionIndicator orientation={orientation} selected={isSelected} />
-        ) : null}
-      </InnerWrap>
-    </TabWrap>
-  );
-}
-
-/**
- * Renders a single tab item. This should not be imported directly into any
- * page/view – it's only meant to be used by <TabsList />. See the correct
- * usage in tabs.stories.js
- */
 export function Tab({
   ref,
   item,
   state,
   orientation,
   overflowing,
-  variant,
+  variant = 'flat',
   size,
   as = 'li',
   tooltipProps,
 }: TabProps) {
-  const objectRef = useObjectRef(ref);
-
+  const wrapperRef = useObjectRef(ref);
+  const controlRef = useRef<HTMLElement>(null);
   const {
     key,
     rendered,
-    props: {to, hidden, disabled},
+    props: {to, hidden},
   } = item;
-
-  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, objectRef);
-
-  if (tooltipProps) {
-    return (
-      <Tooltip {...tooltipProps}>
-        <BaseTab
-          tabProps={tabProps}
-          isSelected={isSelected}
-          to={to}
-          hidden={hidden}
-          disabled={disabled}
-          orientation={orientation}
-          overflowing={overflowing}
-          ref={objectRef}
-          variant={variant}
-          as={as}
-          size={size}
-        >
-          {rendered}
-        </BaseTab>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <BaseTab
-      tabProps={tabProps}
-      isSelected={isSelected}
-      to={to}
-      hidden={hidden}
-      disabled={disabled}
-      orientation={orientation}
-      overflowing={overflowing}
-      ref={objectRef}
-      variant={variant}
-      as={as}
-      size={size}
-    >
-      {rendered}
-    </BaseTab>
+  const {tabProps, isSelected, isDisabled} = useTab(
+    {key, isDisabled: hidden, shouldSelectOnPressUp: !!to},
+    state,
+    controlRef
   );
+  const isLink = !!to && !isDisabled;
+  const styleProps = {orientation, variant, selected: isSelected, size};
+  const content = (
+    <Fragment>
+      {rendered}
+      {variant === 'flat' && (
+        <StyledTabSelectionIndicator orientation={orientation} selected={isSelected} />
+      )}
+    </Fragment>
+  );
+  const tab = (
+    <TabWrap
+      {...(isLink ? {role: 'presentation'} : tabProps)}
+      hidden={hidden}
+      aria-disabled={isDisabled || undefined}
+      selected={isSelected}
+      overflowing={overflowing}
+      ref={element => {
+        wrapperRef.current = element;
+        if (!isLink) {
+          controlRef.current = element;
+        }
+      }}
+      as={as}
+    >
+      {isLink ? (
+        <TabLink
+          {...tabProps}
+          {...styleProps}
+          to={to}
+          ref={element => {
+            controlRef.current = element;
+          }}
+          onMouseDown={event => {
+            if (!isModifiedClick(event)) {
+              tabProps.onMouseDown?.(event);
+            }
+          }}
+          onPointerDown={event => {
+            if (!isModifiedClick(event)) {
+              tabProps.onPointerDown?.(event);
+            }
+          }}
+          onClick={event => {
+            if (!isModifiedClick(event)) {
+              tabProps.onClick?.(event);
+            }
+          }}
+          onKeyDown={event => {
+            if (event.key === ' ') {
+              event.preventDefault();
+            }
+            tabProps.onKeyDown?.(event);
+          }}
+        >
+          {content}
+        </TabLink>
+      ) : (
+        <TabInnerWrap {...styleProps}>{content}</TabInnerWrap>
+      )}
+    </TabWrap>
+  );
+
+  return tooltipProps ? <Tooltip {...tooltipProps}>{tab}</Tooltip> : tab;
 }
 
 const TabWrap = StyledTabWrap;
@@ -365,8 +298,8 @@ const TabWrap = StyledTabWrap;
 const TabLink = styled(Link)<{
   orientation: Orientation;
   selected: boolean;
-  size: BaseTabProps['size'];
-  variant: BaseTabProps['variant'];
+  size: TabProps['size'];
+  variant: TabProps['variant'];
 }>`
   ${p =>
     innerWrapStyles({
@@ -386,8 +319,8 @@ const TabLink = styled(Link)<{
 const TabInnerWrap = styled('span')<{
   orientation: Orientation;
   selected: boolean;
-  size: BaseTabProps['size'];
-  variant: BaseTabProps['variant'];
+  size: TabProps['size'];
+  variant: TabProps['variant'];
 }>`
   ${p =>
     innerWrapStyles({

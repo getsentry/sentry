@@ -6,9 +6,44 @@ import {render, screen, waitFor} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
 
 describe('DropdownMenu', () => {
+  it.each(['default', 'custom'])(
+    'identifies the menu popup on the %s trigger',
+    async trigger => {
+      const items = [{key: 'project', label: 'Project'}];
+      render(
+        trigger === 'custom' ? (
+          <DropdownMenu
+            items={items}
+            trigger={props => (
+              <OverlayTrigger.IconButton
+                {...props}
+                icon={<IconStar />}
+                aria-label="More projects"
+              />
+            )}
+          />
+        ) : (
+          <DropdownMenu items={items} triggerLabel="More projects" />
+        ),
+        {wrapper: ThemeWrapper}
+      );
+
+      const button = screen.getByRole('button', {name: 'More projects'});
+      expect(button).toHaveAttribute('aria-haspopup', 'true');
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+
+      await userEvent.click(button);
+
+      expect(button).toHaveAttribute('aria-haspopup', 'true');
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    }
+  );
+
   it('filters a searchable root menu', async () => {
     render(
       <DropdownMenu
@@ -110,6 +145,38 @@ describe('DropdownMenu', () => {
     expect(onTrailingClick).toHaveBeenCalled();
     expect(onAction).not.toHaveBeenCalled();
     expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
+  });
+
+  it('keeps a busy trailing action focusable and ignores its activation', async () => {
+    const onTrailingClick = jest.fn();
+
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              busy: true,
+              onAction: onTrailingClick,
+            },
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.keyboard('{ArrowRight}');
+    const bookmark = screen.getByRole('button', {name: 'Bookmark'});
+    expect(bookmark).toHaveFocus();
+    expect(bookmark).toHaveAttribute('aria-busy', 'true');
+    await userEvent.keyboard('{Enter}');
+
+    expect(onTrailingClick).not.toHaveBeenCalled();
   });
 
   it('moves keyboard focus between a menu item and its trailing action', async () => {

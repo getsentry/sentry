@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -22,6 +23,7 @@ from sentry.notebooks.services import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
 )
+from sentry.viewer_context import ActorId, actor_id_from_references
 
 
 class InvestigationArchivedError(APIException):
@@ -62,6 +64,18 @@ def require_authenticated_user(request: Request) -> int:
     if not can_request_actor_create_investigation(request):
         raise PermissionDenied
     return user_id(request)
+
+
+def request_creator_actor(request: Request) -> ActorId:
+    """The user or service account recorded as the creator of an investigation."""
+    reference = get_creator_reference(request)
+    creator = actor_id_from_references(
+        user_id=reference["created_by_id"],
+        service_account_id=reference["created_by_service_account_id"],
+    )
+    if creator is None:
+        raise PermissionDenied
+    return creator
 
 
 class InvestigationPermission(OrganizationPermission):

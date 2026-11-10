@@ -104,9 +104,7 @@ describe('AutomationsList', () => {
     });
 
     await userEvent.click(await screen.findByRole('link', {name: /Breached metrics/}));
-    await userEvent.click(
-      within(await screen.findByRole('tab', {name: 'Runs'})).getByRole('link')
-    );
+    await userEvent.click(await screen.findByRole('tab', {name: 'Runs'}));
 
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/seer/automations/42/runs/'

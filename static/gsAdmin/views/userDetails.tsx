@@ -1,9 +1,9 @@
 import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
