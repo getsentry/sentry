@@ -5,7 +5,6 @@ import logging
 from collections.abc import Mapping
 from typing import cast
 
-from sentry.constants import ObjectStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -128,16 +127,11 @@ def send_incident_alert_notification(
     if notification_context.integration_id is None:
         return False
 
-    result = integration_service.organization_context(
-        organization_id=organization.id, integration_id=notification_context.integration_id
-    )
-    integration = result.integration
-    org_integration = result.organization_integration
     if (
-        org_integration is None
-        or integration is None
-        or integration.status != ObjectStatus.ACTIVE
-        or org_integration.status != ObjectStatus.ACTIVE
+        integration_service.organization_context(
+            organization_id=organization.id, integration_id=notification_context.integration_id
+        ).active()
+        is None
     ):
         return False
 

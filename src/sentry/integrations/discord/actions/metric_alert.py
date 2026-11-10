@@ -3,7 +3,6 @@ from __future__ import annotations
 import sentry_sdk
 
 from sentry import features
-from sentry.constants import ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -45,16 +44,11 @@ def send_incident_alert_notification(
     # The send uses the global bot client, so check the org's integration is still active.
     if notification_context.integration_id is None:
         return False
-    result = integration_service.organization_context(
-        organization_id=organization.id, integration_id=notification_context.integration_id
-    )
-    integration = result.integration
-    org_integration = result.organization_integration
     if (
-        org_integration is None
-        or integration is None
-        or integration.status != ObjectStatus.ACTIVE
-        or org_integration.status != ObjectStatus.ACTIVE
+        integration_service.organization_context(
+            organization_id=organization.id, integration_id=notification_context.integration_id
+        ).active()
+        is None
     ):
         return False
 

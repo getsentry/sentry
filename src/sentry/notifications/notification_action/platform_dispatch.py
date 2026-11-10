@@ -6,7 +6,7 @@ import sentry_sdk
 from sentry import analytics, features, options
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.analytics.events.base_notification_sent import BaseNotificationSent
-from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT, METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT, METRIC_ALERTS_THREAD_DEFAULT
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
@@ -135,12 +135,7 @@ def _build_target(
     integration = integration_context.integration
     org_integration = integration_context.organization_integration
 
-    if (
-        org_integration is None
-        or integration is None
-        or integration.status != ObjectStatus.ACTIVE
-        or org_integration.status != ObjectStatus.ACTIVE
-    ):
+    if integration_context.active() is None:
         integration_status = integration.status if integration is not None else None
         org_integration_status = org_integration.status if org_integration is not None else None
         logger.warning(
