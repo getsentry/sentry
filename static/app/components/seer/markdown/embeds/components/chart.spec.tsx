@@ -323,6 +323,33 @@ describe('Chart embed', () => {
     expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
   });
 
+  it.each(['time', 'category'] as const)(
+    'shows the empty state when every %s value is missing',
+    xAxis => {
+      render(
+        <ExampleChartEmbed
+          body={{
+            title: 'Error volume',
+            visualization: 'bar',
+            x_axis: xAxis,
+            series: [
+              {
+                label: 'Errors',
+                data: [
+                  {x: xAxis === 'time' ? '2026-07-30T12:00:00Z' : '/api/cart', y: null},
+                  {x: xAxis === 'time' ? '2026-07-30T13:00:00Z' : '/api/search', y: null},
+                ],
+              },
+            ],
+          }}
+        />
+      );
+
+      expect(screen.getByText('No data to plot.')).toBeInTheDocument();
+      expect(BaseChart).not.toHaveBeenCalled();
+    }
+  );
+
   it('passes missing values to the chart as nulls', () => {
     render(
       <ExampleChartEmbed
