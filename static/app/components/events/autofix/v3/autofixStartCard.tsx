@@ -84,9 +84,11 @@ export function AutofixStartCard({
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
         busy={isStarting}
-        // Held disabled while the credit check is in flight, so it is never
-        // clickable before the answer arrives.
-        disabled={isStarting || creditCheck.isPending || !creditCheck.hasEnoughCredits}
+        // Held disabled until this mount's credit check answers, so it is never
+        // clickable before the answer arrives, even with an earlier one cached.
+        disabled={
+          isStarting || !creditCheck.hasCheckedSinceMount || !creditCheck.hasEnoughCredits
+        }
       >
         {t('Start Analysis')}
       </Button>

@@ -40,16 +40,17 @@ export function useAutofixCreditCheck(
 }
 
 /**
- * Whether an autofix trigger has to stay disabled for credits: while its check
- * is in flight, so it is never clickable before the answer arrives, and once
- * the organization can't afford it.
+ * Whether an autofix trigger has to stay disabled for credits: until this
+ * mount's check answers, so it is never clickable before the answer arrives,
+ * and once the organization can't afford it. A cached answer from an earlier
+ * mount doesn't count, since credits can run out in between.
  */
 export function useAutofixCreditsDisabled(
   action: AutofixAction | null | undefined,
   options?: {enabled?: boolean}
 ): boolean {
-  const {hasEnoughCredits, isPending} = useAutofixCreditCheck(action, options);
-  return isPending || !hasEnoughCredits;
+  const {hasCheckedSinceMount, hasEnoughCredits} = useAutofixCreditCheck(action, options);
+  return !hasCheckedSinceMount || !hasEnoughCredits;
 }
 
 interface GetAutofixContinueActionOptions {

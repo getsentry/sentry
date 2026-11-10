@@ -1,7 +1,8 @@
-import {focusManager} from '@tanstack/react-query';
+import {focusManager, QueryClientProvider} from '@tanstack/react-query';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
@@ -10,7 +11,12 @@ import type {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {
+  seerCreditCheckApiOptions,
+  type SeerCreditOperation,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
@@ -1298,6 +1304,31 @@ describe('SeerDrawerNextStep', () => {
       });
     }
 
+    /**
+     * Renders, then waits for the check to answer. What a check disables is also
+     * disabled while it's in flight, so asserting before the answer proves
+     * nothing about the answer.
+     */
+    async function renderAndWaitForCheck(
+      ui: React.ReactElement,
+      {
+        operation,
+        organization = creditCheckOrganization,
+      }: {operation: SeerCreditOperation; organization?: Organization}
+    ) {
+      const queryClient = makeTestQueryClient();
+      render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>, {
+        organization,
+      });
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(organization, operation).queryKey
+          )?.status
+        ).toBe('success')
+      );
+    }
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/coding-agents/',
@@ -1370,18 +1401,16 @@ describe('SeerDrawerNextStep', () => {
     it('leaves the coding agent hand-off available', async () => {
       mockCreditCheck('autofix_solution');
 
-      render(
+      await renderAndWaitForCheck(
         <SeerDrawerNextStep
           group={GroupFixture()}
           sections={[makeSection('root_cause')]}
           autofix={makeAutofix()}
         />,
-        {organization: creditCheckOrganization}
+        {operation: 'autofix_solution'}
       );
 
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled()
-      );
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
       await userEvent.click(
         await screen.findByRole('button', {name: 'More code fix options'})
       );
@@ -1393,7 +1422,7 @@ describe('SeerDrawerNextStep', () => {
     it('disables Ask Seer in code mode', async () => {
       mockCreditCheck('autofix_solution');
 
-      render(
+      await renderAndWaitForCheck(
         <AutofixChatProvider sendMessage={jest.fn()}>
           <SeerDrawerNextStep
             group={GroupFixture()}
@@ -1402,6 +1431,7 @@ describe('SeerDrawerNextStep', () => {
           />
         </AutofixChatProvider>,
         {
+          operation: 'autofix_solution',
           organization: OrganizationFixture({
             ...codeModeOrganization,
             features: [
@@ -1413,9 +1443,7 @@ describe('SeerDrawerNextStep', () => {
         }
       );
 
-      await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled()
-      );
+      expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Ask Seer'})).toBeDisabled();
     });
 
@@ -1440,17 +1468,17 @@ describe('SeerDrawerNextStep', () => {
     it('disables the PR feedback form', async () => {
       mockCreditCheck('autofix_pr_iteration');
 
-      render(
+      await renderAndWaitForCheck(
         <SeerDrawerNextStep
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={makeAutofix({runState: {run_id: 1, blocks: []} as any})}
         />,
-        {organization: creditCheckOrganization}
+        {operation: 'autofix_pr_iteration'}
       );
 
-      await waitFor(() => expect(screen.getByRole('textbox')).toBeDisabled());
-      expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
+      // Submit is disabled anyway while the form is empty; the text box isn't.
+      expect(screen.getByRole('textbox')).toBeDisabled();
     });
 
     it('does not check credits for a step that is not offered', () => {
