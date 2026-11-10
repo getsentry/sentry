@@ -361,6 +361,24 @@ class TestDatabaseConnectionResetHook(TransactionTestCase):
         assert not conn.in_atomic_block
         assert not Option.objects.filter(key="taskworker.test").exists()
 
+    def test_drops_on_commit_callbacks_from_the_failed_task(self) -> None:
+        hook = DatabaseConnectionResetHook()
+        conn = connections["default"]
+        callback = mock.Mock()
+
+        with pytest.raises(ValueError):
+            with hook.on_execute({}):
+                transaction.atomic(using="default").__enter__()
+                transaction.on_commit(callback, using="default")
+                raise ValueError("task failed")
+
+        assert conn.run_on_commit == []
+        with hook.on_execute({}):
+            with transaction.atomic(using="default"):
+                Option.objects.create(key="taskworker.test.next", value="1")
+
+        callback.assert_not_called()
+
     def test_blocks_the_deadline_alarm_only_during_the_reset(self) -> None:
         hook = DatabaseConnectionResetHook()
         conn = connections["default"]

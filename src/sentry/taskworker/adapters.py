@@ -220,9 +220,11 @@ def reset_database_connections() -> None:
                 sample_rate=1.0,
             )
             # close() keeps a connection that is still in an atomic block, and the
-            # next query on it fails. connect() resets the rest of the state.
+            # next query on it fails. Sentry's close() also skips clearing the
+            # failed task's on_commit callbacks. connect() resets the rest.
             conn.in_atomic_block = False
             conn.closed_in_transaction = False
+            conn.run_on_commit = []
             try:
                 conn.close()
             except Exception:
