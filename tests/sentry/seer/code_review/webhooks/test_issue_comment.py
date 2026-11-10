@@ -200,6 +200,52 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             "sentry-ecosystem/repo", "42", {"body": REVIEW_UNAVAILABLE_REPLY}
         )
 
+    def test_retries_reply_after_failed_post(self) -> None:
+        integration = MagicMock()
+        create_comment = (
+            integration.get_installation.return_value.get_client.return_value.create_comment
+        )
+        create_comment.side_effect = [Exception("GitHub API error"), None]
+        repo = self.create_repo(project=self.project, name="sentry-ecosystem/repo")
+        event = orjson.loads(self._build_issue_comment_event(SENTRY_REVIEW_COMMAND))
+
+        for _ in range(2):
+            reply_review_unavailable(
+                event=event,
+                organization=self.organization,
+                repo=repo,
+                integration=integration,
+                denial_reason=PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW,
+            )
+
+        assert create_comment.call_count == 2
+
+    def test_replies_once_per_pull_request_across_organizations(self) -> None:
+        integration = MagicMock()
+        integration.id = 1
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        event = orjson.loads(self._build_issue_comment_event(SENTRY_REVIEW_COMMAND))
+
+        for organization, project in (
+            (self.organization, self.project),
+            (other_org, other_project),
+        ):
+            reply_review_unavailable(
+                event=event,
+                organization=organization,
+                repo=self.create_repo(
+                    project=project, name="sentry-ecosystem/repo", external_id="12345"
+                ),
+                integration=integration,
+                denial_reason=PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW,
+            )
+
+        create_comment = (
+            integration.get_installation.return_value.get_client.return_value.create_comment
+        )
+        create_comment.assert_called_once()
+
     def test_no_reply_when_denied_comment_is_not_review_command(self) -> None:
         with self.code_review_setup(features={}), self.tasks():
             event = self._build_issue_comment_event("Looks good to me")

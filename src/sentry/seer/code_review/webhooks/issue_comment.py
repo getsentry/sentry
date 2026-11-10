@@ -76,20 +76,21 @@ def reply_review_unavailable(
     if not pr_number:
         return
 
+    # Every Sentry org connected to the repo gets this webhook, so key on the GitHub repo.
+    cluster = redis_clusters.get("default")
+    key = f"{REVIEW_UNAVAILABLE_REPLY_KEY_PREFIX}{integration.id}:{repo.external_id}:{pr_number}"
     try:
-        is_first_reply = redis_clusters.get("default").set(
-            f"{REVIEW_UNAVAILABLE_REPLY_KEY_PREFIX}{repo.id}:{pr_number}",
-            "1",
-            ex=REVIEW_UNAVAILABLE_REPLY_TTL_SECONDS,
-            nx=True,
-        )
-        if not is_first_reply:
+        if not cluster.set(key, "1", ex=REVIEW_UNAVAILABLE_REPLY_TTL_SECONDS, nx=True):
             return
 
         client = integration.get_installation(organization_id=organization.id).get_client()
         client.create_comment(repo.name, str(pr_number), {"body": REVIEW_UNAVAILABLE_REPLY})
     except Exception:
         logger.warning(Log.UNAVAILABLE_REPLY_FAILED.value, exc_info=True)
+        try:
+            cluster.delete(key)
+        except Exception:
+            logger.warning(Log.UNAVAILABLE_REPLY_FAILED.value, exc_info=True)
 
 
 def handle_issue_comment_event(
