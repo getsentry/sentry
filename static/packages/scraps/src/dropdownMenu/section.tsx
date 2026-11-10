@@ -62,9 +62,13 @@ export function DropdownMenuSection({
  * first, marked by `DropdownMenuItem`. A `gap` would also space the spacer
  * elements of a virtualized menu, and padding is measured as part of the
  * row's height.
+ *
+ * The second selector matches a submenu trigger, which `DropdownSubmenu`
+ * wraps in a `display: contents` list item.
  */
 const DropdownMenuSectionList = styled(SectionList)`
-  & > [data-section-item]:not([data-first-in-section]) {
+  & > [data-section-item]:not([data-first-in-section]),
+  & > li > [data-section-item]:not([data-first-in-section]) {
     padding-top: ${p => p.theme.space[SECTION_ITEM_SPACE]};
   }
 `;
