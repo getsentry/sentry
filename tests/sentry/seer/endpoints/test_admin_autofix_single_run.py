@@ -177,7 +177,6 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         )[(group.id, period.id)]
         assert source.source["snapshot"]["monitor"]["id"] == str(self.detector.id)
         occurrence = publish.call_args.args[1]
-        assert occurrence.evidence_data["synthetic"] is True
         assert occurrence.evidence_data["conditions"]
         assert publish.call_args.args[2].is_new is True
         event, occurrence, info = publish.call_args.args
@@ -246,7 +245,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
             self.get_success_response(
                 organizationId=self.organization.id, monitorId=self.detector.id, status_code=201
             )
-        assert publish.call_args.args[1].evidence_data["synthetic"] is True
+        publish.assert_called_once()
 
     @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_dispatches_through_connected_workflows(self, publish: MagicMock) -> None:

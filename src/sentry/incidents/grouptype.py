@@ -60,8 +60,6 @@ StoredMetricResult = float | StoredAnomalyDetectionResult | None
 @dataclass
 class MetricIssueEvidenceData(EvidenceData[StoredMetricResult]):
     alert_id: int
-    synthetic: bool = False
-    source: str | None = None
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
@@ -86,8 +84,6 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 detection_time=data_packet.packet.timestamp,
                 evidence_data={
                     **occurrence.evidence_data,
-                    "synthetic": True,
-                    "source": "admin",
                     "conditions": [
                         dict(condition.get_snapshot())
                         for condition in self.detector.get_conditions()
