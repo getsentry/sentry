@@ -1,21 +1,11 @@
 import type * as React from 'react';
-import {
-  memo,
-  useCallback,
-  useContext,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {memo, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
-import {useKeyboard} from '@react-aria/interactions';
 import type {AriaMenuOptions} from '@react-aria/menu';
 import {useMenu, useMenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
-import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
@@ -27,7 +17,6 @@ import {
   calculateMenuMinHeight,
   Header,
   ReserveLeadingSlot,
-  SECTION_ITEM_SPACE,
   SectionGroup,
   SectionList,
   Title,
@@ -38,9 +27,7 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
   DEFAULT_VIRTUALIZE_THRESHOLD,
-  estimateRowHeight,
   flattenSections,
-  useVirtualCollection,
   VirtualRows,
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
@@ -56,13 +43,14 @@ import {DropdownMenuItem} from './item';
 import {DropdownMenuSearch} from './search';
 import {DropdownMenuSection} from './section';
 import type {DropdownMenuSeparatorProps} from './separator';
-import {DropdownMenuSeparator, SEPARATOR_HEIGHT} from './separator';
+import {DropdownMenuSeparator} from './separator';
+import {useDropdownMenuKeyboard} from './useDropdownMenuKeyboard';
+import {useDropdownMenuRowLayout} from './useDropdownMenuRowLayout';
 import {useSafetyTriangle} from './useSafetyTriangle';
 import {
   countMenuItems,
   filterMenuItems,
   getDisabledKeys,
-  getMenuItemKey,
   isMenuSection,
   removeHiddenItemsAndSetHref,
 } from './utils';
@@ -239,88 +227,20 @@ function DropdownMenuRows({
   widestKey,
   ...itemProps
 }: DropdownMenuRowsProps) {
-  const theme = useTheme();
-  const size = itemProps.size ?? 'md';
-  // The space above each item of a section but the first, see `DropdownMenuSection`.
-  const sectionRowSpace = parseFloat(theme.space[SECTION_ITEM_SPACE]);
-
-  // Top-level items right after a section. Their row starts with a separator.
-  const itemsAfterSections = useMemo(
-    () =>
-      new Set(
-        collection
-          .filter((_, index) => collection[index - 1]?.type === 'section')
-          .map(node => node.key)
-      ),
-    [collection]
-  );
-
-  const sectionsByKey = useMemo(
-    () =>
-      new Map(
-        collection.filter(node => node.type === 'section').map(node => [node.key, node])
-      ),
-    [collection]
-  );
-
-  // Estimates rows the way they render below: a separator is part of every
-  // section's row except the first one's, and of the row of an item right after
-  // a section. A section's row also holds its heading, if it has one.
-  const estimateSize = useCallback(
-    (node: Node<MenuItemProps>) => {
-      if (node.type === 'section') {
-        const separator = node.key === collection[0]?.key ? 0 : SEPARATOR_HEIGHT;
-        const heading = node.rendered
-          ? estimateRowHeight(node, undefined, size, sectionRowSpace)
-          : 0;
-        return separator + heading;
-      }
-      const section =
-        node.parentKey === null || node.parentKey === undefined
-          ? undefined
-          : sectionsByKey.get(node.parentKey);
-      const height = estimateRowHeight(node, section, size, sectionRowSpace);
-      return itemsAfterSections.has(node.key) ? height + SEPARATOR_HEIGHT : height;
-    },
-    [collection, itemsAfterSections, sectionsByKey, size, sectionRowSpace]
-  );
-
   // The virtualizer re-renders the component that calls it on every scroll.
   // Calling it here, rather than in `DropdownMenuList`, keeps those re-renders
   // to the rows: the list's state and handlers keep their identity, so a row
   // that did not change is not re-rendered.
-  const virtual = useVirtualCollection({
+  const {itemsAfterSections, virtual} = useDropdownMenuRowLayout({
     collection,
-    enabled: virtualized,
-    estimateSize,
-    scrollRef: menuRef,
     focusedKey: itemProps.state.selectionManager.focusedKey,
-    sectionRowSpace,
-    size,
+    isWidthLocked,
+    menuRef,
+    onLockWidth,
+    size: itemProps.size ?? 'md',
+    virtualized,
     widestKey,
   });
-
-  // A virtualized menu only mounts some of its rows, so its natural width would
-  // change as rows scroll in and out. Measure it once, when the `widestKey` row
-  // has mounted, and keep that width until the menu closes, including while a
-  // search filters the items. A label that does not fit is truncated.
-  //
-  // The virtualizer mounts no rows on its first render, so measuring earlier
-  // would lock the width of an empty list. Measure the rows' own width
-  // (`max-content`) rather than the menu's current one, which its container
-  // may still be squeezing before the overlay is positioned.
-  const isWidestRowMounted = virtual.rows.some(row => row.node.key === widestKey);
-  useLayoutEffect(() => {
-    const menu = menuRef.current;
-    if (!virtualized || !isWidestRowMounted || isWidthLocked || !menu) {
-      return;
-    }
-    const {width} = menu.style;
-    menu.style.width = 'max-content';
-    // Round up, so a fractional width does not cut off the widest label.
-    onLockWidth(Math.ceil(menu.getBoundingClientRect().width));
-    menu.style.width = width;
-  }, [virtualized, isWidestRowMounted, isWidthLocked, menuRef, onLockWidth]);
 
   return (
     <VirtualRows
@@ -430,100 +350,19 @@ function DropdownMenuList({
   // The width a virtualized menu keeps until it closes, see `DropdownMenuRows`.
   const [lockedWidth, setLockedWidth] = useState<number>();
 
-  /**
-   * Moves focus to an item by key. Items outside a virtualized window are not
-   * mounted, so focus goes through the selection manager: the list scrolls the
-   * item into view and React Aria focuses it once it mounts.
-   */
-  const focusItem = (key: Key | undefined) => {
-    if (key === undefined) {
-      return;
-    }
-    const element = menuRef.current?.querySelector<HTMLElement>(
-      `[data-key="${CSS.escape(String(key))}"]`
-    );
-    if (element) {
-      element.focus();
-      return;
-    }
-    state.selectionManager.setFocused(true);
-    state.selectionManager.setFocusedKey(key);
-  };
-
-  const {keyboardProps} = useKeyboard({
-    onKeyDown: e => {
-      // Read from the collection rather than the DOM, since a virtualized menu
-      // only mounts some of its items. The key comes from the event target:
-      // React Aria has already moved focusedKey to the next item by now.
-      const targetKey = getMenuItemKey(e.target);
-      // When keyboard navigation wraps past the last item, show the top of the
-      // list again so the search field and first item are visible.
-      if (
-        e.key === 'ArrowDown' &&
-        searchRef.current &&
-        menuRef.current &&
-        targetKey !== undefined &&
-        targetKey === focusableKeys.at(-1)
-      ) {
-        menuRef.current.scrollTop = 0;
-      }
-      // Move from the first enabled item back to search before leaving the submenu.
-      if (
-        e.key === 'ArrowUp' &&
-        searchRef.current &&
-        menuRef.current &&
-        targetKey !== undefined &&
-        targetKey === focusableKeys[0]
-      ) {
-        e.preventDefault();
-        menuRef.current.scrollTop = 0;
-        searchRef.current.focus();
-        return;
-      }
-      // ArrowLeft closes a submenu, but leaves the root menu open.
-      if (e.key === 'ArrowLeft' && parentMenuState) {
-        parentMenuState.selectionManager.clearSelection();
-        return;
-      }
-      e.continuePropagation();
-    },
+  const {
+    focusItem,
+    hasFocus,
+    menuProps: keyboardMenuProps,
+  } = useDropdownMenuKeyboard({
+    focusableKeys,
+    menuProps,
+    menuRef,
+    parentMenuState,
+    searchRef,
+    state,
+    stateCollection,
   });
-
-  /**
-   * Whether this menu/submenu is the current focused one, which in a nested,
-   * tree-like menu system should be the leaf submenu. This information is
-   * used for controlling keyboard events. See ``modifiedMenuProps` below.
-   */
-  const hasFocus = useMemo(() => {
-    // A submenu is a leaf when it does not contain any expanded submenu. This
-    // logically follows from the tree-like structure and single-selection
-    // nature of menus.
-    const isLeafSubmenu = !stateCollection.some(node => {
-      const isSection = node.hasChildNodes && !node.value?.submenu;
-      // A submenu with key [key] is expanded if
-      // state.selectionManager.isSelected([key]) = true
-      return isSection
-        ? [...node.childNodes].some(child =>
-            state.selectionManager.isSelected(`${child.key}`)
-          )
-        : state.selectionManager.isSelected(`${node.key}`);
-    });
-
-    return isLeafSubmenu;
-  }, [stateCollection, state.selectionManager]);
-
-  // Menu props from useMenu, modified to disable keyboard events if the
-  // current menu does not have focus.
-  const modifiedMenuProps = useMemo(
-    () => ({
-      ...menuProps,
-      ...(!hasFocus && {
-        onKeyUp: () => null,
-        onKeyDown: () => null,
-      }),
-    }),
-    [menuProps, hasFocus]
-  );
 
   const contextValue = useMemo(
     () => ({
@@ -604,7 +443,7 @@ function DropdownMenuList({
                   width={lockedWidth === undefined ? undefined : `${lockedWidth}px`}
                   // The overlay's `maxWidth` still applies to the locked width.
                   maxWidth={lockedWidth === undefined ? undefined : '100%'}
-                  {...mergeProps(modifiedMenuProps, keyboardProps)}
+                  {...keyboardMenuProps}
                 >
                   <ReserveLeadingSlot reserve={hasLeadingItems}>
                     <DropdownMenuRows
