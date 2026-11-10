@@ -369,5 +369,42 @@ describe('Tour Components', () => {
         position: 'fixed',
       });
     });
+
+    it('reports clicks outside the guide and lets them reach the page', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handlePageClick = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      render(
+        <div>
+          <button onClick={handlePageClick}>Page Button</button>
+          <TourGuide
+            isOpen
+            variant="subtle"
+            title="Test Title"
+            description="Test Description"
+            actions={<TourAction>Test Action</TourAction>}
+            onClickOutside={handleClickOutside}
+          >
+            {props => (
+              <button {...props} type="button">
+                Child Element
+              </button>
+            )}
+          </TourGuide>
+        </div>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+
+      // Clicks on the guide or its highlighted element continue the tour
+      await userEvent.click(screen.getByRole('button', {name: 'Test Action'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Child Element'}));
+      expect(handleClickOutside).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handlePageClick).toHaveBeenCalledTimes(1);
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
   });
 });

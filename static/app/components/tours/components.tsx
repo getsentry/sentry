@@ -1,5 +1,5 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useEffectEvent, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -371,6 +371,8 @@ export function TourElementContent<T extends TourEnumType>({
       isOpen={isOpen}
       position={position}
       handleDismiss={dismiss}
+      // A spotlight tour blurs the page, so only a subtle tour can be clicked away.
+      onClickOutside={variant === 'subtle' ? dismiss : undefined}
       onKeyDown={
         variant === 'subtle'
           ? event => {
@@ -419,6 +421,11 @@ interface TourGuideProps extends Omit<
   margin?: number;
   offset?: UseOverlayProps['offset'];
   /**
+   * Called after a click outside the guide and its highlighted element. The
+   * click still reaches what was clicked.
+   */
+  onClickOutside?: () => void;
+  /**
    * Handles keys pressed while focus is inside the guide. The guide can then be
    * focused, and returns focus to the page when it closes.
    */
@@ -460,6 +467,7 @@ export function TourGuide({
   stepTotal,
   offset,
   margin,
+  onClickOutside,
   onKeyDown,
   focusHandoffRef,
   returnFocusRef,
@@ -479,7 +487,32 @@ export function TourGuide({
     offset,
     strategy: 'fixed',
     preventOverflowOptions: keepGuideInViewport,
+    // react-aria swallows the click that dismisses an overlay, so the click
+    // could not reach the page. Subtle guides use `onClickOutside` instead.
+    isDismissable: false,
   });
+
+  // Dismiss after the page handles the click, so a click outside the guide
+  // still does what it would without the guide.
+  const handleClickOutside = useEffectEvent((event: MouseEvent) => {
+    const target = event.target;
+    const isOutside =
+      target instanceof Node &&
+      !overlayRef.current?.contains(target) &&
+      // Clicking the highlighted element, like a menu trigger, continues the tour.
+      !triggerRef.current?.contains(target);
+    if (isOutside) {
+      onClickOutside?.();
+    }
+  });
+  const isClickOutsideHandled = defined(onClickOutside);
+  useEffect(() => {
+    if (!isOpen || !isClickOutsideHandled) {
+      return;
+    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isOpen, isClickOutsideHandled]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
   // a nested scroll container (e.g. the issue details sidebar, which stacks below
