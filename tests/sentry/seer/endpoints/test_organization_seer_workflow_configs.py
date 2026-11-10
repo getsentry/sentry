@@ -811,6 +811,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         with outbox_runner():
             workflow = self.create_metric_workflow()
         account = get_service_account(workflow.config_id)
+        version = workflow.get_config().version
 
         with outbox_runner():
             response = self.get_success_response(
@@ -819,6 +820,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 method="put",
                 serviceAccount={"scopes": ["project:read"], "allProjects": True},
             )
+
+        assert response.data["updatedBy"] == str(self.user.id)
+        assert workflow.get_config().version == version + 1
 
         assert response.data["serviceAccount"] == {
             "serviceAccountId": str(account.id),
@@ -836,6 +840,23 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             ).exists()
         detail = self.get_success_response(self.organization.slug, workflow.config_id)
         assert detail.data["serviceAccount"] == response.data["serviceAccount"]
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                workflow.config_id,
+                method="put",
+                serviceAccount={"scopes": ["project:read"], "allProjects": True},
+            )
+
+        assert workflow.get_config().version == version + 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert (
+                AuditLogEntry.objects.filter(
+                    event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"), target_object=account.id
+                ).count()
+                == 1
+            )
 
     @with_feature("organizations:service-accounts")
     def test_service_account_with_scopes_the_caller_lacks_changes_nothing(self) -> None:

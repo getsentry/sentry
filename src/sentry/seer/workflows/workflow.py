@@ -36,7 +36,11 @@ from sentry.service_accounts.models import (
     ServiceAccountReplica,
     validate_grantable_scopes,
 )
-from sentry.service_accounts.outbox import ServiceAccountOwnerKind, service_account_create_outbox
+from sentry.service_accounts.outbox import (
+    ServiceAccountOwnerKind,
+    service_account_create_outbox,
+    service_account_grant_update_outbox,
+)
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
@@ -365,28 +369,6 @@ class SeerWorkflow:
             organization_id=self.organization_id, service_account_id=config.service_account_id
         )
 
-    def set_service_account_grant(self, grant: SeerServiceAccountGrant) -> RpcServiceAccount:
-        """
-        Replace the scopes and projects of the automation's service account. Callers must
-        authorize the grant and audit it.
-        """
-        _validate_service_account_grant(self.organization_id, grant)
-        service_account_id = self.get_config().service_account_id
-        account = (
-            None
-            if service_account_id is None
-            else service_account_service.update_service_account(
-                organization_id=self.organization_id,
-                service_account_id=service_account_id,
-                scope_list=list(grant.scopes),
-                project_ids=[] if grant.all_projects else list(grant.project_ids),
-                all_projects=grant.all_projects,
-            )
-        )
-        if account is None:
-            raise WorkflowUpdateError("The automation doesn't have a service account")
-        return account
-
     def resolve_service_account(self) -> ServiceAccountReplica:
         """Resolve authoritative identity against current cell state on every call."""
         config = self.get_config()
@@ -411,15 +393,24 @@ class SeerWorkflow:
 
         On a normal exit, any marked changes are saved atomically with a single version bump.
         Do not early return on error cases - propagate an exception so the transaction can roll back.
+
+        Outboxes saved in the block drain when the transaction commits. If that fails, the
+        changes are kept and the outboxes retry in the background.
         """
-        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
-            update = self._new_config_update(self._config_queryset().select_for_update().get())
-            yield update
-            if update.changed:
-                update.config.version += 1
-                update.config.save(
-                    update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
-                )
+        try:
+            with outbox_context(transaction.atomic(router.db_for_write(SeerWorkflowConfig))):
+                update = self._new_config_update(self._config_queryset().select_for_update().get())
+                yield update
+                if update.changed:
+                    update.config.version += 1
+                    update.config.save(
+                        update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
+                    )
+        except (OutboxFlushError, OutboxDatabaseError):
+            logger.exception(
+                "seer.workflow.update.flush_failed",
+                extra={"organization_id": self.organization_id, "config_id": self.config_id},
+            )
 
     @classmethod
     def _new_config_update(cls, config: SeerWorkflowConfig) -> ConfigUpdate:
@@ -506,6 +497,24 @@ class ConfigUpdate:
             return
         self.config.extras = new_extras
         self.mark("extras")
+
+    def set_service_account_grant(self, grant: SeerServiceAccountGrant) -> None:
+        """Replace the scopes and projects of the automation's service account.
+
+        The account is updated in control when the transaction commits. Callers must authorize
+        the grant and audit it.
+        """
+        _validate_service_account_grant(self.config.organization_id, grant)
+        if self.config.service_account_id is None:
+            raise WorkflowUpdateError("The automation doesn't have a service account")
+        service_account_grant_update_outbox(
+            organization_id=self.config.organization_id,
+            service_account_id=self.config.service_account_id,
+            scope_list=grant.scopes,
+            project_ids=grant.project_ids,
+            all_projects=grant.all_projects,
+        ).save()
+        self.mark_related_changed()
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         """Replace the selected projects, bumping the version only when the selection changes.
