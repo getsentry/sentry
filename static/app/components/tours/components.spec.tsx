@@ -380,7 +380,6 @@ describe('Tour Components', () => {
           <button onClick={handlePageClick}>Page Button</button>
           <TourGuide
             isOpen
-            variant="subtle"
             title="Test Title"
             description="Test Description"
             actions={<TourAction>Test Action</TourAction>}
@@ -399,7 +398,7 @@ describe('Tour Components', () => {
       expect(handleClickOutside).toHaveBeenCalledTimes(1);
     });
 
-    it('blocks clicks outside a guide that is not subtle', async () => {
+    it('blocks clicks outside a guide without onClickOutside', async () => {
       Element.prototype.scrollIntoView = jest.fn();
       const handlePageClick = jest.fn();
 
