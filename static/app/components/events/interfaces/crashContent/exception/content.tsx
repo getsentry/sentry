@@ -25,6 +25,7 @@ import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
 import {StackTrace} from './stackTrace';
 import {
+  frameCanShowSourceMapDebugger,
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebugQuery,
   type SourceMapDebugResponse,
@@ -258,10 +259,16 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
+  // Frames hide the source map debugger in the minified view, and the original
+  // view renders `stacktrace`, so only those frames can show the button.
+  const canShowSourceMapDebugger =
+    type !== StackType.MINIFIED &&
+    !!values?.some(exc => exc.stacktrace?.frames?.some(frameCanShowSourceMapDebugger));
   const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
     projectSlug,
     event.id,
-    event.sdk?.name ?? null
+    event.sdk?.name ?? null,
+    canShowSourceMapDebugger
   );
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);

@@ -5,11 +5,17 @@ import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
+import {
+  SourceMapDebugFrameFixture,
+  SourceMapDebugResponseFixture,
+} from 'sentry-fixture/sourceMapDebug';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {SourceMapDebugResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
@@ -550,6 +556,132 @@ describe('Core StackTrace', () => {
     expect(
       await screen.findByRole('button', {name: 'Unminify Code'})
     ).toBeInTheDocument();
+  });
+
+  describe('source map debug data', () => {
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const minifiedFrame: Partial<Frame> = {
+      filename: 'app.min.js',
+      absPath: 'https://example.com/static/app.min.js',
+      context: [],
+      inApp: true,
+    };
+
+    function renderJavascriptStackTrace(
+      frameOverrides: Array<Partial<Frame>>,
+      debugResponse: Partial<SourceMapDebugResponse> = {}
+    ) {
+      const {event, stacktrace} = makeStackTraceData();
+      const javascriptEvent = EventFixture({
+        ...event,
+        sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
+      });
+      const project = DetailedProjectFixture({
+        id: javascriptEvent.projectID,
+        slug: 'project-slug',
+        platform: 'javascript',
+      });
+      ProjectsStore.loadInitialData([project]);
+      const sourceMapDebugMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
+        body: SourceMapDebugResponseFixture({
+          exceptions: [{frames: frameOverrides.map(() => SourceMapDebugFrameFixture())}],
+          ...debugResponse,
+        }),
+      });
+      const baseFrame = stacktrace.frames.at(-1)!;
+
+      render(
+        <TestStackTraceProvider
+          event={javascriptEvent}
+          stacktrace={{
+            ...stacktrace,
+            frames: frameOverrides.map((overrides, index) => ({
+              ...baseFrame,
+              lineNo: index + 1,
+              ...overrides,
+            })),
+          }}
+          exceptionIndex={0}
+        >
+          <StackTraceFrames
+            frameContextComponent={FrameContent}
+            frameActionsComponent={IssueFrameActions}
+          />
+        </TestStackTraceProvider>,
+        {organization}
+      );
+
+      return sourceMapDebugMock;
+    }
+
+    it.each([
+      {name: 'a system frame', frame: {...minifiedFrame, inApp: false}},
+      {
+        name: 'a frame with source context',
+        frame: {...minifiedFrame, context: [[1, 'const a = 1;']]},
+      },
+      {
+        name: 'a frame without a JavaScript file extension',
+        frame: {...minifiedFrame, filename: 'app.py', absPath: '/srv/app.py'},
+      },
+    ] satisfies Array<{frame: Partial<Frame>; name: string}>)(
+      'does not request source map debug data for $name',
+      async ({frame}) => {
+        const sourceMapDebugMock = renderJavascriptStackTrace([frame]);
+
+        expect(
+          await screen.findByTestId('core-stacktrace-frame-row')
+        ).toBeInTheDocument();
+        expect(sourceMapDebugMock).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('button', {name: 'Unminify Code'})
+        ).not.toBeInTheDocument();
+      }
+    );
+
+    it('requests source map debug data once for all frames of an event', async () => {
+      const sourceMapDebugMock = renderJavascriptStackTrace([
+        minifiedFrame,
+        minifiedFrame,
+      ]);
+
+      expect(await screen.findAllByRole('button', {name: 'Unminify Code'})).toHaveLength(
+        2
+      );
+      expect(sourceMapDebugMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('hides the unminify action for frames that the debug data resolves', async () => {
+      const sourceMapDebugMock = renderJavascriptStackTrace(
+        [
+          {...minifiedFrame, function: 'resolvedFrame'},
+          {...minifiedFrame, function: 'unresolvedFrame'},
+        ],
+        {
+          sdk_debug_id_support: 'full',
+          exceptions: [
+            {
+              frames: [
+                SourceMapDebugFrameFixture({
+                  debug_id_process: {
+                    debug_id: 'debug-id',
+                    uploaded_source_file_with_correct_debug_id: true,
+                    uploaded_source_map_with_correct_debug_id: true,
+                  },
+                }),
+                SourceMapDebugFrameFixture(),
+              ],
+            },
+          ],
+        }
+      );
+
+      expect(await screen.findAllByRole('button', {name: 'Unminify Code'})).toHaveLength(
+        1
+      );
+      expect(sourceMapDebugMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('renders sentry app frame links with line context', async () => {

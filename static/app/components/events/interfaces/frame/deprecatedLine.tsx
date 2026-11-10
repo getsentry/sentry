@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
+import {frameCanShowSourceMapDebugger} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
@@ -44,16 +45,6 @@ import {
   hasPotentialSourceContext,
   isPotentiallyThirdPartyFrame,
 } from './utils';
-
-const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
-  '.js',
-  '.mjs',
-  '.cjs',
-  '.jsbundle', // React Native iOS file ending
-  '.bundle', // React Native Android file ending
-  '.hbc', // Hermes Bytecode (from Expo updates) file ending
-  '.js.gz', // file ending idiomatic for Ember.js
-];
 
 export interface DeprecatedLineProps {
   data: Frame;
@@ -156,21 +147,9 @@ export function DeprecatedLine({
   const anrCulprit =
     isANR && analyzeFrameForRootCause(data, getThreadById(event, threadId), lockAddress);
 
-  const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
-      ending =>
-        (data.absPath ?? '').endsWith(ending) || (data.filename ?? '').endsWith(ending)
-    );
-
-  // If context is available (non-empty), users can already see the source code
-  // This means they have a "good stack trace" with readable source lines
-  // In this case, we want to hide the 'unminify code' button since the
-  // user already has sufficient debugging information
   const shouldShowSourceMapDebuggerButton =
-    !hasContextSource(data) &&
     !hideSourceMapDebugger &&
-    data.inApp &&
-    frameHasValidFileEndingForSourceMapDebugger &&
+    frameCanShowSourceMapDebugger(data) &&
     frameSourceResolutionResults &&
     !frameSourceResolutionResults.frameIsResolved;
 

@@ -19,7 +19,8 @@ function TestWrapper() {
   const sourceMapQuery = useSourceMapDebugQuery(
     PROJECT_SLUG,
     EVENT_ID,
-    'sentry.javascript.browser'
+    'sentry.javascript.browser',
+    true
   );
   return (
     <DiagnosisSection

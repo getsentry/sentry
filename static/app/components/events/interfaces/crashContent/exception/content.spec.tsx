@@ -10,16 +10,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {
+  SourceMapDebugFrameFixture,
+  SourceMapDebugResponseFixture,
+} from 'sentry-fixture/sourceMapDebug';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
+import type {SourceMapDebugResponse} from './useSourceMapDebuggerData';
 
 describe('Exception Content', () => {
   const organization = OrganizationFixture();
@@ -570,6 +576,148 @@ describe('Exception Content', () => {
         screen.queryByRole('button', {name: 'Collapse Section'})
       ).not.toBeInTheDocument();
       expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(4);
+    });
+  });
+
+  describe('source map debug data', () => {
+    const minifiedFrame = EventStacktraceFrameFixture({
+      filename: 'app.min.js',
+      absPath: 'https://example.com/static/app.min.js',
+      module: null,
+      context: [],
+      inApp: true,
+      vars: null,
+    });
+
+    function renderJavascriptException({
+      frames,
+      debugResponse = {},
+      type = StackType.ORIGINAL,
+    }: {
+      frames: Frame[];
+      debugResponse?: Partial<SourceMapDebugResponse>;
+      type?: StackType;
+    }) {
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'javascript',
+        sdk: {name: 'sentry.javascript.browser', version: '10.0.0'},
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'x is undefined',
+                  mechanism: null,
+                  module: null,
+                  threadId: null,
+                  stacktrace: {
+                    frames,
+                    framesOmitted: null,
+                    hasSystemFrames: false,
+                    registers: null,
+                  },
+                  rawStacktrace: {
+                    frames,
+                    framesOmitted: null,
+                    hasSystemFrames: false,
+                    registers: null,
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+      const sourceMapDebugMock = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/source-map-debug/`,
+        body: SourceMapDebugResponseFixture({
+          exceptions: [{frames: frames.map(() => SourceMapDebugFrameFixture())}],
+          ...debugResponse,
+        }),
+      });
+
+      render(
+        <Content
+          type={type}
+          stackView={StackView.FULL}
+          event={event}
+          values={event.entries[0]!.data.values}
+          projectSlug={project.slug}
+          newestFirst
+        />,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {},
+            },
+            route: '/organizations/:orgId/issues/',
+          },
+        }
+      );
+
+      return sourceMapDebugMock;
+    }
+
+    it.each([
+      {name: 'a fully symbolicated event', frames: [EventStacktraceFrameFixture()]},
+      {
+        name: 'an event with only system frames',
+        frames: [{...minifiedFrame, inApp: false}],
+      },
+    ])('does not request source map debug data for $name', async ({frames}) => {
+      const sourceMapDebugMock = renderJavascriptException({frames});
+
+      expect(await screen.findByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+      expect(sourceMapDebugMock).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', {name: 'Unminify Code'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not request source map debug data in the minified view', async () => {
+      const sourceMapDebugMock = renderJavascriptException({
+        frames: [minifiedFrame],
+        type: StackType.MINIFIED,
+      });
+
+      expect(await screen.findByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+      expect(sourceMapDebugMock).not.toHaveBeenCalled();
+    });
+
+    it('shows the unminify action only for frames that the debug data does not resolve', async () => {
+      const sourceMapDebugMock = renderJavascriptException({
+        frames: [
+          {...minifiedFrame, function: 'resolvedFrame', lineNo: 1},
+          {...minifiedFrame, function: 'unresolvedFrame', lineNo: 2},
+        ],
+        debugResponse: {
+          sdk_debug_id_support: 'full',
+          exceptions: [
+            {
+              frames: [
+                SourceMapDebugFrameFixture({
+                  debug_id_process: {
+                    debug_id: 'debug-id',
+                    uploaded_source_file_with_correct_debug_id: true,
+                    uploaded_source_map_with_correct_debug_id: true,
+                  },
+                }),
+                SourceMapDebugFrameFixture(),
+              ],
+            },
+          ],
+        },
+      });
+
+      expect(await screen.findAllByRole('button', {name: 'Unminify Code'})).toHaveLength(
+        1
+      );
+      expect(sourceMapDebugMock).toHaveBeenCalledTimes(1);
     });
   });
 });

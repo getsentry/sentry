@@ -6,11 +6,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
+  frameCanShowSourceMapDebugger,
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebugQuery,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS} from 'sentry/components/stackTrace/frame/actions/utils';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
@@ -26,10 +26,20 @@ export function IssueSourceMapsDebuggerAction() {
   const {exceptionIndex, hideSourceMapDebugger, project} = useStackTraceContext();
   const organization = useOrganization({allowNull: true});
 
+  // The debug response is indexed by exception, so standalone stack traces
+  // (no exceptionIndex) can never show the button.
+  const canShowButton =
+    exceptionIndex !== undefined &&
+    !hideSourceMapDebugger &&
+    frameCanShowSourceMapDebugger(frame);
+
+  // Every frame shares the same per-event query, so one eligible frame is
+  // enough to fetch the data for all of them.
   const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
     project?.slug ?? '',
     event.id,
-    event.sdk?.name ?? null
+    event.sdk?.name ?? null,
+    canShowButton
   );
   const debuggerFrame =
     exceptionIndex === undefined
@@ -45,20 +55,11 @@ export function IssueSourceMapsDebuggerAction() {
         )
       : undefined;
 
-  const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
-      ending =>
-        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
-    );
-  const shouldShowSourceMapDebuggerButton =
-    !frame.context?.length &&
-    !hideSourceMapDebugger &&
-    frame.inApp &&
-    frameHasValidFileEndingForSourceMapDebugger &&
-    !!frameSourceResolutionResults &&
-    !frameSourceResolutionResults.frameIsResolved;
-
-  if (!shouldShowSourceMapDebuggerButton || !frameSourceResolutionResults) {
+  if (
+    !canShowButton ||
+    !frameSourceResolutionResults ||
+    frameSourceResolutionResults.frameIsResolved
+  ) {
     return null;
   }
 

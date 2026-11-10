@@ -2,7 +2,8 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import type {Event} from 'sentry/types/event';
+import {VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS} from 'sentry/components/stackTrace/frame/actions/utils';
+import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,10 +54,28 @@ export interface SourceMapDebugResponse {
 
 export type SourceMapDebugQueryResult = UseQueryResult<SourceMapDebugResponse>;
 
+/**
+ * Client-side checks for the "Unminify Code" button. Frames with source context
+ * already show readable code, so they never get the button. The button also
+ * needs the source map debug response to say that the frame is not resolved,
+ * so callers use this to skip the request when no frame can show the button.
+ */
+export function frameCanShowSourceMapDebugger(frame: Frame): boolean {
+  return (
+    !!frame.inApp &&
+    !frame.context?.length &&
+    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
+      ending =>
+        (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
+    )
+  );
+}
+
 export function useSourceMapDebugQuery(
   projectSlug: string,
   eventId: string,
-  sdkName: string | null = null
+  sdkName: string | null,
+  enabled: boolean
 ): SourceMapDebugQueryResult {
   const organization = useOrganization({allowNull: true});
   const isSdkThatShouldShowSourceMapsDebugger =
@@ -74,6 +93,7 @@ export function useSourceMapDebugQuery(
       }
     ),
     enabled:
+      enabled &&
       isSdkThatShouldShowSourceMapsDebugger &&
       !!organization &&
       !!projectSlug &&
