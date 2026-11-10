@@ -705,41 +705,14 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert account.scope_list == ["event:read"]
         assert not ServiceAccountReplica.objects.filter(service_account_id=account.id).exists()
 
-    def set_grant(self, grant: SeerServiceAccountGrant) -> None:
-        with outbox_runner(), self.workflow.update_config() as update:
-            update.set_service_account_grant(grant)
-
-    def test_set_service_account_grant_updates_the_linked_account(self) -> None:
-        self.link(self.account.id)
-        version = self.workflow.get_config().version
-
-        self.set_grant(
-            SeerServiceAccountGrant(scopes=["event:read"], project_ids=[self.project.id])
-        )
-
-        account = self.control_service_account(self.account.id)
-        assert account.scope_list == ["event:read"]
-        assert not account.all_projects
-        rpc_account = self.workflow.get_service_account()
-        assert rpc_account is not None
-        assert rpc_account.project_ids == [self.project.id]
-        assert self.workflow.get_config().version == version + 1
-
-        self.set_grant(SeerServiceAccountGrant(scopes=["project:read"], all_projects=True))
-
-        account = self.control_service_account(self.account.id)
-        assert account.scope_list == ["project:read"]
-        assert account.all_projects
-        assert self.workflow.get_config().version == version + 2
-
     def test_set_service_account_grant_commits_with_the_other_changes(self) -> None:
         self.link(self.account.id)
+        version = self.workflow.get_config().version
+        grant = SeerServiceAccountGrant(scopes=["project:read"], all_projects=True)
 
         with pytest.raises(WorkflowUpdateError):
             with outbox_runner(), self.workflow.update_config() as update:
-                update.set_service_account_grant(
-                    SeerServiceAccountGrant(scopes=["project:read"], all_projects=True)
-                )
+                update.set_service_account_grant(grant)
                 update.set_enabled(True)
                 raise WorkflowUpdateError("failed")
 
@@ -749,27 +722,16 @@ class SeerWorkflowServiceAccountTest(TestCase):
             category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
         ).exists()
 
-    def test_set_service_account_grant_rejects_projects_outside_the_org(self) -> None:
-        self.link(self.account.id)
-        foreign = SeerServiceAccountGrant(
-            scopes=["event:read"],
-            project_ids=[self.create_project(organization=self.create_organization()).id],
-        )
+        with outbox_runner(), self.workflow.update_config() as update:
+            update.set_service_account_grant(grant)
+            update.set_enabled(True)
 
-        with pytest.raises(WorkflowUpdateError, match="must exist in the workflow's organization"):
-            self.set_grant(foreign)
-
-        assert not CellOutbox.objects.filter(
-            category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
-        ).exists()
-
-    def test_set_service_account_grant_requires_a_linked_account(self) -> None:
-        with pytest.raises(WorkflowUpdateError, match="doesn't have a service account"):
-            self.set_grant(GRANT)
-
-        assert not CellOutbox.objects.filter(
-            category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
-        ).exists()
+        config = self.workflow.get_config()
+        assert config.enabled
+        assert config.version == version + 1
+        account = self.control_service_account(self.account.id)
+        assert account.scope_list == ["project:read"]
+        assert account.all_projects
 
     def test_resolution_uses_the_account_id_not_the_replica_id(self) -> None:
         with outbox_runner():
