@@ -24,6 +24,10 @@ SET_COMPRESSION = re.compile(
     re.M,
 )
 
+# Table storage parameters (e.g. per-table autovacuum settings) are set with
+# RunSQL and can't be expressed on models, so the squashed state never has them.
+TABLE_STORAGE_PARAMS = re.compile(r"^\)\nWITH \([^;]*\);$", re.M)
+
 
 def _remove_migrations_tables(s: str) -> str:
     return DJANGO_TABLES.sub("", s)
@@ -31,6 +35,10 @@ def _remove_migrations_tables(s: str) -> str:
 
 def _remove_set_compression(s: str) -> str:
     return SET_COMPRESSION.sub("", s)
+
+
+def _remove_table_storage_params(s: str) -> str:
+    return TABLE_STORAGE_PARAMS.sub(");", s)
 
 
 def norm(s: str) -> dict[str, str]:
@@ -43,6 +51,7 @@ def norm(s: str) -> dict[str, str]:
 
     s = _remove_migrations_tables(s)
     s = _remove_set_compression(s)
+    s = _remove_table_storage_params(s)
 
     for line in s.splitlines(True):
         if line.startswith(r"\connect "):
