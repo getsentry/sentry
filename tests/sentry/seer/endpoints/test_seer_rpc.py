@@ -1221,7 +1221,7 @@ class TestRefreshOrgMonitoringProviderToken(APITestCase):
                 "access_token": "new-app-token",
                 "refresh_token": "new-refresh-token",
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
                 "expires_in": 3600,
             },
         )
@@ -1251,7 +1251,7 @@ class TestRefreshOrgMonitoringProviderToken(APITestCase):
                 "access_token": "new-app-token",
                 "refresh_token": "new-refresh-token",
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
                 "expires_in": 86400,
             },
         )

@@ -6,7 +6,9 @@ from django.urls import reverse
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.models.apitoken import ApiToken
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider as AuthProviderModel
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.silo.base import SiloMode
@@ -180,6 +182,33 @@ class SCIMDetailPatchTest(SCIMTestCase):
             team_id=str(self.team.id), organizationmember_id=self.member_one.id
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
+
+    def test_patch_add_rejects_member_session(self) -> None:
+        manager = self.create_user()
+        manager_member = self.create_member(
+            user=manager,
+            organization=self.organization,
+            role="manager",
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthIdentity.objects.create(
+                user_id=manager.id, auth_provider=self.auth_provider_inst, ident="manager_ident"
+            )
+        self.login_as(user=manager, organization_id=self.organization.id)
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"value": manager_member.id, "display": manager_member.email}],
+            },
+        ]
+        self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=403
+        )
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=manager_member.id
+        ).exists()
 
     def test_scim_team_details_patch_remove(self) -> None:
         self.base_data["Operations"] = [

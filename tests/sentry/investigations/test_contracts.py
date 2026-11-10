@@ -21,6 +21,7 @@ from sentry.investigations.contracts import (
     ReportTextDeltaPayloadSerializer,
     valid_action_request,
     valid_action_requests,
+    valid_linked_issues,
 )
 from sentry.notebooks.contracts import (
     ActionPayloadSerializer,
@@ -174,6 +175,22 @@ def test_projection_is_bounded_by_its_serialized_size() -> None:
     # An undeclared field is passed through untouched, so nothing but the size
     # guard bounds it.
     rejects(OrchestrationProjectionSerializer, projection(seerAddedThisLater="x" * (600 * 1024)))
+
+
+def test_valid_linked_issues_drops_bad_items_without_rejecting_the_projection() -> None:
+    linked = {"groupId": 7, "hypothesisId": "h-1", "hypothesisStatement": "Retries pile up"}
+    by_short_id = {**linked, "groupId": None, "shortId": "CHECKOUT-1A3"}
+    bad = [
+        {"groupId": 7},
+        {**linked, "groupId": "7"},
+        {**linked, "shortId": "CHECKOUT-1A3"},
+        {**linked, "groupId": None},
+    ]
+
+    assert valid_linked_issues([linked, by_short_id, *bad]) == [linked, by_short_id]
+    assert len(valid_linked_issues([{**linked, "groupId": n} for n in range(1, 13)])) == 10
+    assert valid_linked_issues({"groupId": 7}) == []
+    assert OrchestrationProjectionSerializer(data=projection(linkedIssues=bad)).is_valid()
 
 
 def test_projection_phase_and_status_must_be_known_values() -> None:

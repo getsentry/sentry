@@ -83,7 +83,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     setLocalFeatureFlagOverride(organization, 'new-feature', true);
 
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
-    const updatedFeatures = OrganizationStore.get().organization?.features;
+    const updatedFeatures = OrganizationStore.getState().organization?.features;
     expect(updatedFeatures).toHaveLength(2);
     expect(updatedFeatures).toContain('enabled-feature');
     expect(updatedFeatures).toContain('new-feature');
@@ -107,7 +107,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
       '{"enabled-feature":false}'
     );
-    expect(OrganizationStore.get().organization?.features).not.toContain(
+    expect(OrganizationStore.getState().organization?.features).not.toContain(
       'enabled-feature'
     );
   });
@@ -164,7 +164,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Feature Flag'}));
 
     await waitFor(() =>
-      expect(OrganizationStore.get().organization?.features).toContain('new-feature')
+      expect(OrganizationStore.getState().organization?.features).toContain('new-feature')
     );
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
   });

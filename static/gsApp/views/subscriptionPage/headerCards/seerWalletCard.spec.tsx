@@ -141,16 +141,21 @@ describe('SeerWalletCard', () => {
       await screen.findByRole('button', {name: 'Turn on auto-reload'})
     );
 
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/seer-wallet/auto-top-up/`,
-      body: AutoTopUpFixture({enabled: true}),
-    });
+    mockWallet(
+      WalletFixture({
+        balance: 1320,
+        purchased: {total: 1000, remaining: 1000, expiresAt: '2027-11-01'},
+      }),
+      AutoTopUpFixture({enabled: true})
+    );
     await userEvent.click(
       await screen.findByRole('button', {name: 'Turn on and pay $10.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalled();
     expect(await screen.findByText('Auto-reload on')).toBeInTheDocument();
+    expect(await screen.findByText('1,320')).toBeInTheDocument();
+    expect(screen.getByText('of 1,500 credits available')).toBeInTheDocument();
   });
 
   it('shows an error when the wallet fails to load', async () => {

@@ -3847,6 +3847,113 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         assert not InboxItem.objects.exists()
 
 
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:investigations-issue-links": True,
+    }
+)
+@patch("sentry.tasks.seer.investigation.publish_investigation_issue_links.delay")
+class InvestigationIssueLinksScheduleTest(InvestigationOrchestrationEventTestBase):
+    LINKED_ISSUES = [
+        {
+            "groupId": 1,
+            "hypothesisId": "h-1",
+            "hypothesisStatement": "Payment retries exhaust the pool",
+        }
+    ]
+
+    def completed(
+        self, *, workflow_version: int, generation: int = 1, linked: bool = True
+    ) -> dict[str, Any]:
+        projection = self.projection(
+            workflow_version=workflow_version,
+            generation=generation,
+            phase="completed",
+            status="completed",
+        )
+        if linked:
+            projection["linkedIssues"] = self.LINKED_ISSUES
+        return projection
+
+    def complete(self, *, sequence: int = 1, generation: int = 1) -> None:
+        self.deliver(
+            self.make_event(
+                sequence,
+                "workflow_updated",
+                {
+                    "projection": self.completed(
+                        workflow_version=sequence + 1, generation=generation
+                    )
+                },
+                generation=generation,
+            )
+        )
+
+    def test_completion_schedules_links_once_per_generation(self, mock_delay: Mock) -> None:
+        self.complete()
+        self.complete(sequence=2)
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.completed(workflow_version=4),
+            expected_last_event_sequence=2,
+            expected_workflow_version=3,
+        )
+
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
+
+    def test_new_generation_schedules_again(self, mock_delay: Mock) -> None:
+        self.complete()
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=3, generation=2),
+        )
+        self.complete(sequence=2, generation=2)
+
+        assert mock_delay.call_count == 2
+
+    def test_bad_linked_issues_are_dropped_without_failing_the_run(self, mock_delay: Mock) -> None:
+        projection = self.completed(workflow_version=2)
+        projection["linkedIssues"] = [*self.LINKED_ISSUES, {"groupId": "not-an-id"}]
+
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == "completed"
+        mock_delay.assert_called_once_with(
+            investigation_id=self.investigation.id, linked_issues=self.LINKED_ISSUES
+        )
+
+    def test_unfinished_run_schedules_nothing(self, mock_delay: Mock) -> None:
+        projection = self.projection(workflow_version=2)
+        projection["linkedIssues"] = self.LINKED_ISSUES
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
+
+        mock_delay.assert_not_called()
+
+    def test_completion_without_links_schedules_nothing(self, mock_delay: Mock) -> None:
+        self.deliver(
+            self.make_event(
+                1,
+                "workflow_updated",
+                {"projection": self.completed(workflow_version=2, linked=False)},
+            )
+        )
+
+        mock_delay.assert_not_called()
+
+    def test_flag_off_does_not_backfill_on_replay(self, mock_delay: Mock) -> None:
+        with self.feature({"organizations:investigations-issue-links": False}):
+            self.complete()
+        self.complete(sequence=2)
+
+        mock_delay.assert_not_called()
+
+
 @with_feature("organizations:investigations")
 class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase):
     def orchestration_run(self) -> InvestigationOrchestrationRun:

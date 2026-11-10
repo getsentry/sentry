@@ -6,9 +6,6 @@ from django.urls import URLPattern, URLResolver, re_path
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     OrganizationAgentHandoffEndpoint,
 )
-from sentry.agent_handoff.endpoints.organization_agent_handoff_preview import (
-    OrganizationAgentHandoffPreviewEndpoint,
-)
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -588,6 +585,7 @@ from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
 from sentry.seer.endpoints.admin_autofix_single_run import SeerAdminAutofixSingleRunEndpoint
+from sentry.seer.endpoints.admin_metric_breaches import SeerAdminMetricBreachesEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -696,6 +694,9 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 )
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
+)
+from sentry.service_accounts.endpoints.organization_service_account_tokens import (
+    OrganizationServiceAccountTokenIndexEndpoint,
 )
 from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
     OrganizationServiceAccountViewerContextEndpoint,
@@ -1823,6 +1824,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-service-account-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/tokens/$",
+        OrganizationServiceAccountTokenIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-tokens",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/viewer-context/$",
         OrganizationServiceAccountViewerContextEndpoint.as_view(),
         name="sentry-api-0-organization-service-account-viewer-context",
@@ -2681,11 +2687,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding-tasks/$",
         OrganizationOnboardingTaskEndpoint.as_view(),
         name="sentry-api-0-organization-onboardingtasks",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts-preview/$",
-        OrganizationAgentHandoffPreviewEndpoint.as_view(),
-        name="sentry-api-0-organization-agent-handoff-preview",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts/$",
@@ -3799,6 +3800,11 @@ INTERNAL_URLS = [
     ),
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
+    re_path(
+        r"^seer/metric-breaches/$",
+        SeerAdminMetricBreachesEndpoint.as_view(),
+        name="sentry-admin-seer-metric-breaches",
+    ),
     re_path(
         r"^seer/night-shift/trigger/$",
         SeerAdminAgenticTriageTriggerEndpoint.as_view(),

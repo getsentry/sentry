@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
-from typing import Literal
+from typing import Any, Literal
 
-from django.db import router, transaction
+from django.db import OperationalError, router, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -14,6 +14,7 @@ from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry import features
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -37,6 +38,7 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
     telemetry_available,
 )
 from sentry.investigations.services.actor_access import resolve_investigation_service_account
+from sentry.investigations.services.issue_links import link_investigation_issues
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
@@ -577,6 +579,18 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
             return
 
         _mark_command_dispatch_acknowledged(run.id, command.id, response["rerun"])
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.publish_investigation_issue_links",
+    namespace=seer_tasks,
+    # Publishing is idempotent per investigation and issue, so a retry can't duplicate.
+    retry=Retry(times=3, on=(RpcRemoteException, OperationalError), delay=60),
+)
+def publish_investigation_issue_links(
+    investigation_id: int, linked_issues: list[dict[str, Any]]
+) -> None:
+    link_investigation_issues(investigation_id=investigation_id, linked_issues=linked_issues)
 
 
 class TelemetryNotConnectedYet(Exception):

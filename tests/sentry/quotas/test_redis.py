@@ -276,7 +276,7 @@ class RedisQuotaTest(TestCase):
         assert len(error_keys) == 2
 
         for key in error_keys:
-            assert client.get(key) == b"1"
+            assert client.get(key) == "1"
 
         attachment_keys = client.keys(f"r:quota:a{{{org_id}}}*:*")
         assert len(attachment_keys) == 0
@@ -329,7 +329,7 @@ class RedisQuotaTest(TestCase):
         assert len(attachment_keys) == 1
 
         for key in attachment_keys:
-            assert client.get(key) == b"100"
+            assert client.get(key) == "100"
 
 
 @pytest.mark.usefixtures("_redis_cluster")

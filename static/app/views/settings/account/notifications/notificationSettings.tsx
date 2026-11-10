@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {useQuery, mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -16,8 +16,9 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {NotificationSettingsType} from './constants';
@@ -34,6 +35,15 @@ const notificationSchema = z.object({
 });
 
 type NotificationFields = z.infer<typeof notificationSchema>;
+
+const notificationsOptions = apiOptions.as<NotificationFields>()(
+  '/users/$userId/notifications/',
+  {
+    path: {userId: 'me'},
+    // use 0 as stale time because we change the values elsewhere
+    staleTime: 0,
+  }
+);
 
 export function NotificationSettings() {
   const queryClient = useQueryClient();
@@ -64,15 +74,7 @@ export function NotificationSettings() {
     );
   };
 
-  // use 0 as stale time because we change the values elsewhere
-  const {
-    data: initialData,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<NotificationFields>([NOTIFICATIONS_ENDPOINT], {
-    staleTime: 0,
-  });
+  const {data: initialData, isPending, isError, refetch} = useQuery(notificationsOptions);
 
   const notificationMutationOptions = mutationOptions({
     mutationFn: (data: Partial<NotificationFields>) => {
@@ -84,10 +86,8 @@ export function NotificationSettings() {
     },
     onSuccess: (_, variables) => {
       toast.success(t('Notification preferences saved'));
-      setApiQueryData<NotificationFields>(
-        queryClient,
-        [NOTIFICATIONS_ENDPOINT],
-        existing => (existing ? {...existing, ...variables} : undefined)
+      queryClient.setQueryData(notificationsOptions.queryKey, response =>
+        response?.json ? {...response, json: {...response.json, ...variables}} : response
       );
     },
   });
