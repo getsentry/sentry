@@ -18,6 +18,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -730,6 +731,16 @@ class IssueDefaultTest(TestCase):
             "assignedTo": "userC",
             "reportedBy": "userB",
         }
+
+    def test_service_account_gets_project_defaults_only(self) -> None:
+        self.installation.store_issue_last_defaults(
+            self.project, self.user, {"project": "xyz", "assignedTo": "userA"}
+        )
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.organization.id, name="seer-autofix"
+        )
+
+        assert self.installation.get_defaults(self.project, service_account) == {"project": "xyz"}
 
     def test_store_issue_last_defaults_multiple_projects(self) -> None:
         assert "project" in self.installation.get_persisted_default_config_fields()

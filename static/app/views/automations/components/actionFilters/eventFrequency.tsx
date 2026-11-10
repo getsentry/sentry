@@ -8,23 +8,14 @@ import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {
-  CountBranch,
-  PercentBranch,
-} from 'sentry/views/automations/components/actionFilters/comparisonBranches';
-import {
-  COMPARISON_INTERVAL_CHOICES,
-  INTERVAL_CHOICES,
-} from 'sentry/views/automations/components/actionFilters/constants';
-import {
-  SubfilterDetailsList,
-  SubfiltersList,
-  validateSubfilters,
-} from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {CountBranch, PercentBranch} from './comparisonBranches';
+import {COMPARISON_INTERVAL_CHOICES, INTERVAL_CHOICES} from './constants';
+import {SubfilterDetailsList, SubfiltersList, validateSubfilters} from './subfiltersList';
 
 function getIntervalLabel(interval: string): string {
   const label = INTERVAL_CHOICES.find(choice => choice.value === interval)?.label;

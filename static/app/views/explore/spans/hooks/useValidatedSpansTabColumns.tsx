@@ -3,7 +3,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useValidatedExploreColumns} from 'sentry/views/explore/hooks/useValidatedExploreColumns';
-import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
+
+import {useValidateSpansTab} from './useValidateSpansTab';
 
 export function useValidatedSpansTabColumns(tab: Mode | Tab) {
   const organization = useOrganization();

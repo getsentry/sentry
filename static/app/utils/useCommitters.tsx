@@ -1,11 +1,11 @@
 import type {Group} from 'sentry/types/group';
 import type {Committer} from 'sentry/types/integrations';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
+import type {ApiQueryKey} from './api/apiQueryKey';
+import {getApiUrl} from './api/getApiUrl';
+import {useApiQuery} from './queryClient';
 import {useOrganization} from './useOrganization';
+import {usePrevious} from './usePrevious';
 
 interface UseCommittersProps {
   eventId: string;

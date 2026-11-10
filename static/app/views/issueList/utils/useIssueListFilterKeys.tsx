@@ -1,7 +1,8 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
+
+import {useFetchIssueTags} from './useFetchIssueTags';
 
 export function useIssueListFilterKeys() {
   const organization = useOrganization();

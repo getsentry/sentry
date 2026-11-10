@@ -1,10 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {useMembers} from 'sentry/utils/members/useMembers';
-import {useOrganizationMemberSearch} from 'sentry/utils/members/useOrganizationMemberSearch';
-import {useTeams} from 'sentry/utils/useTeams';
-import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useMembers} from './members/useMembers';
+import {useOrganizationMemberSearch} from './members/useOrganizationMemberSearch';
+import {useTeams} from './useTeams';
+import {useTeamsById} from './useTeamsById';
 
 interface Options {
   /**

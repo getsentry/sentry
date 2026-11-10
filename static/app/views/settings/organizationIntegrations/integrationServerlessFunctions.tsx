@@ -15,7 +15,8 @@ import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
+
+import {IntegrationServerlessRow} from './integrationServerlessRow';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(200px, 2fr)'},

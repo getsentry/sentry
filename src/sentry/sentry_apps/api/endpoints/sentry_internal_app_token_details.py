@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
+from sentry.auth.principal import acting_user_id
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
@@ -78,10 +79,11 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
             deletions.exec_sync(install_token)
 
-        if request.user.is_authenticated:
+        user_id = acting_user_id(request.user)
+        if user_id is not None:
             analytics.record(
                 SentryAppInstallationTokenDeleted(
-                    user_id=request.user.id,
+                    user_id=user_id,
                     organization_id=sentry_app_installation.organization_id,
                     sentry_app_installation_id=sentry_app_installation.id,
                     sentry_app=sentry_app.slug,

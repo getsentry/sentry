@@ -13,9 +13,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {StacktraceBanners} from './stacktraceBanners';
 
 describe('StacktraceBanners', () => {
-  const org = OrganizationFixture({
-    features: ['dashboards-basic'],
-  });
+  const org = OrganizationFixture();
   const project = ProjectFixture();
 
   const eventEntryStacktrace = EventEntryStacktraceFixture();

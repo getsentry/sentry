@@ -15,14 +15,13 @@ import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunction
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {withProjects} from 'sentry/utils/withProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
@@ -31,15 +30,15 @@ import {
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
-import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/constants';
-import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
-import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {
   isSummaryViewFrontend,
   isSummaryViewFrontendPageLoad,
 } from 'sentry/views/performance/utils';
 
+import {SEGMENT_SPANS_CURSOR_NAME} from './constants';
+import {EAPChartsWidget} from './eapChartsWidget';
+import {EAPSidebarCharts} from './eapSidebarCharts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import {RelatedIssues} from './relatedIssues';
 import {StatusBreakdown} from './statusBreakdown';
@@ -49,22 +48,21 @@ type Props = {
   location: Location;
   organization: Organization;
   projectId: string;
-  projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
 };
 
-function EAPSummaryContentInner({
+export function EAPSummaryContent({
   eventView,
   location,
   totalValues,
   spanOperationBreakdownFilter,
   organization,
-  projects,
   projectId,
   transactionName,
 }: Props) {
+  const {projects} = useProjects();
   const navigate = useNavigate();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
@@ -266,5 +264,3 @@ const EAPChartsWidgetContainer = styled('div')`
   height: 300px;
   margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export const EAPSummaryContent = withProjects(EAPSummaryContentInner);

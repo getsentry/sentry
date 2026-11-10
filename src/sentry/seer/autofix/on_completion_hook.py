@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 from sentry_sdk import traces
 
-from sentry import features
 from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -42,11 +41,13 @@ from sentry.seer.autofix.pr_iteration.completion import (
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
 from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
 )
+from sentry.seer.autofix.single_run import is_single_run, single_run_root_cause_payload
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -75,6 +76,9 @@ if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 logger = logging.getLogger(__name__)
+
+# Sent as seer.errored's failure_reason when Seer finished but couldn't open any PR.
+PR_CREATION_FAILED_REASON = "pr_creation_failed"
 
 # Pipeline order: which step follows which
 PIPELINE_ORDER: list[AutofixStep] = [
@@ -112,6 +116,18 @@ def get_run_stopping_point(
     return (state.metadata or {}).get("stopping_point") or _stopping_point_from_run(
         organization, run_id
     )
+
+
+SingleRunStage = Literal["root_cause", "coding", "pr_created"]
+SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+
+
+def _single_run_referrer(state: SeerRunState) -> AutofixReferrer | None:
+    raw = (state.metadata or {}).get("referrer")
+    try:
+        return AutofixReferrer(raw) if isinstance(raw, str) else None
+    except ValueError:
+        return None
 
 
 class AutofixOnCompletionHook(AgentOnCompletionHook):
@@ -158,6 +174,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         group_id, run_referrer = resolve_run_group_id(organization, run_id, state)
+        if is_single_run(state):
+            cls._complete_single_run(organization, run_id, state, group_id, run_referrer)
+            return
         current_step, _ = get_current_step(state)
 
         if current_step == AutofixStep.PR_ITERATION:
@@ -179,6 +198,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         if not cls._run_completed(organization, run_id, state):
+            if state.status == "error":
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, state.failure_reason
+                )
             return
 
         cls._record_triggered(organization, run_id, group)
@@ -193,6 +216,111 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
         )
+
+    @classmethod
+    def _complete_single_run(
+        cls,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group_id: int | None,
+        run_referrer: AutofixReferrer | None,
+    ) -> None:
+        group = cls._fetch_group(organization, run_id, group_id)
+        if group is None:
+            return
+        if not cls._run_completed(organization, run_id, state):
+            if state.status == "error":
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, state.failure_reason
+                )
+            return
+        seer_run = SeerRun.objects.filter(
+            organization_id=organization.id, seer_run_state_id=run_id
+        ).first()
+        if seer_run is None:
+            logger.warning(
+                "autofix.on_completion_hook.single_run_missing_seer_run",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+
+        root_cause = single_run_root_cause_payload(state)
+        pull_requests = [
+            pr
+            for pr in format_pull_requests_payload(state)
+            if pr["pull_request"]["pr_number"] is not None
+        ]
+        reached: list[SingleRunStage] = []
+        if root_cause is not None:
+            reached.append("root_cause")
+        if state.get_diffs_by_repo():
+            reached.append("coding")
+        if pull_requests:
+            reached.append("pr_created")
+
+        reconcile_milestones(seer_run, state)
+
+        with record_run_extras(seer_run) as extras:
+            announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
+            new_stages = [stage for stage in reached if stage not in announced]
+            extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
+
+        cls._announce_single_run(
+            organization=organization,
+            run_id=run_id,
+            state=state,
+            group=group,
+            seer_run=seer_run,
+            stages=new_stages,
+            root_cause=root_cause,
+            pull_requests=pull_requests,
+            referrer=_single_run_referrer(state) or run_referrer,
+        )
+
+    @classmethod
+    def _announce_single_run(
+        cls,
+        *,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group,
+        seer_run: SeerRun,
+        stages: list[SingleRunStage],
+        root_cause: dict[str, Any] | None,
+        pull_requests: list[dict[str, Any]],
+        referrer: AutofixReferrer | None,
+    ) -> None:
+        cls._record_triggered(organization, run_id, group)
+        base = {"run_id": run_id, "sentry_run_id": str(seer_run.uuid), "group_id": group.id}
+        actor_user_id = get_acting_user_id(get_viewer_context())
+        for stage in stages:
+            if stage == "root_cause":
+                action_type = SeerActionType.ROOT_CAUSE_COMPLETED
+                payload: dict[str, object] = {**base, "root_cause": root_cause}
+                step = AutofixStep.ROOT_CAUSE
+            elif stage == "coding":
+                action_type = SeerActionType.CODING_COMPLETED
+                payload = {**base, "code_changes": cls._format_code_changes_payload(state)}
+                step = AutofixStep.CODE_CHANGES
+            else:
+                action_type = SeerActionType.PR_CREATED
+                payload = {**base, "pull_requests": pull_requests}
+                step = AutofixStep.CODE_CHANGES
+            cls._announce(
+                organization=organization,
+                run_id=run_id,
+                state=state,
+                group=group,
+                seer_run=seer_run,
+                action_type=action_type,
+                payload=payload,
+                step=step,
+                referrer=referrer,
+                actor_user_id=actor_user_id,
+                mode="single_run",
+            )
 
     @classmethod
     def _complete_pr_iteration(
@@ -276,6 +404,36 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return False
 
     @classmethod
+    def _notify_entrypoints_of_failure(
+        cls,
+        organization: Organization,
+        run_id: int,
+        group: Group,
+        failure_reason: str | None,
+    ) -> None:
+        """
+        Tells entrypoints (e.g. a Slack thread waiting on the run) that the run failed.
+        SEER_ERRORED is internal only: no Sentry App webhook and no issue activity.
+        """
+        if not SeerAutofixOperator.has_access(organization=organization):
+            return
+        metrics.incr(
+            "autofix.on_completion_hook.process_autofix_updates",
+            tags={"event_type": str(SentryAppEventType.SEER_ERRORED)},
+        )
+        process_autofix_updates.apply_async(
+            kwargs={
+                "event_type": SentryAppEventType.SEER_ERRORED,
+                "event_payload": {
+                    "run_id": run_id,
+                    "group_id": group.id,
+                    "failure_reason": failure_reason,
+                },
+                "organization_id": organization.id,
+            }
+        )
+
+    @classmethod
     def _record_triggered(cls, organization: Organization, run_id: int, group: Group) -> None:
         now = timezone.now()
         with transaction.atomic(using=router.db_for_write(Group)):
@@ -343,8 +501,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # to find which step just completed
         webhook_action_type: SeerActionType | None = None
 
-        is_pr_created = False
-
         if current_step is not None:
             artifact = cls.find_latest_artifact_for_step(state, current_step)
             if artifact is not None:
@@ -359,6 +515,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if state.repo_pr_states and not pull_requests:
                 # Seer adds one entry per repository before asking the provider to open
                 # a PR. If every request fails, the entries remain but there is no PR.
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, PR_CREATION_FAILED_REASON
+                )
                 return
 
             if pull_requests:
@@ -367,16 +526,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # per seer run.
                 webhook_action_type = SeerActionType.PR_CREATED
                 webhook_payload["pull_requests"] = pull_requests
-                is_pr_created = True
-                record_autofix_event(
-                    AiAutofixPrCreatedCompletedEvent(
-                        organization_id=organization.id,
-                        project_id=group.project_id,
-                        group_id=group.id,
-                        referrer=None if current_referrer is None else current_referrer.value,
-                        run_id=run_id,
-                    )
-                )
             else:
                 webhook_action_type = SeerActionType.CODING_COMPLETED
                 webhook_payload["code_changes"] = cls._format_code_changes_payload(state)
@@ -390,7 +539,38 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if seer_run is not None:
             reconcile_milestones(seer_run, state)
 
-        event_name = webhook_action_type.value
+        cls._announce(
+            organization=organization,
+            run_id=run_id,
+            state=state,
+            group=group,
+            seer_run=seer_run,
+            action_type=webhook_action_type,
+            payload=webhook_payload,
+            step=current_step,
+            referrer=current_referrer,
+            actor_user_id=actor_user_id,
+        )
+
+    @classmethod
+    def _announce(
+        cls,
+        *,
+        organization: Organization,
+        run_id: int,
+        state: SeerRunState,
+        group: Group,
+        seer_run: SeerRun | None,
+        action_type: SeerActionType,
+        payload: dict[str, object],
+        step: AutofixStep | None,
+        referrer: AutofixReferrer | None,
+        actor_user_id: int | None,
+        mode: str = "steps",
+    ) -> None:
+        is_pr_created = action_type == SeerActionType.PR_CREATED
+        sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
+        event_name = action_type.value
 
         event_type = f"seer.{event_name}"
         try:
@@ -401,21 +581,21 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     tags={"event_type": str(event_type)},
                 )
                 activity_attribution: SeerActivityAttribution | None = None
-                if webhook_action_type == SeerActionType.PR_CREATED and actor_user_id is not None:
+                if action_type == SeerActionType.PR_CREATED and actor_user_id is not None:
                     activity_attribution = {
-                        "referrer": current_referrer or AutofixReferrer.UNKNOWN,
+                        "referrer": referrer or AutofixReferrer.UNKNOWN,
                         "actor_user_id": actor_user_id,
                     }
                 record_seer_activity(
                     group=group,
                     event_type=sentry_app_event_type,
-                    event_payload=webhook_payload,
+                    event_payload=payload,
                     activity_attribution=activity_attribution,
                 )
                 process_autofix_updates.apply_async(
                     kwargs={
                         "event_type": sentry_app_event_type,
-                        "event_payload": webhook_payload,
+                        "event_payload": payload,
                         "organization_id": organization.id,
                         "activity_already_recorded": True,
                     }
@@ -431,7 +611,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 resource_name="seer",
                 event_name=event_name,
                 organization_id=organization.id,
-                payload=webhook_payload,
+                payload=payload,
             )
         except Exception:
             logger.exception(
@@ -453,27 +633,40 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 state=state,
             )
 
-        if current_step is not None and not is_pr_created:
-            referrer = current_referrer.value if current_referrer is not None else None
+        if is_pr_created:
+            record_autofix_event(
+                AiAutofixPrCreatedCompletedEvent(
+                    organization_id=organization.id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    referrer=None if referrer is None else referrer.value,
+                    run_id=run_id,
+                    mode=mode,
+                )
+            )
+        if step is not None and not is_pr_created:
+            referrer_value = referrer.value if referrer is not None else None
             iteration_index = get_latest_iteration_index(state)
             metrics.incr(
                 "autofix.explorer.complete",
                 tags={
-                    "step": current_step.value,
-                    "referrer": referrer,
+                    "step": step.value,
+                    "referrer": referrer_value,
                     "iteration_index": iteration_index,
+                    "mode": mode,
                 },
             )
-            completed_event_cls = STEP_CONFIGS[current_step].completed_event
+            completed_event_cls = STEP_CONFIGS[step].completed_event
             if completed_event_cls is not None:
                 record_autofix_event(
                     completed_event_cls(
                         organization_id=organization.id,
                         project_id=group.project_id,
                         group_id=group.id,
-                        referrer=referrer,
+                        referrer=referrer_value,
                         run_id=run_id,
                         iteration_index=iteration_index,
+                        mode=mode,
                     )
                 )
 
@@ -640,17 +833,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             extra={"run_id": run_id, "organization_id": group.organization.id},
         )
 
-        should_verify_pr_content = features.has(
-            "organizations:autofix-verify-pr-content", organization=group.organization
-        )
-
         try:
             trigger_push_changes(
                 group,
                 run_id,
                 referrer=AutofixReferrer.ON_COMPLETION_HOOK,
                 state=state,
-                verify_content=should_verify_pr_content,
+                verify_content=True,
             )
         except Exception:
             logger.exception(

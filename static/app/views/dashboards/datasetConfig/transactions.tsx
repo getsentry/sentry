@@ -17,8 +17,6 @@ import {
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {transactionsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/transactionsResponseTransforms';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
@@ -29,6 +27,8 @@ import {
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {transactionsResponseTransforms} from './utils/transactionsResponseTransforms';
 import {type DatasetConfig} from './base';
 import {
   filterAggregateParams,

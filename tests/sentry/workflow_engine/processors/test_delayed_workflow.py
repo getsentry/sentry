@@ -6,8 +6,10 @@ import pytest
 from django.utils import timezone
 from taskbroker_client.state import CurrentTaskState
 
+from sentry import nodestore
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
+from sentry.models.event import EventDict
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -1109,6 +1111,152 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.project,
         )
         assert group_to_groupevent == self.group_to_groupevent
+
+    def test_get_group_to_groupevent__none_eligible(self) -> None:
+        self._push_base_events()
+        buffer_data = self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
+
+        assert get_group_to_groupevent(event_data, {}, self.project) == {}
+        assert (
+            get_group_to_groupevent(
+                event_data,
+                {self.group1.id: {self.workflow2_if_dcgs[0]}},
+                self.project,
+            )
+            == {}
+        )
+
+    def test_get_group_to_groupevent__sparse_eligible(self) -> None:
+        self._push_base_events()
+        occurrence = self.build_occurrence(
+            project_id=self.project.id, event_id=self.event1.event_id
+        )
+        occurrence.save()
+        self.push_to_hash(
+            project_id=self.project.id,
+            workflow_id=self.workflow1.id,
+            group_id=self.group1.id,
+            when_dcg_id=self.workflow1.when_condition_group_id,
+            if_dcgs=[self.workflow1_if_dcgs[0]],
+            passing_dcgs=[self.workflow1_if_dcgs[1]],
+            event_id=self.event1.event_id,
+            occurrence_id=occurrence.id,
+            timestamp=FROZEN_TIME,
+        )
+        self.push_to_hash(
+            project_id=self.project.id,
+            workflow_id=self.workflow2.id,
+            group_id=self.group1.id,
+            when_dcg_id=None,
+            if_dcgs=[self.workflow2_if_dcgs[0]],
+            passing_dcgs=[],
+            event_id=self.event2.event_id,
+            timestamp=FROZEN_TIME + timedelta(seconds=1),
+        )
+        buffer_data = self.batch_client.for_project(self.project.id).get_hash_data(batch_key=None)
+        event_data = EventRedisData.from_redis_data(buffer_data, continue_on_error=False)
+
+        result = get_group_to_groupevent(
+            event_data,
+            {self.group1.id: {self.workflow1_if_dcgs[0]}},
+            self.project,
+        )
+
+        assert set(result) == {self.group1}
+        event, timestamp = result[self.group1]
+        assert event.event_id == self.event1.event_id
+        node_id = Event.generate_node_id(self.project.id, self.event1.event_id)
+        stored_payload = nodestore.backend.get_multi([node_id])[node_id]
+        assert stored_payload is not None
+        assert dict(event.data) == dict(EventDict(stored_payload))
+        self.assert_occurrences_identical(event.occurrence, occurrence)
+        assert timestamp == FROZEN_TIME
+
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
+    def test_get_group_to_groupevent__last_successful_event(self, mock_trigger: MagicMock) -> None:
+        later_event = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        )
+        occurrence = self.build_occurrence(
+            project_id=self.project.id, event_id=later_event.event_id
+        )
+        occurrence.save()
+        later_timestamp = FROZEN_TIME + timedelta(seconds=1)
+        redis_data = {
+            f"{self.workflow1.id}:{self.group1.id}::{self.workflow1_if_dcgs[0].id}:": json.dumps(
+                {"event_id": self.event1.event_id, "timestamp": FROZEN_TIME}
+            ),
+            f"{self.workflow2.id}:{self.group1.id}::{self.workflow2_if_dcgs[0].id}:": json.dumps(
+                {
+                    "event_id": later_event.event_id,
+                    "occurrence_id": occurrence.id,
+                    "timestamp": later_timestamp,
+                }
+            ),
+            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1.when_condition_group_id}::": json.dumps(
+                {"event_id": self.event2.event_id, "timestamp": later_timestamp}
+            ),
+        }
+        passing = {
+            self.group1.id: {self.workflow1_if_dcgs[0], *self.workflow2_if_dcgs},
+        }
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        result = get_group_to_groupevent(event_data, passing, self.project)
+
+        assert set(result) == {self.group1}
+        event, timestamp = result[self.group1]
+        assert event.event_id == later_event.event_id
+        node_id = Event.generate_node_id(self.project.id, later_event.event_id)
+        stored_payload = nodestore.backend.get_multi([node_id])[node_id]
+        assert stored_payload is not None
+        expected_payload = dict(EventDict(stored_payload))
+        assert dict(event.data) == expected_payload
+        self.assert_occurrences_identical(event.occurrence, occurrence)
+        assert timestamp == later_timestamp
+
+        redis_data[f"{self.workflow2.id}:{self.group1.id}::{self.workflow2_if_dcgs[1].id}:"] = (
+            json.dumps(
+                {
+                    "event_id": "f" * 32,
+                    "occurrence_id": "e" * 32,
+                    "timestamp": later_timestamp + timedelta(seconds=1),
+                }
+            )
+        )
+        event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=False)
+
+        fallback = get_group_to_groupevent(event_data, passing, self.project)
+
+        fallback_event, fallback_timestamp = fallback[self.group1]
+        assert dict(fallback_event.data) == expected_payload
+        assert fallback_event.event_id == later_event.event_id
+        self.assert_occurrences_identical(fallback_event.occurrence, occurrence)
+        assert fallback_timestamp == later_timestamp
+
+        fire_actions_for_groups(self.project.organization, passing, fallback)
+
+        assert set(
+            WorkflowFireHistory.objects.filter(group=self.group1).values_list(
+                "workflow_id", "event_id"
+            )
+        ) == {
+            (self.workflow1.id, later_event.event_id),
+            (self.workflow2.id, later_event.event_id),
+        }
+        assert {
+            (
+                call.kwargs["kwargs"]["workflow_id"],
+                call.kwargs["kwargs"]["group_id"],
+                call.kwargs["kwargs"]["event_id"],
+                call.kwargs["kwargs"]["occurrence_id"],
+            )
+            for call in mock_trigger.call_args_list
+        } == {
+            (self.workflow1.id, self.group1.id, later_event.event_id, occurrence.id),
+            (self.workflow2.id, self.group1.id, later_event.event_id, occurrence.id),
+        }
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:

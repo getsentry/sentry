@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Sequence
 from datetime import datetime
-from typing import Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,6 +14,7 @@ from sentry import features, search
 from sentry.api.event_search import AggregateFilter, SearchFilter
 from sentry.api.helpers.environments import get_environment
 from sentry.api.serializers import serialize
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import convert_query_values, parse_search_query
@@ -25,12 +25,15 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.signals import advanced_search_feature_gated
 from sentry.snuba.referrer import Referrer
-from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
 from .validators import ValidationError
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.group import GroupReleaseVersionResponse
+    from sentry.api.serializers.types import ReleaseSerializerResponse
 
 P = ParamSpec("P")
 R = TypeVar("R", bound=Response)
@@ -51,7 +54,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment] | None,
-    user: User | AnonymousUser,
+    user: RequestPrincipal,
 ) -> Sequence[SearchFilter | AggregateFilter]:
     try:
         search_filters = convert_query_values(
@@ -129,7 +132,7 @@ def build_query_params_from_request(
 def validate_search_filter_permissions(
     organization: Organization,
     search_filters: Sequence[AggregateFilter | SearchFilter],
-    user: User | AnonymousUser,
+    user: RequestPrincipal,
 ) -> None:
     """
     Verifies that an organization is allowed to perform the query that they
@@ -265,7 +268,9 @@ def prep_search(
     return result, query_kwargs
 
 
-def serialize_releases(request: Request, group: Group, versions: list[str]) -> list[dict[str, Any]]:
+def serialize_releases(
+    request: Request, group: Group, versions: list[str]
+) -> list[ReleaseSerializerResponse | GroupReleaseVersionResponse]:
     releases = {
         release.version: release
         for release in Release.objects.filter(
@@ -289,7 +294,10 @@ def get_first_last_release(
     request: Request,
     group: Group,
     environment_names: list[str] | None = None,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+) -> tuple[
+    ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+    ReleaseSerializerResponse | GroupReleaseVersionResponse | None,
+]:
     first_release_s = group.get_first_release(environment_names=environment_names)
     if first_release_s is not None:
         last_release_s = group.get_last_release(environment_names=environment_names)

@@ -1,7 +1,8 @@
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
+import {openModal} from '@sentry/scraps/modal';
+
+import {AutofixCursorGithubAccessModal} from './autofixCursorGithubAccessModal';
 
 describe('AutofixCursorGithubAccessModal', () => {
   it('renders the modal with correct title and body', async () => {

@@ -11,12 +11,17 @@ from rest_framework.test import APIClient
 from sentry.api.helpers.oauth_authorize.transactions import OAUTH_AUTHORIZE_SESSION_TTL
 from sentry.api.helpers.oauth_consent import persist_authorization
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -362,6 +367,32 @@ class OAuthAuthorizePostTest(APITestCase):
         fragment = parse_qs(urlsplit(response.data["redirectUrl"]).fragment)
         assert fragment["access_token"] == [token.token]
         assert fragment["state"] == [self.query["state"]]
+
+    def test_implicit_token_outbox_flush_failure_returns_token(self) -> None:
+        transaction = self.prepare(response_type="token")
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            response = self.get_success_response(transactionId=transaction, op="approve")
+
+        mock_replication.assert_called()
+        token = ApiToken.objects.get(application=self.application, user=self.user)
+        fragment = parse_qs(urlsplit(response.data["redirectUrl"]).fragment)
+        assert fragment["access_token"] == [token.token]
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
 
     def test_approval_extends_saved_scopes(self) -> None:
         first = self.prepare()

@@ -5,10 +5,8 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  type TraceResults,
-  useTracesApiOptions,
-} from 'sentry/views/explore/hooks/useTraces';
+
+import {type TraceResults, useTracesApiOptions} from './useTraces';
 
 interface UseExploreTracesTableOptions {
   limit: number;

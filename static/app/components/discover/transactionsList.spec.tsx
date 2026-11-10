@@ -1,11 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+
+import {TransactionsList} from './transactionsList';
 
 function WrapperComponent(props: any) {
   return (
@@ -170,7 +171,7 @@ describe('TransactionsList', () => {
       expect(
         screen.getByRole('button', {name: 'Filter Transactions'})
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');

@@ -68,6 +68,9 @@ class _CommitDataKwargs(TypedDict, total=False):
     date_added: str
 
 
+ReleaseStatusName = Literal["open", "archived"]
+
+
 class ReleaseStatus:
     OPEN = 0
     ARCHIVED = 1
@@ -82,7 +85,7 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
     @classmethod
-    def to_string(cls, value: int | None) -> str:
+    def to_string(cls, value: int | None) -> ReleaseStatusName:
         # XXX(markus): Since the column is nullable we need to handle `null` here.
         # However `null | undefined` in request payloads means "don't change
         # status of release". This is why `from_string` does not consider
@@ -686,7 +689,7 @@ class Release(Model):
                 else:
                     update_kwargs = {"release_id": to_release.id}
                 if model is GroupRelease:
-                    # Dual-write: .update() skips GroupRelease.save(), so mirror the shadow here.
+                    # Dual-write: .update() skips GroupRelease.save(), so mirror new_release_id.
                     update_kwargs["new_release_id"] = to_release.id
                 try:
                     with atomic_transaction(using=router.db_for_write(model)):

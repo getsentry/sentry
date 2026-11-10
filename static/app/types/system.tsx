@@ -1,5 +1,4 @@
-import type {ApiResult} from 'sentry/types/api';
-
+import type {ApiResult} from './api';
 import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 

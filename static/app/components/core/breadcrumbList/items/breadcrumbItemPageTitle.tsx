@@ -1,91 +1,14 @@
-import {Fragment} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import type {FeatureBadgeProps} from '@sentry/scraps/badge';
-import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
-import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
-import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
-import {
-  Button,
-  type ButtonProps,
-  type LinkButtonProps,
-  LinkButton,
-} from '@sentry/scraps/button';
+import {BreadcrumbTrailingActions} from '@sentry/scraps/breadcrumbList/actions/breadcrumbTrailingActions';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {unreachable} from 'sentry/utils/unreachable';
-
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
-
-/**
- * A single trailing action for the page-title crumb. The discriminant keeps
- * the supported action shapes type-safe and the trailing slot visually
- * consistent.
- */
-type BreadcrumbTitleAction =
-  | ({type: 'copy'} & BreadcrumbCopyActionProps)
-  | ({type: 'menu'} & BreadcrumbMenuActionProps)
-  | {element: React.ReactElement<FeatureBadgeProps>; type: 'badge'}
-  | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
-
-/**
- * One action, or a list (falsy entries are dropped so consumers can inline conditionals).
- */
-type BreadcrumbTitleActions = BreadcrumbTitleAction | Array<BreadcrumbTitleAction | null>;
-
-/**
- * Renders the typed trailing action objects as a flat, keyed row.
- * Returns null when there is nothing to render.
- */
-function renderTrailingAction(action: BreadcrumbTitleAction) {
-  switch (action.type) {
-    case 'copy': {
-      const {type: _type, ...props} = action;
-      return <BreadcrumbCopyAction {...props} />;
-    }
-    case 'menu': {
-      const {type: _type, ...props} = action;
-      return <BreadcrumbMenuAction {...props} />;
-    }
-    case 'badge':
-    case 'button':
-      return action.element;
-    default:
-      unreachable(action);
-      return null;
-  }
-}
-
-function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
-  if (!trailingActions) {
-    return null;
-  }
-
-  // Key on the slot each action was declared in, not its position after the
-  // nulls are dropped. Consumers inline conditionals here, so a slot appearing
-  // would otherwise shift every later action onto a new key — remounting it and
-  // discarding its state (an open dropdown snaps shut).
-  const actions = (
-    Array.isArray(trailingActions) ? trailingActions : [trailingActions]
-  ).flatMap((action, slot) => (action === null ? [] : [{action, slot}]));
-
-  if (actions.length === 0) {
-    return null;
-  }
-
-  return (
-    <Flex as="span" align="center" gap="xs" flexShrink={0}>
-      {actions.map(({action, slot}) => (
-        <Fragment key={slot}>{renderTrailingAction(action)}</Fragment>
-      ))}
-    </Flex>
-  );
-}
 
 interface BreadcrumbPaginationItem {
   ariaLabel: string;
@@ -116,7 +39,7 @@ export interface BreadcrumbItemPageTitleProps {
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
   /** Typed trailing actions rendered after the page title. */
-  trailingActions?: BreadcrumbTitleActions;
+  trailingActions?: BreadcrumbTrailingActions;
 }
 
 export function BreadcrumbItemPageTitle({
@@ -126,8 +49,6 @@ export function BreadcrumbItemPageTitle({
   pagination,
   trailingActions,
 }: BreadcrumbItemPageTitleProps) {
-  const actions = renderTrailingActions(trailingActions);
-
   return (
     <Flex align="center" gap="sm" height="32px" minWidth="32px">
       {pagination && (
@@ -191,7 +112,7 @@ export function BreadcrumbItemPageTitle({
           </Heading>
         )}
       </Container>
-      {actions}
+      <BreadcrumbTrailingActions actions={trailingActions} />
     </Flex>
   );
 }

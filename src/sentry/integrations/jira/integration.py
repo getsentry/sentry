@@ -22,6 +22,7 @@ from rest_framework.fields import CharField
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
@@ -40,6 +41,7 @@ from sentry.integrations.mixins.issues import (
     ResolveSyncAction,
 )
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
@@ -66,7 +68,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.signing import unsign
@@ -753,19 +754,19 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        metadata = self.model.metadata.copy()
         name = server_info["serverTitle"]
 
-        # There is no Jira instance icon (there is a favicon, but it doesn't seem
-        # possible to query that with the API). So instead we just use the first
-        # project Icon.
-        if len(projects) > 0:
-            avatar = projects[0]["avatarUrls"]["48x48"]
-            metadata.update({"icon": avatar})
-
-        integration_service.update_integration(
-            integration_id=self.model.id, name=name, metadata=metadata
-        )
+        # Only the name and icon change here. Other writers store keys in the same
+        # metadata while the calls above run, so merge into the current row under a lock.
+        with transaction.atomic(router.db_for_write(Integration)):
+            integration = Integration.objects.select_for_update().get(id=self.model.id)
+            metadata = dict(integration.metadata)
+            # There is no Jira instance icon (there is a favicon, but it doesn't seem
+            # possible to query that with the API). So instead we just use the first
+            # project Icon.
+            if len(projects) > 0:
+                metadata["icon"] = projects[0]["avatarUrls"]["48x48"]
+            integration.update(name=name, metadata=metadata, date_updated=timezone.now())
 
     def get_link_issue_config(
         self, group: Group, **kwargs: object
@@ -944,7 +945,7 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiError as e:
             self.raise_error(e)
 
-    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[object, str]]:
+    def make_choices(self, values: Sequence[Mapping[str, Any]]) -> list[tuple[str | int, str]]:
         if not values:
             return []
         results = []
@@ -962,7 +963,8 @@ class JiraIntegration(IssueSyncIntegration):
                 value = item["label"]
             else:
                 continue
-            results.append((key, cast("str", value)))
+            # Jira gives every allowed value that has a name an ID.
+            results.append((cast("str | int", key), cast("str", value)))
         return results
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> str:
@@ -1164,7 +1166,7 @@ class JiraIntegration(IssueSyncIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: RpcUser | User, **kwargs: object
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
@@ -1682,21 +1684,26 @@ class JiraIntegrationProvider(IntegrationProvider):
         #  - the `installed` webhook passes the raw Atlassian payload
         #    (`clientKey`, `oauthClientId`, ...).
         if "external_id" in state and "metadata" in state:
-            external_id = state["external_id"]
-            metadata = state["metadata"]
-        else:
-            external_id = state["clientKey"]
-            metadata = {
+            # The `installed` webhook already created the integration. Linking
+            # an org must not rewrite it: the metadata in pipeline state is a
+            # snapshot from when the link was opened, and writing it back would
+            # undo anything stored since then and reset the site name.
+            return {
+                "external_id": state["external_id"],
+                "provider": IntegrationProviderSlug.JIRA.value,
+                "expect_exists": True,
+            }
+
+        return {
+            "external_id": state["clientKey"],
+            "provider": IntegrationProviderSlug.JIRA.value,
+            "name": "JIRA",
+            "metadata": {
                 "oauth_client_id": state["oauthClientId"],
                 # public key is possibly deprecated, so we can maybe remove this
                 "public_key": state["publicKey"],
                 "shared_secret": state["sharedSecret"],
                 "base_url": state["baseUrl"],
                 "domain_name": state["baseUrl"].replace("https://", ""),
-            }
-        return {
-            "external_id": external_id,
-            "provider": IntegrationProviderSlug.JIRA.value,
-            "name": "JIRA",
-            "metadata": metadata,
+            },
         }

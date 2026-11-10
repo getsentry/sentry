@@ -13,8 +13,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -45,7 +46,6 @@ export function PaygCard({
     subscription.isSelfServePartner ||
     subscription.onDemandInvoicedManual
   );
-  const api = useApi();
   const theme = useTheme();
   const paygBudget = parseOnDemandBudgetsFromSubscription(subscription);
   const totalBudget = getTotalBudget(paygBudget);
@@ -61,7 +61,10 @@ export function PaygCard({
 
   const {mutate: handleSubmit} = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/customers/${organization.slug}/ondemand-budgets/`, {
+      return fetchMutation<OnDemandBudgets>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/ondemand-budgets/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           budgetMode: OnDemandBudgetMode.SHARED,

@@ -1,5 +1,6 @@
 import {IconInfo} from '@sentry/icons/info';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
@@ -36,6 +37,19 @@ export function RoleOverwritePanelAlert(props: Props) {
     <PanelAlert data-test-id="alert-role-overwrite" variant="info">
       {getOverwriteString(props)}
     </PanelAlert>
+  );
+}
+
+export function RoleOverwriteAlert(props: Props) {
+  const hasOverride = hasOrgRoleOverwrite(props);
+  if (!hasOverride) {
+    return null;
+  }
+
+  return (
+    <Alert data-test-id="alert-role-overwrite" variant="info">
+      {getOverwriteString(props)}
+    </Alert>
   );
 }
 

@@ -7,20 +7,55 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {OurLogKnownFieldKey, type OurLogsResponseItem} from './types';
 import {
   compareLogRowsBySortBys,
   createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
+  ourlogToJson,
   viewLogsSamplesTarget,
-} from 'sentry/views/explore/logs/utils';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+} from './utils';
+
+describe('ourlogToJson', () => {
+  const log: TraceItemDetailsResponse = {
+    itemId: '0123456789abcdef',
+    timestamp: '2020-01-01T00:00:00Z',
+    meta: {},
+    attributes: [
+      {name: 'message', rawName: 'sentry.body', type: 'str', value: 'message'},
+      {
+        name: 'tags[sentry.custom,number]',
+        rawName: 'sentry.custom',
+        type: 'int',
+        value: 42,
+      },
+      {
+        name: 'sentry.tags',
+        rawName: 'sentry.tags',
+        type: 'array',
+        value: ['first', 'second'],
+      },
+      {name: 'custom.bool', type: 'bool', value: true},
+      {name: OurLogKnownFieldKey.TIMESTAMP_NANOS, type: 'int', value: 123},
+    ],
+  };
+
+  it('preserves attribute names and values when the flag is enabled', () => {
+    expect(JSON.parse(ourlogToJson(log, true))).toEqual({
+      id: log.itemId,
+      'sentry.body': 'message',
+      'sentry.custom': 42,
+      'sentry.tags': ['first', 'second'],
+      'custom.bool': true,
+    });
+  });
+});
 
 describe('viewLogsSamplesTarget', () => {
   it('does not add a filter for an empty group by', () => {

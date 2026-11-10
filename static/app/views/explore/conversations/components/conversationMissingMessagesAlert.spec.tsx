@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
+import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
 
 const DOCS_LINK = 'https://docs.sentry.io/example/';
 

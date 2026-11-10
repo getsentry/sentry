@@ -6,6 +6,7 @@ from typing import Any, cast
 
 from django.urls import reverse
 
+from sentry.auth.principal import RequestPrincipal
 from sentry.integrations.mixins.issues import IssuePayload
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -19,8 +20,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import all_silo_function
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
@@ -70,7 +69,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs: object
+        self, group: Group | None, user: RequestPrincipal, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)

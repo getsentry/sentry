@@ -1,48 +1,17 @@
+import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
+import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import {
   alertsEventMap,
   type AlertsEventParameters,
-} from 'sentry/utils/analytics/alertsAnalyticsEvents';
-import {
-  commandPaletteEventMap,
-  type CommandPaletteEventParameters,
-} from 'sentry/utils/analytics/commandPaletteAnalyticsEvents';
-import {
-  exploreAnalyticsEventMap,
-  type ExploreAnalyticsEventParameters,
-} from 'sentry/utils/analytics/exploreAnalyticsEvents';
-import {
-  featureFlagEventMap,
-  type FeatureFlagEventParameters,
-} from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
-import {
-  gamingEventMap,
-  type GamingAnalyticsEventParameters,
-} from 'sentry/utils/analytics/gamingAnalyticsEvents';
-import {
-  logsAnalyticsEventMap,
-  type LogsAnalyticsEventParameters,
-} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {
-  metricsAnalyticsEventMap,
-  type MetricsAnalyticsEventParameters,
-} from 'sentry/utils/analytics/metricsAnalyticsEvent';
-import {navigationAnalyticsEventMap} from 'sentry/utils/analytics/navigationAnalyticsEvents';
-import {nextJsInsightsEventMap} from 'sentry/utils/analytics/nextJsInsightsAnalyticsEvents';
-import {
-  quickStartEventMap,
-  type QuickStartEventParameters,
-} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
-import {
-  statsEventMap,
-  type StatsEventParameters,
-} from 'sentry/utils/analytics/statsAnalyticsEvents';
-
-import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAnalyticsEvents';
-import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
+} from './analytics/alertsAnalyticsEvents';
 import type {AuthV2EventParameters} from './analytics/authV2AnalyticsEvents';
 import {authV2EventMap} from './analytics/authV2AnalyticsEvents';
 import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
 import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
+import {
+  commandPaletteEventMap,
+  type CommandPaletteEventParameters,
+} from './analytics/commandPaletteAnalyticsEvents';
 import type {ConversationsEventParameters} from './analytics/conversationsAnalyticsEvents';
 import {conversationsEventMap} from './analytics/conversationsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
@@ -55,8 +24,20 @@ import type {DynamicSamplingEventParameters} from './analytics/dynamicSamplingAn
 import {dynamicSamplingEventMap} from './analytics/dynamicSamplingAnalyticsEvents';
 import type {EcosystemEventParameters} from './analytics/ecosystemAnalyticsEvents';
 import {ecosystemEventMap} from './analytics/ecosystemAnalyticsEvents';
+import {
+  exploreAnalyticsEventMap,
+  type ExploreAnalyticsEventParameters,
+} from './analytics/exploreAnalyticsEvents';
+import {
+  featureFlagEventMap,
+  type FeatureFlagEventParameters,
+} from './analytics/featureFlagAnalyticsEvents';
 import type {FeedbackEventParameters} from './analytics/feedbackAnalyticsEvents';
 import {feedbackEventMap} from './analytics/feedbackAnalyticsEvents';
+import {
+  gamingEventMap,
+  type GamingAnalyticsEventParameters,
+} from './analytics/gamingAnalyticsEvents';
 import type {GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {growthEventMap} from './analytics/growthAnalyticsEvents';
 import type {InsightEventParameters} from './analytics/insightAnalyticEvents';
@@ -67,11 +48,21 @@ import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
 import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
+import {
+  logsAnalyticsEventMap,
+  type LogsAnalyticsEventParameters,
+} from './analytics/logsAnalyticsEvent';
 import {makeAnalyticsFunction} from './analytics/makeAnalyticsFunction';
 import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
 import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
+import {
+  metricsAnalyticsEventMap,
+  type MetricsAnalyticsEventParameters,
+} from './analytics/metricsAnalyticsEvent';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
 import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
+import {navigationAnalyticsEventMap} from './analytics/navigationAnalyticsEvents';
+import {nextJsInsightsEventMap} from './analytics/nextJsInsightsAnalyticsEvents';
 import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
 import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
 import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
@@ -82,6 +73,10 @@ import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvent
 import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
 import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
 import {projectCreationEventMap} from './analytics/projectCreationAnalyticsEvents';
+import {
+  quickStartEventMap,
+  type QuickStartEventParameters,
+} from './analytics/quickStartAnalyticsEvents';
 import type {ReleasesEventParameters} from './analytics/releasesAnalyticsEvents';
 import {releasesEventMap} from './analytics/releasesAnalyticsEvents';
 import type {ReplayEventParameters} from './analytics/replayAnalyticsEvents';
@@ -96,7 +91,7 @@ import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents'
 import {signupEventMap} from './analytics/signupAnalyticsEvents';
 import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
 import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
-import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
+import {statsEventMap, type StatsEventParameters} from './analytics/statsAnalyticsEvents';
 import type {TempestEventParameters} from './analytics/tempestAnalyticsEvents';
 import {tempestEventMap} from './analytics/tempestAnalyticsEvents';
 import {tracingEventMap, type TracingEventParameters} from './analytics/tracingEventMap';
@@ -186,7 +181,6 @@ const allEventMap: Record<string, string | null> = {
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
-  ...starfishEventMap,
   ...signupEventMap,
   ...statsEventMap,
   ...quickStartEventMap,

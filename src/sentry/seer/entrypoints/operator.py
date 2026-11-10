@@ -210,6 +210,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -227,7 +228,9 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
             try:
-                existing_state = get_autofix_agent_state(group.organization, group.id)
+                existing_state = get_autofix_agent_state(
+                    group.organization, group.id, sources=(AUTOFIX_FEATURE_ID,)
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -546,9 +549,7 @@ class SeerAgentOperator[CachePayloadT]:
 
             enable_code_mode_tools = "off"
             has_create_pr = False
-            if category_key == "slack_thread" and features.has(
-                "organizations:seer-slack-code-mode", organization
-            ):
+            if category_key == "slack_thread":
                 enable_code_mode_tools = "only"
                 # Same gate as Ask Seer; Seer only exposes write_pull_request with coding and bash on.
                 has_create_pr = features.has(
@@ -568,7 +569,6 @@ class SeerAgentOperator[CachePayloadT]:
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
                     enable_coding=enable_coding,
-                    # The client still requires seer-explorer-allow-bash-mode.
                     enable_bash_mode=enable_coding,
                     enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
@@ -879,7 +879,10 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if (
+            event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
+            and event_type != SentryAppEventType.SEER_ERRORED
+        ):
             lifecycle.record_halt(halt_reason="skipped")
             return
 

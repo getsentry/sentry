@@ -1,15 +1,12 @@
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  BACKEND_LANDING_SUB_PATH,
-  BACKEND_LANDING_TITLE,
-  MODULES,
-} from 'sentry/views/insights/pages/backend/settings';
-import {
   DomainViewHeader,
   type Props as HeaderProps,
 } from 'sentry/views/insights/pages/domainViewHeader';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+
+import {BACKEND_LANDING_SUB_PATH, BACKEND_LANDING_TITLE, MODULES} from './settings';
 
 type Props = {
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];

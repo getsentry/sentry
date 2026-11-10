@@ -5,9 +5,10 @@ import {
   RateUnit,
   type AggregationOutputType,
 } from 'sentry/utils/discover/fields';
-import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {parseGroupBy} from './parseGroupBy';
 
 /**
  * Delimiter used by the backend to separate parts of a series name.

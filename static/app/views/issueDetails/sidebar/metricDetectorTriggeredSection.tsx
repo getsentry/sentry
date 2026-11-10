@@ -11,15 +11,16 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -45,7 +46,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -61,6 +61,7 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
@@ -78,6 +79,7 @@ import type {
 } from 'sentry/views/investigations/types';
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -178,6 +180,12 @@ function getFormattedEvaluatedValue({
   return `${value.toLocaleString()}${unitSuffix}`;
 }
 
+const timePeriodParsers = {
+  statsPeriod: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+};
+
 /**
  * Once the open period loads, this hook will set the time range to visibly center the open period.
  * If the URL already has a time period, this hook will do nothing
@@ -194,17 +202,17 @@ function useZoomTimeRangeToOpenPeriod({
   openPeriodStart: string | null;
 }) {
   const organization = useOrganization();
-  const params = useParams<{groupId: string; eventId?: string}>();
+  const groupId = useGroupId();
   const location = useLocation();
   const navigate = useNavigate();
 
   const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
-    const hasTimePeriod =
-      defined(location.query.statsPeriod) ||
-      defined(location.query.start) ||
-      defined(location.query.end);
+    const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+      timePeriodParsers,
+      location
+    );
 
-    if (hasTimePeriod) {
+    if (statsPeriod !== null || start !== null || end !== null) {
       return;
     }
 
@@ -220,7 +228,7 @@ function useZoomTimeRangeToOpenPeriod({
       navigate(
         {
           pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${params.groupId}/events/${eventId}/`
+            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
           ),
           query,
         },
@@ -708,7 +716,7 @@ function SeerInvestigationSection({
       );
       navigate(getInvestigationPath(organization.slug, launchedInvestigation.id));
     },
-    onError: () => addErrorMessage(t('Unable to launch investigation.')),
+    onError: () => toast.error(t('Unable to launch investigation.')),
   });
 
   const investigationPath =

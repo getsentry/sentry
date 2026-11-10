@@ -57,7 +57,6 @@ async function assertCheckoutSteps({
 describe('Legacy Tier Checkout', () => {
   let mockResponse: any;
 
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization});
 
@@ -87,10 +86,9 @@ describe('Legacy Tier Checkout', () => {
   });
 
   it('renders for AM2', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalledWith(
@@ -106,10 +104,9 @@ describe('Legacy Tier Checkout', () => {
   });
 
   it('renders for AM1', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalledWith(
@@ -140,10 +137,9 @@ describe('Legacy Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, am2BizSubscription);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalledWith(
@@ -163,7 +159,6 @@ describe('Legacy Tier Checkout', () => {
 });
 
 describe('Default Tier Checkout', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture({});
   let mockBillingConfigResponse: any;
 
@@ -191,10 +186,9 @@ describe('Default Tier Checkout', () => {
   });
 
   it('renders', async () => {
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -216,10 +210,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -255,10 +248,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -302,10 +294,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -345,10 +336,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -387,10 +377,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -416,10 +405,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -465,10 +453,9 @@ describe('Default Tier Checkout', () => {
 
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -518,10 +505,9 @@ describe('Default Tier Checkout', () => {
     };
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -590,10 +576,9 @@ describe('Default Tier Checkout', () => {
 
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -653,10 +638,9 @@ describe('Default Tier Checkout', () => {
     });
     SubscriptionStore.set(organization.slug, sub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(
@@ -725,10 +709,9 @@ describe('Default Tier Checkout', () => {
 
     SubscriptionStore.set(organization.slug, trialSub);
 
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} api={api} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(mockBillingConfigResponse).toHaveBeenCalledWith(

@@ -10,9 +10,6 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {LoadingMask} from 'sentry/components/loadingMask';
-import {SearchBar} from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {consoles, gaming} from 'sentry/data/platformCategories';
 import {
@@ -28,6 +25,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {comparePlatformNames} from 'sentry/utils/platform';
+
+import {EmptyMessage} from './emptyMessage';
+import {LoadingMask} from './loadingMask';
+import {SearchBar} from './searchBar';
 
 const PlatformList = styled('div')`
   display: grid;

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from functools import partial
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.types import OpenApiTypes
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
@@ -24,13 +24,16 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.services import eventstore
 from sentry.tasks.unmerge import start_unmerge
 from sentry.users.models.user import User
@@ -40,16 +43,27 @@ from sentry.utils.snuba import raw_query
 
 
 class GroupHashesResult(TypedDict):
-    id: str
-    latestEvent: EventSerializerResponse | SimpleEventSerializerResponse | None
-    mergedBySeer: bool
-    seerMatchDistance: float | None
+    id: Annotated[str, ApiDescription("Fingerprint hash")]
+    latestEvent: Annotated[
+        EventSerializerResponse | SimpleEventSerializerResponse | None,
+        ApiDescription("Latest event with the hash. Null when the event isn't found"),
+    ]
+    mergedBySeer: Annotated[
+        bool, ApiDescription("Whether Seer merged the hash into the issue as a similar error")
+    ]
+    seerMatchDistance: Annotated[
+        float | None,
+        ApiDescription(
+            "Distance between the hash's stack trace and the issue's when Seer merged them. Null when Seer didn't merge the hash"
+        ),
+    ]
 
 
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PUBLIC,
@@ -160,7 +174,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
 
         start_unmerge.delay(
-            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
+            group.project_id, group.id, None, grouphashes, acting_user_id(request.user)
         )
 
         return Response(status=202)
@@ -169,7 +183,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         self,
         project_id: int,
         group_id: int,
-        user: User | RpcUser | AnonymousUser | None,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
         full: str | bool,
         results: Sequence[dict[str, str]],
     ) -> list[GroupHashesResult]:
@@ -190,7 +204,7 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def __handle_result(
         self,
-        user: User | RpcUser | AnonymousUser | None,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
         project_id: int,
         group_id: int,
         full: str | bool,

@@ -4,11 +4,11 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -67,11 +67,11 @@ function AddGiftBudgetModal({
       });
     },
     onSuccess: () => {
-      addSuccessMessage('Added gifted budget amount.');
+      toast.success('Added gifted budget amount.');
       closeModal();
       onSuccess();
     },
-    onError: () => addErrorMessage('Unable to add gifted budget amount for org.'),
+    onError: () => toast.error('Unable to add gifted budget amount for org.'),
   });
   const form = useScrapsForm({
     ...defaultFormOptions,

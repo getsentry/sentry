@@ -4,21 +4,18 @@ import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,
   JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
-import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
-import {getConfigName} from 'sentry/components/externalIssues/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -38,6 +35,10 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useDynamicFields} from './useDynamicFields';
+import type {ExternalIssueAction} from './utils';
+import {getConfigName} from './utils';
 
 export const openExternalIssueModal = ({
   group,
@@ -314,7 +315,7 @@ export function ExternalIssueForm({
           external_issue_provider: integration.provider.key,
           external_issue_type: 'first_party',
         });
-        addSuccessMessage(MESSAGES_BY_ACTION[action]);
+        toast.success(MESSAGES_BY_ACTION[action]);
         onChange();
         closeModal();
         span?.end();

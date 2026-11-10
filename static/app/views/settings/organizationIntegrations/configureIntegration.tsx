@@ -9,6 +9,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -18,6 +19,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -37,15 +39,14 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -144,6 +145,32 @@ function IntegrationAction({
   organization: Organization;
   provider: IntegrationProvider;
 }) {
+  const {startFlow} = useAddIntegration();
+
+  if (provider.key === 'linear') {
+    return (
+      <Button
+        onClick={() =>
+          startFlow({
+            provider,
+            organization,
+            // The default toast says the integration was "added", but this
+            // flow refreshes an existing workspace connection.
+            suppressSuccessMessage: true,
+            onInstall: () => {
+              toast.success(t('%s reconnected', provider.name));
+              onUpdateIntegration();
+            },
+          })
+        }
+        disabled={!canManageIntegrations(organization)}
+        size="sm"
+      >
+        {t('Reconnect Linear')}
+      </Button>
+    );
+  }
+
   if (provider.key === 'pagerduty') {
     return (
       <PagerdutyAddServicesButton
@@ -408,8 +435,11 @@ function IntegrationTabContent({
 }
 
 function ConfigureIntegration() {
-  const location = useLocation();
   const navigate = useNavigate();
+  const [{tab: tabParam}, setQueryParams] = useQueryStates({
+    tab: parseAsString,
+    cursor: parseAsString,
+  });
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {integrationId, providerKey} = useParams<{
@@ -566,18 +596,12 @@ function ConfigureIntegration() {
       ? [['settings', t('Settings')], ...mappingTabs]
       : mappingTabs;
 
-  const tabParam = decodeScalar(location.query.tab) as Tab | undefined;
   const tab =
-    tabParam && allTabs.some(([key]) => key === tabParam)
-      ? tabParam
-      : (allTabs[0]?.[0] ?? 'settings');
+    allTabs.find(([key]) => key === tabParam)?.[0] ?? allTabs[0]?.[0] ?? 'settings';
 
   const onTabChange = (value: Tab) => {
     // XXX: Omit the cursor to prevent paginating the next tab's queries.
-    const {cursor: _, ...query} = location.query;
-    navigate({
-      query: {...query, tab: value},
-    });
+    setQueryParams({tab: value, cursor: null}, {history: 'push'});
   };
 
   /**
@@ -626,22 +650,18 @@ function ConfigureIntegration() {
           />
         }
       />
-      {allTabs.length === 0 ? (
-        mainTab
-      ) : (
-        <Fragment>
-          <TabsContainer>
-            <Tabs value={tab} onChange={onTabChange}>
-              <TabList>
-                {allTabs.map(tabTuple => (
-                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-                ))}
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-          <IntegrationTabContent integration={integration} mainTab={mainTab} tab={tab} />
-        </Fragment>
+      {allTabs.length > 1 && (
+        <TabsContainer>
+          <Tabs value={tab} onChange={onTabChange}>
+            <TabList>
+              {allTabs.map(tabTuple => (
+                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
       )}
+      <IntegrationTabContent integration={integration} mainTab={mainTab} tab={tab} />
     </Fragment>
   );
 }

@@ -2048,6 +2048,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert response.status_code == 200, response.content
         assert response.data == []
 
+    def test_key_too_long(self) -> None:
+        self.create_project(organization=self.organization)
+        response = self.do_request(key="a" * 201)
+        assert response.status_code == 400, response.content
+
     def test_attribute_values(self) -> None:
         logs = [
             self.create_ourlog(

@@ -1,6 +1,7 @@
 from datetime import timedelta
 from types import UnionType
 from typing import Any, Literal, Union, get_args, get_origin, get_type_hints, is_typeddict
+from uuid import UUID
 
 from sentry.api.serializers import serialize
 from sentry.incidents.grouptype import (
@@ -224,7 +225,7 @@ class TestConstructTitle(TestEvaluateMetricDetector):
         )
 
     def test_title_comparison_delta(self) -> None:
-        self.detector.config.update({"comparison_delta": 60 * 60})
+        self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
 
         title = self.handler.construct_title(
             snuba_query=self.snuba_query,
@@ -437,9 +438,10 @@ class TestMetricIssueOccurrenceResponse(BaseMetricIssueTest):
         occurrence = self.process_packet_and_return_result(data_packet)
         assert isinstance(occurrence, IssueOccurrence)
 
+        # The occurrence consumer stores the event under the hex form of the detector's UUID.
         event = Event(
             project_id=self.project.id,
-            event_id=occurrence.event_id,
+            event_id=UUID(occurrence.event_id).hex,
             data={"timestamp": occurrence.detection_time.timestamp()},
         ).for_group(self.create_group(project=self.project, type=MetricIssue.type_id))
         event.occurrence = occurrence

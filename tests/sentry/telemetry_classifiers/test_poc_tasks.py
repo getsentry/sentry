@@ -136,20 +136,29 @@ def test_user_messages_from_rows_keeps_latest_content_within_limit() -> None:
 
 
 class FetchConversationRowsTest(BaseAIConversationsTestCase):
-    def test_fetches_gen_ai_rows_once_for_message_extraction(self) -> None:
-        start = timezone.now() - timedelta(minutes=30)
-        self.store_ai_span(
+    def test_fetches_rows_within_last_span_second(self) -> None:
+        start = (timezone.now() - timedelta(minutes=30)).replace(microsecond=500_000)
+        first_span = self.store_ai_span(
             "conversation",
             start,
             operation_type="ai_client",
+            trace_id="1" * 32,
             input_messages=[{"role": "user", "content": "First question"}],
+            store=False,
         )
-        self.store_ai_span(
+        first_span["data"]["sentry.client_sample_rate"] = 0.5
+        first_span["measurements"] = {"client_sample_rate": {"value": 0.5}}
+        second_span = self.store_ai_span(
             "conversation",
             start + timedelta(seconds=1),
             operation_type="ai_client",
+            trace_id="2" * 32,
             input_messages=[{"role": "user", "content": "Second question"}],
+            store=False,
         )
+        second_span["data"]["sentry.client_sample_rate"] = 0.25
+        second_span["measurements"] = {"client_sample_rate": {"value": 0.25}}
+        self.store_spans([first_span, second_span])
         self.store_ai_span(
             "conversation",
             start + timedelta(seconds=2),
@@ -159,7 +168,7 @@ class FetchConversationRowsTest(BaseAIConversationsTestCase):
         rows, source_truncated = _fetch_conversation_rows(
             self.project,
             "conversation",
-            (start + timedelta(seconds=3)).timestamp(),
+            (start + timedelta(seconds=1)).replace(microsecond=0).timestamp(),
         )
         messages, input_truncated = _user_messages_from_rows(
             rows, source_truncated=source_truncated
@@ -169,6 +178,8 @@ class FetchConversationRowsTest(BaseAIConversationsTestCase):
             {"role": "user", "content": "First question"},
             {"role": "user", "content": "Second question"},
         ]
+        assert [row["trace"] for row in rows] == ["1" * 32, "2" * 32]
+        assert [row["client_sample_rate"] for row in rows] == [0.5, 0.25]
         assert input_truncated is False
 
 
@@ -179,13 +190,25 @@ class ClassifyConversationTest(TestCase):
         with (
             patch(
                 "sentry.telemetry_classifiers.poc_tasks._fetch_conversation_rows",
-                return_value=([{"gen_ai.input.messages": messages[0]["content"]}], False),
+                return_value=(
+                    [
+                        {
+                            "gen_ai.input.messages": messages[0]["content"],
+                            "trace": "1" * 32,
+                            "client_sample_rate": 0.25,
+                        }
+                    ],
+                    False,
+                ),
             ) as mock_fetch,
             patch(
                 "sentry.telemetry_classifiers.poc_tasks.run_oneshot",
                 return_value={"type": "predicate", "name": "match", "probability": 0.9},
             ) as mock_run,
             patch("sentry.telemetry_classifiers.poc_tasks.logger.info") as mock_log,
+            patch(
+                "sentry.telemetry_classifiers.poc_tasks.produce_enrichment_attributes"
+            ) as mock_produce,
         ):
             classify_conversation(self.project.id, "conversation", 1_735_689_600.0)
 
@@ -195,6 +218,16 @@ class ClassifyConversationTest(TestCase):
             {"messages": messages},
             self.organization,
             timeout=20,
+        )
+        mock_produce.assert_called_once_with(
+            self.project,
+            idempotency_key="\0".join(("user_frustration", "conversation", "1735689600.0")),
+            trace_id="1" * 32,
+            timestamp=datetime(2025, 1, 1, tzinfo=UTC),
+            retention_days=30,
+            conversation_id="conversation",
+            attributes={"sentry.enrichment.poc_user_frustration": 0.9},
+            client_sample_rate=0.25,
         )
         mock_log.assert_called_once_with(
             "telemetry_classifiers.conversation.classified",
@@ -214,7 +247,7 @@ class ClassifyConversationTest(TestCase):
         with (
             patch(
                 "sentry.telemetry_classifiers.poc_tasks._fetch_conversation_rows",
-                return_value=([{"gen_ai.input.messages": "Question"}], False),
+                return_value=([{"gen_ai.input.messages": "Question", "trace": "1" * 32}], False),
             ),
             patch(
                 "sentry.telemetry_classifiers.poc_tasks.run_oneshot",
@@ -240,7 +273,7 @@ class ClassifyConversationTest(TestCase):
         with (
             patch(
                 "sentry.telemetry_classifiers.poc_tasks._fetch_conversation_rows",
-                return_value=([{"gen_ai.input.messages": "Question"}], False),
+                return_value=([{"gen_ai.input.messages": "Question", "trace": "1" * 32}], False),
             ),
             patch(
                 "sentry.telemetry_classifiers.poc_tasks.run_oneshot",

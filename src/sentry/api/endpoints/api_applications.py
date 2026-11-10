@@ -7,7 +7,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
-from sentry.auth.principal import owned_by_acting_user, require_user
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
 
@@ -22,7 +22,7 @@ class ApiApplicationsEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         queryset = ApiApplication.objects.filter(
-            owned_by_acting_user(request.user, "owner_id"), status=ApiApplicationStatus.active
+            is_owned_by_acting_user(request.user, "owner_id"), status=ApiApplicationStatus.active
         )
 
         return self.paginate(

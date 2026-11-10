@@ -318,6 +318,24 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             ),
         }
 
+    def test_invalid_span_id_returns_400(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "query": ["span_id:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1"],
+            }
+        )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": ErrorDetail(
+                string=(
+                    "`aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-1` must be a valid "
+                    "16 character hex (containing only digits, or a-f characters)"
+                ),
+                code="parse_error",
+            ),
+        }
+
     def test_bad_params_too_many_queries(self) -> None:
         query = {
             "project": [self.project.id],

@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 
-import {
-  bucketAttributeValues,
-  NAVIGATION_TYPE_BUCKET_ORDER,
-  NavigationTypeBucket,
-} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  bucketAttributeValues,
+  NAVIGATION_TYPE_BUCKET_ORDER,
+  NavigationTypeBucket,
+} from './settings';
 
 type Props = {
   /** The other active global filters, so the counts match the widgets. */

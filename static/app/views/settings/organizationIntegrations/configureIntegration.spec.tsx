@@ -5,6 +5,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -16,7 +17,8 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
+
+import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({
@@ -57,6 +59,14 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
+  const codeownersProvider = GitHubIntegrationProviderFixture({
+    features: ['codeowners'],
+  });
+  const codeownersOrg = OrganizationFixture({
+    access: ['org:integrations', 'org:write'],
+    features: ['integrations-codeowners'],
+  });
+
   it('shows the external domain as a settings row without a tab list for a stacktrace-link-only provider', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
@@ -78,6 +88,42 @@ describe('ConfigureIntegration settings tab', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(heading).not.toContainElement(link);
     expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
+  });
+
+  it('pushes the new tab and drops the cursor when switching tabs', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration, codeownersProvider);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/codeowners-associations/`,
+      body: {},
+    });
+
+    const {router} = render(<ConfigureIntegration />, {
+      organization: codeownersOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${codeownersOrg.slug}/integrations/github/${integrationId}/`,
+          query: {cursor: '0:100:0', other: 'kept'},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Team Mappings'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'teamMappings', other: 'kept'})
+    );
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('links the configurations crumb to the provider configurations tab', async () => {
@@ -155,14 +201,58 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
+  it('reconnects Linear through app authorization instead of editing credentials', async () => {
+    const provider = IntegrationProviderFixture({
+      key: 'linear',
+      slug: 'linear',
+      name: 'Linear for Seer',
+      features: ['seer-context'],
+      canAdd: false,
+    });
+    mockRequests(
+      OrganizationIntegrationsFixture({
+        name: 'Linear (Example)',
+        domainName: null,
+        provider: {...provider, aspects: {}},
+        configOrganization: [],
+        configData: {},
+      }),
+      provider
+    );
+    const initialize = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      body: {
+        step: 'oauth_login',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'linear',
+        data: {oauthUrl: 'https://linear.app/oauth/authorize?actor=app'},
+      },
+    });
+    renderGlobalModal({organization: org});
+    render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/linear/${integrationId}/`,
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Reconnect Linear'}));
+
+    expect(await screen.findByRole('button', {name: 'Authorize Linear'})).toBeEnabled();
+    expect(initialize).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      expect.objectContaining({data: {action: 'initialize', provider: 'linear'}})
+    );
+    expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
+  });
+
   it('hides the Settings tab when there is no settings content', async () => {
-    const codeownersProvider = GitHubIntegrationProviderFixture({
-      features: ['codeowners'],
-    });
-    const codeownersOrg = OrganizationFixture({
-      access: ['org:integrations', 'org:write'],
-      features: ['integrations-codeowners'],
-    });
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
@@ -189,13 +279,6 @@ describe('ConfigureIntegration settings tab', () => {
   });
 
   it('shows the Settings tab when there is organization config', async () => {
-    const codeownersProvider = GitHubIntegrationProviderFixture({
-      features: ['codeowners'],
-    });
-    const codeownersOrg = OrganizationFixture({
-      access: ['org:integrations', 'org:write'],
-      features: ['integrations-codeowners'],
-    });
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},

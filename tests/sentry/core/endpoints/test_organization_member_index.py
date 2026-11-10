@@ -3,11 +3,15 @@ from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
 from django.core import mail
+from django.test import override_settings
+from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
+from sentry.models.apikey import ApiKey
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles
@@ -21,6 +25,7 @@ from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_o
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 def mock_organization_roles_get_factory(
@@ -854,6 +859,31 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
+    def _service_account_context(self) -> str:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:admin", "org:read"]
+        )
+        return encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_invite(self) -> None:
+        response = self.client.post(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {"email": "jane@gmail.com", "role": "member"},
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()
+
     def test_forbid_qq(self) -> None:
         data = {"email": "1234@qq.com", "role": "member", "teams": [self.team.slug]}
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
@@ -974,6 +1004,36 @@ class OrganizationMemberListPostTest(OrganizationMemberListTestBase, HybridCloud
         self.assert_org_member_mapping(org_member=om)
 
         mock_send_invite_email.assert_called_once()
+
+    def _api_key_invite(self, role: str) -> Response:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["member:admin"]
+            )
+        return self.client.post(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {"email": "jane@gmail.com", "role": role},
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+    def test_api_key_does_not_get_a_pending_invites_roles(self) -> None:
+        self.create_member(organization=self.organization, email="owner@example.com", role="owner")
+
+        response = self._api_key_invite("owner")
+
+        # Inviting needs a user; an API key never had an org role to invite with.
+        assert response.status_code == 401, response.content
+        assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()
+
+    def test_api_key_with_several_pending_invites(self) -> None:
+        self.create_member(organization=self.organization, email="a@example.com")
+        self.create_member(organization=self.organization, email="b@example.com")
+
+        response = self._api_key_invite("member")
+
+        # Inviting needs a user; an API key never had an org role to invite with.
+        assert response.status_code == 401, response.content
+        assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     def test_rate_limited(self, mock_rate_limit: MagicMock) -> None:

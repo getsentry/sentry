@@ -6,13 +6,11 @@ import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {encodeSort} from 'sentry/utils/queryString';
-import {getIngestDelayFilter} from 'sentry/views/explore/logs/logsIngestDelay';
-import {
-  OurLogKnownFieldKey,
-  type EventsLogsResult,
-} from 'sentry/views/explore/logs/types';
-import type {LogAnchor} from 'sentry/views/explore/logs/useLogAnchor';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+
+import {getIngestDelayFilter} from './logsIngestDelay';
+import {OurLogKnownFieldKey, type EventsLogsResult} from './types';
+import type {LogAnchor} from './useLogAnchor';
+import {getTimeBasedSortBy} from './utils';
 
 /**
  * The page param represents a page of log data, we always use the timestamp precise field as timestamp is too inaccurate for high resolution logs.

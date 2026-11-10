@@ -5,14 +5,10 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {type ModalRenderProps} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -25,8 +21,9 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {Row} from 'sentry/views/settings/account/apiApplications/row';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {Row} from './row';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -58,7 +55,7 @@ export default function ApiApplications() {
   }
 
   const createApplication = async (isPublic: boolean) => {
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
 
     try {
       const app = await api.requestPromise(ENDPOINT, {
@@ -66,10 +63,10 @@ export default function ApiApplications() {
         data: {isPublic},
       });
 
-      addSuccessMessage(t('Created a new API Application'));
+      toast.success(t('Created a new API Application'));
       navigate(`${ROUTE_PREFIX}applications/${app.id}/`);
     } catch {
-      addErrorMessage(t('Unable to create application. Please try again.'));
+      toast.error(t('Unable to create application. Please try again.'));
     }
   };
 

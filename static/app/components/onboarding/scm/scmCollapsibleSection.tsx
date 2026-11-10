@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
+import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 
 interface ScmCollapsibleSectionProps {
   children: React.ReactNode;

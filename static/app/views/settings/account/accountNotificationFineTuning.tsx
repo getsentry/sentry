@@ -24,11 +24,12 @@ import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
-import {groupByOrganization} from 'sentry/views/settings/account/notifications/utils';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
+
+import {ACCOUNT_NOTIFICATION_FIELDS} from './notifications/fields';
+import {OrganizationSelectHeader} from './notifications/organizationSelectHeader';
+import {groupByOrganization} from './notifications/utils';
 
 type EmailSelectOption = {label: string; value: string};
 

@@ -2,28 +2,58 @@ import datetime
 import logging
 from collections.abc import Mapping
 from typing import Any, cast
-from urllib.parse import parse_qs, urlparse, urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from requests import PreparedRequest
 
+from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
-from sentry.integrations.utils.jira import parse_jira_issue_key
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations.utils.jira import get_jira_key, parse_jira_issue_key
+from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
-from sentry.utils import jwt
-from sentry.utils.http import absolute_uri
+from sentry.utils import jwt, metrics
 
 logger = logging.getLogger("sentry.integrations.jira")
 
-JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira"
 CUSTOMFIELD_PREFIX = "customfield_"
 
 STATUS_SEARCH_PAGE_SIZE = 200
 STATUS_SEARCH_MAX_PAGES = 20
+
+# Leave room for the request and its retries to finish before the token expires.
+FORGE_TOKEN_MIN_REMAINING = datetime.timedelta(minutes=5)
+
+
+class JiraForgeTokenUnavailable(ApiUnauthorized):
+    """
+    The integration has no unexpired Forge system token and no Connect secret to
+    fall back to. Forge only sends tokens when it calls us, so there's no way to
+    fetch one on demand; a missing token usually means the app was uninstalled or
+    our scheduled trigger endpoint is failing.
+    """
+
+
+def _usable_forge_token(integration: RpcIntegration | Integration) -> dict[str, Any] | None:
+    forge = integration.metadata.get("forge")
+    if not forge:
+        return None
+    # Forge-only integrations can't use the Connect JWT, so they aren't gated.
+    if "shared_secret" in integration.metadata and integration.id not in options.get(
+        "jira.forge.integration-ids"
+    ):
+        return None
+    expires_at = datetime.datetime.fromtimestamp(forge["system_token_expires_at"], datetime.UTC)
+    if expires_at - datetime.datetime.now(datetime.UTC) < FORGE_TOKEN_MIN_REMAINING:
+        metrics.incr(
+            "jira.forge.token_expired",
+            tags={"fallback": "connect" if "shared_secret" in integration.metadata else "none"},
+        )
+        return None
+    return forge
 
 
 class JiraCloudClient(ApiClient):
@@ -65,8 +95,13 @@ class JiraCloudClient(ApiClient):
         verify_ssl: bool,
         logging_context: Any | None = None,
     ) -> None:
-        self.base_url = integration.metadata["base_url"]
-        self.shared_secret = integration.metadata["shared_secret"]
+        # The site URL is where users browse issues. API calls go there with a Connect
+        # JWT, or to Atlassian's API gateway with a Forge system token.
+        self.site_url = integration.metadata["base_url"]
+        self.shared_secret = integration.metadata.get("shared_secret")
+        forge = _usable_forge_token(integration)
+        self.forge_token = forge["system_token"] if forge else None
+        self.base_url = forge["api_base_url"] if forge else self.site_url
         super().__init__(
             integration_id=integration.id,
             verify_ssl=verify_ssl,
@@ -76,12 +111,17 @@ class JiraCloudClient(ApiClient):
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         assert prepared_request.url is not None
         assert prepared_request.method is not None
+        if self.forge_token is not None:
+            prepared_request.headers["Authorization"] = f"Bearer {self.forge_token}"
+            return prepared_request
+        if self.shared_secret is None:
+            raise JiraForgeTokenUnavailable("No unexpired Forge system token")
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
         now = datetime.datetime.now(datetime.UTC)
         jwt_payload = {
-            "iss": JIRA_KEY,
+            "iss": get_jira_key(),
             "iat": now,
             "exp": now + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(
@@ -119,7 +159,7 @@ class JiraCloudClient(ApiClient):
         return self.get_mapping(self.ISSUE_URL % (issue_id,))
 
     def search_issues(self, query: str) -> MappingApiResponse:
-        issue_key = parse_jira_issue_key(query, self.base_url)
+        issue_key = parse_jira_issue_key(query, self.site_url)
         if issue_key is not None:
             # the key pattern cannot contain a quote, so it needs no escaping
             jql = f'id="{issue_key}"'
@@ -224,7 +264,7 @@ class JiraCloudClient(ApiClient):
 
     def set_issue_property(self, issue_key: str, badge_num: int) -> MappingApiResponse:
         module_key = "sentry-issues-glance"
-        properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
+        properties_key = f"com.atlassian.jira.issue:{get_jira_key()}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put_mapping(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 

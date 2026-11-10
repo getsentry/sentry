@@ -6,13 +6,8 @@ import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -230,8 +225,8 @@ export function RelocationDetails() {
         skipConfirmModal: true,
         onAction: () => {
           // artifact state is either disabled or error
-          clearIndicators();
-          addLoadingMessage('Loading artifacts list...');
+          toast.dismiss();
+          toast.loading('Loading artifacts list...');
           setArtifactsState(ArtifactsState.FETCHING);
         },
       });
@@ -511,16 +506,20 @@ export function RelocationDetails() {
           }}
           onLoad={() => {
             setArtifactsState(ArtifactsState.FETCHED);
-            addSuccessMessage('Artifacts list loaded.');
+            toast.success('Artifacts list loaded.');
           }}
           onError={res => {
             setArtifactsState(ArtifactsState.ERROR);
             if (res.status === 401 || res.status === 403) {
-              addErrorMessage(res.responseJSON.detail);
+              toast.error(
+                typeof res.responseJSON?.detail === 'string'
+                  ? res.responseJSON.detail
+                  : 'Unable to load artifacts.'
+              );
             } else if (res.status === 404) {
-              addErrorMessage('Artifacts not found!');
+              toast.error('Artifacts not found!');
             } else {
-              addErrorMessage(
+              toast.error(
                 `Unexpected error condition: ${res.status}(${res.responseText}).`
               );
             }

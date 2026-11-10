@@ -18,11 +18,13 @@ from rest_framework.views import APIView
 from sentry.api.authentication import AgentTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission, OrganizationReleasesBaseEndpoint
 from sentry.auth.access import DEFAULT, Access, from_auth, from_request, from_request_org_and_scopes
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
@@ -104,6 +106,12 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert unsupported is agent_token.MintingPrincipalRejection.UNSUPPORTED
         assert not agent_token.is_mintable_agent_principal(unsupported)
 
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.org.id, name="seer-autofix"
+        )
+        rejected = agent_token.resolve_minting_principal(service_account, None)
+        assert rejected is agent_token.MintingPrincipalRejection.UNSUPPORTED
+
     def test_minting_principal_rejects_integrations_and_agents(self) -> None:
         integration_user = self.create_user(is_sentry_app=True)
         integration = agent_token.resolve_minting_principal(integration_user, None)
@@ -132,6 +140,7 @@ class AgentTokenAuthAndGateTest(TestCase):
     def test_valid_token_supplies_compatibility_user_and_preserves_agent_auth(self) -> None:
         request = self._agent_request(self.owner, ["org:read"], method="GET")
         assert request.user.is_authenticated
+        assert has_user(request.user)
         assert request.user.id == self.owner.id
         assert request.user.email == self.owner.email
         assert request.auth is not None
@@ -145,7 +154,7 @@ class AgentTokenAuthAndGateTest(TestCase):
 
         request = self._agent_request(elevated_user, ["org:read"], method="GET")
 
-        assert request.user.id == elevated_user.id
+        assert acting_user_id(request.user) == elevated_user.id
         assert not request.user.is_staff
         assert not request.user.is_superuser
         assert getattr(request.user, "permissions", None) == frozenset()

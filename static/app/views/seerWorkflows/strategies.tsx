@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
+
+import type {WorkflowStrategy} from './types';
 
 type StrategyMeta = {
   label: string;

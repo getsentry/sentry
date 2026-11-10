@@ -3,7 +3,7 @@ import {
   parseXmlTagSegments,
   preprocessInlineXmlTags,
   tryParsePythonDict,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
+} from './aiContentDetection';
 
 describe('detectAIContentType', () => {
   it('detects valid JSON objects', () => {

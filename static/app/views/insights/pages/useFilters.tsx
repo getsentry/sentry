@@ -1,10 +1,11 @@
 import {useLocation} from 'sentry/utils/useLocation';
-import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
-import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
-import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
-import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+
+import {AGENTS_LANDING_SUB_PATH} from './agents/settings';
+import {BACKEND_LANDING_SUB_PATH} from './backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from './frontend/settings';
+import {MCP_LANDING_SUB_PATH} from './mcp/settings';
+import {MOBILE_LANDING_SUB_PATH} from './mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from './settings';
 
 export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH

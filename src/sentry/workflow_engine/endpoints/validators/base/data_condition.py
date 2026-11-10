@@ -17,6 +17,16 @@ from sentry.workflow_engine.types import DataConditionHandler
 ComparisonType = TypeVar("ComparisonType")
 ConditionResult = TypeVar("ConditionResult")
 
+# The UI always sends True for alert (workflow) conditions, so API clients that omit it get
+# the same value instead of a 400. Detector conditions resolve to a priority level, so they
+# must keep requiring an explicit value.
+_DEFAULT_TRUE_CONDITION_RESULT_GROUPS = frozenset(
+    {
+        DataConditionHandler.Group.WORKFLOW_TRIGGER,
+        DataConditionHandler.Group.ACTION_FILTER,
+    }
+)
+
 
 class DataConditionInput(TypedDict):
     id: NotRequired[int]
@@ -52,6 +62,17 @@ class BaseDataConditionValidator(
             return self.initial_data[0].get("type")
 
         return self.initial_data.get("type")
+
+    def to_internal_value(self, data: Any) -> Any:
+        condition_type = data.get("type") if isinstance(data, dict) else None
+        if isinstance(condition_type, str) and "condition_result" not in data:
+            try:
+                handler = condition_handler_registry.get(condition_type)
+            except NoRegistrationExistsError:
+                handler = None
+            if getattr(handler, "group", None) in _DEFAULT_TRUE_CONDITION_RESULT_GROUPS:
+                data = {**data, "condition_result": True}
+        return super().to_internal_value(data)
 
     def _get_handler(self) -> type[DataConditionHandler[Any]] | None:
         if self._is_operator_condition():

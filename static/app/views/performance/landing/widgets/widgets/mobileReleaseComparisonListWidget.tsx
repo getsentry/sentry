@@ -60,7 +60,8 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+
+import {EAP_QUERY_PARAMS} from './settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;

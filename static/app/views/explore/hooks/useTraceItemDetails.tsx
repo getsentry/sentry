@@ -117,12 +117,13 @@ type TraceItemDetailsApiQuery = {
   utc?: string;
 };
 
-export type TraceItemResponseAttribute =
+export type TraceItemResponseAttribute = (
   | {name: string; type: 'str'; value: string}
   | {name: string; type: 'int'; value: number}
   | {name: string; type: 'float'; value: number}
   | {name: string; type: 'bool'; value: boolean}
-  | {name: string; type: 'array'; value: Array<string | number | boolean>};
+  | {name: string; type: 'array'; value: Array<string | number | boolean>}
+) & {rawName?: string};
 
 /**
  * The scalar value an attribute flattens to for the string-keyed maps field
