@@ -1075,6 +1075,28 @@ describe('DropdownMenu', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('re-renders items when focus moves between them', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Menu"
+        items={[
+          {key: 'item1', label: 'Item One'},
+          {key: 'item2', label: 'Item Two'},
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await waitFor(() => {
+      expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toHaveFocus();
+    });
+
+    await userEvent.keyboard('{ArrowDown}');
+
+    expect(screen.getByRole('menuitemradio', {name: 'Item Two'})).toHaveFocus();
+  });
+
   describe('virtualization', () => {
     // jsdom does not lay out or scroll. Give elements a height so the menu has a
     // viewport and room to scroll, and make scrollTo move the scroll position
