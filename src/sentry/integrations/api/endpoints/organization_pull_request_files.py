@@ -52,8 +52,10 @@ class RepositoryPullRequestFilesResponse(TypedDict):
 
 
 def _require_user_session(request: Request) -> None:
-    # Source diffs are for the UI only. Viewer context is a service assertion, not a
-    # browser session, so refuse it like the bearer tokens the authentication refuses.
+    # Seer calls Sentry as a user by sending X-Viewer-Context. The auth middleware signs
+    # that user in before SessionNoAuthTokenAuthentication runs, so the call looks like a
+    # browser session. Refuse it here so Seer agents can't read source diffs, even if
+    # Seer's generated SDK starts including these endpoints.
     if is_user_from_viewer_context(request):
         raise PermissionDenied("Pull request files can only be read from a user session.")
 
