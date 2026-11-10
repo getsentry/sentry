@@ -395,6 +395,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert trigger["event_id"] == event.event_id
         assert trigger["workflow_id"] == self.workflow.id
         assert trigger["action_id"] == self.action.id
+        assert trigger["group_short_id"] == self.group.qualified_short_id
         assert run.extras["snapshot"] == snapshot
         assert run.extras["snapshot"]["config_version"] == self.config.version - 1
         assert run.status == SeerWorkflowRunStatus.FAILED

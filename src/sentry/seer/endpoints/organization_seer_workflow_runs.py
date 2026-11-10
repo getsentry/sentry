@@ -28,6 +28,7 @@ from sentry.notebooks.access import has_investigations_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SEER_CRON_WORKFLOW_STRATEGIES,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -106,19 +107,26 @@ SeerWorkflowExecutionResponse = (
 )
 
 
-class MetricBreachTriggerResponse(TypedDict):
-    type: Literal["breached_metric"]
+class MonitorTriggerResponse(TypedDict):
+    type: Literal["monitor"]
     detectorId: str
     environment: str | None
     eventId: str
     groupId: str
+    groupShortId: str | None
     observedAt: datetime
     occurrenceId: str
     projectId: str
 
 
+class CronTriggerResponse(TypedDict):
+    # TODO: Include triggeredAt (parsed from trigger_key) once cron strategies such as
+    # AGENTIC_TRIAGE_V2 start creating runs.
+    type: Literal["cron"]
+
+
 # Discriminated by `type`; add new trigger variants to this union.
-TriggerResponse = MetricBreachTriggerResponse
+TriggerResponse = MonitorTriggerResponse | CronTriggerResponse
 
 
 class SeerWorkflowRunResponseBase(TypedDict):
@@ -208,9 +216,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
           and each failed execution carries its own ``error``.
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``trigger`` describes the metric breach that started
-        the run (detector, event, occurrence, issue, and project), or is null for runs not
-        started by a metric monitor. The detector may have since been deleted. ``seerRunId`` is the linked Seer UUID or null.
+        tracking retain a null status. ``trigger`` describes what started the run, discriminated
+        by ``type``: ``monitor`` (detector, event, occurrence, issue, and project;
+        the detector may have since been deleted) or ``cron`` (scheduled run). It is
+        null for other runs. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
         The same investigation can be linked to multiple executions.
@@ -315,24 +324,29 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
 
 
 def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
-    if not get_path(run.extras, "snapshot", "inputs"):
-        return None
-    try:
-        snapshot = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot
-        if snapshot.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            trigger = MetricBreachTrigger.parse_obj(snapshot.inputs)
+    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation."""
+    strategy = getattr(run, "strategy")
+    if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
+        return {"type": "cron"}
+    if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
+        run.extras, "snapshot", "inputs"
+    ):
+        try:
+            inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
+            trigger = MetricBreachTrigger.parse_obj(inputs)
             return {
-                "type": "breached_metric",
+                "type": "monitor",
                 "detectorId": str(trigger.detector_id),
                 "environment": trigger.environment,
                 "eventId": trigger.event_id,
                 "groupId": str(trigger.group_id),
+                "groupShortId": trigger.group_short_id,
                 "observedAt": trigger.observed_at,
                 "occurrenceId": trigger.occurrence_id,
                 "projectId": str(trigger.project_id),
             }
-    except ValidationError:
-        logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
+        except ValidationError:
+            logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
     return None
 
 
