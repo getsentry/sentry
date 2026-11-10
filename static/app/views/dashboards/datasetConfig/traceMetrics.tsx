@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -340,7 +341,7 @@ export const TraceMetricsConfig: DatasetConfig<
   useHeatmapQuery: useTraceMetricsHeatmapQuery,
   ...traceMetricsResponseTransforms,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
-    if (field === 'trace') {
+    if (field === TraceMetricKnownFieldKey.TRACE) {
       return renderTraceAsLinkable(widget);
     }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);

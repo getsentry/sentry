@@ -18,8 +18,8 @@ import {
   webVitalP75Field,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {SpanFields} from 'sentry/views/insights/types';
 
 /**
  * Pageloads. TTFB comes from navigation timing, so every pageload reports it.
@@ -31,34 +31,14 @@ export const INTERACTIONS_FIELD = webVitalCountField('inp');
 const INTERVAL = '5m';
 
 export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
-  {
-    dataset: WidgetType.TRACEMETRICS,
-    tag: {
-      key: 'user.geo.subregion',
-      name: 'user.geo.subregion',
-      kind: FieldKind.TAG,
-    },
-    value: '',
-  },
-  {
-    dataset: WidgetType.TRACEMETRICS,
-    tag: {
-      key: SpanFields.BROWSER_NAME,
-      name: SpanFields.BROWSER_NAME,
-      kind: FieldKind.TAG,
-    },
-    value: '',
-  },
-  {
-    dataset: WidgetType.TRACEMETRICS,
-    tag: {
-      key: SpanFields.BROWSER_NAVIGATION_TYPE,
-      name: SpanFields.BROWSER_NAVIGATION_TYPE,
-      kind: FieldKind.TAG,
-    },
-    value: '',
-  },
-];
+  TraceMetricKnownFieldKey.USER_GEO_SUBREGION,
+  TraceMetricKnownFieldKey.BROWSER_NAME,
+  TraceMetricKnownFieldKey.BROWSER_NAVIGATION_TYPE,
+].map(key => ({
+  dataset: WidgetType.TRACEMETRICS,
+  tag: {key, name: key, kind: FieldKind.TAG},
+  value: '',
+}));
 
 export function scoreBreakdownWheelWidget(layout: PrebuiltWidgetLayout): PrebuiltWidget {
   const fields = [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_SCORE_COUNT_FIELDS];
@@ -173,14 +153,13 @@ export function webVitalSamplesTable({
   layout,
 }: SamplesTableOptions): PrebuiltWidget {
   const fields = [
-    'project',
-    'trace',
+    TraceMetricKnownFieldKey.PROJECT,
+    TraceMetricKnownFieldKey.TRACE,
     ...extraFields,
-    'value',
-    'profile.id',
-    'replay.id',
-    `score.ratio.${vital}`,
-    'timestamp',
+    TraceMetricKnownFieldKey.METRIC_VALUE,
+    TraceMetricKnownFieldKey.PROFILE_ID,
+    TraceMetricKnownFieldKey.REPLAY_ID_ALIAS,
+    TraceMetricKnownFieldKey.TIMESTAMP,
   ];
   return {
     id,
@@ -192,12 +171,14 @@ export function webVitalSamplesTable({
     queries: [
       {
         name: '',
-        conditions: `metric.name:${webVitalMetricName(vital)} metric.type:distribution`,
+        conditions: `${TraceMetricKnownFieldKey.METRIC_NAME}:${webVitalMetricName(vital)} ${TraceMetricKnownFieldKey.METRIC_TYPE}:distribution`,
         fields,
         aggregates: [],
         columns: fields,
-        orderby: '-timestamp',
-        fieldAliases: fields.map(field => (field === 'value' ? vital.toUpperCase() : '')),
+        orderby: `-${TraceMetricKnownFieldKey.TIMESTAMP}`,
+        fieldAliases: fields.map(field =>
+          field === TraceMetricKnownFieldKey.METRIC_VALUE ? vital.toUpperCase() : ''
+        ),
       },
     ],
     layout,

@@ -141,7 +141,7 @@ export const WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard
       id: 'lcp-samples-table',
       title: t('LCP Samples'),
       extraFields: [SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT],
-      tableWidths: [-1, -1, 200, -1, -1, -1, -1, -1],
+      tableWidths: [-1, -1, 200, -1, -1, -1, -1],
       layout: {y: 6, w: 5, h: 2, x: 0, minH: 2},
     }),
     webVitalSamplesTable({

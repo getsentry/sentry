@@ -28,6 +28,8 @@ export enum TraceMetricKnownFieldKey {
   CODE_FILE_PATH = 'code.file.path',
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
+  PROFILE_ID = 'profile.id',
+  REPLAY_ID_ALIAS = 'replay.id',
 
   // SDK attributes https://develop.sentry.dev/sdk/telemetry/metrics/#default-attributes
   RELEASE = 'release',
@@ -35,6 +37,8 @@ export enum TraceMetricKnownFieldKey {
   SDK_VERSION = 'sdk.version',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
+  BROWSER_NAVIGATION_TYPE = 'browser.navigation.type',
+  USER_GEO_SUBREGION = 'user.geo.subregion',
   USER_ID = 'user.id',
   USER_EMAIL = 'user.email',
   USER_NAME = 'user.name',
