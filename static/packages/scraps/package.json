@@ -351,6 +351,7 @@
     "@floating-ui/react-dom": "^2.1.9",
     "@lexical/clipboard": "0.52.0",
     "@lexical/code": "0.52.0",
+    "@lexical/code-prism": "0.52.0",
     "@lexical/history": "0.52.0",
     "@lexical/markdown": "0.52.0",
     "@lexical/plain-text": "0.52.0",

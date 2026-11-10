@@ -80,11 +80,19 @@ function Atom({
   switch (value.type) {
     case 'mention':
       return (
-        renderers.renderMention?.(value, actions) ?? <Text bold>@{value.label}</Text>
+        renderers.renderMention?.(value, actions) ?? (
+          <Text bold tabular>
+            @{value.label}
+          </Text>
+        )
       );
     case 'reference':
       return (
-        renderers.renderReference?.(value, actions) ?? <Text bold>{value.label}</Text>
+        renderers.renderReference?.(value, actions) ?? (
+          <Text bold tabular>
+            {value.label}
+          </Text>
+        )
       );
     case 'attachment':
       return renderers.renderAttachment?.(value, actions) ?? <Text>{value.name}</Text>;

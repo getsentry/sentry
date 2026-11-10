@@ -82,6 +82,30 @@ it('edits text, formats the selected text, and changes the paragraph to a quote'
   expect(output()).toHaveTextContent('Hello');
 });
 
+it.each(['typescript', '', 'future-language'])(
+  'preserves code text and language %j while editing and undoing',
+  async language => {
+    const user = userEvent.setup();
+    const code = {
+      type: 'codeBlock',
+      text: 'const value = 1;\n\treturn value;',
+      language,
+    } as const;
+    const initialValue = {version: 1, blocks: [code]} as const;
+    render(<Example initialValue={initialValue} />, {wrapper: Providers});
+    expect(output()).toHaveTextContent(JSON.stringify(initialValue));
+    await user.click(editor());
+    placeCaret(screen.getByRole('code'), code.text.indexOf('1') + 1);
+    await user.keyboard('2');
+    expect(parseComposerDocument(JSON.parse(output().textContent ?? ''))).toEqual({
+      version: 1,
+      blocks: [{...code, text: code.text.replace('1', '12')}],
+    });
+    await user.keyboard('{Control>}z{/Control}');
+    expect(output()).toHaveTextContent(JSON.stringify(initialValue));
+  }
+);
+
 it('renders mixed documents and swaps an interactive React mention with undo', async () => {
   const onKeyDown = jest.fn();
   render(
@@ -101,7 +125,7 @@ it('renders mixed documents and swaps an interactive React mention with undo', a
   );
   expect(screen.getByText('PROJ-1')).toBeVisible();
   expect(screen.getByText('Quoted text')).toBeVisible();
-  expect(screen.getByText('const value = 1;')).toBeVisible();
+  expect(screen.getByRole('code')).toHaveTextContent('const value = 1;');
   expect(screen.getByText('example.txt')).toBeVisible();
   act(() => screen.getByRole('button', {name: 'Swap Alice'}).focus());
   await userEvent.keyboard('{Enter}');
@@ -169,7 +193,7 @@ it('preserves rich clipboard identities when pasting from inside a code block', 
   await user.click(editor());
   await user.keyboard('{Control>}a{/Control}');
   const clipboard = await user.copy();
-  placeCaret(screen.getByText('const value = 1;'), 6);
+  placeCaret(screen.getByRole('code'), 6);
   await user.paste(clipboard);
   const document = parseComposerDocument(JSON.parse(output().textContent ?? ''));
   expect(document.blocks.filter(block => block.type === 'attachment')).toHaveLength(2);

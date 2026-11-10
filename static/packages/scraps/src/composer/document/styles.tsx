@@ -4,10 +4,11 @@ import {codeBlockStyles} from '@sentry/scraps/codeBlock/styles';
 import {ComposerEditor} from '@sentry/scraps/composer/styles';
 import {Prose} from '@sentry/scraps/text';
 import {getTextStyles} from '@sentry/scraps/text/text';
+import {darkTheme} from '@sentry/scraps/theme';
 
 export const DocumentEditor = styled(Prose.withComponent(ComposerEditor))`
   ${p => getTextStyles({theme: p.theme, size: 'md', density: 'comfortable'})};
-  ${p => codeBlockStyles(p.theme)};
+  ${codeBlockStyles(darkTheme)};
 
   @media (hover: none) and (pointer: coarse) {
     font-size: ${p => p.theme.font.size.lg};

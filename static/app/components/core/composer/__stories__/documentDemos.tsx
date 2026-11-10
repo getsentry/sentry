@@ -1,5 +1,6 @@
 import {useRef, useState} from 'react';
 import {IconAttachment} from '@sentry/icons/attachment';
+import {IconIssues} from '@sentry/icons/issues';
 import {IconUser} from '@sentry/icons/user';
 
 import {Button} from '@sentry/scraps/button';
@@ -55,10 +56,13 @@ export function DocumentComposerDemo() {
   const editor = useRef<DocumentComposerHandle>(null);
   const [value, setValue] = useState(INITIAL_DOCUMENT);
   const [pendingFiles, setPendingFiles] = useState<readonly File[]>([]);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [markdown, setMarkdown] = useState(() => documentToMarkdown(INITIAL_DOCUMENT));
   const [status, setStatus] = useState('');
-  const queueFiles = (files: readonly File[]) =>
+  const queueFiles = (files: readonly File[]) => {
+    setIsDraggingFiles(false);
     setPendingFiles(current => [...current, ...files]);
+  };
 
   return (
     <Stack gap="lg" width="100%">
@@ -100,7 +104,42 @@ export function DocumentComposerDemo() {
           <Button onClick={() => setValue(INITIAL_DOCUMENT)}>Reset example</Button>
         </Flex>
       </Flex>
-      <Container border="primary" radius="md" padding="lg">
+      <Container
+        role="group"
+        aria-label="Composer dropzone"
+        position="relative"
+        border={isDraggingFiles ? 'accent' : 'primary'}
+        background="secondary"
+        radius="lg"
+        padding="lg"
+        onDragEnter={event => {
+          if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault();
+            setIsDraggingFiles(true);
+          }
+        }}
+        onDragOver={event => {
+          if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+          }
+        }}
+        onDragLeave={event => {
+          if (
+            !(event.relatedTarget instanceof Node) ||
+            !event.currentTarget.contains(event.relatedTarget)
+          ) {
+            setIsDraggingFiles(false);
+          }
+        }}
+        onDrop={event => {
+          setIsDraggingFiles(false);
+          if (!event.defaultPrevented && event.dataTransfer.types.includes('Files')) {
+            event.preventDefault();
+            queueFiles(Array.from(event.dataTransfer.files));
+          }
+        }}
+      >
         <Stack gap="md">
           <Flex gap="xs" wrap="wrap" onMouseDown={event => event.preventDefault()}>
             <Button size="sm" onClick={() => editor.current?.formatText('bold')}>
@@ -151,44 +190,64 @@ export function DocumentComposerDemo() {
           {pendingFiles.length > 0 && (
             <Flex gap="sm" wrap="wrap" aria-label="Pending attachments">
               {pendingFiles.map((file, index) => (
-                <Container
+                <Flex
                   key={`${file.name}:${index}`}
-                  background="secondary"
-                  radius="md"
+                  background="primary"
+                  border="muted"
+                  radius="sm"
                   padding="sm"
+                  gap="md"
+                  align="center"
+                  maxWidth="100%"
                 >
-                  <Flex gap="sm" align="center">
-                    <IconAttachment size="sm" />
-                    <Text>{file.name}</Text>
-                    <Button
-                      size="xs"
-                      onClick={() => {
-                        editor.current?.insertAttachment({
-                          type: 'attachment',
-                          id: crypto.randomUUID(),
-                          name: file.name,
-                          mediaType: file.type || 'application/octet-stream',
-                        });
-                        setPendingFiles(files =>
-                          files.filter((_, candidate) => candidate !== index)
-                        );
-                      }}
-                    >
-                      Insert {file.name}
-                    </Button>
-                    <Button
-                      size="xs"
-                      aria-label={`Remove pending ${file.name}`}
-                      onClick={() =>
-                        setPendingFiles(files =>
-                          files.filter((_, candidate) => candidate !== index)
-                        )
-                      }
-                    >
-                      Remove
-                    </Button>
+                  <Flex
+                    align="center"
+                    justify="center"
+                    width="80px"
+                    height="80px"
+                    flexShrink={0}
+                    border="muted"
+                    radius="sm"
+                    background="primary"
+                  >
+                    <IconAttachment size="lg" />
                   </Flex>
-                </Container>
+                  <Stack gap="sm" minWidth="0">
+                    <Text size="sm" ellipsis>
+                      {file.name}
+                    </Text>
+                    <Flex gap="sm">
+                      <Button
+                        size="xs"
+                        aria-label={`Insert ${file.name}`}
+                        onClick={() => {
+                          editor.current?.insertAttachment({
+                            type: 'attachment',
+                            id: crypto.randomUUID(),
+                            name: file.name,
+                            mediaType: file.type || 'application/octet-stream',
+                          });
+                          setPendingFiles(files =>
+                            files.filter((_, candidate) => candidate !== index)
+                          );
+                        }}
+                      >
+                        Insert
+                      </Button>
+                      <Button
+                        size="xs"
+                        aria-label={`Remove pending ${file.name}`}
+                        onClick={() =>
+                          setPendingFiles(files =>
+                            files.filter((_, candidate) => candidate !== index)
+                          )
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </Flex>
+                  </Stack>
+                </Flex>
               ))}
             </Flex>
           )}
@@ -200,8 +259,8 @@ export function DocumentComposerDemo() {
             onFilesDrop={queueFiles}
             renderMention={(mention, actions) => (
               <Button
+                icon={<IconUser size="xs" />}
                 size="zero"
-                variant="transparent"
                 aria-label={`Change mention ${mention.label}`}
                 onClick={() =>
                   actions.replace({
@@ -211,13 +270,15 @@ export function DocumentComposerDemo() {
                   })
                 }
               >
-                <IconUser size="xs" /> @{mention.label}
+                <Text tabular variant="inherit">
+                  @{mention.label}
+                </Text>
               </Button>
             )}
             renderReference={(reference, actions) => (
               <Button
+                icon={reference.kind === 'issue' ? <IconIssues size="xs" /> : undefined}
                 size="zero"
-                variant="link"
                 aria-label={`Change reference ${reference.label}`}
                 onClick={() =>
                   actions.replace({
@@ -227,20 +288,49 @@ export function DocumentComposerDemo() {
                   })
                 }
               >
-                {reference.label}
+                <Text size="sm" tabular variant="inherit">
+                  {reference.kind === 'issue' && 'Issue: '}
+                  <Text size="sm" bold tabular variant="inherit">
+                    {reference.label}
+                  </Text>
+                </Text>
               </Button>
             )}
             renderAttachment={(attachment, actions) => (
-              <Flex gap="sm" align="center">
-                <IconAttachment size="sm" />
-                <Text>{attachment.name}</Text>
-                <Button
-                  size="xs"
-                  aria-label={`Remove attachment ${attachment.name}`}
-                  onClick={actions.remove}
+              <Flex
+                gap="md"
+                align="center"
+                width="fit-content"
+                maxWidth="100%"
+                background="primary"
+                border="muted"
+                radius="sm"
+                padding="sm"
+              >
+                <Flex
+                  align="center"
+                  justify="center"
+                  width="80px"
+                  height="80px"
+                  flexShrink={0}
+                  border="muted"
+                  radius="sm"
+                  background="primary"
                 >
-                  Remove
-                </Button>
+                  <IconAttachment size="lg" />
+                </Flex>
+                <Stack gap="sm" minWidth="0">
+                  <Text size="sm" ellipsis>
+                    {attachment.name}
+                  </Text>
+                  <Button
+                    size="xs"
+                    aria-label={`Remove attachment ${attachment.name}`}
+                    onClick={actions.remove}
+                  >
+                    Remove
+                  </Button>
+                </Stack>
               </Flex>
             )}
           />
@@ -259,6 +349,24 @@ export function DocumentComposerDemo() {
             />
           </Flex>
         </Stack>
+        {isDraggingFiles && (
+          <Stack
+            role="status"
+            position="absolute"
+            inset="0"
+            style={{zIndex: 2}}
+            align="center"
+            justify="center"
+            gap="md"
+            border="accent"
+            radius="lg"
+            background="primary"
+            pointerEvents="none"
+          >
+            <IconAttachment size="lg" />
+            <Text bold>Drop files to attach</Text>
+          </Stack>
+        )}
       </Container>
       <Text role="status" variant="muted">
         {status ||

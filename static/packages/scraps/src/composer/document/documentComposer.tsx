@@ -15,6 +15,7 @@ import {
   $generateNodesFromSerializedNodes,
 } from '@lexical/clipboard';
 import {$isCodeNode, CodeHighlightNode, CodeNode} from '@lexical/code';
+import {PrismTokenizer, registerCodeHighlighting} from '@lexical/code-prism';
 import {createEmptyHistoryState, registerHistory} from '@lexical/history';
 import {
   registerMarkdownShortcuts,
@@ -53,6 +54,7 @@ import {
   type EditorState,
 } from 'lexical';
 
+import '@sentry/scraps/codeBlock/prism';
 import {Container} from '@sentry/scraps/layout';
 
 import {
@@ -70,6 +72,41 @@ import type {DocumentComposerProps} from './types';
 
 const MIME = 'application/x-sentry-composer-document';
 const VALUE_SYNC = 'document-composer-value-sync';
+const CODE_HIGHLIGHT_CLASSES = Object.fromEntries(
+  [
+    'comment',
+    'prolog',
+    'doctype',
+    'cdata',
+    'punctuation',
+    'property',
+    'tag',
+    'boolean',
+    'number',
+    'constant',
+    'symbol',
+    'deleted',
+    'selector',
+    'attr-name',
+    'string',
+    'char',
+    'builtin',
+    'inserted',
+    'operator',
+    'entity',
+    'url',
+    'atrule',
+    'attr-value',
+    'keyword',
+    'function',
+    'regex',
+    'important',
+    'variable',
+    'bold',
+    'italic',
+    'namespace',
+  ].map(token => [token, `token ${token}`])
+);
 
 export function DocumentComposer({
   value,
@@ -87,7 +124,7 @@ export function DocumentComposer({
     const instance = createEditor({
       namespace: 'DocumentComposer',
       nodes: [QuoteNode, CodeNode, CodeHighlightNode, DocumentAtomNode],
-      theme: {code: 'language-block'},
+      theme: {code: 'language-block', codeHighlight: CODE_HIGHLIGHT_CLASSES},
       onError: error => {
         throw error;
       },
@@ -135,6 +172,7 @@ export function DocumentComposer({
     const cleanups = [
       registerRichText(editor),
       registerHistory(editor, history, 300),
+      registerCodeHighlighting(editor, {...PrismTokenizer, defaultLanguage: null}),
       registerMarkdownShortcuts(editor, [
         BOLD_STAR,
         BOLD_UNDERSCORE,
