@@ -166,12 +166,10 @@ export function removeInboxItemsMutationOptions({
         updateItem: () => null,
       });
     },
-    onSettled: (_data, error) => {
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey,
-        // Removed items are already dropped from the cache, so lists are only refetched
-        // to restore them when the request fails.
-        refetchType: error ? 'active' : 'none',
+        refetchType: 'active',
       });
       queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
     },

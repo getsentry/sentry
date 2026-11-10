@@ -150,7 +150,8 @@ function InboxListBody({
     return <LoadingError onRetry={refetch} />;
   }
 
-  if (items.length === 0) {
+  // Loaded pages can be emptied by removals while later pages still have items
+  if (items.length === 0 && !hasNextPage) {
     return hasInboxFilters(filters) ? (
       <EmptyState
         padding="2xl"

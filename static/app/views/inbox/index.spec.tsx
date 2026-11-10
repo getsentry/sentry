@@ -448,6 +448,7 @@ describe('Inbox', () => {
       renderInbox();
 
       await screen.findByRole('link', {name: /Checkout latency regression/});
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
       await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
@@ -457,6 +458,39 @@ describe('Inbox', () => {
       );
       expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
       expect(await screen.findByText('Removed 3 items')).toBeInTheDocument();
+    });
+
+    it('shows the remaining items after removing every loaded item', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [issueItem, notebookItem],
+        headers: {
+          Link: `<http://localhost/?cursor=${encodeURIComponent(NEXT_CURSOR)}>; rel="next"; results="true"; cursor="${NEXT_CURSOR}"`,
+        },
+      });
+      renderInbox();
+
+      await screen.findByRole('link', {name: /TypeError: Cannot read properties/});
+      // The first page is refetched after the removal and now starts with the next item
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [readNotebookItem],
+      });
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+
+      expect(
+        await screen.findByRole('link', {name: /Checkout latency regression/})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Your inbox is empty')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+      ).not.toBeInTheDocument();
     });
   });
 
