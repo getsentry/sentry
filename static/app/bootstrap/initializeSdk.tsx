@@ -364,7 +364,7 @@ export function initializeSdk(config: Config) {
   if (sentryClient) {
     addUIElementTagToSegmentSpan(sentryClient);
 
-    // Allow configuration to settle before capturing it, as suggested by RFC 0162.
+    // Allow configuration to settle before capturing it.
     setTimeout(() => {
       // Ignore failures in experimental telemetry.
       void reportSdkConfig(sentryClient).catch(() => {});
