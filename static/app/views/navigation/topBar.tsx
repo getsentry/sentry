@@ -23,9 +23,7 @@ import {
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
-import {SearchButton} from './searchButton';
 import {TopBarSlots} from './topBarSlot';
-import {useTopBarActionDisplay} from './useTopBarActionDisplay';
 import {useTopOffset} from './useTopOffset';
 
 type TopBarSlotProps =
@@ -65,7 +63,6 @@ function TopBarContent() {
   const {topBarTop, pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
-  const {isSearchInMobileRow} = useTopBarActionDisplay();
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
@@ -147,7 +144,6 @@ function TopBarContent() {
           </TopBarSlots.Outlet>
 
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
-          {isSearchInMobileRow ? null : <SearchButton />}
 
           <TopBarSlots.Outlet name="feedback">
             {props => (
