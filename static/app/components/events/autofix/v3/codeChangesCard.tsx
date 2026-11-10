@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAutofixCreditsDisabled} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {
@@ -184,6 +185,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [patchesByRepo]);
 
   const showPrIterationForm = hasPRs;
+  // The form starts another PR iteration, the same billable step as the one at
+  // the bottom of the drawer, so it is held on the same check.
+  const prIterationCreditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    enabled: shouldShowReset && showPrIterationForm,
+  });
 
   const rethinkInChat = useRethinkInChat({
     prompt: t('How can this code change be improved?'),
@@ -198,6 +204,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       runId={getAutofixRunId(autofix.runState)}
       referrer="code_changes_card_reset"
       onClose={() => setShouldShowReset(false)}
+      disabled={prIterationCreditsDisabled}
     />
   );
 
