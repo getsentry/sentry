@@ -1028,6 +1028,23 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Forge apps with no Connect predecessor, such as the staging app. Their installs get a
+# Forge-only integration. Installs of any other trusted Forge app are linked to the
+# site's Connect integration, so a missing entry fails safely instead of creating one.
+register(
+    "jira.forge.native-app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Jira integrations whose outbound API calls use their Forge system token instead
+# of the Connect JWT. Forge-only integrations have no Connect secret and always do.
+register(
+    "jira.forge.integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1059,6 +1076,7 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # GCP MCP Integration
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1644,6 +1662,14 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables telemetry classifier enrichment writes to snuba-items.
+register(
+    "telemetry-classifiers.eap-write.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Conversation classifiers PoC.

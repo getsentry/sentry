@@ -1,7 +1,9 @@
+import * as Sentry from '@sentry/react';
 import {createStore} from 'reflux';
 
 import {Client} from 'sentry/api';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -19,13 +21,17 @@ type Subscriptions = Record<string, Subscription>;
 interface Internal {
   api: Client;
   callbacks: Record<string, GetCallback[]>;
-  loadingData: Record<string, boolean>;
+  /**
+   * The error from the most recent failed load, cleared by the next successful one.
+   */
+  errors: Record<string, unknown>;
+  loadingData: Record<string, Promise<void>>;
 }
 
 interface SubscriptionStoreDefintion
   extends StrictStoreDefinition<Subscriptions>, Internal {
   clearStartedTrial: (orgSlug: string) => void;
-  get: (orgSlug: string, callback: GetCallback) => void;
+  get: (orgSlug: string, callback: GetCallback) => Promise<void>;
   loadData: (
     orgSlug: string,
     callback?: null | GetCallback,
@@ -39,12 +45,14 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
   state: {},
   loadingData: {},
   callbacks: {},
+  errors: {},
 
   init() {
     this.api = new Client();
     this.state = {};
     this.loadingData = {};
     this.callbacks = {};
+    this.errors = {};
   },
 
   set(orgSlug: string, data: Partial<Subscription>) {
@@ -66,10 +74,13 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
   get(orgSlug: string, callback: GetCallback) {
     if (this.state[orgSlug]) {
       callback(this.state[orgSlug]);
-      return;
+      return Promise.resolve();
     }
 
-    this.loadData(orgSlug, callback);
+    // Keep this callback queued through failed loads, so work such as page-view
+    // tracking runs late instead of never.
+    (this.callbacks[orgSlug] ??= []).push(callback);
+    return this.loadData(orgSlug);
   },
 
   getState() {
@@ -89,32 +100,54 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
     this.trigger(this.state[orgSlug]);
   },
 
-  async loadData(
-    orgSlug: string,
-    callback?: null | GetCallback,
-    {markStartedTrial} = {}
-  ) {
-    if (this.callbacks[orgSlug] === undefined) {
-      this.callbacks[orgSlug] = [];
+  loadData(orgSlug: string, callback?: null | GetCallback, {markStartedTrial} = {}) {
+    // Concurrent callers share the request so each one can see its outcome.
+    this.loadingData[orgSlug] ??= this.api
+      .requestPromise(`/customers/${orgSlug}/`)
+      .then(
+        (data: Subscription) => {
+          if (markStartedTrial) {
+            data.isTrialStarted = true;
+          }
+          delete this.errors[orgSlug];
+          this.set(orgSlug, data);
+        },
+        (error: unknown) => {
+          // Report the first failure only, not each retry until a load succeeds.
+          if (this.errors[orgSlug] === undefined && isUnseenByBackend(error)) {
+            Sentry.captureException(error);
+          }
+          this.errors[orgSlug] = error;
+        }
+      )
+      .finally(() => {
+        delete this.loadingData[orgSlug];
+      });
+
+    const load = this.loadingData[orgSlug];
+    if (typeof callback !== 'function') {
+      return load;
     }
 
-    if (typeof callback === 'function') {
-      this.callbacks[orgSlug].push(callback);
-    }
-
-    if (this.loadingData[orgSlug]) {
-      return;
-    }
-    this.loadingData[orgSlug] = true;
-
-    const data = await this.api.requestPromise(`/customers/${orgSlug}/`);
-    if (markStartedTrial) {
-      data.isTrialStarted = true;
-    }
-
-    this.set(orgSlug, data);
-    delete this.loadingData[orgSlug];
+    // A callback passed here follows an action, such as an upgrade. Run it only if
+    // this load succeeds, so a later load does not repeat the action's success UI.
+    return load.then(() => {
+      const subscription = this.state[orgSlug];
+      if (this.errors[orgSlug] === undefined && subscription) {
+        callback(subscription);
+      }
+    });
   },
 };
+
+// The backend reports its own errors, so report only failures it cannot see: the
+// request never reached it (no status), or a gateway in front of it failed.
+function isUnseenByBackend(error: unknown) {
+  if (!(error instanceof RequestError)) {
+    return true;
+  }
+  const {status} = error;
+  return status === undefined || status === 0 || (status >= 502 && status <= 504);
+}
 
 export const SubscriptionStore = createStore(subscriptionStoreConfig);

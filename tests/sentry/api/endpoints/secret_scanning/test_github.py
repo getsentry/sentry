@@ -6,6 +6,9 @@ from django.utils import timezone
 
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
@@ -221,3 +224,98 @@ class SecretScanningGitHubTest(TestCase):
         assert "http://baz.testserver/settings/auth-tokens/" in mail.outbox[0].body
         assert "test org token" in mail.outbox[0].body
         assert token.token_hashed in mail.outbox[0].body
+
+
+@control_silo_test
+@override_options({"secret-scanning.github.enable-signature-verification": False})
+class SecretScanningGitHubServiceAccountTokenTest(TestCase):
+    path = reverse("sentry-api-0-secret-scanning-github")
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user.email = "org-owner@example.com"
+        self.user.save()
+        self.token_str = generate_service_account_token(
+            self.organization.slug, "https://test-region.sentry.io"
+        )
+        self.stored = stored_token_fields(self.token_str)
+        service_account = ServiceAccount.objects.create(
+            organization_id=self.organization.id, name="ci", scope_list=["project:read"]
+        )
+        self.token = ServiceAccountToken.objects.create(
+            service_account=service_account,
+            organization_id=self.organization.id,
+            name="deploys",
+            token_hashed=self.stored.token_hashed,
+            token_last_characters=self.stored.token_last_characters,
+            scope_list=["project:read"],
+        )
+
+    def post_alert(self, token_str: str) -> list[dict[str, str]]:
+        payload = [
+            {
+                "source": "commit",
+                "token": token_str,
+                "type": "sentry_service_account_token",
+                "url": "https://example.com/base-repo-url/",
+            }
+        ]
+        with self.tasks():
+            response = self.client.post(self.path, content_type="application/json", data=payload)
+        assert response.status_code == 200
+        return json.loads(response.content.decode("utf-8"))
+
+    @patch("sentry.api.endpoints.secret_scanning.github.logger")
+    def test_true_positive_notifies_org_owners(self, mock_logger: MagicMock) -> None:
+        assert self.post_alert(self.token_str) == [
+            {
+                "token_hash": self.stored.token_hashed,
+                "token_type": "sentry_service_account_token",
+                "label": "true_positive",
+            }
+        ]
+        mock_logger.info.assert_called_with(
+            "found an exposed auth token",
+            extra={
+                "exposed_source": "commit",
+                "exposed_url": "https://example.com/base-repo-url/",
+                "hashed_token": self.stored.token_hashed,
+                "token_type": AuthTokenType.SERVICE_ACCOUNT,
+            },
+        )
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == [self.user.email]
+        assert mail.outbox[0].subject == "[Sentry]Action Required: Service Account Token Exposed"
+        assert "deploys" in mail.outbox[0].body
+        assert f"sntrym_...{self.stored.token_last_characters}" in mail.outbox[0].body
+        assert self.token_str not in mail.outbox[0].body
+
+        self.token.refresh_from_db()
+        assert self.token.date_deactivated is None
+
+    def test_false_positive_revoked_token(self) -> None:
+        self.token.update(date_deactivated=timezone.now())
+
+        assert self.post_alert(self.token_str) == [
+            {
+                "token_hash": self.stored.token_hashed,
+                "token_type": "sentry_service_account_token",
+                "label": "false_positive",
+            }
+        ]
+        assert len(mail.outbox) == 0
+
+    def test_false_positive_unknown_token(self) -> None:
+        unknown = generate_service_account_token(
+            self.organization.slug, "https://test-region.sentry.io"
+        )
+
+        assert self.post_alert(unknown) == [
+            {
+                "token_hash": hash_token(unknown),
+                "token_type": "sentry_service_account_token",
+                "label": "false_positive",
+            }
+        ]
+        assert len(mail.outbox) == 0

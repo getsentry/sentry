@@ -15,6 +15,7 @@ from sentry.shared_integrations.exceptions import (
 MSTEAMS_INVALID_REQUEST_ERROR_CODES = {"BadSyntax", "ConversationNotFound"}
 MSTEAMS_HALT_ERROR_CODES = {
     "BotDisabledByAdmin",
+    "BotNotInConversationRoster",
     "ConversationBlockedByUser",
     "TenantNoPermission",
     "CapabilityOverride",

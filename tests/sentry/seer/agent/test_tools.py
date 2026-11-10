@@ -13,6 +13,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry import nodestore
 from sentry.api.client import client
 from sentry.constants import ObjectStatus
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity
@@ -64,9 +65,12 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
     SpanTestCase,
+    TestCase,
     TraceMetricsTestCase,
 )
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.samples import load_data
@@ -4294,3 +4298,98 @@ class TestGetDsn(APITestCase):
         )
 
         assert get_dsn(organization_id=self.organization.id, project_slug="wordcraft") is None
+
+
+class TestSeerActivityFeed(TestCase):
+    def _activity(self) -> list[dict[str, Any]]:
+        with (
+            patch("sentry.seer.agent.tools._get_issue_event_timeseries", return_value=None),
+            patch("sentry.seer.agent.tools.get_all_tags_overview", return_value=None),
+        ):
+            result = get_issue_details(
+                organization_id=self.organization.id, issue_id=str(self.group.id)
+            )
+        assert result is not None
+        return result["user_activity"]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_gal_context_and_live_comments(self) -> None:
+        app = self.create_sentry_app(organization=self.organization)
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value,
+            datetime=before_now(minutes=3),
+            user_id=self.user.id,
+            data={
+                "text": "edited comment",
+                "mentions": [{"id": self.user.id, "actor_type": "User"}],
+            },
+        )
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            idempotency_key=f"activity:{note.id}",
+            source="mcp:codex",
+            data={"comment_id": note.id, "text": "original comment"},
+        )
+        unlink = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            date_added=note.datetime + timedelta(minutes=1),
+            actor_type=GroupActorType.SENTRY_APP,
+            actor_id=app.id,
+            source="api",
+            data={
+                "service_type": "example",
+                "display_name": "BUG-42",
+                "web_url": "https://example.com/42",
+            },
+        )
+        trigger = self.create_group_action_log_entry(
+            type=GroupActionType.TRIGGER_AUTOFIX,
+            date_added=note.datetime + timedelta(minutes=2),
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source="web",
+            data={"referrer": "issue-details"},
+        )
+        with action_log_activity_enabled():
+            items = self._activity()
+
+        assert [item["type"] for item in items] == [
+            "trigger_autofix",
+            "unlink_platform_external_issue",
+            "note",
+        ]
+        assert items[0]["user"]["id"] == str(self.user.id)
+        assert items[0]["data"] == trigger.data
+        assert items[1]["user"] is None
+        assert items[1]["sentry_app"]["id"] == str(app.id)
+        assert items[1]["source"] == "api"
+        assert items[1]["data"] == unlink.data
+        assert items[2]["source"] == "mcp:codex"
+        assert items[2]["data"]["text"] == "edited comment"
+        assert items[2]["data"]["mentions"][0]["email"] == self.user.email
+
+    def test_gal_filters_before_limit(self) -> None:
+        entries = [
+            self.create_group_action_log_entry(type=GroupActionType.RESOLVE) for _ in range(51)
+        ]
+        for type_, actor_type in (
+            (GroupActionType.TRIGGER_AUTOFIX, GroupActorType.SYSTEM),
+            (GroupActionType.TRIGGER_AUTOFIX, GroupActorType.SENTRY_APP),
+            (GroupActionType.SEER_RCA_COMPLETED, GroupActorType.USER),
+        ):
+            self.create_group_action_log_entry(type=type_, actor_type=actor_type)
+
+        with action_log_activity_enabled():
+            items = self._activity()
+
+        assert [item["id"] for item in items] == [str(entry.id) for entry in reversed(entries[1:])]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_legacy_fallback_only_when_gal_is_unavailable(self) -> None:
+        self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
+        with action_log_activity_enabled():
+            assert [item["type"] for item in self._activity()] == ["set_resolved"]
+            self.create_group_action_log_entry(type=GroupActionType.SEER_RCA_COMPLETED)
+            assert self._activity() == []
+            with self.feature({"projects:issue-action-log-activity": False}):
+                assert [item["type"] for item in self._activity()] == ["set_resolved"]

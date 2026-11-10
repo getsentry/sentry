@@ -55,6 +55,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
+from sentry.seer.autofix.single_run import is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
@@ -536,7 +537,7 @@ def trigger_autofix_agent(
 
         # TEMPORARY: single runs skip "started" notices until they send completion notices too;
         # otherwise the issue would look stuck in progress. Remove with AIML-3809.
-        if not SeerAgentRun.objects.filter(run=feature_run, source=SINGLE_RUN_FEATURE_ID).exists():
+        if not is_single_run_record(feature_run):
             _handle_step_started_events(
                 group,
                 step,
@@ -561,7 +562,11 @@ def trigger_autofix_agent(
         )
 
 
-def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRunState | None:
+def get_autofix_agent_state(
+    organization: Organization,
+    group_id: int,
+    sources: tuple[str, ...] = (FEATURE_ID, SINGLE_RUN_FEATURE_ID),
+) -> SeerRunState | None:
     """
     Get the current state of an agent-based autofix run for a group.
 
@@ -571,10 +576,10 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     client = SeerAgentClient(
         organization=organization,
         user=None,
-        category_key="autofix",
+        category_key=FEATURE_ID,
         category_value=str(group_id),
     )
-    return client.fetch_latest_run_state(group_id=group_id)
+    return client.fetch_latest_run_state(group_id=group_id, sources=sources)
 
 
 def generate_autofix_handoff_prompt(

@@ -2,9 +2,11 @@ from datetime import timedelta
 from unittest import mock
 
 from django.db import connections, router
+from django.db.models import QuerySet
 from django.test.utils import CaptureQueriesContext
 
 from sentry.api.serializers import serialize
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.group import GroupStatus
@@ -17,7 +19,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import DetectorSerializer
-from sentry.workflow_engine.models import Action, DataConditionGroup, Detector
+from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -182,6 +184,25 @@ class TestDetectorSerializer(TestCase):
             "latestGroup": mock.ANY,
         }
 
+    def test_serialize_hides_hidden_workflow_ids(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
+        )
+
+        alert_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=detector, workflow=alert_workflow)
+
+        self.create_detector_workflow(detector=detector, workflow=hidden_workflow)
+
+        result = serialize(detector)
+
+        assert result["workflowIds"] == [str(alert_workflow.id)]
+
     def test_serialize_latest_group(self) -> None:
         detector = self.create_detector(
             project_id=self.project.id, name="Test Detector", type=MetricIssue.slug
@@ -208,10 +229,18 @@ class TestDetectorSerializer(TestCase):
             name="Migrated Detector",
             type=MetricIssue.slug,
             config={
-                "detection_type": "static",
+                "detection_type": "percent",
                 "comparison_delta": 3600,
             },
         )
+        # Use Django's `update()` directly, since `Detector.objects` would reject the
+        # `detection_type`/`comparison_delta` mismatch
+        QuerySet.update(
+            Detector.objects.filter(id=detector.id),
+            config={"detection_type": "static", "comparison_delta": 3600},
+        )
+        detector.refresh_from_db()
+
         result = serialize(detector)
         assert result["config"]["detectionType"] == "percent"
         assert result["config"]["comparisonDelta"] == 3600
@@ -224,6 +253,29 @@ class TestDetectorSerializer(TestCase):
         )
         result = serialize(detector)
         assert result["config"]["detectionType"] == "static"
+
+    def test_serialize_error_detector_project_options(self) -> None:
+        # Shift the detector ids so they can't match the project ids by accident.
+        self.create_detector(project=self.project, type=MetricIssue.slug)
+        projects = [self.create_project(), self.create_project()]
+        detectors = [
+            self.create_detector(project=project, type=ErrorGroupType.slug) for project in projects
+        ]
+        assert all(detector.id != project.id for detector, project in zip(detectors, projects))
+        projects[0].update_option("sentry:resolve_age", 24)
+        projects[1].update_option("sentry:resolve_age", 48)
+        projects[1].update_option("sentry:fingerprinting_rules", "message:foo -> bar")
+        # A detector of another type in the same project keeps its own config.
+        metric_detector = self.create_detector(project=projects[0], type=MetricIssue.slug)
+
+        result = serialize([*detectors, metric_detector])
+
+        assert result[0]["config"] == {"sentry:resolveAge": 24}
+        assert result[1]["config"] == {
+            "sentry:resolveAge": 48,
+            "sentry:fingerprintingRules": "message:foo -> bar",
+        }
+        assert result[2]["config"] == {"detectionType": "static"}
 
     def test_serialize_bulk(self) -> None:
         detectors = [

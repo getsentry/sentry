@@ -14,6 +14,8 @@ import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplo
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
+
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
@@ -37,17 +39,19 @@ export function AutofixStartCard({
 
   const [startingRun, setStartingRun] = useState(false);
   const isStarting = startingRun || autofix.isWaitingForRun;
+  const openSingleRunChat = useOpenSingleRunChat();
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    try {
-      await startStep('root_cause');
-    } catch {
+    const run = await startStep('root_cause').catch(() => null);
+    setStartingRun(false);
+    if (!run) {
       return;
-      // oxlint-disable-next-line react/todo
-    } finally {
-      setStartingRun(false);
     }
-    onStarted?.();
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
+    } else {
+      onStarted?.();
+    }
   };
 
   return (

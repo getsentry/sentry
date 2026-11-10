@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.flag_examples import FlagExamples
 from sentry.apidocs.parameters import CursorQueryParam, FlagParams, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -41,22 +42,35 @@ from sentry.users.services.user.model import RpcUser
 
 
 class FlagAuditLogModelSerializerResponse(TypedDict):
-    id: int
-    action: Literal["created", "deleted", "updated"]
-    createdAt: str
-    createdBy: str | None
-    createdByType: Literal["email", "id", "name"] | None
-    flag: str
-    provider: ProviderName | None
-    tags: dict[str, Any]
+    id: Annotated[int, ApiDescription("ID of the audit log entry")]
+    action: Annotated[
+        Literal["created", "deleted", "updated"],
+        ApiDescription("What happened to the flag: created, deleted or updated"),
+    ]
+    createdAt: Annotated[str, ApiDescription("When the change happened (ISO 8601)")]
+    createdBy: Annotated[
+        str | None, ApiDescription("Who made the change, such as an email address")
+    ]
+    createdByType: Annotated[
+        Literal["email", "id", "name"] | None,
+        ApiDescription("Kind of value in createdBy: email, id or name"),
+    ]
+    flag: Annotated[str, ApiDescription("Name of the flag")]
+    provider: Annotated[
+        ProviderName | None,
+        ApiDescription(
+            "Feature flag provider that sent the change: generic, flagpole, launchdarkly, unleash or statsig"
+        ),
+    ]
+    tags: Annotated[dict[str, Any], ApiDescription("Tags of the change, such as the environment")]
 
 
 class FlagLogIndexResponse(TypedDict):
-    data: list[FlagAuditLogModelSerializerResponse]
+    data: Annotated[list[FlagAuditLogModelSerializerResponse], ApiDescription("Audit log entries")]
 
 
 class FlagLogDetailsResponse(TypedDict):
-    data: FlagAuditLogModelSerializerResponse
+    data: Annotated[FlagAuditLogModelSerializerResponse, ApiDescription("The audit log entry")]
 
 
 @register(FlagAuditLogModel)

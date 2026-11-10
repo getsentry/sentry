@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import {IconSliders} from '@sentry/icons/sliders';
-import {mutationOptions, useQueryClient} from '@tanstack/react-query';
+import {useQuery, mutationOptions, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
@@ -15,8 +15,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -36,15 +37,18 @@ export type Subscription = {
   unsubscribedDate: string | null;
 };
 
+const subscriptionsOptions = apiOptions.as<Subscription[]>()(
+  '/users/$userId/subscriptions/',
+  {path: {userId: 'me'}, staleTime: 2 * 60 * 1000}
+);
+
 function AccountSubscriptions() {
   const {
     data: subscriptions = [],
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Subscription[]>([ENDPOINT], {
-    staleTime: 2 * 60 * 1000,
-  });
+  } = useQuery(subscriptionsOptions);
 
   const queryClient = useQueryClient();
 
@@ -119,15 +123,17 @@ function AccountSubscriptions() {
                       toast.success(
                         `${variables.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
                       );
-                      setApiQueryData<Subscription[]>(
-                        queryClient,
-                        [ENDPOINT],
-                        cachedSubs =>
-                          cachedSubs?.map(sub =>
-                            sub.listId === subscription.listId
-                              ? {...sub, ...variables}
-                              : sub
-                          )
+                      queryClient.setQueryData(subscriptionsOptions.queryKey, response =>
+                        response?.json
+                          ? {
+                              ...response,
+                              json: response.json.map(sub =>
+                                sub.listId === subscription.listId
+                                  ? {...sub, ...variables}
+                                  : sub
+                              ),
+                            }
+                          : response
                       );
                     },
                     onError: () => {
