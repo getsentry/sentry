@@ -1,0 +1,73 @@
+---
+title: Document Composer
+description: A spike for versioned comment documents with editable text and React-rendered references.
+category: forms
+source: '@sentry/scraps/composer/document'
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {DocumentComposerDemo} from 'sentry/components/core/composer/__stories__/documentDemos';
+
+export const documentation = import('!!type-loader!@sentry/scraps/composer/document');
+
+This experimental editor explores a small comment document model independently of the existing Composer. The public value is a versioned tree. Lexical nodes, selections, commands, and serialized state stay private.
+
+## Edit a comment document
+
+The example includes editable text and formatting, mentions, an issue reference, a quote, a code block, and an attachment reference. The mention and reference buttons are real React components: clicking them replaces the corresponding node. Save and restore uses local browser storage; no comment is sent to a server.
+
+<Storybook.Demo overflow="visible" align="start">
+  <DocumentComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const editor = useRef(null);
+const [document, setDocument] = useState({
+  version: 1,
+  blocks: [
+    {
+      type: 'paragraph',
+      children: [
+        {type: 'text', text: 'Hi ', marks: []},
+        {type: 'mention', actorType: 'user', id: 'user-1', label: 'Alice'},
+      ],
+    },
+  ],
+});
+
+<DocumentComposer
+  ref={editor}
+  aria-label="Comment"
+  value={document}
+  onChange={setDocument}
+  onFilesDrop={queueUploads}
+  renderMention={(mention, actions) => (
+    <MentionSelector
+      mention={mention}
+      onChange={actions.replace}
+      onRemove={actions.remove}
+    />
+  )}
+/>;
+```
+
+## Components and handlers
+
+`renderMention`, `renderReference`, and `renderAttachment` receive typed document nodes and `replace` / `remove` actions. Their content is atomic; editable text remains owned by the editor. The ref provides domain commands for text marks, paragraph/quote/code-block conversion, and inserting references or attachments.
+
+Converting a paragraph to code turns its inline mentions and references into literal labels; undo restores their identities. Inserting or pasting rich references while inside code keeps them outside the code block.
+
+Uploads, pending files, and the attachments bar remain application state. Only completed attachment references enter the document. The example's Insert button simulates completion without uploading the file. Attachment nodes store a durable ID, name, and media type; download URLs and upload credentials are not persisted in the document.
+
+Copy and cut write a validated, versioned document fragment to a Composer clipboard MIME type, alongside readable fallbacks. Structured paste preserves reference and attachment identity and is one undoable operation. Selection serialization copies the selected content rather than the whole document.
+
+## Markdown codec experiment
+
+`documentToMarkdown`, `documentFromMarkdown`, and `documentToPlainText` are explicit serialization boundaries. Common text marks, paragraph text, single-level quotes, and fenced code blocks use ordinary Markdown. Identity-bearing nodes use the existing Markdown tag tokenizer with JSON payloads. This reuses the syntax without depending on Seer's widget registry, application data, or tracking.
+
+The identity syntax is provisional. The spike tests whether this existing encoding can carry a comment document, rather than establish it as the final storage protocol.
+
+Supported node combinations must round-trip semantically. Export throws when Markdown cannot represent a particular document without changing it; it does not silently flatten the document or hide the whole tree in a JSON tag. The example shows the error as status text. Markdown spelling and delimiter choices can normalize during successful export.
+
+Unsupported input, including unknown tags and unsupported block structure, is preserved as a raw-source document. It is opaque in the editor. Lists, tables, nested quotes, exact Markdown source editing, and migration of existing issue comments are outside this spike.

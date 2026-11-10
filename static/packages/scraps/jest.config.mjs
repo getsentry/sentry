@@ -24,7 +24,7 @@ const config = {
   },
   // Compile ESM dependencies for the CommonJS test runtime.
   transformIgnorePatterns: [
-    '/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@|lexical@|@lexical\\+|@preact\\+signals-core)',
+    '/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@|lexical@|@lexical\\+|@preact\\+signals-core|marked@)',
   ],
   clearMocks: true,
 };
