@@ -65,13 +65,6 @@ const getQueryParams = (notificationType: string) => {
   return {type: notificationType};
 };
 
-const getNotificationOptions = (notificationType: string) =>
-  apiOptions.as<NotificationOptionsObject[]>()('/users/$userId/notification-options/', {
-    path: {userId: 'me'},
-    query: getQueryParams(notificationType),
-    staleTime: 30_000,
-  });
-
 /**
  * Converts legacy tuple choices `[value, label]` to options `{value, label}` for Select.
  */
@@ -135,13 +128,16 @@ function DefaultNotificationField({
 export function NotificationSettingsByType({notificationType}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
   const queryClient = useQueryClient();
+  const notificationOptions = apiOptions.as<NotificationOptionsObject[]>()(
+    '/users/$userId/notification-options/',
+    {path: {userId: 'me'}, query: getQueryParams(notificationType), staleTime: 30_000}
+  );
   const providerOptions = apiOptions.as<NotificationProvidersObject[]>()(
     '/users/$userId/notification-providers/',
     {path: {userId: 'me'}, query: getQueryParams(notificationType), staleTime: 30_000}
   );
-  const {data: notificationOptions = [], status: notificationOptionStatus} = useQuery(
-    getNotificationOptions(notificationType)
-  );
+  const {data: notificationOptionData = [], status: notificationOptionStatus} =
+    useQuery(notificationOptions);
   const {data: notificationProviders = [], status: notificationProviderStatus} =
     useQuery(providerOptions);
   const {data: allIdentities = [], status: identitiesStatus} = useQuery(
@@ -184,7 +180,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   };
 
   const getInitialTopOptionData = (): Record<string, string> => {
-    const matchedOption = notificationOptions.find(
+    const matchedOption = notificationOptionData.find(
       option => option.type === notificationType && option.scopeType === 'user'
     );
     // if no match, fall back to the
@@ -203,7 +199,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     const childTypes = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
       childTypes.map(childType => {
-        const childMatchedOption = notificationOptions.find(
+        const childMatchedOption = notificationOptionData.find(
           option => option.type === childType && option.scopeType === 'user'
         );
         return [childType, childMatchedOption ? childMatchedOption.value : defaultValue];
@@ -277,17 +273,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
         }),
       }),
     onSuccess: (_, id) => {
-      queryClient.setQueryData(
-        getNotificationOptions(notificationType).queryKey,
-        response =>
-          response?.json
-            ? {
-                ...response,
-                json: response.json.filter(
-                  option => option.id.toString() !== id.toString()
-                ),
-              }
-            : response
+      queryClient.setQueryData(notificationOptions.queryKey, response =>
+        response?.json
+          ? {
+              ...response,
+              json: response.json.filter(
+                option => option.id.toString() !== id.toString()
+              ),
+            }
+          : response
       );
     },
   });
@@ -301,14 +295,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
         data,
       }),
     onSuccess: notificationOption => {
-      queryClient.setQueryData(
-        getNotificationOptions(notificationType).queryKey,
-        response => ({
-          ...response,
-          headers: response?.headers ?? {},
-          json: [...(response?.json ?? []), notificationOption],
-        })
-      );
+      queryClient.setQueryData(notificationOptions.queryKey, response => ({
+        ...response,
+        headers: response?.headers ?? {},
+        json: [...(response?.json ?? []), notificationOption],
+      }));
     },
   });
 
@@ -322,17 +313,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
       }),
     onSuccess: notificationOption => {
       // Replace the item in state
-      queryClient.setQueryData(
-        getNotificationOptions(notificationType).queryKey,
-        response =>
-          response?.json
-            ? {
-                ...response,
-                json: response.json.map(option =>
-                  option.id === notificationOption.id ? notificationOption : option
-                ),
-              }
-            : response
+      queryClient.setQueryData(notificationOptions.queryKey, response =>
+        response?.json
+          ? {
+              ...response,
+              json: response.json.map(option =>
+                option.id === notificationOption.id ? notificationOption : option
+              ),
+            }
+          : response
       );
       toast.success(t('Updated notification setting'));
     },
@@ -381,18 +370,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
         }),
       onSuccess: notificationOption => {
         trackTuningUpdated('general');
-        queryClient.setQueryData(
-          getNotificationOptions(notificationType).queryKey,
-          response => {
-            const existing = response?.json ?? [];
-            const json = existing.some(opt => opt.id === notificationOption.id)
-              ? existing.map(opt =>
-                  opt.id === notificationOption.id ? notificationOption : opt
-                )
-              : [...existing, notificationOption];
-            return {...response, headers: response?.headers ?? {}, json};
-          }
-        );
+        queryClient.setQueryData(notificationOptions.queryKey, response => {
+          const existing = response?.json ?? [];
+          const json = existing.some(opt => opt.id === notificationOption.id)
+            ? existing.map(opt =>
+                opt.id === notificationOption.id ? notificationOption : opt
+              )
+            : [...existing, notificationOption];
+          return {...response, headers: response?.headers ?? {}, json};
+        });
       },
     });
 
@@ -507,7 +493,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {notificationType === 'reports' ? (
         <WeeklyReportProjectExclusions
           organizations={organizations}
-          notificationOptions={notificationOptions}
+          notificationOptions={notificationOptionData}
           handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
           handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
           handleEditNotificationOption={option =>
@@ -517,7 +503,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ) : (
         <NotificationSettingsByEntity
           notificationType={notificationType}
-          notificationOptions={notificationOptions}
+          notificationOptions={notificationOptionData}
           organizations={organizations}
           handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
           handleAddNotificationOption={option => addNotificationMutation.mutate(option)}

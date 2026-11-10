@@ -51,13 +51,13 @@ interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
   organizations: string[];
 }
 
+const mergeAccountsOptions = apiOptions.as<UserWithOrganizations[]>()(
+  '/auth-v2/merge-accounts/',
+  {staleTime: 0}
+);
+
 function MergeAccounts() {
-  const {
-    data: users = [],
-    isPending,
-    isError,
-    refetch,
-  } = useQuery(mergeAccountsOptions());
+  const {data: users = [], isPending, isError, refetch} = useQuery(mergeAccountsOptions);
   const user = useUser();
   const queryClient = useQueryClient();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -95,7 +95,7 @@ function MergeAccounts() {
     onSuccess: data => {
       toast.success(t('Accounts merged!'));
       setSelectedUserIds([]);
-      queryClient.setQueryData(mergeAccountsOptions().queryKey, response => ({
+      queryClient.setQueryData(mergeAccountsOptions.queryKey, response => ({
         ...response,
         headers: response?.headers ?? {},
         json: data,
@@ -218,12 +218,6 @@ function MergeAccounts() {
 }
 
 export default MergeAccounts;
-
-function mergeAccountsOptions() {
-  return apiOptions.as<UserWithOrganizations[]>()('/auth-v2/merge-accounts/', {
-    staleTime: 0,
-  });
-}
 
 type AccountSelectionProps = {
   onSelect: (newUserId: string) => void;

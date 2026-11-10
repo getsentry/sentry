@@ -22,13 +22,13 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {UserEmail} from 'sentry/types/user';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {emailsOptions} from './emailsOptions';
 
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
@@ -47,7 +47,7 @@ function AccountEmails() {
         data,
       }),
     onSuccess: response => {
-      queryClient.invalidateQueries({queryKey: emailsOptions().queryKey});
+      queryClient.invalidateQueries({queryKey: emailsOptions.queryKey});
       if (response?.detail) {
         toast.success(response.detail);
       }
@@ -125,13 +125,6 @@ function AccountEmails() {
 
 export default AccountEmails;
 
-function emailsOptions() {
-  return apiOptions.as<UserEmail[]>()('/users/$userId/emails/', {
-    path: {userId: 'me'},
-    staleTime: 0,
-  });
-}
-
 export function EmailAddresses() {
   const api = useApi();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -140,7 +133,7 @@ export function EmailAddresses() {
     isPending,
     isError,
     refetch,
-  } = useQuery({...emailsOptions(), gcTime: 0});
+  } = useQuery({...emailsOptions, gcTime: 0});
 
   if (isPending || isUpdating) {
     return (

@@ -34,7 +34,7 @@ import {
   permissionStateToList,
 } from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
-import {apiTokensOptions} from './apiTokenOptions';
+import {apiTokensOptions} from './apiTokensOptions';
 import {
   GranularPermissionSelection,
   granularPermissionsToScopes,

@@ -26,7 +26,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
-import {apiTokensOptions} from './apiTokenOptions';
+import {apiTokensOptions} from './apiTokensOptions';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 

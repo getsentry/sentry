@@ -17,8 +17,8 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import {apiTokensOptions} from './apiTokenOptions';
 import {ApiTokenRow} from './apiTokenRow';
+import {apiTokensOptions} from './apiTokensOptions';
 
 const PAGE_TITLE = t('Personal Tokens');
 

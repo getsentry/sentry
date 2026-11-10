@@ -20,7 +20,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
-import type {UserEmail} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -30,6 +29,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './notifications/fields';
 import {OrganizationSelectHeader} from './notifications/organizationSelectHeader';
 import {groupByOrganization} from './notifications/utils';
+import {emailsOptions} from './emailsOptions';
 
 type EmailSelectOption = {label: string; value: string};
 
@@ -139,12 +139,7 @@ export function AccountNotificationFineTuning() {
     data: emails = [],
     isPending: isPendingEmails,
     isError: isErrorEmails,
-  } = useQuery(
-    apiOptions.as<UserEmail[]>()('/users/$userId/emails/', {
-      path: {userId: 'me'},
-      staleTime: 0,
-    })
-  );
+  } = useQuery(emailsOptions);
   const {
     data: emailsByProject,
     isPending: isPendingEmailsByProject,
