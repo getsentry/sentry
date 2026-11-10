@@ -730,6 +730,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=1175,
+        name="SEER_PROJECT_REPOSITORIES_UPDATE",
+        api_name="seer-project-repositories.update",
+        template="updated Seer repository configurations for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=219,
         name="DASHBOARD_ADD",
         api_name="dashboard.create",
