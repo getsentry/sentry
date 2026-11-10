@@ -2,8 +2,10 @@ import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {withForm} from '@sentry/scraps/form';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {ENRICHMENT_ATTRIBUTE_PREFIX} from 'sentry/views/classifiers/utils';
 
 import {WizardBody, WizardFooter, WizardStep} from './wizardLayout';
 
@@ -35,7 +37,15 @@ export const ClassifierDetailsStep = withForm({
                   )}
                   required
                 >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    leadingItems={
+                      <Text monospace variant="muted">
+                        {ENRICHMENT_ATTRIBUTE_PREFIX}
+                      </Text>
+                    }
+                  />
                 </field.Layout.Stack>
               )}
             </form.AppField>
