@@ -1,27 +1,48 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator, validate_ipv46_address
 from tldextract import TLDExtract
-from tldextract.tldextract import ExtractResult
+from tldextract.suffix_list import extract_tlds_from_suffix_list
+from tldextract.tldextract import ExtractResult, _PublicSuffixListTLDExtractor
 
 if TYPE_CHECKING:
-    pass
+    import requests
 
 url_validator = URLValidator()
 
-# Configure TLDExtract to not make external calls and just use a local snapshot of tld data.
-# Since this is instantiated at import time we don't want to make any external calls as
-# this could result in slow startup time or an error that prevents the server from starting.
-# We also don't want to be fetching this list from an unknown external source.
-extractor = TLDExtract(
-    cache_dir=None,
-    suffix_list_urls=(),
-    fallback_to_snapshot=True,
-)
+PUBLIC_SUFFIX_LIST_PATH = Path(__file__).parent / "public_suffix_list.dat"
+
+
+class _LocalListTLDExtract(TLDExtract):
+    """
+    Reads our copy of the public suffix list on the first extract call. tldextract's bundled
+    snapshot is only as new as its last release, and the update-public-suffix-list workflow
+    refreshes our copy each week.
+    """
+
+    # tldextract can read a file:// suffix list URL itself, but it leaves the file open.
+    def _get_tld_extractor(
+        self, session: requests.Session | None = None
+    ) -> _PublicSuffixListTLDExtractor:
+        if self._extractor is None:
+            public_tlds, private_tlds = extract_tlds_from_suffix_list(
+                PUBLIC_SUFFIX_LIST_PATH.read_text(encoding="utf-8")
+            )
+            self._extractor = _PublicSuffixListTLDExtractor(
+                public_tlds=public_tlds,
+                private_tlds=private_tlds,
+                extra_tlds=list(self.extra_suffixes),
+                include_psl_private_domains=self.include_psl_private_domains,
+            )
+        return self._extractor
+
+
+extractor = _LocalListTLDExtract(cache_dir=None, suffix_list_urls=())
 
 
 def extract_base_url(url: str | None) -> str | None:
