@@ -472,9 +472,7 @@ def build_sentry_convention_context(
     if metadata.is_in_otel:
         context["isInOtel"] = True
 
-    scrubbing: TraceItemAttributeScrubbing = {
-        "mode": _scrubbing_mode(metadata.apply_scrubbing.key)
-    }
+    scrubbing: TraceItemAttributeScrubbing = {"mode": _scrubbing_mode(metadata.apply_scrubbing.key)}
     if metadata.apply_scrubbing.reason is not None:
         scrubbing["reason"] = metadata.apply_scrubbing.reason
     context["applyScrubbing"] = scrubbing
