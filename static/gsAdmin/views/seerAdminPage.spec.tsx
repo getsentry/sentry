@@ -217,10 +217,63 @@ describe('SyntheticMetricBreachForm', () => {
     });
   });
 
-  it('searches the selected cell and loads more organizations', async () => {
+  it('defaults to the sentry organization and loads its monitors', async () => {
+    const defaultOrganization = OrganizationFixture({
+      id: '789',
+      slug: 'sentry',
+      name: 'Default organization',
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchQuery({query: 'slug:sentry', per_page: 1})],
+      body: [defaultOrganization],
+    });
+    const monitors = MockApiClient.addMockResponse({
+      url: '/organizations/sentry/detectors/',
+      body: [monitor],
+    });
+    render(<SyntheticMetricBreachForm />);
+
+    expect(await screen.findByText('Default organization (sentry)')).toBeInTheDocument();
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      'Checkout latency (Project ID: 7, Monitor ID: 42)'
+    );
+    expect(monitors).toHaveBeenCalledWith(
+      '/organizations/sentry/detectors/',
+      expect.objectContaining({host: 'https://us.example.com'})
+    );
+    expect(screen.getByRole('button', {name: 'Create test breach'})).toBeEnabled();
+  });
+
+  it('keeps an explicit selection when the default organization arrives late', async () => {
+    const response = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchQuery({query: 'slug:sentry'})],
+      asyncDelay: response.promise,
+      body: [OrganizationFixture({id: '789', slug: 'sentry'})],
+    });
+    render(<SyntheticMetricBreachForm />);
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Test organization (test-org)'
+    );
+    await act(async () => {
+      response.resolve();
+      await response.promise;
+    });
+
+    expect(screen.getByText('Test organization (test-org)')).toBeInTheDocument();
+    expect(screen.queryByText(/\(sentry\)/)).not.toBeInTheDocument();
+  });
+
+  it('sorts by members and promotes an exact slug match loaded on a later page', async () => {
     const firstPage = MockApiClient.addMockResponse({
       url: '/_admin/cells/eu/customers/',
-      match: [MockApiClient.matchQuery({query: 'Test', cursor: undefined})],
+      match: [MockApiClient.matchQuery({query: 'TEST-ORG', cursor: undefined})],
       body: [otherOrganization],
       headers: {
         Link: '<https://eu.example.com/api/0/_admin/cells/eu/customers/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
@@ -228,22 +281,26 @@ describe('SyntheticMetricBreachForm', () => {
     });
     const nextPage = MockApiClient.addMockResponse({
       url: '/_admin/cells/eu/customers/',
-      match: [MockApiClient.matchQuery({query: 'Test', cursor: '0:50:0'})],
+      match: [MockApiClient.matchQuery({query: 'TEST-ORG', cursor: '0:50:0'})],
       body: [organization],
     });
     render(<SyntheticMetricBreachForm />);
 
     await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'TEST-ORG');
     expect(await screen.findByText('Other organization (other-org)')).toBeInTheDocument();
     expect(firstPage).toHaveBeenCalledWith(
       '/_admin/cells/eu/customers/',
       expect.objectContaining({
         host: 'https://eu.example.com',
-        query: {query: 'Test', per_page: 50, cursor: undefined},
+        query: {query: 'TEST-ORG', per_page: 50, sortBy: 'members', cursor: undefined},
       })
     );
     await userEvent.click(screen.getByRole('button', {name: 'Load more organizations'}));
+    expect(await screen.findByText('Test organization (test-org)')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('menuitemradio').map(option => option.textContent)
+    ).toEqual(['Test organization (test-org)', 'Other organization (other-org)']);
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Organization'}),
       'Test organization (test-org)'
@@ -252,7 +309,7 @@ describe('SyntheticMetricBreachForm', () => {
       '/_admin/cells/eu/customers/',
       expect.objectContaining({
         host: 'https://eu.example.com',
-        query: {query: 'Test', per_page: 50, cursor: '0:50:0'},
+        query: {query: 'TEST-ORG', per_page: 50, sortBy: 'members', cursor: '0:50:0'},
       })
     );
     expect(
