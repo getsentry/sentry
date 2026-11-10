@@ -177,9 +177,8 @@ detector = {
         "organizationId": "1",
         "logicType": "any",
         "conditions": [
-            {"id": "4228102", "type": "gt", "comparison": 1, "conditionResult": 50},
-            {"id": "4228104", "type": "gt", "comparison": 2, "conditionResult": 75},
-            {"id": "4228106", "type": "lte", "comparison": 1, "conditionResult": 0},
+            {"id": "4228104", "type": "gt", "comparison": 8, "conditionResult": 75},
+            {"id": "4228106", "type": "lte", "comparison": 3, "conditionResult": 0},
         ],
         "actions": [],
     },
@@ -201,7 +200,7 @@ open_periods = {
     ],
     "openPeriods": [
         {
-            "id": "551505189",  # this ID renders on the vertical line indicating the beginning of an open period
+            "id": "551505189",
             "start": "2022-04-21T20:29:34.982805Z",
             "end": None,
             "isOpen": True,
@@ -210,7 +209,7 @@ open_periods = {
                 {
                     "id": "51146949",
                     "type": "opened",
-                    "value": "medium",
+                    "value": "high",
                     "dateCreated": "2022-04-21T20:29:34.982805Z",
                 }
             ],
