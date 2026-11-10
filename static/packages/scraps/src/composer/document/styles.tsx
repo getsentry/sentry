@@ -21,6 +21,10 @@ export const DocumentEditor = styled(Prose.withComponent(ComposerEditor))`
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
+  & > [data-document-atom='attachment'] {
+    margin-bottom: ${p => p.theme.space['2xl']};
+  }
+
   /* Lexical code blocks use bare code elements rather than pre > code. */
   && > code.language-block {
     display: block;

@@ -1,8 +1,8 @@
 import {useRef, useState} from 'react';
 import {IconAttachment} from '@sentry/icons/attachment';
 import {IconIssues} from '@sentry/icons/issues';
-import {IconUser} from '@sentry/icons/user';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {
   DocumentComposer,
@@ -11,6 +11,9 @@ import {
   parseComposerDocument,
   type ComposerDocument,
   type DocumentComposerHandle,
+  type DocumentMention,
+  type DocumentReference,
+  type DocumentSuggestionSource,
 } from '@sentry/scraps/composer/document';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -18,9 +21,43 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 const SAVED_DRAFT_KEY = 'scraps-composer-document-spike';
+const PEOPLE: readonly DocumentMention[] = [
+  {type: 'mention', actorType: 'user', id: 'user-1', label: 'Alice'},
+  {type: 'mention', actorType: 'user', id: 'user-2', label: 'Bob'},
+];
+const ISSUES: readonly DocumentReference[] = [
+  {type: 'reference', kind: 'issue', id: 'issue-42', label: 'WEB-42'},
+  {type: 'reference', kind: 'issue', id: 'issue-99', label: 'WEB-99'},
+];
+const MENTION_SOURCE = {
+  getSuggestions: query =>
+    PEOPLE.filter(person => person.label.toLowerCase().includes(query.toLowerCase())),
+  renderSuggestion: person => (
+    <Flex gap="sm" align="center">
+      <UserAvatar size={20} user={{id: person.id, name: person.label, type: 'user'}} />
+      <Text tabular>@{person.label}</Text>
+    </Flex>
+  ),
+} satisfies DocumentSuggestionSource<DocumentMention>;
+const REFERENCE_SOURCE = {
+  getSuggestions: query =>
+    ISSUES.filter(issue => issue.label.toLowerCase().includes(query.toLowerCase())),
+  renderSuggestion: issue => (
+    <Flex gap="sm" align="center">
+      <IconIssues size="xs" />
+      <Text tabular>{issue.label}</Text>
+    </Flex>
+  ),
+} satisfies DocumentSuggestionSource<DocumentReference>;
 const INITIAL_DOCUMENT: ComposerDocument = {
   version: 1,
   blocks: [
+    {
+      type: 'attachment',
+      id: 'attachment-1',
+      name: 'console.txt',
+      mediaType: 'text/plain',
+    },
     {
       type: 'paragraph',
       children: [
@@ -42,12 +79,6 @@ const INITIAL_DOCUMENT: ComposerDocument = {
       type: 'codeBlock',
       language: 'typescript',
       text: 'await retry(() => fetchReport());',
-    },
-    {
-      type: 'attachment',
-      id: 'attachment-1',
-      name: 'console.txt',
-      mediaType: 'text/plain',
     },
   ],
 };
@@ -160,33 +191,10 @@ export function DocumentComposerDemo() {
             <Button size="sm" onClick={() => editor.current?.setBlockType('codeBlock')}>
               Code block
             </Button>
-            <Button
-              size="sm"
-              onClick={() =>
-                editor.current?.insertMention({
-                  type: 'mention',
-                  actorType: 'user',
-                  id: 'user-2',
-                  label: 'Bob',
-                })
-              }
-            >
-              Insert mention
-            </Button>
-            <Button
-              size="sm"
-              onClick={() =>
-                editor.current?.insertReference({
-                  type: 'reference',
-                  kind: 'issue',
-                  id: 'issue-99',
-                  label: 'WEB-99',
-                })
-              }
-            >
-              Insert reference
-            </Button>
           </Flex>
+          <Text id="document-composer-hint" size="sm" variant="muted">
+            Type @ to mention someone or # to reference an issue.
+          </Text>
           {pendingFiles.length > 0 && (
             <Flex gap="sm" wrap="wrap" aria-label="Pending attachments">
               {pendingFiles.map((file, index) => (
@@ -254,13 +262,22 @@ export function DocumentComposerDemo() {
           <DocumentComposer
             ref={editor}
             aria-label="Comment document"
+            aria-describedby="document-composer-hint"
             value={value}
             onChange={setValue}
+            mentionSource={MENTION_SOURCE}
+            referenceSource={REFERENCE_SOURCE}
             onFilesDrop={queueFiles}
             renderMention={(mention, actions) => (
               <Button
-                icon={<IconUser size="xs" />}
+                icon={
+                  <UserAvatar
+                    size={14}
+                    user={{id: mention.id, name: mention.label, type: 'user'}}
+                  />
+                }
                 size="zero"
+                variant="transparent"
                 aria-label={`Change mention ${mention.label}`}
                 onClick={() =>
                   actions.replace({

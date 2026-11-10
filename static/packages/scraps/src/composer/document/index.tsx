@@ -15,4 +15,5 @@ export type {
   DocumentComposerHandle,
   DocumentComposerProps,
   DocumentNodeActions,
+  DocumentSuggestionSource,
 } from './types';

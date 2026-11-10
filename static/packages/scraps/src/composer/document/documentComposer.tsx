@@ -69,6 +69,7 @@ import {composerDocumentSchema, parseComposerDocument, type DocumentAtom} from '
 import {$createDocumentAtom, DocumentAtomNode, DocumentRenderersContext} from './nodes';
 import {DocumentEditor} from './styles';
 import type {DocumentComposerProps} from './types';
+import {useDocumentSuggestions} from './useDocumentSuggestions';
 
 const MIME = 'application/x-sentry-composer-document';
 const VALUE_SYNC = 'document-composer-value-sync';
@@ -115,9 +116,15 @@ export function DocumentComposer({
   renderMention,
   renderReference,
   renderAttachment,
+  mentionSource,
+  referenceSource,
   ref,
   onKeyDown,
   onKeyDownCapture,
+  onBlur,
+  onFocus,
+  onCompositionStart,
+  onCompositionEnd,
   ...props
 }: DocumentComposerProps) {
   const [editor] = useState(() => {
@@ -136,6 +143,12 @@ export function DocumentComposer({
     return instance;
   });
   const rootRef = useRef<HTMLDivElement>(null);
+  const suggestions = useDocumentSuggestions({
+    editor,
+    inputRef: rootRef,
+    mentionSource,
+    referenceSource,
+  });
   const historyRef = useRef<ReturnType<typeof createEmptyHistoryState> | null>(null);
   const [reportVersion, reportChanged] = useReducer(count => count + 1, 0);
   const lastReported = useRef(JSON.stringify(parseComposerDocument(value)));
@@ -188,6 +201,8 @@ export function DocumentComposer({
         KEY_DOWN_COMMAND,
         event =>
           event.defaultPrevented ||
+          event.isComposing ||
+          event.keyCode === 229 ||
           (event.target instanceof Element &&
             Boolean(event.target.closest('input, textarea, select, button'))),
         COMMAND_PRIORITY_CRITICAL
@@ -357,7 +372,7 @@ export function DocumentComposer({
           }
           const atom = $createDocumentAtom(node);
           if (!atom.isInline()) {
-            $insertNodeToNearestRoot(atom);
+            $getRoot().splice(0, 0, [atom]);
             return;
           }
           const selection = $getSelection();
@@ -403,11 +418,28 @@ export function DocumentComposer({
     <Container position="relative" width="100%">
       <DocumentEditor
         {...props}
+        {...(mentionSource || referenceSource ? suggestions.ariaProps : {})}
         ref={rootRef}
-        role="textbox"
+        role={mentionSource || referenceSource ? 'combobox' : 'textbox'}
         aria-multiline="true"
         contentEditable
         suppressContentEditableWarning
+        onBlur={(event: React.FocusEvent<HTMLDivElement>) => {
+          onBlur?.(event);
+          suggestions.onBlur(event);
+        }}
+        onFocus={(event: React.FocusEvent<HTMLDivElement>) => {
+          onFocus?.(event);
+          suggestions.onFocus();
+        }}
+        onCompositionStart={(event: React.CompositionEvent<HTMLDivElement>) => {
+          onCompositionStart?.(event);
+          suggestions.onCompositionStart();
+        }}
+        onCompositionEnd={(event: React.CompositionEvent<HTMLDivElement>) => {
+          onCompositionEnd?.(event);
+          suggestions.onCompositionEnd();
+        }}
         onKeyDownCapture={(event: React.KeyboardEvent<HTMLDivElement>) => {
           onKeyDownCapture?.(event);
           if (
@@ -417,6 +449,7 @@ export function DocumentComposer({
             return;
           }
           onKeyDown?.(event);
+          suggestions.onKeyDown(event);
         }}
       />
       <DocumentRenderersContext.Provider
@@ -427,6 +460,7 @@ export function DocumentComposer({
           return element ? createPortal(child, element, key) : null;
         })}
       </DocumentRenderersContext.Provider>
+      {suggestions.popup}
     </Container>
   );
 }

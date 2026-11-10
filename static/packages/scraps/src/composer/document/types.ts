@@ -13,6 +13,11 @@ export interface DocumentNodeActions<T> {
   replace(node: T): void;
 }
 
+export interface DocumentSuggestionSource<T extends DocumentMention | DocumentReference> {
+  getSuggestions(query: string): readonly T[];
+  renderSuggestion?(node: T): React.ReactNode;
+}
+
 export interface DocumentComposerHandle {
   focus(): void;
   formatText(mark: DocumentMark): void;
@@ -34,8 +39,10 @@ export interface DocumentComposerProps extends Omit<
 > {
   onChange(document: ComposerDocument): void;
   value: ComposerDocument;
+  mentionSource?: DocumentSuggestionSource<DocumentMention>;
   onFilesDrop?(files: readonly File[]): void;
   ref?: React.Ref<DocumentComposerHandle>;
+  referenceSource?: DocumentSuggestionSource<DocumentReference>;
   renderAttachment?(
     node: DocumentAttachment,
     actions: DocumentNodeActions<DocumentAttachment>

@@ -18,9 +18,11 @@ This experimental editor explores a small comment document model independently o
 
 The example includes editable text and formatting, mentions, an issue reference, a quote, a code block, and an attachment reference. The mention and reference buttons are real React components: clicking them replaces the corresponding node. Save and restore uses local browser storage; no comment is sent to a server.
 
-Code blocks use the shared dark syntax theme by default. Supported languages are highlighted while editing; unknown or unspecified languages remain plain code without changing the stored language. Mentions and references use tabular numerals, and the demo borrows Seer's issue icon and the linked design's compact reference chips and attachment tiles.
+Code blocks use the shared dark syntax theme by default. Supported languages are highlighted while editing; unknown or unspecified languages remain plain code without changing the stored language. Mentions use avatars and tabular numerals. Issue references borrow Seer's icon and the linked design's compact reference chips.
 
-<Storybook.Demo overflow="visible" align="start">
+Type `@` for people or `#` for issues. The demo filters local options as you type; arrows navigate, Enter or Tab selects, and Escape dismisses suggestions. Code blocks and inline code do not activate suggestions.
+
+<Storybook.Demo overflow="visible" align="start" maxHeight="none">
   <DocumentComposerDemo />
 </Storybook.Demo>
 
@@ -62,6 +64,8 @@ const [document, setDocument] = useState({
 Converting a paragraph to code turns its inline mentions and references into literal labels; undo restores their identities. Inserting or pasting rich references while inside code keeps them outside the code block.
 
 Uploads, pending files, and the attachments bar remain application state. Only completed attachment references enter the document. The example's Insert button simulates completion without uploading the file. Attachment nodes store a durable ID, name, and media type; download URLs and upload credentials are not persisted in the document.
+
+Attachments appear before the comment text. `mentionSource` and `referenceSource` supply typed local options and optional React suggestion renderers; the editor keeps trigger matching and selection private.
 
 Dragging files over the composer shows a dropzone overlay. Dropping files queues them in the attachments bar above the editor; the file chooser provides the same action without dragging.
 

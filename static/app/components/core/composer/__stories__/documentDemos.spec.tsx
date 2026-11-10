@@ -9,7 +9,7 @@ it.each(['dropzone', 'editor'])('queues a file once when dropped on the %s', tar
   const dropzone = screen.getByRole('group', {name: 'Composer dropzone'});
   const destination =
     target === 'editor'
-      ? screen.getByRole('textbox', {name: 'Comment document'})
+      ? screen.getByRole('combobox', {name: 'Comment document'})
       : dropzone;
   const file = new File(['example'], 'example.txt', {type: 'text/plain'});
   const dataTransfer = {types: ['Files'], files: [file]};

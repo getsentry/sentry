@@ -2,7 +2,7 @@
 import type * as React from 'react';
 import {createRef, Fragment, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {act, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {lightTheme} from '@sentry/scraps/theme';
@@ -14,6 +14,16 @@ import {EMPTY_DOCUMENT, parseComposerDocument, type ComposerDocument} from './mo
 import type {DocumentComposerHandle, DocumentComposerProps} from './types';
 
 const MENTION = {type: 'mention', actorType: 'user', id: '1', label: 'Alice'} as const;
+const BOB = {...MENTION, id: '2', label: 'Bob'};
+const REFERENCE = {type: 'reference', kind: 'issue', id: '42', label: 'WEB-42'} as const;
+const mentionSource = {
+  getSuggestions: (query: string) =>
+    [MENTION, BOB].filter(node => node.label.toLowerCase().includes(query.toLowerCase())),
+};
+const referenceSource = {
+  getSuggestions: (query: string) =>
+    [REFERENCE].filter(node => node.label.toLowerCase().includes(query.toLowerCase())),
+};
 const MIXED: ComposerDocument = {
   version: 1,
   blocks: [
@@ -63,6 +73,169 @@ function editor() {
 function output() {
   return screen.getByRole('status', {name: 'Document'});
 }
+
+it('replaces an @ query with a mention and restores the query with one undo', async () => {
+  const user = userEvent.setup();
+  render(<Example mentionSource={mentionSource} />, {wrapper: Providers});
+  const input = screen.getByRole('combobox', {name: 'Comment'});
+  await user.type(input, 'Before @Al');
+  expect(screen.getByRole('option', {name: 'Alice'})).toBeVisible();
+  expect(input).toHaveFocus();
+  await user.keyboard('{Enter}');
+  expect(parseComposerDocument(JSON.parse(output().textContent ?? ''))).toEqual({
+    version: 1,
+    blocks: [
+      {
+        type: 'paragraph',
+        children: [
+          {type: 'text', text: 'Before ', marks: []},
+          MENTION,
+          {type: 'text', text: ' ', marks: []},
+        ],
+      },
+    ],
+  });
+  await user.keyboard('{Control>}z{/Control}');
+  expect(output()).toHaveTextContent('Before @Al');
+});
+
+it('chooses a # reference with the keyboard and keeps its ID', async () => {
+  const user = userEvent.setup();
+  render(<Example referenceSource={referenceSource} />, {wrapper: Providers});
+  await user.type(screen.getByRole('combobox', {name: 'Comment'}), '#WEB');
+  await user.keyboard('{Tab}');
+  expect(output()).toHaveTextContent(JSON.stringify(REFERENCE));
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+});
+
+it('supports arrow navigation, pointer selection, and Escape dismissal', async () => {
+  const user = userEvent.setup();
+  render(<Example mentionSource={mentionSource} />, {wrapper: Providers});
+  await user.type(screen.getByRole('combobox', {name: 'Comment'}), '@');
+  await user.keyboard('{ArrowDown}{Enter}');
+  expect(output()).toHaveTextContent('"label":"Bob"');
+  await user.keyboard('@');
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  await user.keyboard('Al');
+  await user.click(screen.getByRole('option', {name: 'Alice'}));
+  expect(output()).toHaveTextContent('"label":"Alice"');
+});
+
+it('matches a query across text formatting boundaries', async () => {
+  const user = userEvent.setup();
+  render(
+    <Example
+      mentionSource={mentionSource}
+      initialValue={{
+        version: 1,
+        blocks: [
+          {
+            type: 'paragraph',
+            children: [
+              {type: 'text', text: 'Hi @', marks: []},
+              {type: 'text', text: 'Al', marks: ['bold']},
+            ],
+          },
+        ],
+      }}
+    />,
+    {wrapper: Providers}
+  );
+  const input = screen.getByRole('combobox', {name: 'Comment'});
+  await user.click(input);
+  placeCaret(input);
+  await user.keyboard('i');
+  await user.keyboard('{Enter}');
+  expect(output()).toHaveTextContent(JSON.stringify(MENTION));
+  expect(output()).toHaveTextContent('Hi ');
+});
+
+it('keeps text following a selected query without adding a second space', async () => {
+  const user = userEvent.setup();
+  render(
+    <Example
+      mentionSource={mentionSource}
+      initialValue={{
+        version: 1,
+        blocks: [
+          {
+            type: 'paragraph',
+            children: [{type: 'text', text: 'Hi @A after', marks: []}],
+          },
+        ],
+      }}
+    />,
+    {wrapper: Providers}
+  );
+  const input = screen.getByRole('combobox', {name: 'Comment'});
+  await user.click(input);
+  placeCaret(input, 5);
+  await user.keyboard('l');
+  await user.keyboard('{Enter}');
+  expect(parseComposerDocument(JSON.parse(output().textContent ?? ''))).toEqual({
+    version: 1,
+    blocks: [
+      {
+        type: 'paragraph',
+        children: [
+          {type: 'text', text: 'Hi ', marks: []},
+          MENTION,
+          {type: 'text', text: ' after', marks: []},
+        ],
+      },
+    ],
+  });
+});
+
+it.each(['codeBlock', 'inlineCode', 'atom'])(
+  'does not match trigger-looking content in %s',
+  async kind => {
+    const user = userEvent.setup();
+    const value: ComposerDocument = {
+      version: 1,
+      blocks:
+        kind === 'codeBlock'
+          ? [{type: 'codeBlock', text: '@Al', language: ''}]
+          : [
+              {
+                type: 'paragraph',
+                children:
+                  kind === 'atom'
+                    ? [
+                        {...MENTION, label: '@Al'},
+                        {type: 'text', text: 'x', marks: []},
+                      ]
+                    : [{type: 'text', text: '@Al', marks: ['code']}],
+              },
+            ],
+    };
+    render(<Example mentionSource={mentionSource} initialValue={value} />, {
+      wrapper: Providers,
+    });
+    const input = screen.getByRole('combobox', {name: 'Comment'});
+    await user.click(input);
+    placeCaret(input);
+    await user.keyboard('i');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  }
+);
+
+it('suppresses suggestions during composition and ignores the Safari confirming Enter', async () => {
+  const user = userEvent.setup();
+  render(<Example mentionSource={mentionSource} />, {wrapper: Providers});
+  const input = screen.getByRole('combobox', {name: 'Comment'});
+  await user.type(input, '@');
+  expect(screen.getByRole('listbox')).toBeVisible();
+  fireEvent.compositionStart(input);
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  fireEvent.keyDown(input, {key: 'Enter', keyCode: 229});
+  expect(output()).not.toHaveTextContent('"type":"mention"');
+  await act(() => {
+    fireEvent.compositionEnd(input, {data: ''});
+    return Promise.resolve();
+  });
+});
 
 it('edits text, formats the selected text, and changes the paragraph to a quote', async () => {
   const commands = createRef<DocumentComposerHandle>();
@@ -138,7 +311,7 @@ it('renders mixed documents and swaps an interactive React mention with undo', a
   expect(output()).toHaveTextContent(JSON.stringify(MIXED));
 });
 
-it('inserts attachments at block level when the caret is in code', async () => {
+it('prepends completed attachments when the caret is in code', async () => {
   const commands = createRef<DocumentComposerHandle>();
   const code = {
     type: 'codeBlock',
@@ -159,6 +332,7 @@ it('inserts attachments at block level when the caret is in code', async () => {
   act(() => commands.current?.insertAttachment(attachment));
   const document = parseComposerDocument(JSON.parse(output().textContent ?? ''));
   expect(document.blocks).toContainEqual(attachment);
+  expect(document.blocks[0]).toEqual(attachment);
   expect(
     document.blocks
       .filter(block => block.type === 'codeBlock')
