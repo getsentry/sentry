@@ -275,6 +275,82 @@ describe('uptimeSavedDetectorToFormData', () => {
     expect(formData.assertion).toEqual(assertion);
   });
 
+  it('sanitizes group ops that are missing children', () => {
+    const detector = UptimeDetectorFixture({
+      dataSources: [
+        {
+          ...UptimeDetectorFixture().dataSources[0],
+          queryObj: {
+            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            assertion: {
+              root: {
+                op: UptimeOpType.AND,
+                id: 'root-1',
+                children: [{op: UptimeOpType.OR, id: 'or-1'}],
+              },
+            } as any,
+          },
+        },
+      ],
+    });
+
+    const formData = uptimeSavedDetectorToFormData(detector);
+
+    expect(formData.assertion).toEqual({
+      root: {
+        op: UptimeOpType.AND,
+        id: 'root-1',
+        children: [{op: UptimeOpType.OR, id: 'or-1', children: []}],
+      },
+    });
+  });
+
+  it('sanitizes a root group that is missing children', () => {
+    const detector = UptimeDetectorFixture({
+      dataSources: [
+        {
+          ...UptimeDetectorFixture().dataSources[0],
+          queryObj: {
+            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            assertion: {root: {op: UptimeOpType.AND, id: 'root-1'}} as any,
+          },
+        },
+      ],
+    });
+
+    const formData = uptimeSavedDetectorToFormData(detector);
+
+    expect(formData.assertion).toEqual({
+      root: {op: UptimeOpType.AND, id: 'root-1', children: []},
+    });
+  });
+
+  it('wraps a non-and root op in an and group', () => {
+    const statusOp = {
+      id: 'status-1',
+      op: UptimeOpType.STATUS_CODE_CHECK,
+      operator: {cmp: UptimeComparisonType.EQUALS},
+      value: 200,
+    };
+    const detector = UptimeDetectorFixture({
+      dataSources: [
+        {
+          ...UptimeDetectorFixture().dataSources[0],
+          queryObj: {
+            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            assertion: {root: statusOp} as any,
+          },
+        },
+      ],
+    });
+
+    const formData = uptimeSavedDetectorToFormData(detector);
+
+    expect(formData.assertion).toEqual({
+      root: {op: UptimeOpType.AND, id: expect.any(String), children: [statusOp]},
+    });
+  });
+
   it('returns empty assertion structure when not present in data source', () => {
     // When editing a monitor with no assertions, we return an empty assertion structure
     // rather than null, because FormField converts null to '' which we can't distinguish
