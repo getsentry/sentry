@@ -106,14 +106,18 @@ function RunRow({run, showStrategy}: {run: SeerAutomationRun; showStrategy: bool
       <SimpleTable.RowCell>
         {outputs.length > 0 ? (
           <Stack>
-            {outputs.map((output, index) => (
-              <Link
-                key={`${output.id}-${index}`}
-                to={getInvestigationPath(organization.slug, output.id)}
-              >
-                {`INV-${output.id} | ${output.title}`}
-              </Link>
-            ))}
+            {outputs.map((output, index) =>
+              output.type === 'investigation' ? (
+                <Link
+                  key={`${output.id}-${index}`}
+                  to={getInvestigationPath(organization.slug, output.id)}
+                >
+                  {`INV-${output.id} | ${output.title}`}
+                </Link>
+              ) : (
+                <Text key={`${output.id}-${index}`}>{fallbackOutputText(output)}</Text>
+              )
+            )}
           </Stack>
         ) : (
           <Text variant="muted">{'—'}</Text>
@@ -155,4 +159,11 @@ function fallbackTriggerText(type: string): string {
     .filter(Boolean)
     .map(word => upperFirst(word))
     .join(' ');
+}
+
+/**
+ * Plain text for output types without their own display, e.g. `report:12`
+ */
+function fallbackOutputText(output: {id: string; type: string}): string {
+  return `${output.type}:${output.id}`;
 }
