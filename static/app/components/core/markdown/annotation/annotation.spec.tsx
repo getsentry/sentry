@@ -68,6 +68,22 @@ describe('annotations', () => {
     expect(container).not.toHaveTextContent(/[\uFDD0-\uFDD2\uE100-\uE17F]/);
   });
 
+  it('passes annotations of empty text to the component', () => {
+    render(
+      <Markdown
+        raw={`Mail ${annotate('', '{"rule":"@anything:remove"}')}today`}
+        components={{
+          Annotation: ({data}) => <mark data-test-id="annotation" title={data} />,
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('annotation')).toHaveAttribute(
+      'title',
+      '{"rule":"@anything:remove"}'
+    );
+  });
+
   it('leaves private use characters, like icon font glyphs, alone', () => {
     const icons = 'build \uE000 ok \uE002 done';
 

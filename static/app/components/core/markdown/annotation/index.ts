@@ -129,9 +129,9 @@ export const annotationExtension: TokenizerAndRendererExtension = {
       return {type: 'annotation', raw, data: decode(data), text};
     }
     // The marks of an annotation that was cut, like by a paragraph break, become
-    // an empty annotation, so they don't show up as text.
+    // empty text, so they don't show up.
     const stray = STRAY_MARK_RE.exec(src);
-    return stray ? {type: 'annotation', raw: stray[0], data: '', text: ''} : undefined;
+    return stray ? {type: 'text', raw: stray[0], text: ''} : undefined;
   },
   // Rendering to HTML keeps just the text.
   renderer(token: Tokens.Generic): string {
