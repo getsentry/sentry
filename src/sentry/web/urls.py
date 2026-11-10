@@ -564,7 +564,7 @@ urlpatterns += [
         name="sentry-out",
     ),
     re_path(
-        r"^tr/(?P<token>[\w.:-]+)/$",
+        r"^tr/(?P<token>[^/]+)/$",
         NotificationLinkRedirectView.as_view(),
         name="sentry-notification-link-redirect",
     ),
