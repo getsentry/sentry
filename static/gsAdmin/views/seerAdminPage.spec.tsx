@@ -1,9 +1,13 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {SeerAdminPage} from 'admin/views/seerAdminPage';
+import {SyntheticMetricBreachForm} from 'admin/views/syntheticMetricBreachForm';
 
 describe('SeerAdminPage', () => {
   beforeEach(() => {
@@ -163,5 +167,207 @@ describe('SeerAdminPage', () => {
         })
       )
     );
+  });
+});
+
+describe('SyntheticMetricBreachForm', () => {
+  const organization = OrganizationFixture({
+    id: '123',
+    slug: 'test-org',
+    name: 'Test organization',
+  });
+  const otherOrganization = OrganizationFixture({
+    id: '456',
+    slug: 'other-org',
+    name: 'Other organization',
+  });
+  const monitor = MetricDetectorFixture({id: '42', name: 'Checkout latency'});
+  const otherMonitor = MetricDetectorFixture({id: '43', name: 'API errors'});
+
+  beforeEach(() => {
+    ConfigStore.set('localities', [
+      {name: 'US', url: 'https://us.example.com'},
+      {name: 'EU', url: 'https://eu.example.com'},
+    ]);
+    ConfigStore.set('cells', [
+      {name: 'us', locality_url: 'https://us.example.com'},
+      {name: 'eu', locality_url: 'https://eu.example.com'},
+    ]);
+    MockApiClient.addMockResponse({
+      url: '/_admin/customers/search/',
+      body: ['https://us.example.com', 'https://eu.example.com'].flatMap(regionUrl =>
+        [organization, otherOrganization].map(org => ({
+          ...org,
+          links: {...org.links, regionUrl},
+        }))
+      ),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/detectors/',
+      body: [monitor],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/other-org/detectors/',
+      body: [otherMonitor],
+    });
+  });
+
+  it('creates an issue in the selected locality and retains selections for another test', async () => {
+    const response = Promise.withResolvers<void>();
+    const request = MockApiClient.addMockResponse({
+      url: '/internal/seer/metric-breaches/',
+      method: 'POST',
+      asyncDelay: response.promise,
+      body: {issueId: '8', issueUrl: 'https://example.com/issues/8/', eventId: 'event-8'},
+    });
+    render(<SyntheticMetricBreachForm />);
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Te');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Test organization (test-org)'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      'Checkout latency'
+    );
+    const submit = screen.getByRole('button', {name: 'Create test breach'});
+    await userEvent.click(submit);
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        '/internal/seer/metric-breaches/',
+        expect.objectContaining({
+          data: {organizationId: 123, monitorId: 42},
+          host: 'https://eu.example.com',
+        })
+      )
+    );
+    expect(submit).toBeDisabled();
+    await userEvent.click(submit);
+    expect(request).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      response.resolve();
+      await response.promise;
+    });
+    expect(await screen.findByRole('link', {name: 'Open issue'})).toHaveAttribute(
+      'href',
+      'https://example.com/issues/8/'
+    );
+    expect(screen.getByText(/Test issue created/)).toBeInTheDocument();
+
+    const secondRequest = MockApiClient.addMockResponse({
+      url: '/internal/seer/metric-breaches/',
+      method: 'POST',
+      body: {issueId: '9', issueUrl: 'https://example.com/issues/9/', eventId: 'event-9'},
+    });
+    await userEvent.click(submit);
+    expect(await screen.findByRole('link', {name: 'Open issue'})).toHaveAttribute(
+      'href',
+      'https://example.com/issues/9/'
+    );
+    expect(secondRequest).toHaveBeenCalledWith(
+      '/internal/seer/metric-breaches/',
+      expect.objectContaining({data: {organizationId: 123, monitorId: 42}})
+    );
+  });
+
+  it('clears dependent selections and ignores a late response after switching context', async () => {
+    const response = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/internal/seer/metric-breaches/',
+      method: 'POST',
+      body: {issueId: '8', issueUrl: 'https://example.com/issues/8/', eventId: 'event-8'},
+    });
+    const otherMonitors = MockApiClient.addMockResponse({
+      url: '/organizations/other-org/detectors/',
+      body: [otherMonitor],
+    });
+    render(<SyntheticMetricBreachForm />);
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Test organization (test-org)'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      'Checkout latency'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
+    expect(await screen.findByRole('link', {name: 'Open issue'})).toBeInTheDocument();
+    MockApiClient.addMockResponse({
+      url: '/internal/seer/metric-breaches/',
+      method: 'POST',
+      asyncDelay: response.promise,
+      body: {issueId: '9', issueUrl: 'https://example.com/issues/9/', eventId: 'event-9'},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Other');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Other organization (other-org)'
+    );
+    expect(screen.queryByText('Checkout latency')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
+    await act(async () => {
+      response.resolve();
+      await response.promise;
+    });
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      'API errors'
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Create test breach'})).toBeEnabled()
+    );
+    expect(otherMonitors).toHaveBeenCalledWith(
+      '/organizations/other-org/detectors/',
+      expect.objectContaining({
+        host: 'https://us.example.com',
+        query: {query: 'type:metric_issue', per_page: 50},
+      })
+    );
+    expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    expect(screen.queryByText('Other organization (other-org)')).not.toBeInTheDocument();
+    expect(screen.queryByText('API errors')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create test breach'})).toBeDisabled();
+  });
+
+  it('shows a generic drop error without automatically retrying or losing selections', async () => {
+    ConfigStore.set('localities', [
+      {name: 'default', url: 'http://dev.example.com:8000'},
+    ]);
+    ConfigStore.set('cells', [
+      {name: '--monolith--', locality_url: 'http://dev.example.com:8000'},
+    ]);
+    MockApiClient.addMockResponse({
+      url: '/_admin/customers/search/',
+      body: [organization],
+    });
+    const request = MockApiClient.addMockResponse({
+      url: '/internal/seer/metric-breaches/',
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: 'Synthetic breach was dropped by ingestion controls.'},
+    });
+    render(<SyntheticMetricBreachForm />);
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Test organization (test-org)'
+    );
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      'Checkout latency'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
+    expect(
+      await screen.findByText('Synthetic breach was dropped by ingestion controls.')
+    ).toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
+    expect(screen.getByText('Checkout latency')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create test breach'})).toBeEnabled();
   });
 });
