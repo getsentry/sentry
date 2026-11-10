@@ -45,8 +45,8 @@ class TriggerAutofixTaskTest(TestCase):
     @patch("sentry.seer.autofix.issue_summary.SeerAutofixOperator.has_access", return_value=False)
     @patch("sentry.seer.autofix.issue_summary.trigger_autofix_agent", return_value=123)
     def test_post_process_kickoff_creates_system_activity(
-        self, _mock_trigger_autofix, _mock_operator_access
-    ):
+        self, _mock_trigger_autofix: MagicMock, _mock_operator_access: MagicMock
+    ) -> None:
         group = self.create_group()
 
         with capture_action_log() as action_log:
@@ -99,7 +99,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_record_seer_run.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary._call_seer")
-    def test_get_issue_summary_with_existing_summary(self, mock_call_seer):
+    def test_get_issue_summary_with_existing_summary(self, mock_call_seer: MagicMock) -> None:
         existing_summary = {
             "group_id": str(self.group.id),
             "event_id": "existing-event",
@@ -146,8 +146,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_without_existing_summary(
-        self, mock_get_event, mock_call_seer, mock_get_trace_tree
-    ):
+        self, mock_get_event: MagicMock, mock_call_seer: MagicMock, mock_get_trace_tree: MagicMock
+    ) -> None:
         event = Mock(
             event_id="test_event_id",
             data="test_event_data",
@@ -230,7 +230,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert cache.get(f"ai-group-summary-v2:{self.group.id}") == expected_summary.dict()
 
     @patch("sentry.seer.autofix.issue_summary.get_or_generate_issue_summary")
-    def test_get_issue_summary_cache_write_read(self, mock_get_issue_summary):
+    def test_get_issue_summary_cache_write_read(self, mock_get_issue_summary: MagicMock) -> None:
         # First request to populate the cache
         mock_get_event = Mock()
         mock_call_seer = Mock()
@@ -276,7 +276,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             mock_call_seer.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary._generate_summary")
-    def test_get_issue_summary_concurrent_wait_for_lock(self, mock_generate_summary):
+    def test_get_issue_summary_concurrent_wait_for_lock(
+        self, mock_generate_summary: MagicMock
+    ) -> None:
         """Test that a second request waits for the lock and reads from cache."""
         cache_key = f"ai-group-summary-v2:{self.group.id}"
 
@@ -288,7 +290,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         )
         cache_key = f"ai-group-summary-v2:{self.group.id}"
 
-        def side_effect_generate(*args, **kwargs):
+        def side_effect_generate(*args: object, **kwargs: object) -> IssueSummary:
             # Simulate work
             time.sleep(0.3)
             # Write to cache before returning (simulates behavior after lock release)
@@ -300,7 +302,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         results = {}
         exceptions = {}
 
-        def target(req_id):
+        def target(req_id: int) -> None:
             try:
                 results[req_id] = get_or_generate_issue_summary(self.group, self.user)
             except Exception as e:
@@ -338,7 +340,9 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert cache.get(cache_key) == generated_summary.dict()
 
     @patch("sentry.seer.autofix.issue_summary._generate_summary")
-    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(self, mock_generate_summary):
+    def test_get_issue_summary_concurrent_force_event_id_bypasses_lock(
+        self, mock_generate_summary: MagicMock
+    ) -> None:
         """Test that force_event_id bypasses lock waiting."""
         # Mock summary generation
         forced_summary = IssueSummary(
@@ -400,10 +404,10 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.utils.locking.lock.Lock.blocking_acquire")
     def test_get_issue_summary_lock_timeout(
         self,
-        mock_blocking_acquire,
-        mock_generate_summary_core,
-        mock_cache_get,
-    ):
+        mock_blocking_acquire: MagicMock,
+        mock_generate_summary_core: MagicMock,
+        mock_cache_get: MagicMock,
+    ) -> None:
         """A lock timeout remains a domain exception for background-task retries."""
         # Simulate lock acquisition always failing with the specific exception
         mock_blocking_acquire.side_effect = UnableToAcquireLock
@@ -534,13 +538,13 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_summary_and_automation_for_web_vitals_issue(
         self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_record_seer_run,
-        mock_generate_fixability_score,
-        mock_trigger_autofix_task,
-    ):
+        mock_get_event: MagicMock,
+        mock_call_seer: MagicMock,
+        mock_get_trace_tree: MagicMock,
+        mock_record_seer_run: MagicMock,
+        mock_generate_fixability_score: MagicMock,
+        mock_trigger_autofix_task: MagicMock,
+    ) -> None:
         mock_fixability_response = SummarizeIssueResponse(
             group_id=str(self.group.id),
             headline="some headline",
@@ -611,8 +615,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary.get_trace_tree_for_event")
     def test_get_issue_summary_handles_trace_tree_errors(
         self,
-        mock_get_trace_tree,
-    ):
+        mock_get_trace_tree: MagicMock,
+    ) -> None:
         mock_get_trace_tree.side_effect = Exception("boom")
 
         event = Mock(event_id="test_event_id", datetime=datetime.datetime.now())
@@ -646,11 +650,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_get_issue_summary_caches_without_running_automation(
         self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_run_automation,
-    ):
+        mock_get_event: MagicMock,
+        mock_call_seer: MagicMock,
+        mock_get_trace_tree: MagicMock,
+        mock_run_automation: MagicMock,
+    ) -> None:
         event = Mock(
             event_id="test_event_id",
             data="test_event_data",
@@ -732,11 +736,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_experiment_flag_calls_seer_twice(
         self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_run_automation,
-    ):
+        mock_get_event: MagicMock,
+        mock_call_seer: MagicMock,
+        mock_get_trace_tree: MagicMock,
+        mock_run_automation: MagicMock,
+    ) -> None:
         """When the experiment flag is on, _call_seer is called twice: control and experimental."""
         event = Mock(
             event_id="test_event_id",
@@ -786,11 +790,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_experiment_flag_off_calls_seer_once(
         self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_run_automation,
-    ):
+        mock_get_event: MagicMock,
+        mock_call_seer: MagicMock,
+        mock_get_trace_tree: MagicMock,
+        mock_run_automation: MagicMock,
+    ) -> None:
         """When the experiment flag is off, only one call to _call_seer is made."""
         event = Mock(
             event_id="test_event_id",
@@ -827,11 +831,11 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     @patch("sentry.seer.autofix.issue_summary._get_event")
     def test_experiment_failure_does_not_affect_regular_flow(
         self,
-        mock_get_event,
-        mock_call_seer,
-        mock_get_trace_tree,
-        mock_run_automation,
-    ):
+        mock_get_event: MagicMock,
+        mock_call_seer: MagicMock,
+        mock_get_trace_tree: MagicMock,
+        mock_run_automation: MagicMock,
+    ) -> None:
         """If the experimental call fails, the control result is still cached and returned."""
         event = Mock(
             event_id="test_event_id",
@@ -880,7 +884,7 @@ class TestGetStoppingPointFromFixability:
             (1.0, AutofixStoppingPoint.OPEN_PR),
         ],
     )
-    def test_stopping_point_mapping(self, score, expected):
+    def test_stopping_point_mapping(self, score: float, expected: AutofixStoppingPoint) -> None:
         assert _get_stopping_point_from_fixability(score) == expected
 
 
@@ -901,8 +905,13 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_high_fixability_code_changes(
-        self, mock_gen, mock_budget, mock_rate, mock_trigger, mock_seat_based_tier
-    ):
+        self,
+        mock_gen: MagicMock,
+        mock_budget: MagicMock,
+        mock_rate: MagicMock,
+        mock_trigger: MagicMock,
+        mock_seat_based_tier: MagicMock,
+    ) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -924,8 +933,13 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_medium_fixability_solution(
-        self, mock_gen, mock_budget, mock_rate, mock_trigger, mock_seat_based_tier
-    ):
+        self,
+        mock_gen: MagicMock,
+        mock_budget: MagicMock,
+        mock_rate: MagicMock,
+        mock_trigger: MagicMock,
+        mock_seat_based_tier: MagicMock,
+    ) -> None:
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         mock_gen.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -947,11 +961,11 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.is_group_eligible_for_automation", return_value=True)
     def test_without_seat_based_tier(
         self,
-        mock_triggering,
-        mock_rate,
-        mock_trigger,
-        mock_seat_based_tier,
-    ):
+        mock_triggering: MagicMock,
+        mock_rate: MagicMock,
+        mock_trigger: MagicMock,
+        mock_seat_based_tier: MagicMock,
+    ) -> None:
         mock_seat_based_tier.return_value = False
         run_automation(self.group, self.user, self.event, SeerAutomationSource.POST_PROCESS)
 
@@ -961,8 +975,8 @@ class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._trigger_autofix_task.delay")
     @patch("sentry.seer.autofix.issue_summary.is_group_eligible_for_automation", return_value=False)
     def test_skips_when_group_is_ineligible(
-        self, mock_eligible, mock_trigger, mock_seat_based_tier
-    ):
+        self, mock_eligible: MagicMock, mock_trigger: MagicMock, mock_seat_based_tier: MagicMock
+    ) -> None:
         run_automation(self.group, self.user, self.event, SeerAutomationSource.POST_PROCESS)
 
         mock_trigger.assert_not_called()
@@ -1027,7 +1041,12 @@ class TestApplyUserPreferenceUpperBound:
             ),
         ],
     )
-    def test_upper_bound_combinations(self, fixability, user_pref, expected):
+    def test_upper_bound_combinations(
+        self,
+        fixability: AutofixStoppingPoint | None,
+        user_pref: str | None,
+        expected: AutofixStoppingPoint,
+    ) -> None:
         result = _apply_user_preference_upper_bound(fixability, user_pref)
         assert result == expected
 
@@ -1050,12 +1069,12 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_user_preference_limits_high_fixability(
         self,
-        mock_gen,
-        mock_budget,
-        mock_rate,
-        mock_trigger,
-        mock_seat_based_tier,
-    ):
+        mock_gen: MagicMock,
+        mock_budget: MagicMock,
+        mock_rate: MagicMock,
+        mock_trigger: MagicMock,
+        mock_seat_based_tier: MagicMock,
+    ) -> None:
         """High fixability (OPEN_PR) limited by user preference (SOLUTION)"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         self.project.update_option("sentry:seer_automated_run_stopping_point", "solution")
@@ -1083,12 +1102,12 @@ class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
     def test_fixability_limits_permissive_user_preference(
         self,
-        mock_gen,
-        mock_budget,
-        mock_rate,
-        mock_trigger,
-        mock_seat_based_tier,
-    ):
+        mock_gen: MagicMock,
+        mock_budget: MagicMock,
+        mock_rate: MagicMock,
+        mock_trigger: MagicMock,
+        mock_seat_based_tier: MagicMock,
+    ) -> None:
         """Medium fixability (ROOT_CAUSE) used despite user allowing OPEN_PR"""
         self.project.update_option("sentry:autofix_automation_tuning", "always")
         self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
@@ -1115,7 +1134,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         self.group = self.create_group()
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_returns_existing_score_without_regenerating(self, mock_generate):
+    def test_returns_existing_score_without_regenerating(self, mock_generate: MagicMock) -> None:
         """Test that existing fixability score is returned without calling Seer."""
         # Set an existing fixability score
         self.group.update(seer_fixability_score=0.75)
@@ -1127,7 +1146,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         mock_generate.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_generates_and_updates_score_when_missing(self, mock_generate):
+    def test_generates_and_updates_score_when_missing(self, mock_generate: MagicMock) -> None:
         """Test that fixability score is generated and saved when missing."""
         mock_generate.return_value = SummarizeIssueResponse(
             group_id=str(self.group.id),
@@ -1147,7 +1166,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    def test_force_generate_regenerates_existing_score(self, mock_generate):
+    def test_force_generate_regenerates_existing_score(self, mock_generate: MagicMock) -> None:
         """Test that force_generate=True regenerates score even if one exists."""
         # Set an existing score
         self.group.update(seer_fixability_score=0.50)
@@ -1170,7 +1189,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         mock_generate.assert_called_once()
 
     @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    def test_reads_summary_from_cache_and_passes_to_seer(self, mock_request):
+    def test_reads_summary_from_cache_and_passes_to_seer(self, mock_request: MagicMock) -> None:
         """Test that summary is read from cache and included in the API payload sent to Seer."""
         mock_response = Mock()
         mock_response.status = 200
@@ -1222,7 +1241,7 @@ class TestGetAndUpdateGroupFixabilityScore(APITestCase, SnubaTestCase):
         assert summary_payload["possible_cause"] == "Test cause"
 
     @patch("sentry.seer.autofix.issue_summary.make_signed_seer_api_request")
-    def test_no_summary_in_cache_calls_seer_without_summary(self, mock_request):
+    def test_no_summary_in_cache_calls_seer_without_summary(self, mock_request: MagicMock) -> None:
         """Test that when cache is empty, fixability is called without summary (Seer DB fallback)."""
         mock_response = Mock()
         mock_response.status = 200
@@ -1259,7 +1278,9 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_true_when_all_checks_pass(self, mock_fixability, mock_quota, mock_rate_limit):
+    def test_returns_true_when_all_checks_pass(
+        self, mock_fixability: MagicMock, mock_quota: MagicMock, mock_rate_limit: MagicMock
+    ) -> None:
         mock_fixability.return_value = 0.80
         mock_quota.return_value = True
         mock_rate_limit.return_value = False
@@ -1270,13 +1291,13 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=True)
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_false_without_seer_access(self, mock_fixability):
+    def test_returns_false_without_seer_access(self, mock_fixability: MagicMock) -> None:
         assert is_group_eligible_for_automation(self.group) is False
 
         mock_fixability.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_false_when_live_autofix_run_exists(self, mock_fixability):
+    def test_returns_false_when_live_autofix_run_exists(self, mock_fixability: MagicMock) -> None:
         run = self.create_seer_run(
             organization=self.organization,
             mirror_status="live",
@@ -1291,8 +1312,8 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
     def test_returns_true_when_only_failed_autofix_run_exists(
-        self, mock_fixability, mock_quota, mock_rate_limit
-    ):
+        self, mock_fixability: MagicMock, mock_quota: MagicMock, mock_rate_limit: MagicMock
+    ) -> None:
         run = self.create_seer_run(
             organization=self.organization,
             mirror_status="failed",
@@ -1306,7 +1327,7 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
         assert is_group_eligible_for_automation(self.group) is True
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_false_when_not_fixable(self, mock_fixability):
+    def test_returns_false_when_not_fixable(self, mock_fixability: MagicMock) -> None:
         mock_fixability.return_value = 0.20
         self.group.times_seen = 10
         self.group.times_seen_pending = 0
@@ -1317,7 +1338,9 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_false_when_no_budget(self, mock_fixability, mock_quota):
+    def test_returns_false_when_no_budget(
+        self, mock_fixability: MagicMock, mock_quota: MagicMock
+    ) -> None:
         mock_fixability.return_value = 0.80
         mock_quota.return_value = False
         self.group.times_seen = 10
@@ -1328,7 +1351,9 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_returns_false_when_rate_limited(self, mock_fixability, mock_quota, mock_rate_limit):
+    def test_returns_false_when_rate_limited(
+        self, mock_fixability: MagicMock, mock_quota: MagicMock, mock_rate_limit: MagicMock
+    ) -> None:
         mock_fixability.return_value = 0.80
         mock_quota.return_value = True
         mock_rate_limit.return_value = True
@@ -1346,21 +1371,27 @@ class TestGetAutomationStoppingPoint(TestCase):
         self.group = self.create_group()
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_default_preference_limits_stopping_point(self, mock_fixability, mock_seat_based_tier):
+    def test_default_preference_limits_stopping_point(
+        self, mock_fixability: MagicMock, mock_seat_based_tier: MagicMock
+    ) -> None:
         """Unset preference falls back to the well-known default (code_changes)."""
         mock_fixability.return_value = 0.80
 
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.CODE_CHANGES
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_user_preference_limits_stopping_point(self, mock_fixability, mock_seat_based_tier):
+    def test_user_preference_limits_stopping_point(
+        self, mock_fixability: MagicMock, mock_seat_based_tier: MagicMock
+    ) -> None:
         mock_fixability.return_value = 0.80
         self.group.project.update_option("sentry:seer_automated_run_stopping_point", "solution")
 
         assert get_automation_stopping_point(self.group) == AutofixStoppingPoint.SOLUTION
 
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
-    def test_low_fixability_returns_root_cause(self, mock_fixability, mock_seat_based_tier):
+    def test_low_fixability_returns_root_cause(
+        self, mock_fixability: MagicMock, mock_seat_based_tier: MagicMock
+    ) -> None:
         mock_fixability.return_value = 0.50
         self.group.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
 

@@ -1,9 +1,10 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock
 
+import sentry_sdk
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
@@ -14,6 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
@@ -38,14 +40,14 @@ from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 # Though it looks weird to have a method outside a class, this isn't a mistake but rather
 # a mock for a method in Django REST Framework's `APIView` class
-def reraise(self, e: Exception):
+def reraise(self: Any, e: Exception) -> None:
     raise e
 
 
 class DummyEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return Response({"ok": True})
 
 
@@ -76,7 +78,7 @@ class DummySecondDeclaredScopePermission(AllowAny):
 class DummyScopeCheckingEndpoint(Endpoint):
     permission_classes = (DummyDeclaredScopePermission, DummySecondDeclaredScopePermission)
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         request.access.has_scope("org:read")
         request.access.has_scope("team:read")
         request.access.has_scope("project:write")
@@ -104,22 +106,54 @@ class DummyErroringEndpoint(Endpoint):
     handler_context_arg: Mapping[str, Any] | None = None
     scope_arg: Scope | None = None
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         raise self.error
 
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+    def handle_exception_with_details(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, Any] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
         return super().handle_exception_with_details(
             request, exc, self.handler_context_arg, self.scope_arg
         )
 
 
+def _current_owner_tag() -> str | None:
+    return sentry_sdk.get_current_scope()._tags.get("endpoint_owner")
+
+
+class DummyOwnerTagInnerEndpoint(Endpoint):
+    owner = ApiOwner.ISSUES
+    permission_classes = ()
+    seen_owner_tags: list[str | None] = []
+
+    def get(self, request: Request) -> Response:
+        self.seen_owner_tags.append(_current_owner_tag())
+        return Response(status=200)
+
+
+class DummyOwnerTagOuterEndpoint(Endpoint):
+    owner = ApiOwner.ALERTS_MONITORS
+    permission_classes = ()
+    seen_owner_tags: list[str | None] = []
+
+    def get(self, request: Request) -> Response:
+        self.seen_owner_tags.append(_current_owner_tag())
+        DummyOwnerTagInnerEndpoint.as_view(seen_owner_tags=self.seen_owner_tags)(request._request)
+        self.seen_owner_tags.append(_current_owner_tag())
+        return Response(status=200)
+
+
 class DummyPaginationEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         values = [x for x in range(0, 100)]
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[int]:
             page_offset = offset * limit
             return values[page_offset : page_offset + limit]
 
@@ -133,10 +167,10 @@ class DummyPaginationEndpoint(Endpoint):
 class DummyPaginationStreamingEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         values = [x for x in range(0, 100)]
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[int]:
             page_offset = offset * limit
             return values[page_offset : page_offset + limit]
 
@@ -144,13 +178,15 @@ class DummyPaginationStreamingEndpoint(Endpoint):
             request=request,
             paginator=GenericOffsetPaginator(data_fn),
             on_results=lambda results: iter(results),
-            response_cls=StreamingHttpResponse,
+            response_cls=cast(type[Response], StreamingHttpResponse),
             response_kwargs={"content_type": "application/json"},
         )
 
 
 class SometimesFailingSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj: int, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> Mapping[str, Any]:
         if obj % 2:
             raise Exception
         return {"id": obj}
@@ -159,10 +195,10 @@ class SometimesFailingSerializer(Serializer):
 class DummyPaginationFailingSerializerEndpoint(Endpoint):
     permission_classes = ()
 
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         values = [x for x in range(0, 10)]
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[int]:
             page_offset = offset * limit
             return values[page_offset : page_offset + limit]
 
@@ -495,19 +531,19 @@ class EndpointHandleExceptionTest(APITestCase):
     @mock.patch("rest_framework.views.APIView.handle_exception", return_value=Response(status=500))
     def test_handle_exception_when_super_returns_response(
         self, mock_super_handle_exception: MagicMock
-    ):
+    ) -> None:
         mock_endpoint = DummyErroringEndpoint.as_view(error=Exception("nope"))
         response = mock_endpoint(self.make_request(method="GET"))
 
         # The endpoint should pass along the response generated by `APIView.handle_exception_with_details`
         assert response == mock_super_handle_exception.return_value
 
-    @mock.patch("rest_framework.views.APIView.handle_exception", new=reraise)
+    @mock.patch("rest_framework.views.APIView.handle_exception", reraise)
     @mock.patch("sentry.api.base.capture_exception", return_value="1231201211212012")
     def test_handle_exception_when_super_reraises(
         self,
         mock_capture_exception: MagicMock,
-    ):
+    ) -> None:
         handler_context = {"api_request_URL": "http://dogs.are.great/"}
         scope = Scope()
         tags = {"maisey": "silly", "charlie": "goofy"}
@@ -556,6 +592,47 @@ class EndpointHandleExceptionTest(APITestCase):
                 assert isinstance(capture_exception_scope_kwarg, Scope)
                 assert capture_exception_scope_kwarg._contexts == expected_scope_contexts
                 assert capture_exception_scope_kwarg._tags == expected_scope_tags
+
+
+class EndpointOwnerTagTest(APITestCase):
+    def test_tag_is_scoped_to_dispatch(self) -> None:
+        seen: list[str | None] = []
+        view = DummyOwnerTagInnerEndpoint.as_view(seen_owner_tags=seen)
+
+        view(self.make_request(method="GET"))
+
+        assert seen == [ApiOwner.ISSUES.value]
+        assert _current_owner_tag() is None
+        assert "endpoint_owner" not in sentry_sdk.get_isolation_scope()._tags
+
+    def test_nested_dispatch_restores_outer_owner(self) -> None:
+        seen: list[str | None] = []
+        view = DummyOwnerTagOuterEndpoint.as_view(seen_owner_tags=seen)
+
+        view(self.make_request(method="GET"))
+
+        assert seen == [
+            ApiOwner.ALERTS_MONITORS.value,
+            ApiOwner.ISSUES.value,
+            ApiOwner.ALERTS_MONITORS.value,
+        ]
+        assert _current_owner_tag() is None
+
+    @mock.patch("rest_framework.views.APIView.handle_exception", reraise)
+    @mock.patch("sys.stderr.write")
+    def test_tag_applies_to_captured_endpoint_errors(self, _mock_stderr: MagicMock) -> None:
+        seen: list[str | None] = []
+        view = DummyErroringEndpoint.as_view(error=Exception("nope"))
+
+        with mock.patch(
+            "sentry.api.base.capture_exception",
+            side_effect=lambda *args, **kwargs: seen.append(_current_owner_tag()),
+        ):
+            response = view(self.make_request(method="GET"))
+
+        assert response.status_code == 500
+        assert seen == [ApiOwner.UNOWNED.value]
+        assert _current_owner_tag() is None
 
 
 class CursorGenerationTest(APITestCase):
@@ -681,7 +758,7 @@ class PaginateTest(APITestCase):
 @all_silo_test(cells=create_test_cells("us", "eu"))
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self) -> None:
-        def request_with_subdomain(subdomain):
+        def request_with_subdomain(subdomain: str) -> bool:
             request = self.make_request(method="GET")
             request.subdomain = subdomain
             return subdomain_is_locality(request)
@@ -692,14 +769,16 @@ class CustomerDomainTest(APITestCase):
 
 
 class EndpointSiloLimitTest(APITestCase):
-    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+    def _test_active_on(
+        self, endpoint_mode: SiloMode, active_mode: SiloMode, expect_to_be_active: bool
+    ) -> None:
         @EndpointSiloLimit(endpoint_mode)
         class DecoratedEndpoint(DummyEndpoint):
             pass
 
         class EndpointWithDecoratedMethod(DummyEndpoint):
             @EndpointSiloLimit(endpoint_mode)
-            def get(self, request):
+            def get(self, request: Request) -> Response:
                 return super().get(request)
 
         with override_settings(SILO_MODE=active_mode):
@@ -744,9 +823,11 @@ class EndpointSiloLimitTest(APITestCase):
 
 
 class FunctionSiloLimitTest(APITestCase):
-    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+    def _test_active_on(
+        self, endpoint_mode: SiloMode, active_mode: SiloMode, expect_to_be_active: bool
+    ) -> None:
         @FunctionSiloLimit(endpoint_mode)
-        def decorated_function():
+        def decorated_function() -> None:
             pass
 
         with override_settings(SILO_MODE=active_mode):
@@ -809,12 +890,14 @@ class RequestAccessTest(APITestCase):
         class AccessUsingEndpoint(Endpoint):
             permission_classes = ()
 
-            def convert_args(self, request, *args, **kwargs):
+            def convert_args(
+                self, request: Request, *args: Any, **kwargs: Any
+            ) -> tuple[tuple[Any, ...], dict[str, Any]]:
                 # This should not raise an AttributeError
                 assert request.access is not None
                 return (args, kwargs)
 
-            def get(self, request):
+            def get(self, request: Request) -> Response:
                 return Response({"ok": True})
 
         response = AccessUsingEndpoint.as_view()(self.request)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict, cast, get_args
+from typing import Annotated, Literal, TypedDict, cast, get_args
 
 from sentry.api.event_search import (
     WILDCARD_CHARS,
@@ -9,6 +9,7 @@ from sentry.api.event_search import (
     parse_search_query,
     translate_escape_sequences,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.preprod.vcs.status_checks.size.rules import (
@@ -51,28 +52,67 @@ SizeStatusCheckRuleFilterOperator = Literal[
 
 
 class SizeStatusCheckRuleFilterConditionResponseDict(TypedDict):
-    operator: SizeStatusCheckRuleFilterOperator
-    values: list[str]
+    operator: Annotated[
+        SizeStatusCheckRuleFilterOperator,
+        ApiDescription(
+            "How the condition compares the build's value, such as equals or startsWith"
+        ),
+    ]
+    values: Annotated[list[str], ApiDescription("Values the condition compares against")]
 
 
 class SizeStatusCheckRuleFilterResponseDict(TypedDict):
-    key: SizeStatusCheckRuleFilterKey
-    conditions: list[SizeStatusCheckRuleFilterConditionResponseDict]
+    key: Annotated[
+        SizeStatusCheckRuleFilterKey,
+        ApiDescription(
+            "Build field the filter checks: app_id, build_configuration_name, git_head_ref or platform_name"
+        ),
+    ]
+    conditions: Annotated[
+        list[SizeStatusCheckRuleFilterConditionResponseDict],
+        ApiDescription("Conditions on the field"),
+    ]
 
 
 class SizeStatusCheckRuleResponseDict(TypedDict):
-    id: str
-    metric: SizeStatusCheckRuleMetric
-    measurement: SizeStatusCheckRuleMeasurement
-    value: str
-    filterQuery: str
-    filters: list[SizeStatusCheckRuleFilterResponseDict] | None
-    artifactType: SizeStatusCheckRuleArtifactType
+    id: Annotated[str, ApiDescription("ID of the rule")]
+    metric: Annotated[
+        SizeStatusCheckRuleMetric,
+        ApiDescription("Size metric the rule checks: install_size or download_size"),
+    ]
+    measurement: Annotated[
+        SizeStatusCheckRuleMeasurement,
+        ApiDescription(
+            "How the rule measures size: absolute (size in bytes), absolute_diff (increase in bytes) or relative_diff (increase in percent)"
+        ),
+    ]
+    value: Annotated[
+        str,
+        ApiDescription(
+            "Threshold that makes the status check fail, in bytes or percent depending on measurement"
+        ),
+    ]
+    filterQuery: Annotated[
+        str, ApiDescription("Search query that selects the builds the rule applies to")
+    ]
+    filters: Annotated[
+        list[SizeStatusCheckRuleFilterResponseDict] | None,
+        ApiDescription("filterQuery parsed into filters. Null when the query can't be parsed"),
+    ]
+    artifactType: Annotated[
+        SizeStatusCheckRuleArtifactType,
+        ApiDescription("Components the rule applies to, such as main_artifact or all_artifacts"),
+    ]
 
 
 class ProjectSizeStatusCheckRulesResponseDict(TypedDict):
-    enabled: bool
-    rules: list[SizeStatusCheckRuleResponseDict]
+    enabled: Annotated[
+        bool, ApiDescription("Whether size status checks are enabled for the project")
+    ]
+    rules: Annotated[
+        list[SizeStatusCheckRuleResponseDict],
+        ApiDescription("Rules that make the size status check fail"),
+    ]
 
 
 def _format_rule_value(value: float) -> str:

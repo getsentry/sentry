@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from collections.abc import Sequence
+from contextlib import AbstractContextManager
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
@@ -29,9 +31,13 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.users.models.user import User
+from sentry.utils.cursors import Cursor, CursorResult
 
 
-def _patch_pg_strategies(strategies: dict[str, PostgresSortStrategy]):
+def _patch_pg_strategies(
+    strategies: dict[str, PostgresSortStrategy],
+) -> AbstractContextManager[object]:
     return mock.patch.object(
         PostgresSnubaQueryExecutor,
         "postgres_sort_strategies",
@@ -49,7 +55,7 @@ def _ts_strategy(**overrides: Any) -> PostgresSortStrategy:
 
 
 class TestPostgresSortStrategy(TestCase):
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         s = PostgresSortStrategy(postgres_fields={"ts": "last_seen"})
         assert s.snuba_aggregations == []
         assert s.signal_resolvers == {}
@@ -57,12 +63,12 @@ class TestPostgresSortStrategy(TestCase):
 
 
 class TestHasSortStrategy(TestCase):
-    def test_includes_snuba_sorts(self):
+    def test_includes_snuba_sorts(self) -> None:
         executor = PostgresSnubaQueryExecutor()
         assert executor.has_sort_strategy("date") is True
         assert executor.has_sort_strategy("nonexistent") is False
 
-    def test_includes_postgres_sorts(self):
+    def test_includes_postgres_sorts(self) -> None:
         executor = PostgresSnubaQueryExecutor()
         with _patch_pg_strategies({"custom": _ts_strategy()}):
             assert executor.has_sort_strategy("custom") is True
@@ -72,11 +78,11 @@ class TestHasSortStrategy(TestCase):
 class PostgresSortTestBase(TestCase, SnubaTestCase):
     """Shared setup: creates 3 groups with distinct seer_autofix_last_triggered values."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.backend = EventsDatasetSnubaSearchBackend()
         self.base_datetime = before_now(days=3).replace(microsecond=0)
-        self.groups = []
+        self.groups: list[Group] = []
         offsets = [timedelta(days=5), timedelta(days=2), timedelta(0)]
         for i, offset in enumerate(offsets):
             event = self.store_event(
@@ -90,6 +96,7 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
                 },
                 project_id=self.project.id,
             )
+            assert event.group is not None
             group = Group.objects.get(id=event.group.id)
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
@@ -101,14 +108,20 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.groups.append(group)
 
     def make_query(
-        self, sort_by, query=None, limit=None, cursor=None, date_to=None, environments=None
-    ):
+        self,
+        sort_by: str,
+        query: str | None = None,
+        limit: int | None = None,
+        cursor: Cursor | None = None,
+        date_to: datetime | None = None,
+        environments: Sequence[Environment] | None = None,
+    ) -> CursorResult[Group]:
         search_filters: list[Any] = []
         if query:
             search_filters = list(
                 convert_query_values(parse_search_query(query), [self.project], self.user, None)
             )
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if limit is not None:
             kwargs["limit"] = limit
         return self.backend.query(
@@ -128,12 +141,12 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
 class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
     """Sorts with no Snuba aggregations/filters: scored in memory, no Snuba call."""
 
-    def test_ordering(self):
+    def test_ordering(self) -> None:
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             results = list(self.make_query("test_sort"))
         assert results == [self.groups[2], self.groups[1], self.groups[0]]
 
-    def test_null_exclusion(self):
+    def test_null_exclusion(self) -> None:
         self.groups[1].seer_autofix_last_triggered = None
         self.groups[1].save()
 
@@ -142,7 +155,7 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
         assert self.groups[1] not in results
         assert results == [self.groups[2], self.groups[0]]
 
-    def test_cursor_pagination(self):
+    def test_cursor_pagination(self) -> None:
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             page1 = self.make_query("test_sort", limit=2)
             assert list(page1) == [self.groups[2], self.groups[1]]
@@ -151,19 +164,19 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             page2 = self.make_query("test_sort", limit=2, cursor=page1.next)
             assert list(page2) == [self.groups[0]]
 
-    def test_empty_when_all_null(self):
+    def test_empty_when_all_null(self) -> None:
         Group.objects.filter(id__in=[g.id for g in self.groups]).update(
             seer_autofix_last_triggered=None
         )
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             assert len(list(self.make_query("test_sort"))) == 0
 
-    def test_with_postgres_only_filter(self):
+    def test_with_postgres_only_filter(self) -> None:
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             results = list(self.make_query("test_sort", query="is:unresolved"))
         assert len(results) == 3
 
-    def test_respects_time_window_without_snuba(self):
+    def test_respects_time_window_without_snuba(self) -> None:
         # last_seen: groups[0] ~8d ago, groups[1] ~5d ago, groups[2] ~3d ago.
         # A 4-day window should drop the two older groups even though Snuba is skipped.
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
@@ -182,14 +195,14 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             )
         assert results == [self.groups[2]]
 
-    def test_skips_snuba_without_filters_or_aggregations(self):
+    def test_skips_snuba_without_filters_or_aggregations(self) -> None:
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             with mock.patch.object(PostgresSnubaQueryExecutor, "snuba_search") as snuba_spy:
                 results = list(self.make_query("test_sort"))
                 assert len(results) == 3
                 assert not snuba_spy.called
 
-    def test_numeric_column_via_score_fn(self):
+    def test_numeric_column_via_score_fn(self) -> None:
         for group, score in zip(self.groups, [0.1, 0.9, 0.5]):
             group.seer_fixability_score = score
             group.save()
@@ -201,7 +214,7 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             results = list(self.make_query("test_sort"))
         assert results == [self.groups[1], self.groups[2], self.groups[0]]
 
-    def test_score_fn_error_falls_back_not_drops(self):
+    def test_score_fn_error_falls_back_not_drops(self) -> None:
         # A score_fn that raises on one row must not 500 the whole sort, and the issue must
         # not vanish from the stream: it falls back to fallback_score_fn and stays in the
         # results. Regression for an OverflowError in the recommended_v2 newness boost that
@@ -210,10 +223,10 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             group.update(seer_fixability_score=float(group.id))
         bad_id = self.groups[0].id
 
-        def score_fn(data):
+        def score_fn(data: dict[str, Any]) -> float:
             if data["fix"] == bad_id:
                 raise OverflowError("boom")
-            return data["fix"]
+            return float(data["fix"])
 
         strategy = PostgresSortStrategy(
             postgres_fields={"fix": "seer_fixability_score"},
@@ -230,13 +243,13 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
 
 
 class TestExecutePostgresSort(PostgresSortTestBase):
-    def test_snuba_filter_narrows_candidates(self):
+    def test_snuba_filter_narrows_candidates(self) -> None:
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             results = list(self.make_query("test_sort", query="issue 0"))
         assert len(results) == 1
         assert results[0] == self.groups[0]
 
-    def test_execute_path_calls_snuba(self):
+    def test_execute_path_calls_snuba(self) -> None:
         with _patch_pg_strategies({"test_sort": _ts_strategy()}):
             with mock.patch.object(
                 PostgresSnubaQueryExecutor,
@@ -246,7 +259,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
                 self.make_query("test_sort", query="issue")
                 assert snuba_spy.called
 
-    def test_hybrid_sort_with_snuba_aggregations(self):
+    def test_hybrid_sort_with_snuba_aggregations(self) -> None:
         strategy = _ts_strategy(
             snuba_aggregations=["last_seen"],
             score_fn=lambda data: data["ts"].timestamp() + data.get("last_seen", 0),
@@ -255,7 +268,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
             results = list(self.make_query("test_sort", query="issue"))
         assert len(results) == 3
 
-    def test_aggregate_kwargs_forwarded_to_snuba(self):
+    def test_aggregate_kwargs_forwarded_to_snuba(self) -> None:
         # Caller-supplied trend sort weights must reach Snuba through the Postgres sort
         # path, otherwise hybrid aggregations (trends/recommended) silently score with
         # default weights regardless of what the caller requested.
@@ -282,7 +295,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
                 )
         assert snuba_spy.call_args.kwargs["aggregate_kwargs"] == weights
 
-    def test_invalid_snuba_aggregation_raises(self):
+    def test_invalid_snuba_aggregation_raises(self) -> None:
         # A strategy whose snuba_aggregations name isn't a known aggregation must fail
         # loudly rather than with an opaque KeyError during query construction.
         strategy = _ts_strategy(snuba_aggregations=["not_a_real_aggregation"])
@@ -290,7 +303,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
             with pytest.raises(InvalidQueryForExecutor):
                 list(self.make_query("test_sort"))
 
-    def test_signal_resolver_influences_score(self):
+    def test_signal_resolver_influences_score(self) -> None:
         boosted = self.groups[0].id
         strategy = _ts_strategy(
             signal_resolvers={"boost": lambda actor, org, projects, gids: {boosted: 1}},
@@ -301,7 +314,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
         # groups[0] is the oldest (normally last) but the boost floats it to the top.
         assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
-    def test_cursor_pagination_with_snuba_filter(self):
+    def test_cursor_pagination_with_snuba_filter(self) -> None:
         for i in range(5):
             event = self.store_event(
                 data={
@@ -314,6 +327,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
                 },
                 project_id=self.project.id,
             )
+            assert event.group is not None
             group = Group.objects.get(id=event.group.id)
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
@@ -332,7 +346,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
 
 
 class TestFallbackBehavior(PostgresSortTestBase):
-    def test_too_many_candidates_returns_none(self):
+    def test_too_many_candidates_returns_none(self) -> None:
         executor = PostgresSnubaQueryExecutor()
         qs = Group.objects.filter(project=self.project)
         with mock.patch("sentry.search.snuba.executors.options") as mock_opts:
@@ -357,7 +371,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
             )
             assert result is None
 
-    def test_overflow_fallback_uses_chunked_path_not_shortcut(self):
+    def test_overflow_fallback_uses_chunked_path_not_shortcut(self) -> None:
         # A Postgres sort with no Snuba equivalent that overflows falls back to `date`,
         # but must go through the chunked Snuba path (which hides non-default issue types),
         # not the postgres-only shortcut that skips type-visibility filtering. The chunked
@@ -374,7 +388,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
             list(self.make_query("postgres_only"))
         assert snuba_spy.called
 
-    def test_overflow_with_date_key_skips_shortcut(self):
+    def test_overflow_with_date_key_skips_shortcut(self) -> None:
         # A Postgres strategy registered under "date" that overflows must still go through
         # the chunked path, not the postgres-only date shortcut. "date" is in
         # sort_strategies, so the fallback keeps sort_by="date" -- the shortcut guard must
@@ -391,7 +405,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
             list(self.make_query("date"))
         assert snuba_spy.called
 
-    def test_overflow_with_postgres_only_key_falls_back_to_date(self):
+    def test_overflow_with_postgres_only_key_falls_back_to_date(self) -> None:
         # A Postgres-only sort with no Snuba aggregation must fall back to `date` on
         # overflow rather than flow an empty sort field into the aggregation lookup.
         with (
@@ -406,7 +420,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
             list(self.make_query("postgres_only"))
         assert snuba_spy.call_args.kwargs["sort_field"] == "last_seen"
 
-    def test_unregistered_sort_uses_snuba_path(self):
+    def test_unregistered_sort_uses_snuba_path(self) -> None:
         # `date` isn't a Postgres strategy, so it takes the existing Snuba path unchanged.
         results = list(self.make_query("date"))
         assert len(results) == 3
@@ -422,7 +436,7 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
     is large enough to override that.
     """
 
-    def _query(self, actor=None):
+    def _query(self, actor: User | None = None) -> list[Group]:
         return list(
             self.backend.query(
                 [self.project],
@@ -438,7 +452,7 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
             )
         )
 
-    def test_assignment_ordering(self):
+    def test_assignment_ordering(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
         GroupAssignee.objects.assign(self.groups[0], self.user)
         GroupAssignee.objects.assign(self.groups[1], team)
@@ -448,7 +462,7 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
         # Individual assignment outranks team assignment outranks unassigned.
         assert self._query(actor=self.user) == [self.groups[0], self.groups[1], self.groups[2]]
 
-    def test_fixability_boost(self):
+    def test_fixability_boost(self) -> None:
         self.groups[0].update(seer_fixability_score=1.0)
 
         results = self._query(actor=self.user)
@@ -456,14 +470,14 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
         # Groups without a fixability score are still included, just unboosted.
         assert set(results) == set(self.groups)
 
-    def test_agent_progress_boost(self):
+    def test_agent_progress_boost(self) -> None:
         # A later Seer stage outranks an earlier one, which outranks no agent activity.
         self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
         self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
 
         assert self._query(actor=self.user) == [self.groups[0], self.groups[1], self.groups[2]]
 
-    def test_agent_boost_reset_by_regression(self):
+    def test_agent_boost_reset_by_regression(self) -> None:
         # groups[0] reached PR-created but then regressed: that progress is stale.
         self.create_group_activity(
             group=self.groups[0],
@@ -489,28 +503,28 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
 
-    def test_regressed_boost(self):
+    def test_regressed_boost(self) -> None:
         # groups[0] has the lowest base score (oldest events); marking it regressed lifts
         # it above the others, which stay ONGOING.
         self.groups[0].update(substatus=GroupSubStatus.REGRESSED)
 
         assert self._query(actor=self.user)[0] == self.groups[0]
 
-    def test_newness_boost(self):
+    def test_newness_boost(self) -> None:
         # groups[0] is last by activity-based recency, but just appeared for the first time.
         # The first_seen-based newness boost (distinct from last_seen recency) lifts it up.
         self.groups[0].update(first_seen=before_now(hours=1))
 
         assert self._query(actor=self.user)[0] == self.groups[0]
 
-    def test_very_old_first_seen_does_not_overflow(self):
+    def test_very_old_first_seen_does_not_overflow(self) -> None:
         # first_seen far enough back that hours/halflife exceeds ~1024 used to overflow
         # the float in 1.0 / 2.0**x. The query must still succeed (newness underflows to 0).
         self.groups[0].update(first_seen=before_now(days=3000))
 
         assert set(self._query(actor=self.user)) == set(self.groups)
 
-    def _add_suspect_commit(self, group, user):
+    def _add_suspect_commit(self, group: Group, user: User) -> None:
         GroupOwner.objects.create(
             group=group,
             project=self.project,
@@ -519,14 +533,14 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
             user_id=user.id,
         )
 
-    def test_suspect_commit_boost(self):
+    def test_suspect_commit_boost(self) -> None:
         # groups[0] has the lowest base score; the viewer authored its suspect commit,
         # which lifts it to the top even though it isn't assigned to them.
         self._add_suspect_commit(self.groups[0], self.user)
 
         assert self._query(actor=self.user)[0] == self.groups[0]
 
-    def test_relevance_is_max_not_sum(self):
+    def test_relevance_is_max_not_sum(self) -> None:
         # groups[0] is both assigned to the viewer and authored by them; groups[1] is only
         # assigned to them. If the two relevance signals summed, groups[0] would win; because
         # they're combined with max(), both get the same boost and the higher base (groups[1])
@@ -546,7 +560,7 @@ class TestProgressSort(PostgresSortTestBase):
     order [2, 1, 0] (newest first).
     """
 
-    def _query(self):
+    def _query(self) -> list[Group]:
         return list(
             self.backend.query(
                 [self.project],
@@ -561,7 +575,7 @@ class TestProgressSort(PostgresSortTestBase):
             )
         )
 
-    def test_rank_outranks_last_seen(self):
+    def test_rank_outranks_last_seen(self) -> None:
         # Give the oldest group the furthest progress and the newest group none: rank must
         # invert the last_seen ordering.
         self.create_group_derived_data(group=self.groups[0], progress="fix_proposed")
@@ -569,26 +583,26 @@ class TestProgressSort(PostgresSortTestBase):
         # groups[2] has no derived data -> identified (lowest rank).
         assert self._query() == [self.groups[0], self.groups[1], self.groups[2]]
 
-    def test_last_seen_breaks_ties_within_rank(self):
+    def test_last_seen_breaks_ties_within_rank(self) -> None:
         # groups[0] and groups[1] are both diagnosed; the more recently seen (groups[1])
         # sorts first. groups[2] stays identified and sorts last.
         self.create_group_derived_data(group=self.groups[0], progress="diagnosed")
         self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
-    def test_reads_from_derived_data(self):
+    def test_reads_from_derived_data(self) -> None:
         self.create_group_derived_data(group=self.groups[0], progress="identified")
         self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
         self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
         assert self._query() == [self.groups[2], self.groups[1], self.groups[0]]
 
-    def test_derived_data_missing_row_defaults_to_identified(self):
+    def test_derived_data_missing_row_defaults_to_identified(self) -> None:
         # Only groups[0] has a derived row; the others default to identified and fall back
         # to last_seen ordering (groups[2] newer than groups[1]).
         self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
         assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
 
-    def test_last_progressed_at_breaks_ties(self):
+    def test_last_progressed_at_breaks_ties(self) -> None:
         # Both groups have the same rank but different last_progressed_at values;
         # the more recently progressed group sorts first.
         self.create_group_derived_data(
@@ -601,7 +615,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_native_ordering_past_candidate_cap(self):
+    def test_native_ordering_past_candidate_cap(self) -> None:
         # With the cap at 0, the in-memory path overflows and (pre-Tier-1) would degrade to a
         # plain last_seen sort. The native ORDER BY must instead rank correctly, exercising all
         # three derived-data states: a normal row, a null-progress row (closed -> fix_applied),
@@ -620,7 +634,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert list(page2) == [self.groups[2]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_native_ordering_paginates_across_score_tie(self):
+    def test_native_ordering_paginates_across_score_tie(self) -> None:
         # Identical rank + last_progressed_at -> identical score, so ordering falls to the -id
         # tiebreak; paging one-at-a-time across the tie must not drop or duplicate a row.
         ts = before_now(days=2)
@@ -628,8 +642,8 @@ class TestProgressSort(PostgresSortTestBase):
             self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
 
         expected = sorted(self.groups, key=lambda g: g.id, reverse=True)
-        seen = []
-        cursor = None
+        seen: list[Group] = []
+        cursor: Cursor | None = None
         for _ in self.groups:
             page = self.make_query(sort_by="progress", limit=1, cursor=cursor)
             seen.extend(page)
@@ -637,7 +651,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert seen == expected
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_environment_scoping_over_cap_uses_inverted_progress_ranking(self):
+    def test_environment_scoping_over_cap_uses_inverted_progress_ranking(self) -> None:
         # Environment scoping lives in Snuba, so it can't use the Postgres-only native path.
         # Over the cap it instead uses the inverted chunk loop: Postgres walks progress order
         # and Snuba filters each chunk (honoring the environment), so the result is still
@@ -650,7 +664,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_explicit_date_to_over_cap_uses_inverted_path(self):
+    def test_explicit_date_to_over_cap_uses_inverted_path(self) -> None:
         # Group.last_seen is the issue's global max event time, not its max within the window,
         # so the native (Postgres-only) path can't honor an upper time bound. Over the cap the
         # inverted chunk loop handles it: Snuba filters each chunk and scopes to in-window
@@ -666,7 +680,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert results == [self.groups[0], self.groups[1]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_date_to_now_uses_native_path(self):
+    def test_date_to_now_uses_native_path(self) -> None:
         # The issue-stream endpoint always sends date_to=now. That is not a restrictive bound
         # (last_seen can't exceed now), so the native path must still run and rank by progress
         # rather than falling back to recency.
@@ -676,7 +690,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_snuba_filter_over_cap_uses_inverted_progress_ranking(self):
+    def test_snuba_filter_over_cap_uses_inverted_progress_ranking(self) -> None:
         # Over the candidate cap WITH a Snuba-side filter, the sort no longer degrades to
         # recency: the inverted chunk loop walks GroupDerivedData in progress order (Postgres
         # is the sort authority) and uses Snuba only as a membership filter. The free-text
@@ -705,7 +719,7 @@ class TestProgressSort(PostgresSortTestBase):
         assert list(prev_page) == [self.groups[0], self.groups[1]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_snuba_filter_over_cap_paginates_across_score_tie(self):
+    def test_snuba_filter_over_cap_paginates_across_score_tie(self) -> None:
         # Two groups share a rank and a last_progressed_at that differ only by sub-millisecond
         # microseconds, so their scaled-int scores are identical and ordering falls to the -id
         # tiebreak. The emitted cursor value is the floored integer score, so the inverted path
@@ -728,8 +742,8 @@ class TestProgressSort(PostgresSortTestBase):
         tied = sorted([self.groups[0], self.groups[1]], key=lambda g: g.id, reverse=True)
         expected = tied + [self.groups[2]]
 
-        seen = []
-        cursor = None
+        seen: list[Group] = []
+        cursor: Cursor | None = None
         for _ in self.groups:
             page = self.make_query(sort_by="progress", query="issue", limit=1, cursor=cursor)
             seen.extend(page)
@@ -744,7 +758,7 @@ class TestProgressSort(PostgresSortTestBase):
             "snuba.search.max-total-chunk-time-seconds": 0,
         }
     )
-    def test_budget_exhausted_empty_page_terminates(self):
+    def test_budget_exhausted_empty_page_terminates(self) -> None:
         # When the time budget expires before any Snuba match is found, the page must be a
         # terminating empty result. The cursor value is a progress score and can't encode a
         # mid-tie "resume at raw row N" checkpoint, so advertising next.has_results with a
@@ -768,7 +782,7 @@ class TestProgressSort(PostgresSortTestBase):
             "snuba.search.max-chunk-size": 1,
         }
     )
-    def test_score_tie_spanning_pages_forward_and_back_with_tiny_chunks(self):
+    def test_score_tie_spanning_pages_forward_and_back_with_tiny_chunks(self) -> None:
         # Regression guard for the inverted path's cursor across a score tie that spans several
         # pages while the chunk loop breaks early (max-chunk-size=1). Five groups share an
         # identical score (same rank + same last_progressed_at), so ordering falls entirely to
@@ -777,7 +791,7 @@ class TestProgressSort(PostgresSortTestBase):
         # measured against the true global ordering (not just self-consistency) -- i.e. prev
         # returns the page adjacent to the cursor, not a window pulled from the wrong end.
         ts = before_now(days=2).replace(microsecond=0)
-        extra = []
+        extra: list[Group] = []
         for i in range(3, 5):
             event = self.store_event(
                 data={
@@ -790,6 +804,7 @@ class TestProgressSort(PostgresSortTestBase):
                 },
                 project_id=self.project.id,
             )
+            assert event.group is not None
             g = Group.objects.get(id=event.group.id)
             g.status = GroupStatus.UNRESOLVED
             g.substatus = GroupSubStatus.ONGOING
@@ -807,8 +822,8 @@ class TestProgressSort(PostgresSortTestBase):
         # Page fully forward one page (limit=2) at a time; the concatenation must be the exact
         # id-DESC order with no drops or duplicates.
         forward: list[Group] = []
-        pages: list[Any] = []
-        cursor = None
+        pages: list[CursorResult[Group]] = []
+        cursor: Cursor | None = None
         while True:
             page = self.make_query(sort_by="progress", query="issue", limit=2, cursor=cursor)
             results = list(page)
@@ -830,7 +845,7 @@ class TestProgressSort(PostgresSortTestBase):
 
 
 class TestDefaultPostgresSortStrategies(TestCase):
-    def test_recommended_v2_registered(self):
+    def test_recommended_v2_registered(self) -> None:
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
         assert set(strategies) == {"recommended_v2", "progress"}
         strategy = strategies["recommended_v2"]
@@ -838,14 +853,14 @@ class TestDefaultPostgresSortStrategies(TestCase):
         assert strategy.exclude_null_postgres is False
         assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit", "agent"}
 
-    def test_recommended_v2_zero_weight_drops_signal_resolver(self):
+    def test_recommended_v2_zero_weight_drops_signal_resolver(self) -> None:
         # A zeroed weight can't affect the score, so the strategy must not pay for that
         # signal's query.
         with self.options({"snuba.search.recommended.agent-weight": 0.0}):
             strategy = PostgresSnubaQueryExecutor().postgres_sort_strategies["recommended_v2"]
         assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit"}
 
-    def test_progress_registered(self):
+    def test_progress_registered(self) -> None:
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
         strategy = strategies["progress"]
         assert strategy.snuba_aggregations == ["last_seen"]

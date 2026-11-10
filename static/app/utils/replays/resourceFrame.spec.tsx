@@ -4,13 +4,13 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
+import {hydrateSpans} from './hydrateSpans';
 import {
   getFrameMethod,
   getFrameStatus,
   getReqRespContentTypes,
   getResponseBodySize,
-} from 'sentry/utils/replays/resourceFrame';
+} from './resourceFrame';
 
 describe('resourceFrame', () => {
   const startTimestamp = new Date(1663131080.64);

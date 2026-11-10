@@ -97,6 +97,8 @@ class OutboxCategory(IntEnum):
     GROUP_ACTION_LOG_EVENT = 49
     SERVICE_ACCOUNT_UPDATE = 50
     ORGANIZATION_PROVISION_ANALYTICS = 51
+    SERVICE_ACCOUNT_CREATE = 52
+    SERVICE_ACCOUNT_TOKEN_UPDATE = 53
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -324,6 +326,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
             OutboxCategory.SERVICE_ACCOUNT_UPDATE,
+            OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
@@ -384,6 +387,7 @@ class OutboxScope(IntEnum):
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
     SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
     GROUP_SCOPE = scope_categories(14, {OutboxCategory.GROUP_ACTION_LOG_EVENT})
+    SERVICE_ACCOUNT_SCOPE = scope_categories(15, {OutboxCategory.SERVICE_ACCOUNT_CREATE})
 
     def __str__(self) -> str:
         return self.name
@@ -410,6 +414,8 @@ class OutboxScope(IntEnum):
             return "seer_run_id"
         if scope == OutboxScope.GROUP_SCOPE:
             return "group_id"
+        if scope == OutboxScope.SERVICE_ACCOUNT_SCOPE:
+            return "organization_id"
 
         return "shard_identifier"
 

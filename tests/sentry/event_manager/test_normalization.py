@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Any
 
 import pytest
 from django.conf import settings
@@ -8,7 +9,7 @@ from sentry.constants import DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 from sentry.event_manager import EventManager
 
 
-def make_event(**kwargs):
+def make_event(**kwargs: Any) -> dict[str, Any]:
     result = {
         "event_id": "a" * 32,
         "message": "foo",
@@ -46,7 +47,7 @@ def test_interface_is_relabeled() -> None:
 
 
 @pytest.mark.parametrize("user", ["missing", None, {}, {"ip_address": None}])
-def test_does_default_ip_address_to_user(user) -> None:
+def test_does_default_ip_address_to_user(user: Any) -> None:
     event = {
         "request": {"url": "http://example.com", "env": {"REMOTE_ADDR": "127.0.0.1"}},
         "platform": "javascript",
@@ -187,7 +188,7 @@ def test_event_id_lowercase() -> None:
 
 
 @pytest.mark.parametrize("key", ["applecrashreport", "device", "repos", "query"])
-def test_deprecated_attrs(key) -> None:
+def test_deprecated_attrs(key: str) -> None:
     event = make_event()
     event[key] = "some value"
 
@@ -200,7 +201,7 @@ def test_deprecated_attrs(key) -> None:
 
 
 @pytest.mark.parametrize("environment", ["", None, "production"])
-def test_environment_tag_removed(environment) -> None:
+def test_environment_tag_removed(environment: str | None) -> None:
     event = make_event()
     event["environment"] = environment
     event["tags"] = {"environment": "production"}

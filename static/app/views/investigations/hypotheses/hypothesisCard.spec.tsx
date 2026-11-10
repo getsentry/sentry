@@ -4,7 +4,8 @@ import {
   InvestigationHypothesisFixture,
   InvestigationVerificationStepFixture,
 } from 'sentry/views/investigations/fixtures';
-import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
+
+import {HypothesisCard} from './hypothesisCard';
 
 describe('HypothesisCard', () => {
   it.each(['pending', 'investigating'] as const)(

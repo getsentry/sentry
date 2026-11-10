@@ -8,15 +8,15 @@ import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
@@ -37,6 +37,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const REPLAY_COLUMNS: TableColumnConfig[] = [
   {key: 'replay', width: '1fr'},
@@ -127,7 +129,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
               onConfirm: () => {
                 bulkDelete([deletePayload], {
                   onSuccess: () => {
-                    addSuccessMessage(
+                    toast.success(
                       tct('Replays are being deleted. [settings:View progress]', {
                         settings: <LinkWithUnderline to={settingsPath} />,
                       })
@@ -141,7 +143,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                         ? Number.MAX_SAFE_INTEGER
                         : selectedIds.length;
                     const reason = getBulkDeleteErrorReason(error);
-                    addErrorMessage(
+                    toast.error(
                       reason
                         ? tn(
                             'Failed to delete replay: %2$s',
@@ -265,6 +267,7 @@ function ReplayPreviewTable({
 
 function Title({children, project}: {children: React.ReactNode; project: Project}) {
   const organization = useOrganization();
+  const settingsV3 = useSettingsV3();
   const settingsPath = `/settings/${organization.slug}/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
   return (
     <Fragment>
@@ -276,7 +279,7 @@ function Title({children, project}: {children: React.ReactNode; project: Project
           link: (
             <LinkWithUnderline
               to={settingsPath}
-            >{`Settings > ${project.slug} > Replays`}</LinkWithUnderline>
+            >{`${settingsV3 ? getSettingsScopeTitle('project') : 'Settings'} > ${project.slug} > Replays`}</LinkWithUnderline>
           ),
         })}
       </p>

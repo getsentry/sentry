@@ -24,9 +24,9 @@ class TextType:
         return "text"
 
 
-class CharField(TextType, models.CharField):
+class CharField[GetT: str | None, SetT: str | None](TextType, models.CharField[GetT, SetT]):
     pass
 
 
-class EmailField(TextType, models.EmailField):
+class EmailField(TextType, models.EmailField[str, str]):
     pass

@@ -21,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.action_kinds.base import FollowUpCommandType
+from sentry.investigations.services.actor_access import resolve_investigation_service_account
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
@@ -38,13 +39,12 @@ from sentry.notebooks.services.notebooks import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
-    _create_project_links,
     _validate_project_ids,
     archive_investigation,
+    create_notebook,
     default_investigation_title,
     update_investigation,
 )
-from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.users.services.user.service import user_service
 from sentry.viewer_context import ActorId, ActorType
 
@@ -159,20 +159,12 @@ def _validate_creation_actor(
             has_investigations_access(organization, actor=user)
         ):
             raise PermissionDenied
+        # Open membership grants authorized human members access to every active project.
+        _validate_project_ids(organization.id, project_ids)
     else:
-        try:
-            account = ServiceAccountReplica.objects.get(
-                service_account_id=creator.id, organization_id=organization.id, is_active=True
-            )
-        except ServiceAccountReplica.DoesNotExist as error:
-            raise PermissionDenied from error
-        if not INVESTIGATION_SCOPES.intersection(
-            account.scope_list
-        ) or not has_investigations_access(organization):
-            raise PermissionDenied
-
-    # Open membership grants authorized members access to every active organization project.
-    _validate_project_ids(organization.id, project_ids)
+        resolve_investigation_service_account(
+            organization=organization, account_id=creator.id, project_ids=project_ids
+        )
 
 
 def _create_agentic_investigation(
@@ -191,7 +183,7 @@ def _create_agentic_investigation(
     """Create the notebook and its parent control-plane aggregate atomically."""
 
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = Notebook.objects.create(
+        investigation = create_notebook(
             organization=organization,
             created_by_id=creator.id if creator.type == ActorType.USER else None,
             created_by_service_account_id=(
@@ -200,11 +192,11 @@ def _create_agentic_investigation(
             title=title or default_investigation_title(source_type),
             source_type=source_type,
             source_key=source_key,
-            source=deepcopy(source),
+            source=source,
             source_revision=source_revision,
-            filters=deepcopy(filters),
+            filters=filters,
+            project_ids=project_ids,
         )
-        _create_project_links(investigation, project_ids)
         phase, status, projection = _initial_projection(
             investigation_id=investigation.id, source=orchestration_source
         )
@@ -215,9 +207,6 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
-        # Remove once dispatch can use the saved service-account identity.
-        if creator.type == ActorType.SERVICE_ACCOUNT:
-            raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
     return investigation, orchestration_run
 

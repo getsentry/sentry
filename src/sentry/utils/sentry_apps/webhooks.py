@@ -92,7 +92,7 @@ def ignore_unpublished_app_errors(
     func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R],
 ) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
     def wrapper(
-        sentry_app: SentryApp | RpcSentryApp, *args: P.args, **kwargs: P.kwargs
+        sentry_app: SentryApp | RpcSentryApp, /, *args: P.args, **kwargs: P.kwargs
     ) -> R | None:
         try:
             return func(sentry_app, *args, **kwargs)

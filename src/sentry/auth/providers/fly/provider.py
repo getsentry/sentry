@@ -29,10 +29,12 @@ class FlyOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
 
     def get_client_id(self) -> str:
-        return options.get("auth-fly.client-id")
+        client_id = options.get("auth-fly.client-id")
+        return client_id
 
     def get_client_secret(self) -> str:
-        return options.get("auth-fly.client-secret")
+        client_secret = options.get("auth-fly.client-secret")
+        return client_secret
 
     def get_configure_view(
         self,

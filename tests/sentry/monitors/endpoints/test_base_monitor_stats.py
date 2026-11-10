@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -11,7 +12,13 @@ from sentry.testutils.helpers.datetime import freeze_time
 class BaseMonitorStatsTest(MonitorTestCase):
     __test__ = False
 
-    def add_checkin(self, offset, duration=None, env=None, status=None):
+    def add_checkin(
+        self,
+        offset: Mapping[str, int],
+        duration: int | None = None,
+        env: MonitorEnvironment | None = None,
+        status: int | None = None,
+    ) -> None:
         if status is None:
             status = CheckInStatus.OK
         if env is None:

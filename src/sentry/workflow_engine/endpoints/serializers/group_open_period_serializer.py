@@ -85,13 +85,13 @@ class GroupOpenPeriodSerializer(Serializer[GroupOpenPeriodResponse]):
         for activity, serialized_activity in zip(
             activities, serialize(list(activities), user=user, **kwargs)
         ):
-            gopas[activity.group_open_period].append(serialized_activity)
+            gopas[activity.group_open_period_id].append(serialized_activity)
 
         short_ids_by_group_id = get_short_ids_by_group_id(item.group_id for item in item_list)
 
         return {
             item: GroupOpenPeriodAttrs(
-                activities=gopas[item][:100],
+                activities=gopas[item.id][:100],
                 short_id=short_ids_by_group_id.get(item.group_id),
             )
             for item in item_list

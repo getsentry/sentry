@@ -62,16 +62,22 @@ class DatabaseBackedRepositoryService(RepositoryService):
         organization_id: int,
         integration_id: int | None = None,
         external_id: str | None = None,
+        external_ids: list[str] | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
         status: int | None = None,
     ) -> list[RpcRepository]:
+        if external_id is not None and external_ids is not None:
+            raise ValueError("external_id and external_ids cannot both be provided")
+
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:
             query = query.filter(integration_id=integration_id)
         if external_id is not None:
             query = query.filter(external_id=external_id)
+        if external_ids is not None:
+            query = query.filter(external_id__in=external_ids)
         if providers is not None:
             query = query.filter(provider__in=providers)
         if has_integration is not None:

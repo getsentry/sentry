@@ -32,7 +32,7 @@ from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
 @pytest.mark.django_db
 def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     with patched_settings({"PREPROCESSING_HOOKS": []}):
-        endpoints = CustomEndpointEnumerator().get_api_endpoints()
+        endpoints = CustomEndpointEnumerator().collect_endpoints()
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(
@@ -450,6 +450,37 @@ class FixIssueRoutesTest(TestCase):
             "components": {"schemas": {}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
+
+    def test_shared_issue_route_fixes(self) -> None:
+        operation = {
+            "tags": ["Events"],
+            "description": "Get a shared issue",
+            "operationId": "get shared issue",
+            "parameters": [
+                {
+                    "in": "path",
+                    "name": "var",
+                    "schema": {"type": "string"},
+                    "description": "Issues or groups",
+                    "required": True,
+                },
+            ],
+        }
+        BEFORE = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/organizations/{organization_id_or_slug}/shared/{var}/{share_id}/": {
+                    "get": operation
+                },
+            },
+        }
+
+        result = custom_postprocessing_hook(BEFORE, None)
+
+        assert list(result["paths"]) == [
+            "/api/0/organizations/{organization_id_or_slug}/shared/issues/{share_id}/"
+        ]
+        assert next(iter(result["paths"].values()))["get"]["parameters"] == []
 
 
 class UnannotatedRoutingEndpoint(Endpoint):

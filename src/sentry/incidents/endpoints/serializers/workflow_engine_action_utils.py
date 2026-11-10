@@ -62,7 +62,11 @@ def human_desc(
         return action_type_to_string.get(action_type)
 
 
-def get_identifier_from_action(action_type, target_identifier, target_display=None):
+def get_identifier_from_action(
+    action_type: int | None,
+    target_identifier: str,
+    target_display: str | None = None,
+) -> int | str:
     if action_type in [
         ActionService.PAGERDUTY.value,
         ActionService.SENTRY_APP.value,
@@ -75,7 +79,9 @@ def get_identifier_from_action(action_type, target_identifier, target_display=No
     return target_display if target_display is not None else target_identifier
 
 
-def get_input_channel_id(action_type, target_identifier=None):
+def get_input_channel_id(
+    action_type: int | None, target_identifier: str | None = None
+) -> str | None:
     """
     Don't pass an inputChannelId value unless the action is for Slack
     """

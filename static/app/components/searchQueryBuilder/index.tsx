@@ -11,25 +11,6 @@ import {Input} from '@sentry/scraps/input';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  SearchQueryBuilderProvider,
-  useHasSearchQueryBuilderProvider,
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderConfig,
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChange';
-import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
-import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {
-  QueryInterfaceType,
-  type CallbackSearchState,
-  type FieldDefinitionGetter,
-  type FilterKeySection,
-} from 'sentry/components/searchQueryBuilder/types';
-import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import {t} from 'sentry/locale';
@@ -37,6 +18,26 @@ import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {FieldKind} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
+
+import {useOnChange} from './hooks/useOnChange';
+import {
+  SearchQueryBuilderProvider,
+  useHasSearchQueryBuilderProvider,
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderConfig,
+  useSearchQueryBuilderLayout,
+  useSearchQueryBuilderState,
+} from './context';
+import type {CaseInsensitive} from './hooks';
+import {PlainTextQueryInput} from './plainTextQueryInput';
+import {TokenizedQueryGrid} from './tokenizedQueryGrid';
+import {
+  QueryInterfaceType,
+  type CallbackSearchState,
+  type FieldDefinitionGetter,
+  type FilterKeySection,
+} from './types';
+import {queryIsValid} from './utils';
 
 export interface GetTagValuesParams {
   /**

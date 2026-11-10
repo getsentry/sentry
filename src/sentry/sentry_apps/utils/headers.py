@@ -3,9 +3,11 @@ from collections.abc import Mapping, Sequence
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 
 
-def parse_custom_headers(webhook_headers: Sequence[str]) -> dict[str, str]:
+def parse_custom_headers(webhook_headers: Sequence[str | None]) -> dict[str, str]:
     headers: dict[str, str] = {}
     for header in webhook_headers:
+        if header is None:
+            continue
         name, separator, value = header.partition(":")
         if separator:
             headers[name.strip()] = value.strip()

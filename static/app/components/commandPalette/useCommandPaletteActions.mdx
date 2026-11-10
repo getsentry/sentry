@@ -9,7 +9,6 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 
 import * as Storybook from 'sentry/stories';
@@ -34,7 +33,8 @@ Wrap your tree in `CommandPaletteProvider` and place the `CommandPalette` UI com
 </Storybook.Demo>
 
 ```tsx
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {
   CMDKAction,
   CommandPaletteProvider,
@@ -50,14 +50,14 @@ function YourComponent() {
       {/* Callback action */}
       <CMDKAction
         display={{label: 'Execute an action'}}
-        onAction={() => addSuccessMessage('Action executed')}
+        onAction={() => toast.success('Action executed')}
       />
 
       {/* Grouped actions */}
       <CMDKAction display={{label: 'Parent action'}}>
         <CMDKAction
           display={{label: 'Child action'}}
-          onAction={() => addSuccessMessage('Child action executed')}
+          onAction={() => toast.success('Child action executed')}
         />
       </CMDKAction>
 
@@ -65,11 +65,11 @@ function YourComponent() {
       <CMDKAction display={{label: 'Issues List'}}>
         <CMDKAction
           display={{label: 'Select all'}}
-          onAction={() => addSuccessMessage('Select all')}
+          onAction={() => toast.success('Select all')}
         />
         <CMDKAction
           display={{label: 'Deselect all'}}
-          onAction={() => addSuccessMessage('Deselect all')}
+          onAction={() => toast.success('Deselect all')}
         />
       </CMDKAction>
 

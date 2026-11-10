@@ -14,10 +14,10 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SetupIntroduction} from 'sentry/views/onboarding/components/setupIntroduction';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
 import {FirstEventFooter} from './components/firstEventFooter';
+import {SetupIntroduction} from './components/setupIntroduction';
 import type {StepProps} from './types';
 
 export function SetupDocs({recentCreatedProject: project, genBackButton}: StepProps) {

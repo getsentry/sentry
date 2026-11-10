@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useEffectEvent, useLayoutEffect, useRef} from 'react';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useSearchQueryBuilderState} from 'sentry/components/searchQueryBuilder/context';
@@ -39,15 +39,25 @@ export function useOnChange({
   ]);
 
   const previousInitialQueryRef = useRef(initialQuery);
-  useLayoutEffect(() => {
+  const syncInitialQuery = useEffectEvent((newInitialQuery: string) => {
     // Mounting inside a provider that holds another query (e.g. after Ask Seer) still emits.
-    const fromInitialQuery = initialQuery !== previousInitialQueryRef.current;
-    previousInitialQueryRef.current = initialQuery;
+    const fromInitialQuery = newInitialQuery !== previousInitialQueryRef.current;
+    previousInitialQueryRef.current = newInitialQuery;
+
+    // An unsearched commit from this render must win, or useOnChange searches a
+    // query the builder no longer shows and the URL and builder swap forever.
+    if (committedQuery !== previousCommittedQuery && !committedQueryFromInitialQuery) {
+      return;
+    }
+
     dispatch({
       type: 'UPDATE_QUERY',
-      query: initialQuery,
+      query: newInitialQuery,
       ignoreDisabled: true,
       fromInitialQuery,
     });
-  }, [dispatch, initialQuery]);
+  });
+  useLayoutEffect(() => {
+    syncInitialQuery(initialQuery);
+  }, [initialQuery]);
 }

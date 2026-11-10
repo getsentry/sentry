@@ -16,6 +16,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.response_types import ValidationErrorResponse
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -50,7 +52,9 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, monitor) -> Response[MonitorSerializerResponse]:
+    def get(
+        self, request: Request, project: Project, monitor: Monitor
+    ) -> Response[MonitorSerializerResponse]:
         """
         Retrieves details for a monitor.
         """
@@ -74,7 +78,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
         },
     )
     def put(
-        self, request: AuthenticatedHttpRequest, project, monitor
+        self, request: AuthenticatedHttpRequest, project: Project, monitor: Monitor
     ) -> Response[MonitorSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a monitor.
@@ -98,7 +102,7 @@ class ProjectMonitorDetailsEndpoint(ProjectMonitorEndpoint, MonitorDetailsMixin)
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, monitor) -> Response[None]:
+    def delete(self, request: Request, project: Project, monitor: Monitor) -> Response[None]:
         """
         Delete a monitor or monitor environments.
         """

@@ -7,16 +7,14 @@ import {GroupActivityType, IssueCategory, PriorityLevel} from 'sentry/types/grou
 import type {Commit, PullRequest, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {useUser} from 'sentry/utils/useUser';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+
 import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+} from './activityLineItem/activityFeedItem';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 const user = {
   id: '1',

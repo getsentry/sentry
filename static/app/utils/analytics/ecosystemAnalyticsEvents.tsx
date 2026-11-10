@@ -1,6 +1,7 @@
 import type {PlatformKey} from 'sentry/types/platform';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type SetupType = 'automatic' | 'manual';
 type StackTraceView = 'stacktrace_issue_details' | 'integration_configuration_detail';

@@ -23,8 +23,9 @@ import {
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {ReplayPanel} from './replayPanel';
 
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();

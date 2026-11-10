@@ -7,8 +7,9 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useLogsTimeseries} from './useLogsTimeseries';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -97,6 +98,7 @@ describe('useLogsTimeseries', () => {
             fetchPreviousPage: () => Promise.resolve({} as any),
             refetch: () => Promise.resolve({} as any),
             hasNextPage: false,
+            canFetchNextPage: false,
             queryKey: [] as any,
             hasPreviousPage: false,
             isFetchingNextPage: false,

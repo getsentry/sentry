@@ -3,12 +3,13 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   WEB_VITAL_SCORE_FIELDS,
   webVitalScoreField,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
+
+import {traceMetricsResponseTransforms} from './traceMetricsResponseTransforms';
 
 function response(yAxes: string[], value = 1): EventsTimeSeriesResponse {
   return {

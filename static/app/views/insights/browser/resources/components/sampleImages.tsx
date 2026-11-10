@@ -16,13 +16,14 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {ChartPanel} from 'sentry/views/insights/common/components/chartPanel';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
+
+import {ResourceSize} from './resourceSize';
 
 type Props = {groupId: string; noVisualizationPadding?: boolean; projectId?: number};
 

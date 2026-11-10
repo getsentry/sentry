@@ -39,7 +39,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
 
-    def post(self, request: Request):
+    def post(self, request: Request) -> Response:
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
         response: dict[str, Any] = {}
@@ -69,7 +69,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(response, status=200)
 
-    def _should_post_or_schedule(self, version, request):
+    def _should_post_or_schedule(self, version: str, request: Request) -> bool:
         """Determine whether the `_post_or_schedule_by_key` function should be
         used for project configs.
 
@@ -115,11 +115,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return post_or_schedule
 
-    def _post_or_schedule_by_key(self, request: Request):
-        public_keys = set(request.relay_request_data.get("publicKeys") or ())
+    def _post_or_schedule_by_key(self, request: Request) -> dict[str, object]:
+        public_keys: set[str] = set(request.relay_request_data.get("publicKeys") or ())
 
-        proj_configs = {}
-        pending = []
+        proj_configs: dict[str, ProjectConfig] = {}
+        pending: list[str] = []
         for key in public_keys:
             computed = self._get_cached_or_schedule(key)
             if not computed:
@@ -135,14 +135,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
 
-    def _get_cached_or_schedule(self, public_key) -> dict | None:
+    def _get_cached_or_schedule(self, public_key: str) -> ProjectConfig | None:
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache.
 
         Debouncing of the project happens after the task has been scheduled.
         """
-        cached_config = projectconfig_cache.backend.get(public_key)
+        cached_config: ProjectConfig | None = projectconfig_cache.backend.get(public_key)
         if cached_config:
             return cached_config
 
@@ -150,8 +150,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         return None
 
     def _post_by_key(self, request: Request) -> MutableMapping[str, ProjectConfig]:
-        public_keys = request.relay_request_data.get("publicKeys")
-        public_keys = set(public_keys or ())
+        public_keys: set[str] = set(request.relay_request_data.get("publicKeys") or ())
 
         project_keys: MutableMapping[str, ProjectKey] = {}
         project_ids: set[int] = set()

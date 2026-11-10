@@ -1,4 +1,4 @@
-import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {replaceRouterParams} from './replaceRouterParams';
 
 const params = {
   orgId: 'org-slug',

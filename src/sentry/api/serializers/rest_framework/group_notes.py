@@ -26,7 +26,6 @@ def separate_actors(actors: list[Actor]) -> _SeparatedActors:
 class NoteSerializer(serializers.Serializer[None]):
     text = serializers.CharField()
     mentions = ListField(child=ActorField(), required=False)
-    external_id = serializers.CharField(allow_null=True, required=False)
 
     def validate_mentions(self, mentions: list[Actor]) -> list[Actor]:
         if mentions and "projects" in self.context:

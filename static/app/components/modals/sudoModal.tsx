@@ -7,10 +7,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {
   getBoostrapTeamsQueryOptions,
   getBootstrapOrganizationQueryOptions,
@@ -440,20 +440,22 @@ export function SudoModal({
               <Fragment>
                 <superuserForm.AppField name="superuserAccessCategory">
                   {field => (
-                    <field.Radio.Group
+                    <field.RadioGroup
                       value={field.state.value}
                       onChange={field.handleChange}
                     >
-                      <field.Layout.Stack
-                        label={t('Categories of Superuser Access')}
-                        required
-                      >
-                        <Override
-                          name="component:superuser-access-category"
-                          RadioItem={field.Radio.Item}
-                        />
-                      </field.Layout.Stack>
-                    </field.Radio.Group>
+                      {({Item}) => (
+                        <field.Layout.Stack
+                          label={t('Categories of Superuser Access')}
+                          required
+                        >
+                          <Override
+                            name="component:superuser-access-category"
+                            RadioItem={Item}
+                          />
+                        </field.Layout.Stack>
+                      )}
+                    </field.RadioGroup>
                   )}
                 </superuserForm.AppField>
                 <superuserForm.AppField name="superuserReason">

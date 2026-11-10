@@ -1,7 +1,12 @@
 from __future__ import annotations
 
-from django.test import override_settings
+from collections.abc import Sequence
+from typing import Any
 
+from django.test import override_settings
+from rest_framework.response import Response
+
+from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import APITestCase
@@ -19,24 +24,33 @@ class OrganizationAgentApproveTest(APITestCase):
         self.member = self.create_user()
         self.create_member(user=self.member, organization=self.org, role="member")
 
-    def _url(self, organization=None):
+    def _url(self, organization: Organization | None = None) -> str:
         return f"/api/0/organizations/{(organization or self.org).slug}/agent/approve/"
 
-    def _post(self, *, scopes, session_id="s1", feature_enabled=True, **kwargs):
+    def _post(
+        self,
+        *,
+        scopes: Sequence[str],
+        session_id: str = "s1",
+        feature_enabled: bool = True,
+        **kwargs: Any,
+    ) -> Response:
         if feature_enabled:
             with self.feature(agent_token.FEATURE_FLAG):
-                return self.client.post(
+                response: Response[Any] = self.client.post(
                     self._url(),
                     data={"sessionId": session_id, "scopes": list(scopes)},
                     format="json",
                     **kwargs,
                 )
-        return self.client.post(
+                return response
+        response = self.client.post(
             self._url(),
             data={"sessionId": session_id, "scopes": list(scopes)},
             format="json",
             **kwargs,
         )
+        return response
 
     # ----- happy path -----
 

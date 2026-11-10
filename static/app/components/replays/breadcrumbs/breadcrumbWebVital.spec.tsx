@@ -2,9 +2,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import type {RawSpanFrame} from 'sentry/utils/replays/types';
+
+import {BreadcrumbWebVital} from './breadcrumbWebVital';
 
 function makeCLSFrame(data: Record<string, unknown> | undefined) {
   const [frame] = hydrateSpans(ReplayRecordFixture(), [

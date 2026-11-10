@@ -21,6 +21,7 @@ from sentry.integrations.api.serializers.rest_framework.data_forwarder import (
     DataForwarderSerializer,
 )
 from sentry.integrations.models.data_forwarder import DataForwarder
+from sentry.models.organization import Organization
 from sentry.web.decorators import set_referrer_policy
 
 
@@ -55,7 +56,9 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def get(self, request: Request, organization) -> Response[list[DataForwarderResponse]]:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[DataForwarderResponse]]:
         """
         Returns a list of data forwarders for an organization.
         """
@@ -82,7 +85,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
     )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
-    def post(self, request: Request, organization) -> Response[DataForwarderResponse]:
+    def post(self, request: Request, organization: Organization) -> Response[DataForwarderResponse]:
         """
         Creates a new data forwarder for an organization.
         Only one data forwarder can be created per provider for a given organization.

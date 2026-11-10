@@ -1,17 +1,15 @@
 import {Fragment} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
+import {paymentIntentOptions} from 'getsentry/hooks/useIntentData';
 import type {Invoice} from 'getsentry/types';
 import {displayPriceWithCents} from 'getsentry/utils/billing';
 
@@ -29,12 +27,8 @@ export default function InvoiceDetailsPaymentForm({
   invoice,
   reloadInvoice,
 }: Props) {
-  const location = useLocation();
-  const endpoint = [
-    getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
-      path: {organizationIdOrSlug: organization.slug, paymentId: invoice.id},
-    }),
-  ] satisfies ApiQueryKey;
+  const [referrer] = useQueryState('referrer');
+  const endpoint = paymentIntentOptions(organization.slug, invoice.id).queryKey;
 
   return (
     <Fragment>
@@ -62,7 +56,7 @@ export default function InvoiceDetailsPaymentForm({
             }}
             organization={organization}
             intentDataQueryKey={endpoint}
-            referrer={decodeScalar(location?.query?.referrer)}
+            referrer={referrer || undefined}
             buttonText={t('Pay Now')}
           />
         </Stack>

@@ -2,9 +2,10 @@ import json  # noqa: S003
 import os
 import re
 from collections import OrderedDict
-from collections.abc import Mapping
-from typing import Any, Literal, NotRequired, TypedDict
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
+from django.http import HttpResponseBase
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
@@ -48,7 +49,7 @@ EXCLUSION_PATH_PREFIXES = [
 ]
 
 
-def __get_line_count_for_team_stats(team_stats: Mapping):
+def __get_line_count_for_team_stats(team_stats: Mapping[ApiPublishStatus, set[str]]) -> int:
     """
     Returns number of lines it takes to write ownership for each team.
     For example returns 15 for:
@@ -71,12 +72,14 @@ def __get_line_count_for_team_stats(team_stats: Mapping):
     return line_count
 
 
-def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
+def __write_ownership_data(
+    ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]],
+) -> None:
     """
     Writes API ownership for all the teams in _OWNERSHIP_FILE.
     This file is used by Sentaur slack bot to inform teams on status of their APIs
     """
-    processed_data = {}
+    processed_data: dict[str, dict[str, int | list[str]]] = {}
     index = 2
     for team in ownership_data:
         # sorting APIs list so it doesn't trigger file change on every commit
@@ -102,26 +105,40 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
 
+    def collect_endpoints(self) -> list[tuple[str, str, str, Callable[..., HttpResponseBase]]]:
+        enumerate_endpoints = cast(
+            "Callable[[], list[tuple[str, str, str, Callable[..., HttpResponseBase]]]]",
+            self.get_api_endpoints,
+        )
+        return enumerate_endpoints()
+
     def get_path_from_regex(self, path_regex: str) -> str:
+        # User feedback routes also answer to the legacy `user-reports` name, which isn't documented.
+        path_regex = path_regex.replace("(?:user-feedback|user-reports)", "user-feedback")
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)
-        return super().get_path_from_regex(path_regex)
+        return cast("Callable[[str], str]", super().get_path_from_regex)(path_regex)
 
 
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
 
-    def get_schema(self, request: Any = None, public: bool = False) -> Any:
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        cast("Callable[..., None]", super().__init__)(*args, **kwargs)
+
+    def get_schema(self, request: Any = None, public: bool = False) -> dict[str, Any]:
         """Build the schema, then prove its omissions changed only what they declare.
 
         The baseline is a second build, on a fresh registry, with omissions off."""
         baseline_generator = type(self)(
             patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
         )
+        get_schema = cast("Callable[..., Any]", SchemaGenerator.get_schema)
+        super_get_schema = cast("Callable[..., Any]", super().get_schema)
         with omissions_disabled():
-            baseline = SchemaGenerator.get_schema(baseline_generator, request, public)
+            baseline = cast("dict[str, Any]", get_schema(baseline_generator, request, public))
         with recording_omissions() as recorded:
-            schema = super().get_schema(request, public)
+            schema = cast("dict[str, Any]", super_get_schema(request, public))
         try:
             check_schema_omissions(baseline, schema, recorded)
         except OmissionError as exc:
@@ -186,7 +203,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     _IDEMPOTENT_OPERATIONS.clear()
 
     filtered = []
-    ownership_data: dict[ApiOwner, dict] = {}
+    ownership_data: dict[ApiOwner, dict[ApiPublishStatus, set[str]]] = {}
     for path, path_regex, method, callback in endpoints:
         # Collect servers from endpoint class for postprocessing
         endpoint_servers = getattr(callback.view_class, "servers", None)
@@ -324,7 +341,9 @@ def _validate_request_body(
         )
 
 
-def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+def custom_postprocessing_hook(
+    result: dict[str, Any], generator: Any, **kwargs: Any
+) -> dict[str, Any]:
     # Stamp before alias canonicalization so metadata stays with its operation.
     for path, operations in result["paths"].items():
         for method, operation in operations.items():
@@ -460,6 +479,8 @@ def _fix_nullable_enums(node: Any) -> None:
 
 
 def _canonical_issue_path(path: str) -> str:
+    if "/shared/{var}/{share_id}" in path:
+        return path.replace("/shared/{var}/{share_id}", "/shared/issues/{share_id}")
     if "{var}/{issue_id}" not in path:
         return path
     path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
@@ -475,8 +496,8 @@ def _fix_issue_paths(result: Any) -> Any:
     The way we define `/issues/` paths causes some problems with drf-spectacular:
     - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and
       without. We want to use the `/organizations` prefixed path as it works across regions.
-    - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
-      but we only want to use `issues` in the docs
+    - The `/issues/` part of the path, including in `/shared/issues/`, is defined as
+      `issues|groups` for compatibility reasons, but we only want to use `issues` in the docs
 
     This function removes duplicate paths, removes the `issues|groups` path parameter and
     replaces it with `issues` in the path.
@@ -486,7 +507,7 @@ def _fix_issue_paths(result: Any) -> Any:
     modified_paths = []
 
     for path, endpoint in items:
-        if "{var}/{issue_id}" in path:
+        if _canonical_issue_path(path) != path:
             modified_paths.append(path)
 
     for path in modified_paths:

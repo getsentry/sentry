@@ -1,6 +1,8 @@
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.organization_trace_item_attributes_merged import (
     MergedTraceItemAttribute,
@@ -216,15 +218,20 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query=None, features=None):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         with self.feature(self.feature_flags if features is None else features):
             url = reverse(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 url, {"project": self.project.id, **(query or {})}, format="json"
             )
+            return response
 
     def _store_span_and_log(self) -> None:
         self.store_segment(
@@ -248,7 +255,7 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
             ]
         )
 
-    def _custom_attributes(self, response) -> dict[str, dict]:
+    def _custom_attributes(self, response: Response) -> dict[str, dict[str, Any]]:
         return {
             attribute["name"]: attribute
             for attribute in response.data

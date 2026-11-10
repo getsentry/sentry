@@ -4,7 +4,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
-import {MessagingIntegrationModal} from 'sentry/components/messagingIntegrations/messagingIntegrationModal';
 import {SCM_MESSAGING_PROVIDER_KEYS} from 'sentry/components/onboarding/scm/messagingProviders';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
@@ -15,6 +14,8 @@ import type {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {MessagingIntegrationModal} from './messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',

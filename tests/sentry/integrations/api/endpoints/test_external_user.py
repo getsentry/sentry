@@ -14,8 +14,9 @@ class ExternalUserTest(APITestCase):
             self.organization, self.user, provider="github", name="GitHub", external_id="github:1"
         )
 
+        self.external_name = "@NisanthanNanthakumar"
         self.data = {
-            "externalName": "@NisanthanNanthakumar",
+            "externalName": self.external_name,
             "provider": "github",
             "userId": self.user.id,
             "integrationId": self.integration.id,
@@ -108,7 +109,7 @@ class ExternalUserTest(APITestCase):
             self.user,
             self.organization,
             self.integration,
-            external_name=self.data["externalName"].lower(),
+            external_name=self.external_name.lower(),
         )
 
         with self.feature({"organizations:integrations-codeowners": True}):

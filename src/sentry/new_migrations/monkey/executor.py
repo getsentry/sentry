@@ -1,6 +1,8 @@
 import difflib
 import logging
 import os
+from collections.abc import Mapping, Sequence
+from typing import Protocol, cast
 
 from django.apps import apps
 from django.contrib.contenttypes.management import RenameContentType
@@ -8,6 +10,7 @@ from django.contrib.postgres.operations import CreateExtension
 from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.migration import Migration
 from django.db.migrations.operations import AlterField, SeparateDatabaseAndState
+from django.db.migrations.operations.base import Operation
 from django.db.migrations.operations.fields import FieldOperation
 from django.db.migrations.operations.models import IndexOperation, ModelOperation
 from django.db.migrations.state import ProjectState
@@ -15,6 +18,10 @@ from django.db.migrations.state import ProjectState
 from bitfield.models import BitField
 
 logger = logging.getLogger(__name__)
+
+
+class OperationWithHints(Protocol):
+    hints: Mapping[str, object]
 
 
 class MissingDatabaseRoutingInfo(Exception):
@@ -77,7 +84,7 @@ class SentryMigrationExecutor(MigrationExecutor):
         else:
             return
 
-        def _check_operations(operations):
+        def _check_operations(operations: Sequence[Operation]) -> list[Operation]:
             failed_ops = []
             for operation in operations:
                 if isinstance(
@@ -96,7 +103,7 @@ class SentryMigrationExecutor(MigrationExecutor):
                     continue
                 else:
                     # Check all the other operation types (SafeRunSQL, RunPython, unknown)
-                    if operation.hints.get("tables"):
+                    if cast(OperationWithHints, operation).hints.get("tables"):
                         continue
                     else:
                         failed_ops.append(operation)

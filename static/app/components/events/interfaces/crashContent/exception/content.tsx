@@ -7,13 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {
-  prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebugQuery,
-  type SourceMapDebugResponse,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
-import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {tct, tn} from 'sentry/locale';
@@ -27,9 +20,16 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection, SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
+import {StacktraceBanners} from './banners/stacktraceBanners';
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
 import {StackTrace} from './stackTrace';
+import {
+  prepareSourceMapDebuggerFrameInformation,
+  useSourceMapDebugQuery,
+  type SourceMapDebugResponse,
+} from './useSourceMapDebuggerData';
+import {renderLinksInText} from './utils';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 

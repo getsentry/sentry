@@ -1,9 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
 from sentry.testutils.cases import APITestCase
@@ -34,7 +36,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             },
         )
 
-    def create_seer_eligible_repo(self, project, name):
+    def create_seer_eligible_repo(self, project: Project, name: str) -> Repository:
         """Create a repo that Seer can use under both seat-based and token-based billing."""
         return self.create_repo(
             project=project,
@@ -44,7 +46,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             external_id=name,
         )
 
-    def test_get_returns_defaults(self, mock_is_seat_based) -> None:
+    def test_get_returns_defaults(self, mock_is_seat_based: MagicMock) -> None:
         """A project with no options set should return defaults."""
         response = self.client.get(self.url)
 
@@ -62,7 +64,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             "reposCount": 0,
         }
 
-    def test_get_returns_configured_project_options(self, mock_is_seat_based) -> None:
+    def test_get_returns_configured_project_options(self, mock_is_seat_based: MagicMock) -> None:
         """A project with explicit options should reflect them in the response."""
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
@@ -78,7 +80,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["automationTuning"] == "medium"
         assert response.data["scannerAutomation"] is False
 
-    def test_get_external_agent_with_integration_id(self, mock_is_seat_based) -> None:
+    def test_get_external_agent_with_integration_id(self, mock_is_seat_based: MagicMock) -> None:
         """A project with an external handoff should return the agent, integration ID,
         and autoCreatePr from the handoff config."""
         self.project.update_option(
@@ -96,7 +98,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["integrationId"] == "42"
         assert response.data["autoCreatePr"] is False
 
-    def test_get_external_agent_with_auto_create_pr(self, mock_is_seat_based) -> None:
+    def test_get_external_agent_with_auto_create_pr(self, mock_is_seat_based: MagicMock) -> None:
         """autoCreatePr should reflect the handoff config value."""
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -112,7 +114,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data["autoCreatePr"] is True
 
-    def test_get_stopping_point_off_when_tuning_off(self, mock_is_seat_based) -> None:
+    def test_get_stopping_point_off_when_tuning_off(self, mock_is_seat_based: MagicMock) -> None:
         """stoppingPoint should be 'off' when tuning is OFF."""
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
@@ -125,7 +127,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["stoppingPoint"] == "off"
         assert response.data["automationTuning"] == "off"
 
-    def test_get_stopping_point_when_tuning_on(self, mock_is_seat_based) -> None:
+    def test_get_stopping_point_when_tuning_on(self, mock_is_seat_based: MagicMock) -> None:
         """When tuning is not OFF, stoppingPoint should reflect the stored value."""
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
@@ -138,7 +140,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["stoppingPoint"] == "root_cause"
         assert response.data["automationTuning"] == "medium"
 
-    def test_get_repos_count(self, mock_is_seat_based) -> None:
+    def test_get_repos_count(self, mock_is_seat_based: MagicMock) -> None:
         """reposCount should reflect active repos Seer can use."""
         repo1 = self.create_seer_eligible_repo(self.project, "owner/repo-1")
         repo2 = self.create_seer_eligible_repo(self.project, "owner/repo-2")
@@ -150,7 +152,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data["reposCount"] == 2
 
-    def test_get_repos_count_excludes_inactive_repos(self, mock_is_seat_based) -> None:
+    def test_get_repos_count_excludes_inactive_repos(self, mock_is_seat_based: MagicMock) -> None:
         """Repos with non-active status should not be counted."""
         active_repo = self.create_seer_eligible_repo(self.project, "owner/active")
         disabled_repo = self.create_seer_eligible_repo(self.project, "owner/deleted")
@@ -164,7 +166,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data["reposCount"] == 1
 
-    def test_put_returns_updated_settings(self, mock_is_seat_based) -> None:
+    def test_put_returns_updated_settings(self, mock_is_seat_based: MagicMock) -> None:
         """PUT response should contain the full updated settings object."""
         response = self.client.put(
             self.url,
@@ -180,7 +182,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert "scannerAutomation" in response.data
         assert "reposCount" in response.data
 
-    def test_put_external_agent_with_valid_integration(self, mock_is_seat_based) -> None:
+    def test_put_external_agent_with_valid_integration(self, mock_is_seat_based: MagicMock) -> None:
         """Valid external agent + integrationId should succeed and reflect in response."""
         integration = self.create_integration(
             organization=self.organization, external_id="ext", provider="github"
@@ -195,14 +197,14 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["agent"] == "cursor_background_agent"
         assert response.data["integrationId"] == str(integration.id)
 
-    def test_put_scanner_automation(self, mock_is_seat_based) -> None:
+    def test_put_scanner_automation(self, mock_is_seat_based: MagicMock) -> None:
         """PUT scannerAutomation should update and return the new value."""
         response = self.client.put(self.url, data={"scannerAutomation": False}, format="json")
 
         assert response.status_code == 200
         assert response.data["scannerAutomation"] is False
 
-    def test_put_pr_iteration(self, mock_is_seat_based) -> None:
+    def test_put_pr_iteration(self, mock_is_seat_based: MagicMock) -> None:
         response = self.client.put(self.url, data={"prIteration": False}, format="json")
 
         assert response.status_code == 200
@@ -218,13 +220,15 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             project=self.project, key="sentry:seer_pr_iteration"
         ).exists()
 
-    def test_put_stopping_point(self, mock_is_seat_based) -> None:
+    def test_put_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
 
         assert response.status_code == 200
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
 
-    def test_put_stopping_point_open_pr_syncs_auto_create_pr(self, mock_is_seat_based) -> None:
+    def test_put_stopping_point_open_pr_syncs_auto_create_pr(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """Setting stoppingPoint to open_pr should also set auto_create_pr to True."""
         response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
 
@@ -232,7 +236,9 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
-    def test_put_stopping_point_non_open_pr_clears_auto_create_pr(self, mock_is_seat_based) -> None:
+    def test_put_stopping_point_non_open_pr_clears_auto_create_pr(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """Setting stoppingPoint to non-open_pr should clear auto_create_pr."""
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
@@ -243,7 +249,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     def test_put_legacy_stopping_point_does_not_sync_auto_create_pr(
-        self, mock_is_seat_based
+        self, mock_is_seat_based: MagicMock
     ) -> None:
         """Legacy: changing stoppingPoint should not touch auto_create_pr."""
         mock_is_seat_based.return_value = False
@@ -254,7 +260,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
-    def test_put_legacy_auto_create_pr(self, mock_is_seat_based) -> None:
+    def test_put_legacy_auto_create_pr(self, mock_is_seat_based: MagicMock) -> None:
         """autoCreatePr should update the handoff option directly."""
         mock_is_seat_based.return_value = False
 
@@ -263,7 +269,9 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is True
 
-    def test_put_legacy_auto_create_pr_preserves_stopping_point(self, mock_is_seat_based) -> None:
+    def test_put_legacy_auto_create_pr_preserves_stopping_point(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """autoCreatePr should not change the stored stopping_point."""
         mock_is_seat_based.return_value = False
 
@@ -274,7 +282,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "root_cause"
 
-    def test_put_automation_tuning(self, mock_is_seat_based) -> None:
+    def test_put_automation_tuning(self, mock_is_seat_based: MagicMock) -> None:
         """Seat-based: automationTuning accepts off and medium."""
         response = self.client.put(self.url, data={"automationTuning": "off"}, format="json")
         assert response.status_code == 200
@@ -290,12 +298,14 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             == AutofixAutomationTuningSettings.MEDIUM
         )
 
-    def test_put_automation_tuning_rejects_granular(self, mock_is_seat_based) -> None:
+    def test_put_automation_tuning_rejects_granular(self, mock_is_seat_based: MagicMock) -> None:
         """Seat-based: granular tuning values like 'high' should be rejected."""
         response = self.client.put(self.url, data={"automationTuning": "high"}, format="json")
         assert response.status_code == 400
 
-    def test_put_legacy_automation_tuning_allows_granular(self, mock_is_seat_based) -> None:
+    def test_put_legacy_automation_tuning_allows_granular(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """Legacy: automationTuning should set tuning directly."""
         mock_is_seat_based.return_value = False
         response = self.client.put(self.url, data={"automationTuning": "high"}, format="json")
@@ -306,19 +316,21 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             == AutofixAutomationTuningSettings.HIGH
         )
 
-    def test_put_requires_at_least_one_update_field(self, mock_is_seat_based) -> None:
+    def test_put_requires_at_least_one_update_field(self, mock_is_seat_based: MagicMock) -> None:
         """Sending no update fields should return 400."""
         response = self.client.put(self.url, data={}, format="json")
         assert response.status_code == 400
 
-    def test_put_requires_integration_id_for_external_agent(self, mock_is_seat_based) -> None:
+    def test_put_requires_integration_id_for_external_agent(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """External agent without integrationId should return 400."""
         response = self.client.put(
             self.url, data={"agent": "cursor_background_agent"}, format="json"
         )
         assert response.status_code == 400
 
-    def test_put_rejects_integration_id_without_agent(self, mock_is_seat_based) -> None:
+    def test_put_rejects_integration_id_without_agent(self, mock_is_seat_based: MagicMock) -> None:
         """integrationId without agent should return 400."""
         integration = self.create_integration(
             organization=self.organization, external_id="valid", provider="github"
@@ -326,7 +338,9 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         response = self.client.put(self.url, data={"integrationId": integration.id}, format="json")
         assert response.status_code == 400
 
-    def test_put_rejects_integration_id_with_seer_agent(self, mock_is_seat_based) -> None:
+    def test_put_rejects_integration_id_with_seer_agent(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """integrationId with agent=seer should return 400."""
         integration = self.create_integration(
             organization=self.organization, external_id="valid", provider="github"
@@ -336,7 +350,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_put_rejects_integration_id_from_other_org(self, mock_is_seat_based) -> None:
+    def test_put_rejects_integration_id_from_other_org(self, mock_is_seat_based: MagicMock) -> None:
         """An integration ID that doesn't belong to this org should return 400."""
         other_org = self.create_organization()
         integration = self.create_integration(
@@ -350,22 +364,24 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_put_seer_agent_does_not_require_integration_id(self, mock_is_seat_based) -> None:
+    def test_put_seer_agent_does_not_require_integration_id(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
         """agent=seer should not require integrationId."""
         response = self.client.put(self.url, data={"agent": "seer"}, format="json")
         assert response.status_code == 200
 
-    def test_put_rejects_invalid_agent(self, mock_is_seat_based) -> None:
+    def test_put_rejects_invalid_agent(self, mock_is_seat_based: MagicMock) -> None:
         """An unrecognized agent value should return 400."""
         response = self.client.put(self.url, data={"agent": "invalid"}, format="json")
         assert response.status_code == 400
 
-    def test_put_rejects_invalid_stopping_point(self, mock_is_seat_based) -> None:
+    def test_put_rejects_invalid_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         """An unrecognized stoppingPoint value should return 400."""
         response = self.client.put(self.url, data={"stoppingPoint": "invalid"}, format="json")
         assert response.status_code == 400
 
-    def test_put_creates_audit_log_entry(self, mock_is_seat_based) -> None:
+    def test_put_creates_audit_log_entry(self, mock_is_seat_based: MagicMock) -> None:
         """PUT should create an audit log entry with the project ID."""
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.silo.base import SiloMode
@@ -477,7 +493,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def create_seer_eligible_repo(self, project, name):
+    def create_seer_eligible_repo(self, project: Project, name: str) -> Repository:
         """Create a repo that Seer can use under both seat-based and token-based billing."""
         return self.create_repo(
             project=project,
@@ -487,7 +503,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             external_id=name,
         )
 
-    def test_get_returns_defaults(self, mock_is_seat_based) -> None:
+    def test_get_returns_defaults(self, mock_is_seat_based: MagicMock) -> None:
         """Projects with no options set should return default values."""
         response = self.client.get(self.url)
 
@@ -506,7 +522,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             "reposCount": 0,
         }
 
-    def test_get_returns_configured_project_options(self, mock_is_seat_based) -> None:
+    def test_get_returns_configured_project_options(self, mock_is_seat_based: MagicMock) -> None:
         """Projects with explicit option values should reflect those in the response."""
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
@@ -522,7 +538,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.data[0]["automationTuning"] == "medium"
         assert response.data[0]["scannerAutomation"] is False
 
-    def test_get_external_agent_with_integration_id(self, mock_is_seat_based) -> None:
+    def test_get_external_agent_with_integration_id(self, mock_is_seat_based: MagicMock) -> None:
         """A project configured with an external handoff should return the agent,
         integration ID, and autoCreatePr from the handoff config."""
         self.project.update_option(
@@ -540,7 +556,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.data[0]["integrationId"] == "42"
         assert response.data[0]["autoCreatePr"] is False
 
-    def test_get_external_agent_with_auto_create_pr(self, mock_is_seat_based) -> None:
+    def test_get_external_agent_with_auto_create_pr(self, mock_is_seat_based: MagicMock) -> None:
         """autoCreatePr should reflect the handoff config value."""
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
@@ -556,7 +572,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["autoCreatePr"] is True
 
-    def test_get_stopping_point_off_when_tuning_off(self, mock_is_seat_based) -> None:
+    def test_get_stopping_point_off_when_tuning_off(self, mock_is_seat_based: MagicMock) -> None:
         """When tuning is OFF, stoppingPoint should be 'off' regardless of the
         stored seer_automated_run_stopping_point value."""
         self.project.update_option(
@@ -570,7 +586,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.data[0]["stoppingPoint"] == "off"
         assert response.data[0]["automationTuning"] == "off"
 
-    def test_get_stopping_point_when_tuning_on(self, mock_is_seat_based) -> None:
+    def test_get_stopping_point_when_tuning_on(self, mock_is_seat_based: MagicMock) -> None:
         """When tuning is not OFF, stoppingPoint should reflect the stored value."""
         self.project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
@@ -583,7 +599,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.data[0]["stoppingPoint"] == "root_cause"
         assert response.data[0]["automationTuning"] == "medium"
 
-    def test_get_repos_count(self, mock_is_seat_based) -> None:
+    def test_get_repos_count(self, mock_is_seat_based: MagicMock) -> None:
         """reposCount should reflect the number of active repos Seer can use."""
         repo1 = self.create_seer_eligible_repo(self.project, "owner/repo-1")
         repo2 = self.create_seer_eligible_repo(self.project, "owner/repo-2")
@@ -595,7 +611,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["reposCount"] == 2
 
-    def test_get_repos_count_excludes_inactive_repos(self, mock_is_seat_based) -> None:
+    def test_get_repos_count_excludes_inactive_repos(self, mock_is_seat_based: MagicMock) -> None:
         """Repos with non-active status should not be counted."""
         active_repo = self.create_seer_eligible_repo(self.project, "owner/active")
         disabled_repo = self.create_seer_eligible_repo(self.project, "owner/deleted")
@@ -609,7 +625,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data[0]["reposCount"] == 1
 
-    def test_get_only_returns_accessible_projects(self, mock_is_seat_based) -> None:
+    def test_get_only_returns_accessible_projects(self, mock_is_seat_based: MagicMock) -> None:
         """Response should only include projects the user has access to."""
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -629,7 +645,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert len(project_ids) == 1
         assert str(inaccessible_project.id) not in project_ids
 
-    def test_get_paginates_results(self, mock_is_seat_based) -> None:
+    def test_get_paginates_results(self, mock_is_seat_based: MagicMock) -> None:
         """Results should be paginated with Link headers indicating next/previous."""
         for i in range(5):
             self.create_project(organization=self.organization, slug=f"paginate-{i}")
@@ -644,7 +660,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert 'rel="previous"; results="true"' in response2.headers["Link"]
         assert 'rel="next"; results="false"' in response2.headers["Link"]
 
-    def test_get_sort_by_name(self, mock_is_seat_based) -> None:
+    def test_get_sort_by_name(self, mock_is_seat_based: MagicMock) -> None:
         """sortBy=name should order by project slug."""
         project_b = self.create_project(organization=self.organization, slug="banana")
         project_a = self.create_project(organization=self.organization, slug="apple")
@@ -655,7 +671,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         slugs = [r["projectSlug"] for r in response.data]
         assert slugs.index(project_a.slug) < slugs.index(project_b.slug)
 
-    def test_get_sort_by_repos_count(self, mock_is_seat_based) -> None:
+    def test_get_sort_by_repos_count(self, mock_is_seat_based: MagicMock) -> None:
         """sortBy=reposCount should order by the number of repos Seer can use."""
         project1 = self.create_project(organization=self.organization)
         for i in range(2):
@@ -669,7 +685,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         ids = [r["projectId"] for r in response.data]
         assert ids.index(str(project2.id)) < ids.index(str(project1.id))
 
-    def test_get_sort_by_agent(self, mock_is_seat_based) -> None:
+    def test_get_sort_by_agent(self, mock_is_seat_based: MagicMock) -> None:
         """sortBy=agent should order alphabetically by agent alias."""
         project_seer = self.create_project(organization=self.organization)
 
@@ -688,7 +704,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert ids.index(str(project_claude.id)) < ids.index(str(project_cursor.id))
         assert ids.index(str(project_cursor.id)) < ids.index(str(project_seer.id))
 
-    def test_get_sort_by_stopping_point(self, mock_is_seat_based) -> None:
+    def test_get_sort_by_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         """sortBy=stoppingPoint should order by hierarchy rank (off < root_cause < code_changes < open_pr)."""
         project_open_pr = self.create_project(organization=self.organization)
         project_open_pr.update_option(
@@ -711,19 +727,19 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert ids.index(str(self.project.id)) < ids.index(str(project_root_cause.id))
         assert ids.index(str(project_root_cause.id)) < ids.index(str(project_open_pr.id))
 
-    def test_get_sort_by_invalid_field_returns_400(self, mock_is_seat_based) -> None:
+    def test_get_sort_by_invalid_field_returns_400(self, mock_is_seat_based: MagicMock) -> None:
         """An unrecognized sortBy value should return 400."""
         response = self.client.get(self.url, {"sortBy": "invalid"})
         assert response.status_code == 400
 
-    def test_get_filter_empty_results(self, mock_is_seat_based) -> None:
+    def test_get_filter_empty_results(self, mock_is_seat_based: MagicMock) -> None:
         """A filter that matches nothing should return an empty list."""
         response = self.client.get(self.url, {"query": "id:999999999"})
 
         assert response.status_code == 200
         assert response.data == []
 
-    def test_get_filter_by_free_text_name(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_free_text_name(self, mock_is_seat_based: MagicMock) -> None:
         """Free text query should match against both name and slug."""
         project1 = self.create_project(
             organization=self.organization, name="", slug="matching-slug"
@@ -742,7 +758,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert str(project2.id) in ids
         assert str(project3.id) not in ids
 
-    def test_get_filter_by_id(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_id(self, mock_is_seat_based: MagicMock) -> None:
         """id:N should return only the project with that ID."""
         self.create_project(organization=self.organization)
         project = self.create_project(organization=self.organization)
@@ -753,7 +769,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         ids = [r["projectId"] for r in response.data]
         assert ids == [str(project.id)]
 
-    def test_get_filter_by_id_list(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_id_list(self, mock_is_seat_based: MagicMock) -> None:
         """id:[N,M] should return only the projects with those IDs."""
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
@@ -765,7 +781,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         ids = [r["projectId"] for r in response.data]
         assert sorted(ids) == sorted([str(project1.id), str(project2.id)])
 
-    def test_get_filter_by_repos_count(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_repos_count(self, mock_is_seat_based: MagicMock) -> None:
         """reposCount with numeric operators."""
         project1 = self.create_project(organization=self.organization)
         for i in range(2):
@@ -784,7 +800,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert str(project2.id) in ids
         assert str(project1.id) not in ids
 
-    def test_get_filter_by_stopping_point(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         """stoppingPoint filter should account for tuning state."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option(
@@ -803,7 +819,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert str(project1.id) in ids
         assert str(self.project.id) not in ids
 
-    def test_get_filter_by_agent_seer(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_agent_seer(self, mock_is_seat_based: MagicMock) -> None:
         """agent:seer should return projects with no handoff target (NULL)."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
@@ -815,7 +831,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert str(self.project.id) in ids
         assert str(project1.id) not in ids
 
-    def test_get_filter_by_agent_external(self, mock_is_seat_based) -> None:
+    def test_get_filter_by_agent_external(self, mock_is_seat_based: MagicMock) -> None:
         """agent:cursor_background_agent should return projects with cursor handoff target."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
@@ -827,7 +843,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert str(project1.id) in ids
         assert str(self.project.id) not in ids
 
-    def test_get_filter_negation(self, mock_is_seat_based) -> None:
+    def test_get_filter_negation(self, mock_is_seat_based: MagicMock) -> None:
         """!agent:seer should exclude projects with no handoff target."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
@@ -839,7 +855,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert str(project1.id) in ids
         assert str(self.project.id) not in ids
 
-    def test_get_multiple_filters(self, mock_is_seat_based) -> None:
+    def test_get_multiple_filters(self, mock_is_seat_based: MagicMock) -> None:
         """Combining multiple filters should intersect the results."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
@@ -857,13 +873,13 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         ids = [r["projectId"] for r in response.data]
         assert ids == [str(project1.id)]
 
-    def test_get_invalid_search_query_returns_400(self, mock_is_seat_based) -> None:
+    def test_get_invalid_search_query_returns_400(self, mock_is_seat_based: MagicMock) -> None:
         """A malformed search query should return 400 with detail."""
         response = self.client.get(self.url, {"query": "bogusKey:value"})
         assert response.status_code == 400
         assert "detail" in response.data
 
-    def test_put_updates_all_projects(self, mock_is_seat_based) -> None:
+    def test_put_updates_all_projects(self, mock_is_seat_based: MagicMock) -> None:
         """Empty query should update all accessible projects."""
         project2 = self.create_project(organization=self.organization)
 
@@ -873,7 +889,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert self.project.get_option("sentry:seer_scanner_automation") is False
         assert project2.get_option("sentry:seer_scanner_automation") is False
 
-    def test_put_applies_to_filtered_projects_only(self, mock_is_seat_based) -> None:
+    def test_put_applies_to_filtered_projects_only(self, mock_is_seat_based: MagicMock) -> None:
         """The query parameter should scope which projects get updated."""
         project2 = self.create_project(organization=self.organization)
         project2.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
@@ -888,7 +904,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
         assert project2.get_option("sentry:seer_scanner_automation") is False
         assert self.project.get_option("sentry:seer_scanner_automation") is True
 
-    def test_put_updates_settings(self, mock_is_seat_based) -> None:
+    def test_put_updates_settings(self, mock_is_seat_based: MagicMock) -> None:
         """Bulk update with multiple seer agent fields should apply all of them."""
         project2 = self.create_project(organization=self.organization)
 
@@ -912,7 +928,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             )
             assert p.get_option("sentry:seer_scanner_automation") is False
 
-    def test_put_updates_settings_with_external_agent(self, mock_is_seat_based) -> None:
+    def test_put_updates_settings_with_external_agent(self, mock_is_seat_based: MagicMock) -> None:
         """Bulk update with external agent fields should set agent, integration, and stopping point."""
         project2 = self.create_project(organization=self.organization)
         integration = self.create_integration(
@@ -939,7 +955,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             assert p.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
             assert p.get_option("sentry:seer_scanner_automation") is True
 
-    def test_put_legacy_updates_settings(self, mock_is_seat_based) -> None:
+    def test_put_legacy_updates_settings(self, mock_is_seat_based: MagicMock) -> None:
         """Legacy: bulk update with granular tuning, auto_create_pr, and external agent."""
         mock_is_seat_based.return_value = False
         project2 = self.create_project(organization=self.organization)
@@ -970,14 +986,14 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             )
             assert p.get_option("sentry:seer_automation_handoff_integration_id") == integration.id
 
-    def test_put_invalid_search_query_returns_400(self, mock_is_seat_based) -> None:
+    def test_put_invalid_search_query_returns_400(self, mock_is_seat_based: MagicMock) -> None:
         """A malformed query value should return 400."""
         response = self.client.put(
             self.url, data={"query": "invalidKey:value", "scannerAutomation": False}, format="json"
         )
         assert response.status_code == 400
 
-    def test_put_creates_audit_log_entry(self, mock_is_seat_based) -> None:
+    def test_put_creates_audit_log_entry(self, mock_is_seat_based: MagicMock) -> None:
         """Bulk update should create an audit log entry with project count and IDs."""
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.silo.base import SiloMode

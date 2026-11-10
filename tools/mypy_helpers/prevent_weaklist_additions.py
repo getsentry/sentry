@@ -6,6 +6,12 @@ import tomllib
 from collections.abc import Sequence
 
 
+def _covered_by_removed_wildcard(module: str, removed_modules: frozenset[str]) -> bool:
+    return any(
+        removed.endswith(".*") and module.startswith(removed[:-1]) for removed in removed_modules
+    )
+
+
 def _modules_for_override_key(data: dict[str, object], key: str, filename: str) -> frozenset[str]:
     try:
         overrides = data["tool"]["mypy"]["overrides"]  # type: ignore[index]
@@ -52,7 +58,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         for key, list_name, advice in _CHECKS:
             head_modules = _modules_for_override_key(head_data, key, filename)
             staged_modules = _modules_for_override_key(staged_data, key, filename)
+            removed_modules = head_modules - staged_modules
             for mod in sorted(staged_modules - head_modules):
+                if _covered_by_removed_wildcard(mod, removed_modules):
+                    continue
                 print(
                     f"{filename}: '{mod}' was added to the {list_name} — "
                     f"do not add new modules; {advice}."

@@ -21,7 +21,7 @@ class JiraUninstalledTest(APITestCase):
     shared_secret = "garden"
     path = "/extensions/jira/uninstalled/"
 
-    def jwt_token_secret(self):
+    def jwt_token_secret(self) -> str:
         jira_signing_algorithm = "HS256"
         return jwt.encode(
             {
@@ -35,7 +35,7 @@ class JiraUninstalledTest(APITestCase):
             headers={"alg": jira_signing_algorithm},
         )
 
-    def jwt_token_cdn(self):
+    def jwt_token_cdn(self) -> str:
         jira_signing_algorithm = "RS256"
         return jwt.encode(
             {

@@ -1,18 +1,16 @@
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {
-  findCompleteOrOverdueTasks,
-  findCompleteTasks,
-  taskIsDone,
-} from 'sentry/components/onboardingWizard/utils';
+import {useQuery} from '@tanstack/react-query';
+
 import {
   OnboardingTaskGroup,
   type OnboardingTask,
   type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {getMergedTasks} from './taskConfig';
+import {findCompleteOrOverdueTasks, findCompleteTasks, taskIsDone} from './utils';
 
 // Merge supported onboarding tasks with their completion status from the server.
 function mergeTasks({
@@ -52,33 +50,29 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
 
   const allTasksDone = supportedTasks.every(findCompleteTasks);
 
-  const {data: serverTasks = {onboardingTasks: []}, refetch} = useApiQuery<{
-    onboardingTasks: OnboardingTaskStatus[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled:
-        !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
-      refetchInterval: query => {
-        const data = query.state.data?.json?.onboardingTasks;
-        if (!data) {
-          return false;
-        }
-
-        const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
-
-        // Stop polling if all tasks are complete
-        return serverCompletedTasks.length === supportedTasks.length ? false : 1000; // 1s
+  const {data: serverTasks = {onboardingTasks: []}, refetch} = useQuery({
+    ...apiOptions.as<{
+      onboardingTasks: OnboardingTaskStatus[];
+    }>()('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
+      path: {
+        organizationIdOrSlug: organization.slug,
       },
-    }
-  );
+      staleTime: 0,
+    }),
+    enabled:
+      !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
+    refetchInterval: query => {
+      const data = query.state.data?.json?.onboardingTasks;
+      if (!data) {
+        return false;
+      }
+
+      const serverCompletedTasks = (data as OnboardingTask[]).filter(findCompleteTasks);
+
+      // Stop polling if all tasks are complete
+      return serverCompletedTasks.length === supportedTasks.length ? false : 1000; // 1s
+    },
+  });
 
   const mergedTasks = mergeTasks({
     supportedTasks,

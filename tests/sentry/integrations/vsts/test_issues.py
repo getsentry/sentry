@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -39,7 +40,7 @@ from sentry.users.services.user.service import user_service
 pytestmark = [requires_snuba]
 
 
-def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwargs):
+def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwargs: Any) -> None:
     if SiloMode.get_current_mode() == SiloMode.CELL:
         match: list[Any] | None = kwargs.pop("match", None)
         if match is None:
@@ -57,7 +58,9 @@ def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwa
         responses.add(method=method, url=non_region_url, **kwargs)
 
 
-def assert_response_calls(expected_region_response, expected_non_region_response):
+def assert_response_calls(
+    expected_region_response: Sequence[str], expected_non_region_response: Sequence[str]
+) -> None:
     assert len(expected_region_response) == len(expected_non_region_response)
     if SiloMode.get_current_mode() == SiloMode.CELL:
         for index, path in enumerate(expected_region_response):
@@ -101,7 +104,7 @@ class VstsIssueBase(TestCase):
             "sync_forward_assignment": True,
             "sync_reverse_assignment": True,
         }
-        self.integration = VstsIntegration(model, self.organization.id)
+        self.installation = VstsIntegration(model, self.organization.id)
         self.issue_id = "309"
         responses.add(
             responses.GET,
@@ -110,7 +113,7 @@ class VstsIssueBase(TestCase):
         )
         self.project_id_with_states = "c0bf429a-c03c-4a99-9336-d45be74db5a6"
 
-    def mock_categories(self, project):
+    def mock_categories(self, project: str) -> None:
         responses.add(
             responses.GET,
             f"https://fabrikam-fiber-inc.visualstudio.com/{project}/_apis/wit/workitemtypecategories",
@@ -181,7 +184,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "project": "0987654321",
             "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
         }
-        assert self.integration.create_issue(form_data) == {
+        assert self.installation.create_issue(form_data) == {
             "key": self.issue_id,
             "description": "Fix this.",
             "title": "Hello",
@@ -213,7 +216,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
         }
         with pytest.raises(IntegrationFormError):
-            self.integration.create_issue(form_data)
+            self.installation.create_issue(form_data)
 
     @responses.activate
     def test_create_issue_title_too_long(self) -> None:
@@ -233,7 +236,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "project": "0987654321",
             "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
         }
-        assert self.integration.create_issue(form_data) == {
+        assert self.installation.create_issue(form_data) == {
             "key": self.issue_id,
             "description": "Fix this.",
             "title": expected_title,
@@ -258,10 +261,10 @@ class VstsIssueSyncTest(VstsIssueBase):
         }
 
         with pytest.raises(IntegrationFormError):
-            self.integration.create_issue(form_data)
+            self.installation.create_issue(form_data)
 
     def test_issue_url(self) -> None:
-        self.integration.model.metadata["domain_name"] = (
+        self.installation.model.metadata["domain_name"] = (
             "https://Fabrikam-Fiber-Inc.VisualStudio.COM/"
         )
         for url in (
@@ -270,14 +273,14 @@ class VstsIssueSyncTest(VstsIssueBase):
             "https://dev.azure.com/FABRIKAM-FIBER-INC/project/_workitems/edit/309?view=1",
             "https://dev.azure.com:443/fabrikam-fiber-inc/project/_workitems/edit/309",
         ):
-            assert self.integration.get_issue_link_data(url) == {"externalIssue": "309"}
+            assert self.installation.get_issue_link_data(url) == {"externalIssue": "309"}
         for url in (
             "https://dev.azure.com/other/_workitems/edit/309",
             "http://dev.azure.com/fabrikam-fiber-inc/_workitems/edit/309",
             "https://dev.azure.com:8443/fabrikam-fiber-inc/_workitems/edit/309",
         ):
             with pytest.raises(IntegrationFormError):
-                self.integration.get_issue_link_data(url)
+                self.installation.get_issue_link_data(url)
 
     @responses.activate
     def test_get_issue(self) -> None:
@@ -287,7 +290,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             body=WORK_ITEM_RESPONSE,
             content_type="application/json",
         )
-        assert self.integration.get_issue(self.issue_id) == {
+        assert self.installation.get_issue(self.issue_id) == {
             "key": self.issue_id,
             "description": "Fix this.",
             "title": "Hello",
@@ -319,12 +322,12 @@ class VstsIssueSyncTest(VstsIssueBase):
         user = user_service.get_user(user_id=self.create_user("ftotten@vscsi.us").id)
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
+            integration_id=self.installation.model.id,
             key=vsts_work_item_id,
             title="I'm a title!",
             description="I'm a description.",
         )
-        self.integration.sync_assignee_outbound(external_issue, user, assign=True)
+        self.installation.sync_assignee_outbound(external_issue, user, assign=True)
         assert len(responses.calls) == 2
         assert_response_calls(
             expected_region_response=[
@@ -380,12 +383,12 @@ class VstsIssueSyncTest(VstsIssueBase):
         user = user_service.get_user(user_id=self.create_user("ftotten@vscsi.us").id)
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
+            integration_id=self.installation.model.id,
             key=vsts_work_item_id,
             title="I'm a title!",
             description="I'm a description.",
         )
-        self.integration.sync_assignee_outbound(external_issue, user, assign=True)
+        self.installation.sync_assignee_outbound(external_issue, user, assign=True)
         assert len(responses.calls) == 3
         assert_response_calls(
             expected_region_response=[
@@ -437,7 +440,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
+            integration_id=self.installation.model.id,
             key=vsts_work_item_id,
             title="I'm a title!",
             description="I'm a description.",
@@ -446,11 +449,11 @@ class VstsIssueSyncTest(VstsIssueBase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             IntegrationExternalProject.objects.create(
                 external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
-                organization_integration_id=self.integration.org_integration.id,
+                organization_integration_id=self.installation.org_integration.id,
                 resolved_status="Resolved",
                 unresolved_status="New",
             )
-        self.integration.sync_status_outbound(external_issue, True, self.project.id)
+        self.installation.sync_status_outbound(external_issue, True, self.project.id)
         assert len(responses.calls) == 3
         req = responses.calls[2].request
         assert (
@@ -473,7 +476,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         vsts_work_item_id = 5
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
+            integration_id=self.installation.model.id,
             key=vsts_work_item_id,
             title="I'm a title!",
             description="I'm a description.",
@@ -482,23 +485,23 @@ class VstsIssueSyncTest(VstsIssueBase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             IntegrationExternalProject.objects.create(
                 external_id="ac7c05bb-7f8e-4880-85a6-e08f37fd4a10",
-                organization_integration_id=self.integration.org_integration.id,
+                organization_integration_id=self.installation.org_integration.id,
                 resolved_status="Resolved",
                 unresolved_status="New",
             )
 
         with pytest.raises(ApiUnauthorized):
-            self.integration.sync_status_outbound(external_issue, True, self.project.id)
+            self.installation.sync_status_outbound(external_issue, True, self.project.id)
 
     def test_get_issue_url(self) -> None:
-        work_id = 345
-        url = self.integration.get_issue_url(work_id)
+        work_id = "345"
+        url = self.installation.get_issue_url(work_id)
         assert url == "https://fabrikam-fiber-inc.visualstudio.com/_workitems/edit/345"
 
     @responses.activate
     def test_should_resolve_active_to_resolved(self) -> None:
         assert (
-            self.integration.get_resolve_sync_action(
+            self.installation.get_resolve_sync_action(
                 {
                     "project": self.project_id_with_states,
                     "old_state": "Active",
@@ -511,7 +514,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     @responses.activate
     def test_should_resolve_resolved_to_active(self) -> None:
         assert (
-            self.integration.get_resolve_sync_action(
+            self.installation.get_resolve_sync_action(
                 {
                     "project": self.project_id_with_states,
                     "old_state": "Resolved",
@@ -524,7 +527,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     @responses.activate
     def test_should_resolve_new(self) -> None:
         assert (
-            self.integration.get_resolve_sync_action(
+            self.installation.get_resolve_sync_action(
                 {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
             )
             == ResolveSyncAction.UNRESOLVE
@@ -545,7 +548,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         # Answering with an empty set would read as "no state is a done state" and unresolve
         # every transition, so the lookup has to fail rather than guess.
         with pytest.raises(ApiError):
-            self.integration.get_resolve_sync_action(
+            self.installation.get_resolve_sync_action(
                 {
                     "project": self.project_id_with_states,
                     "old_state": "Active",
@@ -556,7 +559,7 @@ class VstsIssueSyncTest(VstsIssueBase):
     @responses.activate
     def test_should_not_unresolve_resolved_to_closed(self) -> None:
         assert (
-            self.integration.get_resolve_sync_action(
+            self.installation.get_resolve_sync_action(
                 {
                     "project": self.project_id_with_states,
                     "old_state": "Resolved",
@@ -586,23 +589,36 @@ class VstsIssueFormTest(VstsIssueBase):
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
+        assert event.group is not None
         self.group = event.group
 
     def tearDown(self) -> None:
         responses.reset()
 
-    def update_issue_defaults(self, defaults):
-        self.integration.org_integration = integration_service.update_organization_integration(
-            org_integration_id=self.integration.org_integration.id,
+    def update_issue_defaults(self, defaults: Mapping[str, object]) -> None:
+        org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): defaults}},
         )
+        assert org_integration is not None
+        self.installation.org_integration = org_integration
 
-    def assert_project_field(self, fields, default_value, choices):
+    def assert_project_field(
+        self,
+        fields: Sequence[Mapping[str, object]],
+        default_value: object,
+        choices: Sequence[object],
+    ) -> None:
         project_field = [field for field in fields if field["name"] == "project"][0]
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices
 
-    def assert_work_item_type_field(self, fields, default_value, choices):
+    def assert_work_item_type_field(
+        self,
+        fields: Sequence[Mapping[str, object]],
+        default_value: object,
+        choices: Sequence[object],
+    ) -> None:
         project_field = [field for field in fields if field["name"] == "work_item_type"][0]
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices
@@ -611,7 +627,7 @@ class VstsIssueFormTest(VstsIssueBase):
     def test_default_project(self) -> None:
         self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id"})
-        fields = self.integration.get_create_issue_config(self.group, self.user)
+        fields = self.installation.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
@@ -621,7 +637,7 @@ class VstsIssueFormTest(VstsIssueBase):
     def test_default_project_and_category(self) -> None:
         self.mock_categories("project-2-id")
         self.update_issue_defaults({"project": "project-2-id", "work_item_type": "Task"})
-        fields = self.integration.get_create_issue_config(self.group, self.user)
+        fields = self.installation.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields, "project-2-id", [("project-1-id", "project_1"), ("project-2-id", "project_2")]
@@ -647,7 +663,7 @@ class VstsIssueFormTest(VstsIssueBase):
             json={"id": "project-3-id", "name": "project_3"},
         )
         self.update_issue_defaults({"project": "project-3-id"})
-        fields = self.integration.get_create_issue_config(self.group, self.user)
+        fields = self.installation.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields,
@@ -667,7 +683,7 @@ class VstsIssueFormTest(VstsIssueBase):
             status=404,
         )
         self.update_issue_defaults({"project": "project-3-id"})
-        fields = self.integration.get_create_issue_config(self.group, self.user)
+        fields = self.installation.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(
             fields, None, [("project-1-id", "project_1"), ("project-2-id", "project_2")]
@@ -681,7 +697,7 @@ class VstsIssueFormTest(VstsIssueBase):
         )
 
         with pytest.raises(IntegrationError):
-            self.integration.get_create_issue_config(self.group, self.user)
+            self.installation.get_create_issue_config(self.group, self.user)
 
     @responses.activate
     def test_default_project_no_projects(self) -> None:
@@ -691,7 +707,7 @@ class VstsIssueFormTest(VstsIssueBase):
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
             json={"value": [], "count": 0},
         )
-        fields = self.integration.get_create_issue_config(self.group, self.user)
+        fields = self.installation.get_create_issue_config(self.group, self.user)
 
         self.assert_project_field(fields, None, [])
 
@@ -703,4 +719,4 @@ class VstsIssueRaiseErrorTest(VstsIssueBase):
         error_message = "According to Microsoft Entra, your Identity xxx is currently Deleted within the following Microsoft Entra tenant: xxx Please contact your Microsoft Entra administrator to resolve this."
         api_error = ApiError(error_message)
         with pytest.raises(ApiUnauthorized):
-            self.integration.raise_error(api_error)
+            self.installation.raise_error(api_error)

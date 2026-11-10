@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -24,14 +25,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
-import {
-  NUM_DESKTOP_COLS,
-  DRAG_HANDLE_CLASS,
-  DASHBOARD_CHART_GROUP,
-} from 'sentry/views/dashboards/constants';
-import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -40,8 +33,12 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {useWidgetQueryQueue} from './utils/widgetQueryQueue';
+import type {DataSet} from './widgetBuilder/utils';
+import {trackEngagementAnalytics} from './widgetBuilder/utils/trackEngagementAnalytics';
 import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
+import {NUM_DESKTOP_COLS, DRAG_HANDLE_CLASS, DASHBOARD_CHART_GROUP} from './constants';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -158,7 +155,8 @@ function DashboardInner({
   const [isMobile, setIsMobile] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const forceCheckTimeout = useRef<number | undefined>(undefined);
-  const isGeneratedDashboard = location.query.seerRunId !== undefined;
+  const [seerRunId] = useQueryState('seerRunId');
+  const isGeneratedDashboard = seerRunId !== null;
 
   const debouncedHandleResize = useDebouncedCallback(
     () => {

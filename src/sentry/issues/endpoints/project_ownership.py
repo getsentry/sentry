@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any
 
 from django.utils import timezone
@@ -10,7 +11,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.projectownership import (
@@ -21,7 +22,11 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
-from sentry.issues.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
+from sentry.issues.ownership.grammar import (
+    CODEOWNERS,
+    OwnershipRule,
+    create_schema_from_issue_owners,
+)
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -58,7 +63,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
     )
 
     @staticmethod
-    def _validate_no_codeowners(rules):
+    def _validate_no_codeowners(rules: Sequence[OwnershipRule]) -> None:
         """
         codeowner matcher types cannot be added via ProjectOwnership, only through codeowner
         specific serializers
@@ -69,7 +74,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                     {"raw": "Codeowner type paths can only be added by importing CODEOWNER files"}
                 )
 
-    def _validate_team_ownership(self, rules):
+    def _validate_team_ownership(self, rules: Sequence[OwnershipRule]) -> None:
         """
         Validate that the user has permission to assign ownership to the teams referenced in the
         rules. If the organization has open team membership enabled, any user can assign ownership.
@@ -118,7 +123,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                 {"raw": "You do not have permission to assign ownership to one or more teams."}
             )
 
-    def get_max_length(self):
+    def get_max_length(self) -> int:
         organization = self.context["ownership"].project.organization
         if features.has("organizations:ownership-size-limit-xlarge", organization):
             return XLARGE_MAX_RAW_LENGTH
@@ -126,7 +131,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             return LARGE_MAX_RAW_LENGTH
         return DEFAULT_MAX_RAW_LENGTH
 
-    def validate_autoAssignment(self, value):
+    def validate_autoAssignment(self, value: str) -> str:
         if value not in [
             "Auto Assign to Suspect Commits",
             "Auto Assign to Issue Owner",
@@ -135,7 +140,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError({"autoAssignment": "Invalid selection."})
         return value
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if "raw" not in attrs:
             return attrs
 
@@ -197,7 +202,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
 
         return ownership
 
-    def __modify_auto_assignment(self, ownership):
+    def __modify_auto_assignment(self, ownership: ProjectOwnership) -> bool:
         auto_assignment = self.validated_data.get("autoAssignment")
 
         if auto_assignment is None:
@@ -232,6 +237,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
 @extend_schema(tags=["Projects"])
 class ProjectOwnershipEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = {"GET": DEFAULT_DURATION_BUDGET, "PUT": 10.0}
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
@@ -283,7 +289,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         responses={200: ProjectOwnershipSerializer},
         examples=ownership_examples.GET_PROJECT_OWNERSHIP,
     )
-    def get(self, request: Request, project) -> Response[ProjectOwnershipResponse]:
+    def get(self, request: Request, project: Project) -> Response[ProjectOwnershipResponse]:
         """
         Returns details on a project's ownership configuration.
         """
@@ -305,7 +311,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         ],
         request=ProjectOwnershipRequestSerializer,
         responses={
-            202: ProjectOwnershipSerializer,
+            200: ProjectOwnershipSerializer,
             400: RESPONSE_BAD_REQUEST,
         },
         examples=ownership_examples.UPDATE_PROJECT_OWNERSHIP,

@@ -1,7 +1,6 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -13,6 +12,7 @@ import type {
 import type {Avatar, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
 import type {BaseRelease} from './release';
+import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
 
 export type {

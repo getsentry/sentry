@@ -4,8 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {CreateSampleEventButton} from './createSampleEventButton';
 
 jest.mock('sentry/utils/analytics');
 

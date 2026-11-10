@@ -4,7 +4,8 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+
+import {resolveHostname} from './resolveHostname';
 
 describe('resolveHostname', () => {
   let devUi: boolean | undefined;

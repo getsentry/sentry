@@ -23,7 +23,7 @@ def test_bidirectional_mapping() -> None:
         value.get_key(4)
 
     with pytest.raises(TypeError):
-        value["d"] = [1, 2, 3]  # not hashable
+        value["d"] = [1, 2, 3]  # type: ignore[assignment]  # not hashable
 
     assert len(value) == len(value.inverse()) == 3
 

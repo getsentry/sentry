@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -41,8 +42,8 @@ CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.che
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 
 
-def _check_suite_event(*, updated_at: str | None = "2024-01-01T00:00:00Z") -> dict:
-    check_suite: dict = {
+def _check_suite_event(*, updated_at: str | None = "2024-01-01T00:00:00Z") -> dict[str, Any]:
+    check_suite: dict[str, Any] = {
         "id": 1,
         "head_sha": "abc",
         "check_runs_url": "https://github.com/owner/repo/check-runs",
@@ -56,7 +57,12 @@ def _check_suite_event(*, updated_at: str | None = "2024-01-01T00:00:00Z") -> di
     }
 
 
-def _run_state(*, blocks=None, repo_pr_states=None, status="completed") -> SeerRunState:
+def _run_state(
+    *,
+    blocks: list[MemoryBlock] | None = None,
+    repo_pr_states: dict[str, RepoPRState] | None = None,
+    status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
+) -> SeerRunState:
     return SeerRunState(
         run_id=1,
         blocks=blocks or [],
@@ -76,7 +82,7 @@ def _autofix_run(*, repo: MagicMock | None = None) -> CheckSuiteAutofixRun:
 
 
 def _check_suite_source(
-    event: dict | None = None,
+    event: dict[str, Any] | None = None,
     *,
     autofix_run: CheckSuiteAutofixRun | None = None,
 ) -> CheckSuiteFeedbackSource:
@@ -618,7 +624,9 @@ class ConsumeTaskTest(TestCase):
 
 
 class CheckSuiteLogFieldsTest(TestCase):
-    def _event(self, *, head_sha="abc", repo_name="owner/repo", conclusion="failure") -> dict:
+    def _event(
+        self, *, head_sha: str = "abc", repo_name: str = "owner/repo", conclusion: str = "failure"
+    ) -> dict[str, Any]:
         return {
             "check_suite": {
                 "id": 1,
@@ -657,7 +665,7 @@ class CheckSuiteShouldTriggerStaleHeadTest(TestCase):
 
     STALE = TriggerDecision(task=None, reason="stale_head")
 
-    def _event(self, *, head_sha="abc", repo_name="owner/repo") -> dict:
+    def _event(self, *, head_sha: str = "abc", repo_name: str = "owner/repo") -> dict[str, Any]:
         return {
             "check_suite": {
                 "id": 1,
@@ -716,12 +724,12 @@ class CheckSuiteShouldConsumeTest(TestCase):
     def _event(
         self,
         *,
-        head_sha="abc",
-        repo_name="owner/repo",
+        head_sha: str = "abc",
+        repo_name: str = "owner/repo",
         updated_at: str | None = "2024-01-01T00:00:00Z",
         suite_id: int = 1,
-    ) -> dict:
-        check_suite: dict = {
+    ) -> dict[str, Any]:
+        check_suite: dict[str, Any] = {
             "id": suite_id,
             "head_sha": head_sha,
             "check_runs_url": "https://github.com/owner/repo/check-runs",

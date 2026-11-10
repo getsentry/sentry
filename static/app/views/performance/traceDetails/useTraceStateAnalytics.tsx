@@ -3,9 +3,10 @@ import {useEffect} from 'react';
 import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
 
+import type {TraceQueryResult} from './traceApi/useTrace';
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
 import type {TraceTree} from './traceModels/traceTree';
@@ -42,7 +43,8 @@ export function useTraceStateAnalytics({
     }
 
     if (trace.status === 'error') {
-      const errorStatus = trace.error?.status ?? null;
+      const errorStatus =
+        trace.error instanceof RequestError ? (trace.error.status ?? null) : null;
 
       traceAnalytics.trackTraceErrorState(
         organization,

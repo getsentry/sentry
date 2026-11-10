@@ -4,9 +4,9 @@ import {useInteractOutside} from '@react-aria/interactions';
 import {
   NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
-} from 'sentry/views/navigation/constants';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+} from './constants';
+import {usePrimaryNavigation} from './primaryNavigationContext';
+import {useSecondaryNavigation} from './secondaryNavigationContext';
 
 const IGNORE_ELEMENTS = [
   // Tooltips are rendered in document.body so will cause the nav to close

@@ -11,8 +11,9 @@ import {
 } from '@sentry/scraps/modal';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {CreateIssueViewModal} from './createIssueViewModal';
 
 describe('CreateIssueViewModal', () => {
   const defaultProps = {

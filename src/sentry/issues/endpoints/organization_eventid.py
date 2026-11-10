@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -9,12 +9,13 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, Trace
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import EventSerializerResponse
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
@@ -29,17 +30,18 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
 class EventIdLookupResponse(TypedDict):
-    organizationSlug: str
-    projectSlug: str
-    groupId: str
-    eventId: str
-    event: EventSerializerResponse
+    organizationSlug: Annotated[str, ApiDescription("Slug of the organization")]
+    projectSlug: Annotated[str, ApiDescription("Slug of the event's project")]
+    groupId: Annotated[str, ApiDescription("ID of the event's issue")]
+    eventId: Annotated[str, ApiDescription("ID of the event")]
+    event: Annotated[EventSerializerResponse, ApiDescription("The event")]
 
 
 @cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class EventIdLookupEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

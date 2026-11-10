@@ -4,25 +4,31 @@
     "required": ["dateCreated", "events", "id", "secret", "status", "url"],
     "properties": {
       "dateCreated": {
-        "type": "string"
+        "type": "string",
+        "description": "When the service hook was created (ISO 8601)."
       },
       "events": {
         "type": "array",
+        "description": "The events the service hook is subscribed to, such as `event.alert` and `event.created`.",
         "items": {
           "type": "string"
         }
       },
       "id": {
-        "type": "string"
+        "type": "string",
+        "description": "The ID of the service hook."
       },
       "secret": {
-        "type": "string"
+        "type": "string",
+        "description": "The secret used to sign the requests that Sentry sends to the hook URL."
       },
       "status": {
-        "type": "string"
+        "type": "string",
+        "description": "The status of the service hook, such as `active` or `disabled`."
       },
       "url": {
-        "type": "string"
+        "type": "string",
+        "description": "The URL that receives the service hook requests."
       }
     }
   }

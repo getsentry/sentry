@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, Union
+from typing import Any, TypedDict, Union, cast
 
 import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -49,6 +49,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES
+from sentry.search.events.types import ParamsType
 from sentry.search.utils import parse_release
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
@@ -195,7 +196,7 @@ def _user_display_filter_converter(
     params: FilterConvertParams | None,
 ) -> list[Any]:
     value = search_filter.value.value
-    user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
+    user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(cast("ParamsType", params))
 
     # Handle 'has' condition
     if search_filter.value.raw_value == "":
@@ -292,7 +293,9 @@ def _team_key_transaction_filter_converter(
     params: FilterConvertParams | None,
 ) -> list[Any]:
     value = search_filter.value.value
-    key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(params)
+    key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(
+        cast("ParamsType", params)
+    )
 
     if search_filter.value.raw_value == "":
         operator = "!=" if search_filter.operator == "!=" else "="
@@ -695,7 +698,7 @@ def convert_search_filter_to_snuba_query(
         # name_expr may become a snuba expression (list) for aliases/tags
         name_expr: Any = name
         if name in FIELD_ALIASES:
-            name_expr = FIELD_ALIASES[name].get_field(params)
+            name_expr = FIELD_ALIASES[name].get_field(cast("ParamsType", params))
 
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
@@ -808,7 +811,7 @@ def format_search_filter(
         value = to_list(value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        filter_values = ["" for v in value if not v or v == "unknown"]
+        filter_values: list[str | int] = ["" for v in value if not v or v == "unknown"]
 
         if group_short_ids and params and "organization_id" in params:
             try:
@@ -826,7 +829,12 @@ def format_search_filter(
         term = SearchFilter(
             SearchKey("issue.id"),
             operator,
-            SearchValue(filter_values if term.is_in_filter else filter_values[0]),
+            SearchValue(
+                cast(
+                    "Sequence[str] | str",
+                    filter_values if term.is_in_filter else filter_values[0],
+                )
+            ),
         )
         converted_filter = convert_search_filter_to_snuba_query(term)
         if converted_filter:

@@ -1,11 +1,14 @@
 import logging
+from collections.abc import Callable
+from typing import Any, cast
 from urllib.parse import unquote
 
 import pytest
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponseBase
 from django.test import override_settings
 from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -13,6 +16,8 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, Organ
 from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.apitoken import ApiToken
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_APIGATEWAY_HEADER
@@ -29,10 +34,10 @@ class ImpersonationTestMiddleware:
     This middleware should be placed before the access log middleware in tests.
     """
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponseBase]):
         self.get_response = get_response
 
-    def __call__(self, request: HttpRequest):
+    def __call__(self, request: HttpRequest) -> Any:
         # Check for impersonator ID in header
         impersonator_id = request.META.get("HTTP_X_IMPERSONATOR_ID")
         if impersonator_id:
@@ -53,23 +58,23 @@ class ImpersonationTestMiddleware:
 class DummyEndpoint(Endpoint):
     permission_classes = (SentryIsAuthenticated,)
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         return Response({"ok": True})
 
 
 class DummyFailEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         raise Exception("this is bad yo")
 
 
 class SnubaRateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request):
+    def get(self, request: Request) -> None:
         # Rate limit middleware will set metadata to indicate the request is not limited by the endpoint itself
-        request._request.rate_limit_metadata = RateLimitMeta(
+        cast(Any, request._request).rate_limit_metadata = RateLimitMeta(
             rate_limit_type=RateLimitType.NOT_LIMITED,
             concurrent_limit=123,
             concurrent_requests=1,
@@ -108,7 +113,7 @@ class RateLimitedEndpoint(Endpoint):
         },
     )
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> None:
         raise NotImplementedError
 
 
@@ -126,17 +131,22 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
         },
     )
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         return Response({"ok": True})
 
 
 class MyOrganizationEndpoint(OrganizationEndpoint):
-    def get(self, request, organization):
+    def get(self, request: HttpRequest, organization: Organization) -> Response:
         return Response({"ok": True})
 
 
 class MyControlOrganizationEndpoint(ControlSiloOrganizationEndpoint):
-    def get(self, request, organization_context, organization):
+    def get(
+        self,
+        request: HttpRequest,
+        organization_context: RpcUserOrganizationContext,
+        organization: Organization,
+    ) -> Response:
         return Response({"ok": True})
 
 
@@ -226,20 +236,20 @@ optional_access_log_fields = (
 )
 class LogCaptureAPITestCase(APITestCase):
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
-    def assert_access_log_recorded(self):
+    def assert_access_log_recorded(self) -> None:
         sentinel = object()
         for record in self.captured_logs:
             for field in required_access_log_fields:
                 assert getattr(record, field, sentinel) != sentinel, field
 
     @property
-    def captured_logs(self):
+    def captured_logs(self) -> Any:
         return [r for r in self._caplog.records if r.name == "sentry.access.api"]
 
-    def get_tested_log(self, **kwargs):
+    def get_tested_log(self, **kwargs: Any) -> Any:
         tested_log_path = unquote(reverse(self.endpoint, **kwargs))
         return next(log for log in self.captured_logs if log.path == tested_log_path)
 

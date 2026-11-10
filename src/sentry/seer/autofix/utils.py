@@ -43,6 +43,7 @@ from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
     SeerAutomationHandoffConfiguration,
+    SeerCodeMapping,
     SeerProjectPreference,
     SeerRepoDefinition,
 )
@@ -177,7 +178,7 @@ class AutofixState(BaseModel):
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
-    steps: list[dict] = []
+    steps: list[dict[str, Any]] = []
     coding_agents: dict[str, CodingAgentState] = {}
 
     class Config:
@@ -499,7 +500,9 @@ def get_token_based_billing_project_repos(
             project_id__in=project_ids,
         )
         .select_related("repository", "seerprojectrepository")
-        .prefetch_related("seerprojectrepository__branch_overrides")
+        .prefetch_related(
+            "seerprojectrepository__branch_overrides", "repositoryprojectpathconfig_set"
+        )
     )
 
 
@@ -509,11 +512,12 @@ def get_seer_project_repo(project_repo: ProjectRepository) -> SeerProjectReposit
 
 
 def build_seer_repo_definition(
-    repo: Repository, seer_project_repo: SeerProjectRepository | None
+    project_repo: ProjectRepository, seer_project_repo: SeerProjectRepository | None
 ) -> SeerRepoDefinition | None:
-    """Build a SeerRepoDefinition from a Repository and its optional per-repo Seer config.
+    """Build a SeerRepoDefinition from a project's repo link and its optional per-repo Seer config.
 
     Returns None if Repository name is invalid."""
+    repo = project_repo.repository
     repo_name_sections = get_repo_url_path(repo).split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
@@ -537,6 +541,11 @@ def build_seer_repo_definition(
             )
             for bo in (seer_project_repo.branch_overrides.all() if seer_project_repo else [])
         ],
+        project_repository_source=ProjectRepositorySource(project_repo.source).label,
+        code_mappings=[
+            SeerCodeMapping(stack_root=cm.stack_root, source_root=cm.source_root)
+            for cm in project_repo.repositoryprojectpathconfig_set.all()
+        ],
     )
 
 
@@ -546,9 +555,7 @@ def _get_repo_definitions_by_project(
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         for project_repo in get_token_based_billing_project_repos(organization, project_ids):
-            repo_def = build_seer_repo_definition(
-                project_repo.repository, get_seer_project_repo(project_repo)
-            )
+            repo_def = build_seer_repo_definition(project_repo, get_seer_project_repo(project_repo))
             if repo_def is not None:
                 repo_definitions_by_project[project_repo.project_id].append(repo_def)
     else:
@@ -558,10 +565,12 @@ def _get_repo_definitions_by_project(
                 project_repository__repository__status=ObjectStatus.ACTIVE,
             )
             .select_related("project_repository", "project_repository__repository")
-            .prefetch_related("branch_overrides")
+            .prefetch_related(
+                "branch_overrides", "project_repository__repositoryprojectpathconfig_set"
+            )
         ):
             repo_def = build_seer_repo_definition(
-                seer_project_repo.project_repository.repository, seer_project_repo
+                seer_project_repo.project_repository, seer_project_repo
             )
             if repo_def is not None:
                 repo_definitions_by_project[seer_project_repo.project_repository.project_id].append(
@@ -899,7 +908,7 @@ def has_project_connected_repos(organization: Organization, project: Project) ->
 def get_autofix_repos_from_project_code_mappings(
     project: Project,
     code_mappings: list[RepositoryProjectPathConfig] | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
         # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
         return settings.SEER_AUTOFIX_FORCE_USE_REPOS
@@ -907,7 +916,10 @@ def get_autofix_repos_from_project_code_mappings(
     if code_mappings is None:
         code_mappings = get_sorted_code_mapping_configs(project)
 
-    repos: dict[tuple, dict] = {}
+    repos: dict[
+        tuple[object, object, object],
+        dict[str, Any],
+    ] = {}
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.project_repository.repository
         repo_name_sections = get_repo_url_path(repo).split("/")

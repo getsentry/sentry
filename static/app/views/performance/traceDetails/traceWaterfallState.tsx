@@ -6,9 +6,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
-import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import type {TraceQueryResult} from './traceApi/useTrace';
+import {useTraceQueryParams} from './useTraceQueryParams';
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
 
@@ -35,7 +37,11 @@ function TraceError({trace}: TraceWaterfallStateProps) {
   return (
     <LoadingContainer animate error>
       <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
-      <div>{getTraceErrorMessage(trace.error?.status)}</div>
+      <div>
+        {getTraceErrorMessage(
+          trace.error instanceof RequestError ? trace.error.status : undefined
+        )}
+      </div>
     </LoadingContainer>
   );
 }

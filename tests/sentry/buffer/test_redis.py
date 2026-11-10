@@ -1,14 +1,18 @@
 import copy
 import datetime
 import pickle
-from typing import Any
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
+from typing import Any, cast
 from unittest import mock
 
 import pytest
 from django.utils import timezone
+from redis import StrictRedis
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import options
-from sentry.buffer.base import Buffer
+from sentry.buffer.base import Buffer, BufferField
 from sentry.buffer.redis import RedisBuffer, _coerce_val, make_key
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -17,12 +21,13 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 from sentry.utils.concurrent import SynchronousExecutor
-from sentry.utils.redis import get_cluster_routing_client
 from sentry.utils.services import Delegator
 
 
-def _hgetall_decode_keys(client, key, is_redis_cluster):
-    ret = client.hgetall(key)
+def _hgetall_decode_keys(
+    client: "RedisCluster[bytes] | StrictRedis[bytes]", key: str, is_redis_cluster: bool
+) -> dict[Any, Any]:
+    ret: dict[Any, Any] = client.hgetall(key)
     if not is_redis_cluster:
         return {k.decode(): v for k, v in ret.items()}
     else:
@@ -31,15 +36,19 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
 
 @pytest.mark.django_db
 class TestRedisBuffer:
-    @pytest.fixture(params=["cluster", "blaster"])
-    def buffer(self, set_sentry_option, request):
+    @pytest.fixture(params=["cluster", "standalone"])
+    def buffer(
+        self,
+        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+        request: pytest.FixtureRequest,
+    ) -> Iterator[RedisBuffer]:
         value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param == "cluster"
         with set_sentry_option("redis.clusters", value):
             yield RedisBuffer()
 
     @pytest.fixture(autouse=True)
-    def setup_buffer(self, buffer):
+    def setup_buffer(self, buffer: RedisBuffer) -> None:
         self.buf = buffer
 
     def test_coerce_val_handles_foreignkeys(self) -> None:
@@ -50,23 +59,23 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
-    def test_process_pending_one_batch(self, process_incr) -> None:
+    def test_process_pending_one_batch(self, process_incr: mock.MagicMock) -> None:
         self.buf.incr_batch_size = 5
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        client = self.buf.cluster
         client.zadd("b:p", {"foo": 1, "bar": 2})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 1
         assert process_incr.apply_async.mock_calls == [
             mock.call(kwargs={"batch_keys": ["foo", "bar"]}, headers=mock.ANY)
         ]
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        client = self.buf.cluster
         assert client.zrange("b:p", 0, -1) == []
 
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
-    def test_process_pending_multiple_batches(self, process_incr) -> None:
+    def test_process_pending_multiple_batches(self, process_incr: mock.MagicMock) -> None:
         self.buf.incr_batch_size = 2
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        client = self.buf.cluster
         client.zadd("b:p", {"foo": 1, "bar": 2, "baz": 3})
         self.buf.process_pending()
         assert len(process_incr.apply_async.mock_calls) == 2
@@ -74,13 +83,13 @@ class TestRedisBuffer:
             kwargs={"batch_keys": ["foo", "bar"]}, headers=mock.ANY
         )
         process_incr.apply_async.assert_any_call(kwargs={"batch_keys": ["baz"]}, headers=mock.ANY)
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        client = self.buf.cluster
         assert client.zrange("b:p", 0, -1) == []
 
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_does_bubble_up_json(self, process) -> None:
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+    def test_process_does_bubble_up_json(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
 
         client.hmset(
             "foo",
@@ -104,8 +113,8 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_does_bubble_up_pickle(self, process) -> None:
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+    def test_process_does_bubble_up_pickle(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
 
         client.hmset(
             "foo",
@@ -125,7 +134,9 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    def test_group_cache_updated(self, default_group, task_runner) -> None:
+    def test_group_cache_updated(
+        self, default_group: Group, task_runner: Callable[[], AbstractContextManager[None]]
+    ) -> None:
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5
@@ -141,7 +152,7 @@ class TestRedisBuffer:
         assert group.times_seen == orig_times_seen + times_seen_incr
 
     @django_db_all
-    def test_process_incr_through_delegator(self, default_group) -> None:
+    def test_process_incr_through_delegator(self, default_group: Group) -> None:
         delegator = Delegator(
             Buffer, {"redis": (self.buf, SynchronousExecutor())}, lambda *args: ["redis"]
         )
@@ -155,7 +166,7 @@ class TestRedisBuffer:
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = ["times_seen"]
-        filters = {"pk": 1}
+        filters: dict[str, BufferField] = {"pk": 1}
         # If the value doesn't exist we just assume 0
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 0}
         self.buf.incr(model, {"times_seen": 1}, filters)
@@ -165,22 +176,24 @@ class TestRedisBuffer:
 
     def test_incr_saves_to_redis(self) -> None:
         now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        client = self.buf.cluster
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = {"times_seen": 1}
-        filters = {"pk": 1, "datetime": now}
+        filters = cast(dict[str, BufferField], {"pk": 1, "datetime": now})
         key = make_key(model, filters=filters)
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = _hgetall_decode_keys(client, key, self.buf.is_redis_cluster)
 
         f = result.pop("f")
+        load_values: Callable[[Any], Any]
+        load_value: Callable[[Any], Any]
         if self.buf.is_redis_cluster:
 
-            def load_values(x):
+            def load_values(x: Any) -> Any:
                 return self.buf._load_values(json.loads(x))
 
-            def load_value(x):
+            def load_value(x: Any) -> Any:
                 return self.buf._load_value(json.loads(x))
 
         else:
@@ -218,7 +231,7 @@ class TestRedisBuffer:
 
     def test_incr_bounds_pending_key(self) -> None:
         """The pending zset gets an expiry, and that expiry outlives the rows."""
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        client = self.buf.cluster
         model = mock.Mock()
         model.__name__ = "Mock"
         filters: dict[str, Any] = {"pk": 1}
@@ -237,8 +250,8 @@ class TestRedisBuffer:
 
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_process_uses_signal_only(self, process) -> None:
-        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+    def test_process_uses_signal_only(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
 
         client.hmset(
             "foo",
@@ -252,9 +265,51 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_process_keeps_counts_when_pending_zrem_fails(self, process: mock.MagicMock) -> None:
+        client = self.buf.cluster
+        client.hmset(
+            "foo",
+            {
+                "f": '{"pk": ["i","1"]}',
+                "i+times_seen": "1",
+                "m": "unittest.mock.Mock",
+            },
+        )
+        # A non-sorted-set value makes ZREM fail, as a dead shard would.
+        client.set("b:p", "not-a-zset")
+
+        self.buf.process("foo")
+
+        process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, None)
+
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_process_flushes_incr_that_lands_during_the_flush(
+        self, process: mock.MagicMock
+    ) -> None:
+        client = self.buf.cluster
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        filters: dict[str, Any] = {"pk": 1}
+        key = make_key(model, filters=filters)
+        self.buf.incr(model, {"times_seen": 5}, filters)
+        real_zrem = client.zrem
+
+        def zrem(*args: Any) -> Any:
+            self.buf.incr(model, {"times_seen": 3}, filters)
+            return real_zrem(*args)
+
+        with mock.patch.object(client, "zrem", side_effect=zrem):
+            self.buf.process(key=key)
+
+        assert process.call_args.args[1] == {"times_seen": 8}
+        assert client.hgetall(key) == {}
+
     @django_db_all
     @freeze_time()
-    def test_incr_uses_signal_only(self, default_group, task_runner) -> None:
+    def test_incr_uses_signal_only(
+        self, default_group: Group, task_runner: Callable[[], AbstractContextManager[None]]
+    ) -> None:
         # Make sure group is stored in the cache and keep track of times_seen at the time
         orig_times_seen = Group.objects.get_from_cache(id=default_group.id).times_seen
         times_seen_incr = 5

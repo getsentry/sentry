@@ -2,17 +2,23 @@ from __future__ import annotations
 
 from collections import namedtuple
 from functools import cached_property
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
 from django.test import Client, RequestFactory
+from requests import PreparedRequest
 from requests.exceptions import ConnectionError, SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2ApiStep, OAuth2CallbackView, OAuth2LoginView
+from sentry.identity.oauth2 import (
+    ERR_INVALID_STATE,
+    OAuth2ApiStep,
+    OAuth2CallbackView,
+    OAuth2LoginView,
+)
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
@@ -39,7 +45,7 @@ class OAuth2CallbackViewTest(TestCase):
         sentry.identity.unregister(DummyProvider)
 
     @cached_property
-    def view(self):
+    def view(self) -> OAuth2CallbackView:
         return OAuth2CallbackView(
             access_token_url="https://example.org/oauth/token",
             client_id=123456,
@@ -98,7 +104,7 @@ class OAuth2CallbackViewTest(TestCase):
 
     @responses.activate
     def test_exchange_token_ssl_error(self, mock_record: MagicMock) -> None:
-        def ssl_error(request):
+        def ssl_error(request: PreparedRequest) -> NoReturn:
             raise SSLError("Could not build connection")
 
         responses.add_callback(
@@ -116,7 +122,7 @@ class OAuth2CallbackViewTest(TestCase):
 
     @responses.activate
     def test_connection_error(self, mock_record: MagicMock) -> None:
-        def connection_error(request):
+        def connection_error(request: PreparedRequest) -> NoReturn:
             raise ConnectionError("Name or service not known")
 
         responses.add_callback(
@@ -162,6 +168,21 @@ class OAuth2CallbackViewTest(TestCase):
 
         assert_failure_metric(mock_record, ApiUnauthorized('{"token": "a-fake-token"}'))
 
+    def test_dispatch_without_state(self, mock_record: MagicMock) -> None:
+        request = RequestFactory().get("/", {"code": "auth-code"})
+        request.session = Client().session
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+
+        with (
+            patch.object(pipeline, "error") as error,
+            patch.object(OAuth2CallbackView, "exchange_token") as exchange_token,
+        ):
+            self.view.dispatch(request, pipeline)
+
+        error.assert_called_once_with(ERR_INVALID_STATE)
+        assert not exchange_token.called
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
@@ -177,7 +198,7 @@ class OAuth2LoginViewTest(TestCase):
         sentry.identity.unregister(DummyProvider)
 
     @cached_property
-    def view(self):
+    def view(self) -> OAuth2LoginView:
         return OAuth2LoginView(
             authorize_url="https://example.org/oauth2/authorize",
             client_id=123456,
@@ -246,7 +267,7 @@ class OAuth2ApiStepGetStepDataTest(TestCase):
         )
 
     def test_returns_oauth_url(self) -> None:
-        ctx = cast(Pipeline, _FakePipelineContext(signature="abc123"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="abc123"))
         request = RequestFactory().get("/")
         data = self.step.get_step_data(ctx, request)
 
@@ -300,7 +321,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
             "https://example.org/oauth/token",
             json={"access_token": "a-fake-token"},
         )
-        ctx = cast(Pipeline, _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -316,7 +337,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
         assert data["client_secret"] == "secret-value"
 
     def test_invalid_state(self) -> None:
-        ctx = cast(Pipeline, _FakePipelineContext(signature="correct-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="correct-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "wrong-state"}, ctx, self.request
         )
@@ -326,13 +347,13 @@ class OAuth2ApiStepHandlePostTest(TestCase):
 
     @responses.activate
     def test_ssl_error(self) -> None:
-        def ssl_error(request):
+        def ssl_error(request: PreparedRequest) -> NoReturn:
             raise SSLError("Could not build connection")
 
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=ssl_error
         )
-        ctx = cast(Pipeline, _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -342,13 +363,13 @@ class OAuth2ApiStepHandlePostTest(TestCase):
 
     @responses.activate
     def test_connection_error(self) -> None:
-        def connection_error(request):
+        def connection_error(request: PreparedRequest) -> NoReturn:
             raise ConnectionError("Name or service not known")
 
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=connection_error
         )
-        ctx = cast(Pipeline, _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -359,7 +380,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
     @responses.activate
     def test_empty_response_body(self) -> None:
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
-        ctx = cast(Pipeline, _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )
@@ -375,7 +396,7 @@ class OAuth2ApiStepHandlePostTest(TestCase):
             json={"error": "unauthorized"},
             status=401,
         )
-        ctx = cast(Pipeline, _FakePipelineContext(signature="valid-state"))
+        ctx = cast(Pipeline[Any, Any], _FakePipelineContext(signature="valid-state"))
         result = self.step.handle_post(
             {"code": "auth-code", "state": "valid-state"}, ctx, self.request
         )

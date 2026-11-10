@@ -32,6 +32,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.types import SeatObject
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -99,7 +100,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
-    ):
+    ) -> None:
         codec = kafka_definition.get_topic_codec(kafka_definition.Topic.UPTIME_RESULTS)
         message = Message(
             BrokerValue(
@@ -746,7 +747,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         ):
             remove_call_vals = []
 
-            def capture_remove_seat(data_category=None, seat_object=None):
+            def capture_remove_seat(
+                seat_object: SeatObject, data_category: str | None = None
+            ) -> None:
                 remove_call_vals.append(seat_object.id)
 
             mock_remove_seat.side_effect = capture_remove_seat
@@ -1242,8 +1245,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         expected_config_updates: list[
             tuple[str, str | None, UptimeSubscriptionRegion.RegionMode | None]
         ],
-        current_minute=5,
-    ):
+        current_minute: int = 5,
+    ) -> None:
         region_configs = [
             UptimeRegionConfig(slug=slug, name=slug, config_redis_key_prefix=slug)
             for slug in regions
@@ -1339,7 +1342,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hour_sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=4).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
+            interval_seconds=3600,
         )
         self.create_uptime_detector(uptime_subscription=hour_sub)
         self.run_check_and_update_region_test(
@@ -1362,7 +1365,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         five_min_sub_no_update = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=6).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+            interval_seconds=300,
         )
         self.create_uptime_detector(uptime_subscription=five_min_sub_no_update)
         self.run_check_and_update_region_test(
@@ -1398,7 +1401,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         five_min_sub_with_update = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=18).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+            interval_seconds=300,
         )
         self.create_uptime_detector(uptime_subscription=five_min_sub_with_update)
         self.run_check_and_update_region_test(
@@ -1420,7 +1423,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         five_min_sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=66).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+            interval_seconds=300,
         )
         self.create_uptime_detector(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
@@ -1642,7 +1645,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         UptimeResponseCapture.objects.create(
             uptime_subscription=self.subscription,
             file_id=existing_file.id,
-            scheduled_check_time_ms=result["scheduled_check_time_ms"],
+            scheduled_check_time_ms=int(result["scheduled_check_time_ms"]),
         )
 
         with (

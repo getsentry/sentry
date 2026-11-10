@@ -1,5 +1,6 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
+import {parseAsString, useQueryState, useQueryStates, type inferParserType} from 'nuqs';
 import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -7,19 +8,12 @@ import {Redirect} from 'sentry/components/redirect';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {
-  AlertWizardRuleTemplates,
-  type MetricAlertType,
-} from 'sentry/views/alerts/wizard/options';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -31,7 +25,11 @@ import {
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
+
+import {Dataset, EventTypes} from './rules/metric/types';
+import {AlertWizardRuleTemplates, type MetricAlertType} from './wizard/options';
 
 const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
   'workflow-engine-disable-legacy-alert-rule-redirects';
@@ -205,9 +203,10 @@ export const withMetricIssueRedirect = <P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) => {
   return function MetricIssueRedirectWrapper(props: P) {
-    const location = useLocation();
-    const alertId = location.query.alert as string | undefined;
-    const notificationUuid = location.query.notification_uuid;
+    const [{alert: alertId, notification_uuid: notificationUuid}] = useQueryStates({
+      alert: parseAsString,
+      notification_uuid: parseAsString,
+    });
 
     const shouldRedirectToIssue = notificationUuid && alertId;
 
@@ -230,8 +229,7 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
   return function WorkflowEngineRedirectWrapper(props: P) {
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
-    const location = useLocation();
-    const alertId = location.query.alert as string | undefined;
+    const [alertId] = useQueryState('alert');
     const redirectsDisabled = organization.features.includes(
       DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
     );
@@ -274,20 +272,18 @@ function RedirectToIssue({
   const organization = useOrganization();
   const location = useLocation();
 
-  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
-    useApiQuery<IncidentGroupOpenPeriod>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {incident_identifier: alertId}},
-      ],
+  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} = useQuery({
+    ...apiOptions.as<IncidentGroupOpenPeriod>()(
+      '/organizations/$organizationIdOrSlug/incident-groupopenperiod/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {incident_identifier: alertId},
         staleTime: 0,
-        enabled: !!alertId,
-        retry: false,
       }
-    );
+    ),
+    enabled: !!alertId,
+    retry: false,
+  });
 
   if (isOpenPeriodPending) {
     return <LoadingIndicator />;
@@ -317,19 +313,17 @@ function RedirectToDetector({
   ruleId: string;
 }) {
   const organization = useOrganization();
-  const {data: alertRuleDetector, isPending: isDetectorPending} =
-    useApiQuery<AlertRuleDetector>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {alert_rule_id: ruleId}},
-      ],
+  const {data: alertRuleDetector, isPending: isDetectorPending} = useQuery({
+    ...apiOptions.as<AlertRuleDetector>()(
+      '/organizations/$organizationIdOrSlug/alert-rule-detector/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {alert_rule_id: ruleId},
         staleTime: 0,
-        retry: false,
       }
-    );
+    ),
+    retry: false,
+  });
 
   if (isDetectorPending) {
     return <LoadingIndicator />;
@@ -399,6 +393,17 @@ const LEGACY_ALERT_TYPES_BY_WIZARD_OPTION: Record<string, string> = {
   uptime_monitor: 'uptime',
 };
 
+const legacyCreateParsers = {
+  aggregate: parseAsScalar,
+  alert_option: parseAsScalar,
+  dataset: parseAsScalar,
+  environment: parseAsScalar,
+  eventTypes: parseAsStringArray,
+  project: parseAsScalar,
+  query: parseAsString,
+  referrer: parseAsScalar,
+};
+
 function makeLegacyCreateRedirectPath({
   alertType,
   organization,
@@ -408,11 +413,11 @@ function makeLegacyCreateRedirectPath({
   alertType: string | undefined;
   organization: Organization;
   project: Project | undefined;
-  query: Query;
+  query: inferParserType<typeof legacyCreateParsers>;
 }) {
   // The legacy wizard preselected an alert type from `alert_option`, filling
   // in the dataset and aggregate from its template when none were given.
-  const alertOption = decodeScalar(query.alert_option);
+  const alertOption = query.alert_option ?? undefined;
   const resolvedAlertType =
     alertType ??
     (alertOption && Object.hasOwn(LEGACY_ALERT_TYPES_BY_WIZARD_OPTION, alertOption)
@@ -422,18 +427,18 @@ function makeLegacyCreateRedirectPath({
     ? AlertWizardRuleTemplates[alertOption]
     : undefined;
 
-  const dataset = decodeScalar(query.dataset) ?? template?.dataset;
+  const dataset = query.dataset ?? template?.dataset;
   const isMetricAlert = resolvedAlertType === undefined || resolvedAlertType === 'metric';
 
   if (!isMetricAlert || !isMonitorableDataset(dataset)) {
     return makeCreateRedirectPath(organization.slug, resolvedAlertType, project);
   }
 
-  const eventTypes = decodeList(query.eventTypes).filter(isEventType);
+  const eventTypes = query.eventTypes.filter(isEventType);
   const target = getMetricMonitorUrl({
-    aggregate: decodeScalar(query.aggregate) ?? template?.aggregate ?? '',
+    aggregate: query.aggregate ?? template?.aggregate ?? '',
     dataset,
-    environment: decodeScalar(query.environment),
+    environment: query.environment ?? undefined,
     eventTypes: eventTypes.length
       ? eventTypes
       : template
@@ -441,19 +446,19 @@ function makeLegacyCreateRedirectPath({
         : undefined,
     organization,
     project,
-    query: query.query === '' ? '' : (decodeScalar(query.query) ?? template?.query),
-    referrer: decodeScalar(query.referrer),
+    query: query.query ?? template?.query,
+    referrer: query.referrer ?? undefined,
   });
   return `${target.pathname}?${qs.stringify(target.query)}`;
 }
 
 export function MonitorCreateRedirect() {
   const organization = useOrganization();
-  const location = useLocation();
   const {alertType, projectId} = useParams<{alertType?: string; projectId?: string}>();
   const {projects, initiallyLoaded} = useProjects();
+  const [query] = useQueryStates(legacyCreateParsers);
 
-  const projectSlugOrId = projectId ?? decodeScalar(location.query.project);
+  const projectSlugOrId = projectId ?? query.project;
   if (projectSlugOrId && !initiallyLoaded) {
     return <LoadingIndicator />;
   }
@@ -468,7 +473,7 @@ export function MonitorCreateRedirect() {
         alertType,
         organization,
         project,
-        query: location.query,
+        query,
       })}
     />
   );
@@ -488,20 +493,18 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
     const location = useLocation();
     const {alertId} = useParams();
 
-    const {data: incidentGroupOpenPeriod, isPending} =
-      useApiQuery<IncidentGroupOpenPeriod>(
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {incident_identifier: alertId}},
-        ],
+    const {data: incidentGroupOpenPeriod, isPending} = useQuery({
+      ...apiOptions.as<IncidentGroupOpenPeriod>()(
+        '/organizations/$organizationIdOrSlug/incident-groupopenperiod/',
         {
+          path: {organizationIdOrSlug: organization.slug},
+          query: {incident_identifier: alertId},
           staleTime: 0,
-          enabled: !!alertId,
-          retry: false,
         }
-      );
+      ),
+      enabled: !!alertId,
+      retry: false,
+    });
 
     if (isPending) {
       return <LoadingIndicator />;

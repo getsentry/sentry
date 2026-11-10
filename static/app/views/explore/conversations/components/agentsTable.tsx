@@ -3,7 +3,6 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {t} from 'sentry/locale';
-import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import type {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
@@ -17,6 +16,8 @@ import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesT
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {getAiClientSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {ConversationsTable} from './conversationsTable';
 
 export const AGENTS_TABLE_TABS = ['conversations', 'traces', 'spans'] as const;
 export type AgentsTableTab = (typeof AGENTS_TABLE_TABS)[number];

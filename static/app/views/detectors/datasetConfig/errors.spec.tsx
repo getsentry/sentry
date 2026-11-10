@@ -1,6 +1,7 @@
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorErrorsConfig} from 'sentry/views/detectors/datasetConfig/errors';
+
+import {DetectorErrorsConfig} from './errors';
 
 describe('DetectorErrorsConfig.toSnubaQueryString', () => {
   it('omits event.type when defaults provided in any order', () => {

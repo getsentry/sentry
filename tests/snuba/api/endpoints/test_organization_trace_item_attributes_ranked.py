@@ -1,6 +1,8 @@
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -19,7 +21,11 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         self.ten_mins_ago = before_now(minutes=10)
         self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
 
-    def do_request(self, query=None, features=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: list[str] | None = None,
+    ) -> Response:
         if features is None:
             features = []
 
@@ -30,19 +36,24 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             query.setdefault("sampling", "HIGHEST_ACCURACY")
 
         with self.feature(features):
-            response = self.client.get(
+            response: Response = self.client.get(
                 reverse(
                     self.view,
                     kwargs={"organization_id_or_slug": self.organization.slug},
                 ),
                 query,
                 format="json",
-                **kwargs,
             )
 
             return response
 
-    def _store_span(self, description=None, tags=None, duration=None, status=None):
+    def _store_span(
+        self,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
+        duration: int | None = None,
+        status: str | None = None,
+    ) -> None:
         if tags is None:
             tags = {"foo": "bar"}
 
@@ -100,7 +111,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert response.status_code == 400, response.data
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    def test_distribution_values(self, mock_compare_distributions) -> None:
+    def test_distribution_values(self, mock_compare_distributions: MagicMock) -> None:
         mock_compare_distributions.return_value = {
             "results": [
                 ("sentry.device", 0.8),
@@ -144,7 +155,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "meta" in call_args.kwargs
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    def test_function_with_multiple_arguments(self, mock_compare_distributions) -> None:
+    def test_function_with_multiple_arguments(self, mock_compare_distributions: MagicMock) -> None:
         """Test that functions with multiple arguments work but skip suspect cohort segmentation."""
         mock_compare_distributions.return_value = {
             "results": [
@@ -186,7 +197,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
     def test_baseline_distribution_includes_baseline_only_buckets(
-        self, mock_compare_distributions
+        self, mock_compare_distributions: MagicMock
     ) -> None:
         """Test that buckets existing only in baseline (not in suspect) are included in scoring.
 
@@ -195,11 +206,13 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         distribution passed to scoring algorithms.
         """
         # Capture what's passed to compare_distributions
-        captured_baseline = None
+        captured_baseline: list[tuple[str, str, float]] | None = None
 
-        def capture_compare(*args, **kwargs):
+        def capture_compare(*args: object, **kwargs: object) -> dict[str, list[tuple[str, float]]]:
             nonlocal captured_baseline
-            captured_baseline = kwargs.get("baseline")
+            baseline = kwargs.get("baseline")
+            assert isinstance(baseline, list)
+            captured_baseline = baseline
             return {"results": [("sentry.browser", 0.9), ("sentry.device", 0.7)]}
 
         mock_compare_distributions.side_effect = capture_compare
@@ -266,7 +279,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         )
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    def test_filters_out_internal_and_private_attributes(self, mock_compare_distributions) -> None:
+    def test_filters_out_internal_and_private_attributes(
+        self, mock_compare_distributions: MagicMock
+    ) -> None:
         """Test that internal/private attributes and certain public aliases are filtered from the response.
 
         The endpoint filters:
@@ -317,7 +332,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         "sentry.api.endpoints.organization_trace_item_attributes_ranked.translate_internal_to_public_alias"
     )
     def test_includes_user_defined_attributes_when_translate_returns_none(
-        self, mock_translate, mock_compare_distributions
+        self, mock_translate: MagicMock, mock_compare_distributions: MagicMock
     ) -> None:
         """Test that user-defined attributes are included when translate_internal_to_public_alias returns None.
 
@@ -326,7 +341,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         """
 
         # Mock translate function to return None for user-defined attributes
-        def mock_translate_func(attr, *_):
+        def mock_translate_func(attr: str, *_: object) -> tuple[str | None, str | None, str | None]:
             if attr == "custom_user_attr":
                 return (None, None, None)  # User-defined attribute
             elif attr == "tags[filtered_tag]":
@@ -370,7 +385,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         assert "regular_attr" in returned_attrs, "Regular attributes should be included"
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    def test_empty_baseline_returns_empty_response(self, mock_compare_distributions) -> None:
+    def test_empty_baseline_returns_empty_response(
+        self, mock_compare_distributions: MagicMock
+    ) -> None:
         """Test that when total_baseline <= 0, the endpoint returns empty rankedAttributes without calling Seer.
 
         This happens when the outlier cohort (query_1) matches all or more spans than the baseline (query_2),
@@ -407,7 +424,9 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
         mock_compare_distributions.assert_not_called()
 
     @patch("sentry.api.endpoints.organization_trace_item_attributes_ranked.compare_distributions")
-    def test_failure_rate_filters_to_failed_spans_only(self, mock_compare_distributions) -> None:
+    def test_failure_rate_filters_to_failed_spans_only(
+        self, mock_compare_distributions: MagicMock
+    ) -> None:
         """Test that failure_rate() and failure_count() filter the selected cohort to failed spans.
 
         When failure_rate() or failure_count() is selected, the endpoint should:

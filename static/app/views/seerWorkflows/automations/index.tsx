@@ -4,33 +4,38 @@ import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconSentry} from '@sentry/icons/sentry';
-import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigResponse,
-  SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
   getAutomationDetailPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+
+import {useFetchConfigs} from './hooks/configs';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
@@ -67,68 +72,27 @@ type AdditionalConfig = {
 // TODO: can just be Response type once API updated
 export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 
-function makePlaceholderConfig(
-  id: string,
-  overrides: Partial<AutomationConfig>
-): AutomationConfig {
-  return {
-    id,
-    dateAdded: '',
-    dateUpdated: '',
-    enabled: true,
-    environments: [],
-    filters: {},
-    outputPolicy: {},
-    projects: [ALL_ACCESS_PROJECTS],
-    schedule: '',
-    seededDefault: null,
-    strategy: '',
-    version: 0,
-    ...overrides,
-  };
-}
-
-/**
- * Temporary mock data for configs endpoint
- */
-export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
-  makePlaceholderConfig('placeholder-agentic-triage', {
-    strategy: 'agentic_triage_v2',
-    dateLastRun: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    lastRunStatus: 'complete',
-    schedule: 'daily',
-    tokensPerMonth: 85_400_000,
-    costPerRun: 2.5,
-  }),
-  makePlaceholderConfig('placeholder-breached-metrics', {
-    strategy: 'breached_metrics',
-    dateLastRun: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    lastRunStatus: 'complete',
-    trigger: 'Triggered by metric exceptions',
-    tokensPerMonth: 341_000,
-    costPerRun: 0.052,
-    projects: [6178942, 11276, 4511418012073984],
-  }),
-];
-
 export default function AutomationsList() {
-  const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data} = useQuery(
-    apiOptions.as<SeerWorkflowConfigsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        staleTime: 0,
-      }
-    )
-  );
+  const {data, isPending, isLoadingError, refetch} = useFetchConfigs();
 
-  const configs: AutomationConfig[] = [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])];
+  const configs = data ?? [];
 
   if (!automationsEnabled) {
     return <NotFound />;
+  }
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isLoadingError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (configs.length === 0) {
+    return <EmptyState title={t('No automations yet.')} />;
   }
 
   return (
@@ -149,12 +113,19 @@ export default function AutomationsList() {
 function AutomationCard({config}: {config: AutomationConfig}) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {data: createdByUser} = useUserFromId({
+    id: config.createdBy ? Number(config.createdBy) : undefined,
+  });
   const strategyMeta = Object.hasOwn(STRATEGY_META, config.strategy)
     ? STRATEGY_META[config.strategy as WorkflowStrategy]
     : undefined;
 
-  const {enabled, trigger, tokensPerMonth, costPerRun} = config;
-  const title = strategyMeta?.label ?? config.strategy;
+  const {enabled, tokensPerMonth, costPerRun} = config;
+  const trigger =
+    config.strategy === 'breached_metric_investigation'
+      ? t('Triggered by metric monitors')
+      : config.trigger;
+  const title = config.name ?? strategyMeta?.label ?? config.strategy;
   const description = strategyMeta?.description ?? t('No description');
   const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
     ? ['all']
@@ -197,7 +168,20 @@ function AutomationCard({config}: {config: AutomationConfig}) {
               <Heading as="h3" size="md">
                 {title}
               </Heading>
-              <IconSentry size="xs" variant="muted" />
+              {config.createdBy ? (
+                createdByUser && (
+                  <UserAvatar
+                    user={createdByUser}
+                    size={16}
+                    hasTooltip
+                    tooltip={t('Created by %s', userDisplayName(createdByUser))}
+                  />
+                )
+              ) : (
+                <Tooltip title={t('Built and maintained by Sentry')}>
+                  <IconSentry size="xs" variant="muted" />
+                </Tooltip>
+              )}
             </Flex>
             {enabled ? (
               trigger ? (

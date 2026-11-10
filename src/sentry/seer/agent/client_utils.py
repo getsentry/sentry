@@ -16,6 +16,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 import orjson
 from django.conf import settings
 from django.db import router, transaction
+from django.http import HttpRequest
 from django.utils.timezone import now
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
@@ -141,6 +142,7 @@ class AgentRunOptions(TypedDict):
     enable_pr_context_tools: NotRequired[bool]
     enable_write_pull_request: NotRequired[bool]
     enable_investigation_tools: NotRequired[bool]
+    enable_inbox_tools: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
@@ -423,7 +425,7 @@ def has_seer_agent_access_with_detail(
 def collect_user_org_context(
     user: RequestPrincipal | None,
     organization: Organization,
-    request: Request | None = None,
+    request: HttpRequest | Request | None = None,
 ) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(

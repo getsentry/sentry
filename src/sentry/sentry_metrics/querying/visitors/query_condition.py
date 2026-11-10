@@ -103,7 +103,7 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
         )
 
 
-class MapperConditionVisitor(QueryConditionVisitor):
+class MapperConditionVisitor(QueryConditionVisitor[QueryCondition]):
     def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
         self.projects = projects
         self.mapper_config = mapper_config

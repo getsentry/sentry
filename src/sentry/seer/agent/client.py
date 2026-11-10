@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from django.db.models import Q, QuerySet
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -16,7 +17,7 @@ from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
-from sentry.auth.principal import RequestPrincipal, acting_user_id
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
@@ -45,7 +46,10 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
     poll_until_done,
 )
-from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
+from sentry.seer.agent.coding_agent_handoff import (
+    CodingAgentHandoffResult,
+    launch_coding_agents,
+)
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
@@ -308,6 +312,7 @@ class SeerAgentClient:
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
             enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
+            enable_inbox_tools: Let Code Mode read and update the user's personal inbox. Only takes effect where the inbox endpoints themselves would answer, i.e. for a user with the organizations:universal-inbox feature. Default is False.
     """
 
     def __init__(
@@ -334,6 +339,7 @@ class SeerAgentClient:
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
         enable_investigation_tools: bool = False,
+        enable_inbox_tools: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -348,9 +354,7 @@ class SeerAgentClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_bash_mode = enable_bash_mode and features.has(
-            "organizations:seer-explorer-allow-bash-mode", organization, actor=user
-        )
+        self.enable_bash_mode = enable_bash_mode
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
@@ -373,6 +377,13 @@ class SeerAgentClient:
         # operations that would only 404.
         self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
             organization, actor=user
+        )
+        # The inbox endpoints are personal, so they answer only with a user behind the run.
+        self.enable_inbox_tools = (
+            enable_inbox_tools
+            and user is not None
+            and has_user(user)
+            and features.has("organizations:universal-inbox", organization, actor=user)
         )
 
         self.viewer_context = self._build_viewer_context()
@@ -405,7 +416,7 @@ class SeerAgentClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        request: Request | None = None,
+        request: HttpRequest | Request | None = None,
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         ui_tools: str | None = None,
@@ -447,6 +458,7 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_inbox_tools": self.enable_inbox_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -793,6 +805,7 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_inbox_tools": self.enable_inbox_tools,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
@@ -935,11 +948,12 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: tuple[str, ...] | None = None,
     ) -> SeerAgentRun | None:
         """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
-            source=self.category_key or "",
+            source__in=sources or (self.category_key or "",),
         )
         if only_current_user and self._user_id is not None:
             qs = qs.filter(run__user_id=self._user_id)
@@ -959,12 +973,18 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: tuple[str, ...] | None = None,
     ) -> SeerRunState | None:
         """The remote state of the latest live run mirror for this client, or None."""
-        run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
+        run = self.latest_run(
+            group_id=group_id, only_current_user=only_current_user, sources=sources
+        )
         if run is None:
             return None
-        return self.get_run(run.run.seer_run_state_id)
+        run_state_id = run.run.seer_run_state_id
+        if run_state_id is None:
+            return None
+        return self.get_run(run_state_id)
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(
@@ -1077,7 +1097,7 @@ class SeerAgentClient:
         user_id: int | None = None,
         issue_short_id: str | None = None,
         issue_url: str | None = None,
-    ) -> dict[str, list]:
+    ) -> CodingAgentHandoffResult:
         """
         Launch coding agents for an agent run.
 

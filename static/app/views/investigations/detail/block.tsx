@@ -8,6 +8,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -18,9 +19,8 @@ import {
 } from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -37,7 +37,6 @@ import {
   useResumeInvestigationExecutionMutation,
   useStopInvestigationExecutionMutation,
 } from 'sentry/views/investigations/api';
-import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import {
   getBlockLLMContext,
   getInvestigationReference,
@@ -60,6 +59,8 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {InvestigationBlockPlaceholder} from './blockPlaceholder';
 
 type InvestigationNotebookBlockProps = {
   block: InvestigationBlock;
@@ -119,7 +120,7 @@ function InvestigationNotebookBlockInner({
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to delete this block.'))}
+    {onError: () => toast.error(t('Unable to delete this block.'))}
   );
 
   useEffect(() => {
@@ -165,12 +166,6 @@ function InvestigationNotebookBlockInner({
     : undefined;
 
   const actionItems: MenuItemProps[] = [
-    {
-      key: 'comment',
-      label: t('Comment'),
-      hidden: !onComment,
-      onAction: () => onComment?.(block.id),
-    },
     {
       key: 'ask-seer',
       label: t('Ask Seer'),
@@ -683,13 +678,13 @@ function AgentActivityPanel({
     organizationSlug,
     investigation.id,
     {
-      onError: () => addErrorMessage(t('Unable to stop this Seer run.')),
+      onError: () => toast.error(t('Unable to stop this Seer run.')),
     }
   );
   const resumeMutation = useResumeInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
-    {onError: () => addErrorMessage(t('Unable to resume this Seer run.'))}
+    {onError: () => toast.error(t('Unable to resume this Seer run.'))}
   );
   const executionQuery = useQuery({
     ...investigationExecutionDetailQueryOptions({

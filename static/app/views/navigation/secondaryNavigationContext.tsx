@@ -1,7 +1,8 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
+
+import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
 
 /**
  * The three possible states of the secondary navigation sidebar:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlsplit
 
 from django.db import models, router, transaction
@@ -69,21 +69,12 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ROLLBACK_ENABLED_DEFAULT,
-    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
-    TARGET_SAMPLE_RATE_DEFAULT,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.dynamic_sampling.per_org.scheduler import run_calculations_per_org_task_entry
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import (
-    has_custom_dynamic_sampling,
-    is_organization_mode_sampling,
-    is_project_mode_sampling,
-)
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.services.integration import integration_service
@@ -94,7 +85,6 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
@@ -197,8 +187,6 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
-    ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
-    ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
     (
         # Sets the default value for new projects created in this organization
@@ -333,8 +321,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     relayDsnEndpoint = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
     defaultAutofixAutomationTuning = serializers.ChoiceField(
@@ -377,12 +363,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         help_text="List of user IDs that have access to replay data. Only modifiable by owners and managers.",
     )
 
-    def _has_sso_enabled(self):
+    def _has_sso_enabled(self) -> bool:
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
 
-    def validate_relayPiiConfig(self, value):
+    def validate_relayPiiConfig(self, value: str | None) -> str | None:
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
 
@@ -411,33 +397,33 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
-    def validate_sensitiveFields(self, value):
+    def validate_sensitiveFields(self, value: list[str]) -> list[str]:
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
         if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
-    def validate_safeFields(self, value):
+    def validate_safeFields(self, value: list[str]) -> list[str]:
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
         return validate_pii_selectors(value)
 
-    def validate_attachmentsRole(self, value):
+    def validate_attachmentsRole(self, value: str) -> str:
         try:
             roles.get(value)
         except KeyError:
             raise serializers.ValidationError("Invalid role")
         return value
 
-    def validate_debugFilesRole(self, value):
+    def validate_debugFilesRole(self, value: str) -> str:
         try:
             roles.get(value)
         except KeyError:
             raise serializers.ValidationError("Invalid role")
         return value
 
-    def validate_require2FA(self, value):
+    def validate_require2FA(self, value: bool) -> bool:
         user = self.context["user"]
         has_2fa = user.has_2fa()
         if value and not has_2fa:
@@ -447,7 +433,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(ERR_SSO_ENABLED)
         return value
 
-    def validate_trustedRelays(self, value):
+    def validate_trustedRelays(self, value: list[dict[str, object]]) -> list[dict[str, object]]:
         # make sure we don't have multiple instances of one public key
         public_keys = set()
         if value is not None:
@@ -487,7 +473,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value.rstrip("/")
 
-    def validate_enabledConsolePlatforms(self, value):
+    def validate_enabledConsolePlatforms(self, value: list[str] | None) -> list[str] | None:
         request = self.context["request"]
 
         if not is_active_staff(request):
@@ -499,7 +485,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_consoleSdkInviteQuota(self, value):
+    def validate_consoleSdkInviteQuota(self, value: int) -> int:
         request = self.context["request"]
 
         if not is_active_staff(request):
@@ -509,47 +495,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_targetSampleRate(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
-        if not has_dynamic_sampling_custom:
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        return value
-
-    def validate_samplingMode(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
-        if not has_dynamic_sampling_custom:
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        # Manual Mode is closed to new organizations. An organization already in it keeps it
-        # until it switches back, and may keep sending its current mode.
-        if value == DynamicSamplingMode.PROJECT.value and not is_project_mode_sampling(
-            organization
-        ):
-            raise serializers.ValidationError(
-                "Manual Mode is no longer available. Sample rates are configured for the "
-                "whole organization."
-            )
-
-        return value
-
-    def validate_hasGranularReplayPermissions(self, value):
+    def validate_hasGranularReplayPermissions(self, value: bool) -> bool:
         self._validate_granular_replay_permissions()
         return value
 
-    def validate_replayAccessMembers(self, value):
+    def validate_replayAccessMembers(self, value: list[int] | None) -> list[int] | None:
         self._validate_granular_replay_permissions()
         return value
 
-    def _validate_granular_replay_permissions(self):
+    def _validate_granular_replay_permissions(self) -> None:
         request = self.context["request"]
 
         if not request.access.has_scope("org:write"):
@@ -557,7 +511,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "You do not have permission to modify granular replay permissions."
             )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
@@ -568,25 +522,14 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
 
-        organization = self.context["organization"]
-        sampling_mode = organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-        request_sampling_mode = attrs.get("samplingMode")
-        request_target_sample_rate = attrs.get("targetSampleRate")
-
-        if (
-            request_sampling_mode == DynamicSamplingMode.PROJECT.value
-            or (
-                sampling_mode == DynamicSamplingMode.PROJECT.value
-                and request_sampling_mode != DynamicSamplingMode.ORGANIZATION.value
-            )
-        ) and request_target_sample_rate is not None:
-            raise serializers.ValidationError(
-                "Must be in Automatic Mode to configure the organization sample rate."
-            )
-
         return attrs
 
-    def save_trusted_relays(self, incoming, changed_data, organization):
+    def save_trusted_relays(
+        self,
+        incoming: list[dict[str, object]],
+        changed_data: dict[str, str],
+        organization: Organization,
+    ) -> list[dict[str, object]]:
         timestamp_now = datetime.now(timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
@@ -604,7 +547,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         modified = False
         for option in incoming:
             public_key = option.get("public_key")
-            existing_info = key_dict.get(public_key, {})
+            existing_info: dict[str, object] = key_dict.get(public_key, {})
 
             option["created"] = existing_info.get("created", timestamp_now)
             option["last_modified"] = existing_info.get("last_modified")
@@ -638,7 +581,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return incoming
 
-    def save(self, **kwargs):
+    def save(self, **kwargs: object) -> tuple[Organization, dict[str, str]]:
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -809,7 +752,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
     cancelDeletion = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: object, **kwargs: object) -> tuple[Organization, dict[str, str]]:
         org = self.context["organization"]
         update_tracked_data(org)
         data = self.validated_data
@@ -827,7 +770,7 @@ from rest_framework.response import Response
 
 def post_org_pending_deletion(
     *, request: Request, org_delete_response: RpcOrganizationDeleteResponse
-):
+) -> None:
     if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
         updated_organization = org_delete_response.updated_organization
         assert updated_organization
@@ -855,7 +798,7 @@ def post_org_pending_deletion(
             capture_exception(e)
 
         delete_confirmation_args: DeleteConfirmationArgs = {
-            "username": request.user.get_username(),
+            "username": require_user(request).get_username(),
             "ip_address": entry.ip_address,
             "deletion_datetime": entry.datetime,
             "countdown": ONE_DAY,
@@ -865,8 +808,11 @@ def post_org_pending_deletion(
 
 
 def create_console_platform_audit_log(
-    request, organization, previously_enabled_platforms, currently_requested_platforms
-):
+    request: Request,
+    organization: Organization,
+    previously_enabled_platforms: list[str] | None,
+    currently_requested_platforms: list[str] | None,
+) -> None:
     """Create a single audit log entry for console platform changes."""
     prev = set(previously_enabled_platforms or [])
     curr = set(currently_requested_platforms or [])
@@ -1211,38 +1157,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if request.access.has_scope("org:write") and has_custom_dynamic_sampling(organization):
-                is_org_mode = is_organization_mode_sampling(organization)
-
-                # Manual Mode cannot be entered any more, so a changed sampling mode is always
-                # a switch back to Automatic Mode: the project rates give way to the org rate.
-                if "samplingMode" in changed_data and is_org_mode:
-                    with transaction.atomic(router.db_for_write(ProjectOption)):
-                        if "targetSampleRate" in changed_data:
-                            organization.update_option(
-                                "sentry:target_sample_rate",
-                                serializer.validated_data["targetSampleRate"],
-                            )
-                        changed_data["samplingMode"] = "to Default Mode"
-
-                        ProjectOption.objects.filter(
-                            project__organization_id=organization.id,
-                            key="sentry:target_sample_rate",
-                        ).delete()
-
-                # If the target sample rate for the org was changed, update the org option
-                if is_org_mode and "targetSampleRate" in changed_data:
-                    organization.update_option(
-                        "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
-                    )
-
-                # If the sampling mode was changed to org mode or the target sample rate was changed (or both),
-                # trigger the rebalancing of project sample rates.
-                if is_org_mode and (
-                    "samplingMode" in changed_data or "targetSampleRate" in changed_data
-                ):
-                    run_calculations_per_org_task_entry.delay(organization.id)
-
             if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,
@@ -1296,7 +1210,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request: Request, organization: Organization):
+    def handle_delete(self, request: Request, organization: Organization) -> Response:
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
@@ -1336,7 +1250,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         Delete an Organization
         ``````````````````````
@@ -1357,15 +1271,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.handle_delete(request, organization)
 
 
-def flag_has_changed(org, flag_name):
+def flag_has_changed(org: Organization, flag_name: str) -> bool:
     "Returns ``True`` if ``flag`` has changed since initialization."
-    return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
+    return bool(getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name))
 
 
-def update_tracked_data(model):
+def update_tracked_data(model: models.Model) -> None:
     "Updates a local copy of attributes values"
-    if model.id:
-        data = {}
+    if model.pk:
+        data: dict[str, object] = {}
         for f in model._meta.fields:
             # XXX(dcramer): this is how Django determines this (copypasta from Model)
             if isinstance(type(f).__dict__.get(f.attname), DeferredAttribute) or f.column is None:
@@ -1379,9 +1293,9 @@ def update_tracked_data(model):
                 if isinstance(v, BitHandler):
                     v = copy(v)
                 data[f.column] = v
-        model.__data = data
+        setattr(model, "__data", data)
     else:
-        model.__data = UNSAVED
+        setattr(model, "__data", UNSAVED)
 
 
 class DeleteConfirmationArgs(TypedDict):
@@ -1392,7 +1306,7 @@ class DeleteConfirmationArgs(TypedDict):
     countdown: int
 
 
-def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
+def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs) -> None:
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]
@@ -1426,7 +1340,7 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
     message.send_async([o.email for o in owners])
 
 
-def get_field_value(model, field):
+def get_field_value(model: models.Model, field: Any) -> object:
     if isinstance(type(field).__dict__.get(field.attname), DeferredAttribute):
         return DEFERRED
     if isinstance(field, models.ForeignKey):
@@ -1434,22 +1348,24 @@ def get_field_value(model, field):
     return getattr(model, field.attname, None)
 
 
-def has_changed(model, field_name):
+def has_changed(model: models.Model, field_name: str) -> bool:
     "Returns ``True`` if ``field`` has changed since initialization."
-    if model.__data is UNSAVED:
+    tracked = getattr(model, "__data")
+    if tracked is UNSAVED:
         return False
     field = model._meta.get_field(field_name)
     value = get_field_value(model, field)
     if value is DEFERRED:
         return False
-    return model.__data.get(field_name) != value
+    return bool(tracked.get(field_name) != value)
 
 
-def old_value(model, field_name):
+def old_value(model: models.Model, field_name: str) -> object | None:
     "Returns the previous value of ``field``"
-    if model.__data is UNSAVED:
+    tracked = getattr(model, "__data")
+    if tracked is UNSAVED:
         return None
-    value = model.__data.get(field_name)
+    value = tracked.get(field_name)
     if value is DEFERRED:
         return None
-    return model.__data.get(field_name)
+    return value

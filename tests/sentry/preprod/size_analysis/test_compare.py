@@ -40,13 +40,13 @@ class CompareSizeAnalysisTest(TestCase):
 
     def _create_treemap_element(
         self,
-        name,
-        size,
-        path=None,
-        children=None,
-        element_type="files",
+        name: str,
+        size: int,
+        path: str | None = None,
+        children: list[TreemapElement] | None = None,
+        element_type: str = "files",
         flagged_insights: list[str | FlaggedInsight] | None = None,
-    ):
+    ) -> TreemapElement:
         return TreemapElement(
             name=name,
             size=size,
@@ -57,17 +57,19 @@ class CompareSizeAnalysisTest(TestCase):
             flagged_insights=flagged_insights or [],
         )
 
-    def _create_file_info(self, path: str, hash_value: str, children=None) -> FileInfo:
+    def _create_file_info(
+        self, path: str, hash_value: str, children: list[FileInfo] | None = None
+    ) -> FileInfo:
         return FileInfo(path=path, hash=hash_value, children=children or [])
 
     def _create_size_analysis_results(
         self,
-        download_size=500,
-        install_size=1000,
-        treemap_root=None,
-        file_analysis=None,
-        analysis_version=None,
-    ):
+        download_size: int = 500,
+        install_size: int = 1000,
+        treemap_root: TreemapElement | None = None,
+        file_analysis: FileAnalysis | None = None,
+        analysis_version: str | None = None,
+    ) -> SizeAnalysisResults:
         treemap = None
         if treemap_root:
             treemap = TreemapResults(
@@ -569,7 +571,9 @@ class CompareSizeAnalysisTest(TestCase):
 
 
 class ShouldSkipDiffItemComparisonTest(TestCase):
-    def _create_size_analysis_results(self, analysis_version=None):
+    def _create_size_analysis_results(
+        self, analysis_version: str | None = None
+    ) -> SizeAnalysisResults:
         """Helper to create SizeAnalysisResults with specified analysis_version."""
         return SizeAnalysisResults(
             analysis_duration=1.0,
@@ -1319,8 +1323,8 @@ class CompareInsightsTest(TestCase):
     def _create_size_analysis_results(
         self,
         insights: AndroidInsightResults | AppleInsightResults | None = None,
-        analysis_version="1.0.0",
-    ):
+        analysis_version: str = "1.0.0",
+    ) -> SizeAnalysisResults:
         # Use construct() to bypass Pydantic union coercion which would
         # otherwise convert AppleInsightResults to AndroidInsightResults
         return SizeAnalysisResults.construct(

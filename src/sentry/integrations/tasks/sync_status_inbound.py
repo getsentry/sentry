@@ -37,14 +37,17 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+ResolutionParams = dict[str, Any]
+
+
 def get_resolutions_and_activity_data_for_groups(
     affected_groups: Iterable[Group],
     resolution_strategy: str | None,
-    activity_data: dict,
+    activity_data: dict[str, object],
     organization_id: int,
-):
+) -> tuple[dict[int, ResolutionParams], ActivityType, dict[str, object]]:
     activity_data = activity_data.copy()
-    resolutions_by_group_id = {}
+    resolutions_by_group_id: dict[int, ResolutionParams] = {}
     activity_type = ActivityType.SET_RESOLVED
     # If the resolution strategy is set to resolve in the next release or current release
     if resolution_strategy in [

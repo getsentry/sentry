@@ -1,4 +1,4 @@
-import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import type {FeedbackIssueListItem} from './types';
 
 const CRASH_REPORT_SOURCES: string[] = [
   'user_report_envelope',

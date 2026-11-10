@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Literal
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
@@ -41,7 +41,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         self.group = self.create_group(project=self.project)
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
-    def test_not_found_clears_automation_handoff(self, mock_trigger) -> None:
+    def test_not_found_clears_automation_handoff(self, mock_trigger: MagicMock) -> None:
         mock_trigger.side_effect = IntegrationNotFound("Integration not found")
 
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
@@ -144,12 +144,12 @@ class TestRecordFailedToolCalls(TestCase):
     def _run(self, state: SeerRunState) -> None:
         record_failed_tool_calls(self.organization, self.group, state)
 
-    def test_no_failed_tools(self, mock_metrics) -> None:
+    def test_no_failed_tools(self, mock_metrics: MagicMock) -> None:
         self._run(_state([_iteration_block(0, failed=False)]))
 
         mock_metrics.incr.assert_not_called()
 
-    def test_skips_non_pr_iteration(self, mock_metrics) -> None:
+    def test_skips_non_pr_iteration(self, mock_metrics: MagicMock) -> None:
         state = _state(
             [
                 MemoryBlock(
@@ -180,7 +180,7 @@ class TestRecordFailedToolCalls(TestCase):
 
         mock_record.assert_not_called()
 
-    def test_records_latest_iteration_failures(self, mock_metrics) -> None:
+    def test_records_latest_iteration_failures(self, mock_metrics: MagicMock) -> None:
         state = _state(
             [
                 _iteration_block(0, failed=True, function="old_tool"),
@@ -196,7 +196,7 @@ class TestRecordFailedToolCalls(TestCase):
             sample_rate=1.0,
         )
 
-    def test_counts_duplicate_tool_failures(self, mock_metrics) -> None:
+    def test_counts_duplicate_tool_failures(self, mock_metrics: MagicMock) -> None:
         state = _state(
             [
                 _iteration_block(
@@ -213,7 +213,7 @@ class TestRecordFailedToolCalls(TestCase):
             sample_rate=1.0,
         )
 
-    def test_skips_after_changes_are_pushed(self, mock_metrics) -> None:
+    def test_skips_after_changes_are_pushed(self, mock_metrics: MagicMock) -> None:
         """The hook re-fires once the push lands; do not score the same failures again."""
         self._run(
             _state(
@@ -226,7 +226,7 @@ class TestRecordFailedToolCalls(TestCase):
 
         mock_metrics.incr.assert_not_called()
 
-    def test_records_before_push(self, mock_metrics) -> None:
+    def test_records_before_push(self, mock_metrics: MagicMock) -> None:
         self._run(
             _state(
                 [
@@ -252,7 +252,7 @@ HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
 COMPLETION_PATH = "sentry.seer.autofix.pr_iteration.completion"
 
 
-def _step_checkpoints(mock_metrics) -> list[str]:
+def _step_checkpoints(mock_metrics: MagicMock) -> list[str]:
     return [
         call.kwargs["tags"]["checkpoint"]
         for call in mock_metrics.incr.call_args_list
@@ -260,7 +260,7 @@ def _step_checkpoints(mock_metrics) -> list[str]:
     ]
 
 
-def _step_feedback_kinds(mock_metrics) -> list[str]:
+def _step_feedback_kinds(mock_metrics: MagicMock) -> list[str]:
     return [
         call.kwargs["tags"].get("feedback_kind")
         for call in mock_metrics.incr.call_args_list
@@ -327,7 +327,9 @@ class TestPrIterationStepMetrics(TestCase):
             self.organization, self.group, 1, state, AutofixReferrer.GITHUB_PR_COMMENT
         )
 
-    def test_an_accepted_push_counts_the_code_change(self, mock_metrics, _mock_complete) -> None:
+    def test_an_accepted_push_counts_the_code_change(
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
+    ) -> None:
         with patch(f"{COMPLETION_PATH}.pr_iteration_push_outcome", return_value=None):
             self._run(_unsynced_state(feedback=_manual_feedback()))
 
@@ -342,7 +344,9 @@ class TestPrIterationStepMetrics(TestCase):
             sample_rate=1.0,
         )
 
-    def test_the_re_fire_counts_the_iteration_only(self, mock_metrics, _mock_complete) -> None:
+    def test_the_re_fire_counts_the_iteration_only(
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
+    ) -> None:
         with (
             patch(
                 f"{COMPLETION_PATH}.pr_iteration_push_outcome",
@@ -365,25 +369,29 @@ class TestPrIterationStepMetrics(TestCase):
             self._run(state)
 
     def test_the_iteration_is_tagged_by_its_feedback_kind(
-        self, mock_metrics, _mock_complete
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
     ) -> None:
         self._complete_iteration(_synced_state(_manual_feedback()))
 
         assert _step_feedback_kinds(mock_metrics) == ["manual"]
 
-    def test_an_iteration_of_both_kinds_is_tagged_mixed(self, mock_metrics, _mock_complete) -> None:
+    def test_an_iteration_of_both_kinds_is_tagged_mixed(
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
+    ) -> None:
         self._complete_iteration(_synced_state([*_manual_feedback(), _check_suite_feedback()]))
 
         assert _step_feedback_kinds(mock_metrics) == ["mixed"]
 
     def test_an_iteration_with_no_feedback_is_tagged_unknown(
-        self, mock_metrics, _mock_complete
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
     ) -> None:
         self._complete_iteration(_synced_state())
 
         assert _step_feedback_kinds(mock_metrics) == ["unknown"]
 
-    def test_an_errored_run_counts_nothing(self, mock_metrics, _mock_complete) -> None:
+    def test_an_errored_run_counts_nothing(
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
+    ) -> None:
         with (
             patch(f"{COMPLETION_PATH}.pause_pr_iteration", return_value=True),
             patch(f"{HOOK_PATH}.fetch_run_status", return_value=_unsynced_state(status="error")),
@@ -393,7 +401,7 @@ class TestPrIterationStepMetrics(TestCase):
         assert _step_checkpoints(mock_metrics) == []
 
     def test_no_code_changes_counts_the_no_change_branch(
-        self, mock_metrics, _mock_complete
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
     ) -> None:
         with patch(f"{COMPLETION_PATH}.consume_queued_feedback"):
             self._run(
@@ -414,7 +422,9 @@ class TestPrIterationStepMetrics(TestCase):
             sample_rate=1.0,
         )
 
-    def test_an_iteration_never_force_pushes(self, _mock_metrics, _mock_complete) -> None:
+    def test_an_iteration_never_force_pushes(
+        self, _mock_metrics: MagicMock, _mock_complete: MagicMock
+    ) -> None:
         with (
             patch(f"{COMPLETION_PATH}.iteration_prs_any_closed", return_value=False),
             patch(f"{COMPLETION_PATH}.trigger_push_changes") as mock_push,
@@ -423,7 +433,9 @@ class TestPrIterationStepMetrics(TestCase):
 
         assert mock_push.call_args.kwargs["allow_force_push"] is False
 
-    def test_a_failed_push_counts_the_start_only(self, mock_metrics, _mock_complete) -> None:
+    def test_a_failed_push_counts_the_start_only(
+        self, mock_metrics: MagicMock, _mock_complete: MagicMock
+    ) -> None:
         with (
             patch(f"{COMPLETION_PATH}.iteration_prs_any_closed", return_value=False),
             patch(

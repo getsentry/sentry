@@ -1,7 +1,10 @@
 import type {Location} from 'history';
 
 import type {Project} from 'sentry/types/project';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import type {TrendFunction, TrendParameter} from 'sentry/views/performance/trends/types';
 import {
   TrendFunctionField,
@@ -12,6 +15,12 @@ import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
+
+const trendsParsers = {
+  topEvents: parseAsScalar,
+  trendFunction: parseAsScalar,
+  trendParameter: parseAsScalar,
+};
 
 const TRENDS_FUNCTIONS: TrendFunction[] = [
   {
@@ -90,7 +99,8 @@ export function getCurrentTrendFunction(
   _trendFunctionField?: TrendFunctionField
 ): TrendFunction {
   const trendFunctionField =
-    _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
+    _trendFunctionField ??
+    loadQueryParamsFromLocation(trendsParsers, location).trendFunction;
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
   return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
@@ -110,7 +120,10 @@ export function getCurrentTrendParameter(
   projects: Project[],
   projectIds: readonly number[]
 ): TrendParameter {
-  const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
+  const {trendParameter: trendParameterLabel} = loadQueryParamsFromLocation(
+    trendsParsers,
+    location
+  );
   const trendParameter = TRENDS_PARAMETERS.find(
     ({label}) => label === trendParameterLabel
   );
@@ -144,5 +157,5 @@ export function performanceTypeToTrendParameterLabel(
 }
 
 export function getTopTrendingEvents(location: Location) {
-  return decodeScalar(location?.query?.topEvents);
+  return loadQueryParamsFromLocation(trendsParsers, location).topEvents ?? undefined;
 }
