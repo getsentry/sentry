@@ -50,9 +50,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
             },
         )
 
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
+    @patch("sentry.notebooks.endpoints.organization_investigation_block_executions.SeerAgentClient")
     def test_starts_and_persists_an_immutable_execution(self, mock_client: MagicMock) -> None:
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member", teams=[])
@@ -94,9 +92,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         assert '"releases":["backend@1.2.3"]' in prompt
         assert mock_client.return_value.start_run.call_args.kwargs["record_in_history"] is False
 
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
+    @patch("sentry.notebooks.endpoints.organization_investigation_block_executions.SeerAgentClient")
     def test_retry_while_running_returns_the_same_execution(self, mock_client: MagicMock) -> None:
         run = self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN)
 
@@ -117,9 +113,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         assert first.data["id"] == second.data["id"]
         assert mock_client.return_value.start_run.call_count == 1
 
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
+    @patch("sentry.notebooks.endpoints.organization_investigation_block_executions.SeerAgentClient")
     def test_new_run_request_supersedes_an_identical_running_execution(
         self, mock_client: MagicMock
     ) -> None:
@@ -148,9 +142,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         assert self.block.current_execution is not None
         assert str(self.block.current_execution.id) == second.data["id"]
 
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
+    @patch("sentry.notebooks.endpoints.organization_investigation_block_executions.SeerAgentClient")
     def test_hidden_template_hint_is_forwarded_without_a_request_dataset(
         self, mock_client: MagicMock
     ) -> None:
@@ -176,9 +168,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         prompt = mock_client.return_value.start_run.call_args.args[0]
         assert '"datasetHint":"metrics"' in prompt
 
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
+    @patch("sentry.notebooks.endpoints.organization_investigation_block_executions.SeerAgentClient")
     def test_dispatch_failure_cancels_other_active_cells(self, mock_client: MagicMock) -> None:
         sibling_block = self.create_notebook_block(
             notebook=self.investigation,
@@ -261,9 +251,7 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
             },
         )
 
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
+    @patch("sentry.notebooks.endpoints.organization_investigation_block_executions.SeerAgentClient")
     def test_starts_text_generation_with_typed_context(self, mock_client: MagicMock) -> None:
         sibling_text = self.create_notebook_block(
             notebook=self.investigation,

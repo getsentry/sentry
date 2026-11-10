@@ -12,7 +12,7 @@ from sentry.notebooks.services.executions import (
 
 
 def _dispatch_after_commit(execution: NotebookBlockExecution) -> None:
-    from sentry.tasks.seer.investigation import dispatch_investigation_execution
+    from sentry.notebooks.tasks import dispatch_investigation_execution
 
     transaction.on_commit(
         partial(dispatch_investigation_execution.delay, execution.id),

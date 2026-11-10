@@ -27,7 +27,7 @@ TOKEN_METADATA = {
     "access_token": "app-token",
     "refresh_token": "app-refresh-token",
     "expires_at": "2025-01-02T00:00:00+00:00",
-    "scopes": ["read"],
+    "scopes": ["read", "write"],
 }
 METADATA = {"workspace_id": "ws", "app_user_id": "app-user-id", **TOKEN_METADATA}
 
@@ -43,7 +43,7 @@ def mock_linear(
             "refresh_token": refresh_token,
             "expires_in": 86400,
             "token_type": "Bearer",
-            "scope": "read",
+            "scope": "read write",
         },
     )
     responses.add(
@@ -123,7 +123,7 @@ class LinearIntegrationProviderTest(IntegrationTestCase):
         assert integration.metadata == {
             "workspace_id": "ws",
             "app_user_id": "app-user-id",
-            "scopes": ["read"],
+            "scopes": ["read", "write"],
         }
 
     @responses.activate
@@ -189,7 +189,7 @@ class LinearApiPipelineTest(APITestCase):
         state = parse_qs(urlparse(oauth_url).query)["state"][0]
         return self.client.post(url, data={"code": "linear-code", "state": state}, format="json")
 
-    def test_requests_read_only_workspace_app_authorization(self) -> None:
+    def test_requests_read_write_workspace_app_authorization(self) -> None:
         _, oauth_url = self._initialize_pipeline()
         parsed = urlparse(oauth_url)
         assert f"{parsed.scheme}://{parsed.netloc}{parsed.path}" == (
@@ -197,7 +197,7 @@ class LinearApiPipelineTest(APITestCase):
         )
         params = parse_qs(parsed.query)
         assert params["client_id"] == ["sentry-app-id"]
-        assert params["scope"] == ["read"]
+        assert params["scope"] == ["read,write"]
         assert params["actor"] == ["app"]
         assert params["prompt"] == ["consent"]
         assert params["response_type"] == ["code"]
@@ -255,7 +255,7 @@ class LinearApiPipelineTest(APITestCase):
                 "refresh_token": "app-refresh-token",
                 "expires_in": 86400,
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
             },
         )
 
