@@ -624,6 +624,7 @@ class TestSingleRunStart(TestCase):
             "referrer": AutofixReferrer.AGENTIC_TRIAGE,
             "step": AutofixStep.ROOT_CAUSE,
             "step_args": RCAStepArgs(),
+            "billing_feature": SeerBillingFeature.AUTOFIX,
             **kwargs,
         }
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")

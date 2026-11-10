@@ -9,6 +9,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import SeerBillingFeature
 from sentry.testutils.cases import APITestCase
 from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
@@ -93,6 +94,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.NIGHT_SHIFT,
             run_id=1,
+            billing_feature=SeerBillingFeature.AUTOFIX,
             insert_index=2,
         )
         assert viewer_contexts == [
