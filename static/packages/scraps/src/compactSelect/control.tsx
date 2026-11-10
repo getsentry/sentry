@@ -568,6 +568,7 @@ export function Control<Value extends SelectKey>({
                   <Search
                     ref={searchRef}
                     data-1p-ignore
+                    data-protonpass-ignore="true"
                     placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                     value={searchInputValue}
                     onFocus={onSearchFocus}

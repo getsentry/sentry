@@ -625,6 +625,7 @@ export function CommandPalette({
                   seerEnabled={seerExplorerEnabled}
                   autoFocus
                   data-1p-ignore
+                  data-protonpass-ignore="true"
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}
