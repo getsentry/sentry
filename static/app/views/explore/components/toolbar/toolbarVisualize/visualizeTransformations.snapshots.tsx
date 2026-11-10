@@ -10,18 +10,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {AddTransformationButton} from './visualizeTransformations';
 
 describe('AddTransformationButton', () => {
-  it.snapshot.each([false, true])('default-disabled-%s', disabled => (
-    <OrganizationContext value={OrganizationFixture()}>
-      <Flex padding="md">
-        <AddTransformationButton
-          traceItemDataset={TraceItemDataset.TRACEMETRICS}
-          transformations={disabled ? ['fill(zero)', 'smooth(sma,3)'] : []}
-          onChange={() => {}}
-        />
-      </Flex>
-    </OrganizationContext>
-  ));
-
   it.snapshot.each([false, true])('disabled-%s', disabled => (
     <OrganizationContext value={OrganizationFixture()}>
       <Flex gap="md" align="baseline" padding="md">
