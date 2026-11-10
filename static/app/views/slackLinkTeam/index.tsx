@@ -15,27 +15,6 @@ import {useParams} from 'sentry/utils/useParams';
 import {LinkTeamForm} from './linkTeamForm';
 import type {LinkTeamContext} from './types';
 
-interface LinkTeamContentProps {
-  context: LinkTeamContext;
-  signedParams: string;
-}
-
-function LinkTeamContent({context, signedParams}: LinkTeamContentProps) {
-  if (context.organizations.length === 0) {
-    return (
-      <Alert variant="warning">
-        {t(
-          'None of your organizations have this Slack workspace installed. Ask an organization owner or manager to install it first.'
-        )}
-      </Alert>
-    );
-  }
-
-  return (
-    <LinkTeamForm organizations={context.organizations} signedParams={signedParams} />
-  );
-}
-
 function SlackLinkTeamBody({signedParams}: {signedParams: string}) {
   const {
     data: context,
@@ -58,19 +37,36 @@ function SlackLinkTeamBody({signedParams}: {signedParams: string}) {
     return <Alert variant="danger">{getRequestErrorUserMessage(error)}</Alert>;
   }
 
+  const heading = (
+    <Heading as="h3" size="xl">
+      {tct('Link a team to [channel]', {channel: `#${context.channelName}`})}
+    </Heading>
+  );
+
+  if (context.organizations.length === 0) {
+    return (
+      <Stack gap="xl">
+        {heading}
+        <Alert variant="warning">
+          {t(
+            'None of your organizations have this Slack workspace installed. Ask an organization owner or manager to install it first.'
+          )}
+        </Alert>
+      </Stack>
+    );
+  }
+
   return (
     <Stack gap="xl">
       <Stack gap="md">
-        <Heading as="h3" size="xl">
-          {tct('Link a team to [channel]', {channel: `#${context.channelName}`})}
-        </Heading>
+        {heading}
         <Text as="p">
           {t(
             'Choose a team. Its issue alert notifications will be sent to this Slack channel.'
           )}
         </Text>
       </Stack>
-      <LinkTeamContent context={context} signedParams={signedParams} />
+      <LinkTeamForm organizations={context.organizations} signedParams={signedParams} />
     </Stack>
   );
 }
@@ -80,7 +76,7 @@ export default function SlackLinkTeam() {
 
   return (
     <NarrowLayout>
-      <SentryDocumentTitle title={t('Link Team to Slack')} />
+      <SentryDocumentTitle title={t('Link team to Slack')} />
       <SlackLinkTeamBody signedParams={signedParams} />
     </NarrowLayout>
   );

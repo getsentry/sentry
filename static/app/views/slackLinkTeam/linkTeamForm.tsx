@@ -6,9 +6,12 @@ import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+
+import type {LinkTeamOrganization} from './types';
 
 const schema = z.object({
   organization: z
@@ -22,7 +25,7 @@ const schema = z.object({
 });
 
 interface LinkTeamFormProps {
-  organizations: OrganizationSummary[];
+  organizations: LinkTeamOrganization[];
   signedParams: string;
 }
 
@@ -56,9 +59,14 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
     retry: false,
   });
   useFetchAllPages({result: teamsQuery});
-  const {data: teams, isFetching: isFetchingTeams} = teamsQuery;
+  const {
+    data: teams,
+    isFetching: isFetchingTeams,
+    isError: isTeamsError,
+    error: teamsError,
+  } = teamsQuery;
 
-  const hasNoTeams = teams !== undefined && teams.length === 0;
+  const hasNoTeams = teams?.length === 0;
 
   return (
     <form.AppForm form={form}>
@@ -86,7 +94,8 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
               <field.Select
                 value={field.state.value}
                 onChange={field.handleChange}
-                disabled={!selectedOrganization || isFetchingTeams || hasNoTeams}
+                isLoading={isFetchingTeams}
+                disabled={teams === undefined || isTeamsError || hasNoTeams}
                 options={(teams ?? []).map(team => ({
                   label: `#${team.slug}`,
                   value: team.id,
@@ -95,10 +104,13 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
+        {isTeamsError && (
+          <Alert variant="danger">{getRequestErrorUserMessage(teamsError)}</Alert>
+        )}
         {hasNoTeams && (
           <Alert variant="warning">
             {t(
-              'You can only link teams you are a team admin of, unless you are an organization owner, manager, or admin.'
+              "You don't have any teams you can link in this organization. You need to be on a team to link it, and unless you're an organization owner, manager, or admin, you also need to be its team admin."
             )}
           </Alert>
         )}

@@ -70,6 +70,7 @@ describe('SlackLinkTeam', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${deOrg.slug}/slack/link-team/${SIGNED_PARAMS}/`,
       body: [team],
+      match: [(_url, options) => options.host === deOrg.links.regionUrl],
       headers: {
         Link:
           '<https://de.sentry.io>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -91,6 +92,26 @@ describe('SlackLinkTeam', () => {
     expect(screen.getByText('#backend')).toBeInTheDocument();
   });
 
+  it('shows why the teams could not be listed', async () => {
+    mockContext();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${deOrg.slug}/slack/link-team/${SIGNED_PARAMS}/`,
+      statusCode: 404,
+      body: {detail: 'The Slack workspace is not installed in this organization.'},
+    });
+
+    render(<SlackLinkTeam />, {initialRouterConfig});
+
+    await selectEvent.select(await screen.findByLabelText('Organization'), 'DE Org');
+
+    expect(
+      await screen.findByText(
+        'The Slack workspace is not installed in this organization.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Team')).toBeDisabled();
+  });
+
   it('selects the only organization', async () => {
     mockContext([usOrg]);
     mockTeams(usOrg, []);
@@ -98,7 +119,9 @@ describe('SlackLinkTeam', () => {
     render(<SlackLinkTeam />, {initialRouterConfig});
 
     expect(
-      await screen.findByText(/You can only link teams you are a team admin of/)
+      await screen.findByText(
+        /You don't have any teams you can link in this organization/
+      )
     ).toBeInTheDocument();
   });
 
@@ -110,6 +133,7 @@ describe('SlackLinkTeam', () => {
     expect(
       await screen.findByText(/None of your organizations have this Slack workspace/)
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Choose a team/)).not.toBeInTheDocument();
   });
 
   it('shows an invalid link error', async () => {
