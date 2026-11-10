@@ -382,7 +382,9 @@ def trigger_autofix_feature(
     if open_pr:
         agent_run_options["enable_write_pull_request"] = True
 
-    extras: dict[str, Any] = {"referrer": args.referrer.value}
+    extras: dict[str, Any] = {
+        "referrer": args.referrer.value,
+    }
     # Store the stopping point here for delivery to use when advancing steps.
     if stopping_point is not None:
         extras["stopping_point"] = stopping_point.value

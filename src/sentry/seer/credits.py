@@ -47,19 +47,19 @@ SEER_OPERATION_ESTIMATES: dict[SeerOperation, Callable[[], int]] = {
 
 
 def has_enough_seer_credits(
-    organization: Organization, billing_feature: SeerBillingFeature, operation: SeerOperation
+    organization: Organization, feature: SeerBillingFeature, operation: SeerOperation
 ) -> bool:
     """
     Checks whether the organization has enough Seer credits to run the operation,
     for callers that already checked the credit check and token-billed flags.
     Agentic triage isn't billed yet, so its runs always have enough credits.
     """
-    if billing_feature == SeerBillingFeature.AGENTIC_TRIAGE:
+    if feature == SeerBillingFeature.AGENTIC_TRIAGE:
         return True
     response = seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
             organization_id=organization.id,
-            feature_id=billing_feature.value,
+            feature_id=feature.value,
             predicted_credit_usage=SEER_OPERATION_ESTIMATES[operation](),
             take_lease=False,
         )
@@ -68,7 +68,7 @@ def has_enough_seer_credits(
 
 
 def can_run_seer_operation(
-    organization: Organization, billing_feature: SeerBillingFeature, operation: SeerOperation
+    organization: Organization, feature: SeerBillingFeature, operation: SeerOperation
 ) -> bool:
     """
     Checks whether the organization is token-billed and has enough Seer credits to run the operation.
@@ -78,4 +78,4 @@ def can_run_seer_operation(
         "organizations:token-billed-seer-enabled", organization
     ):
         return True
-    return has_enough_seer_credits(organization, billing_feature, operation)
+    return has_enough_seer_credits(organization, feature, operation)
