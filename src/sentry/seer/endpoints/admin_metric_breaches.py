@@ -132,7 +132,7 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
             context = prepare_synthetic_breach(organization, detector)
             group, event_id = create_synthetic_breach(context)
         except SyntheticBreachError as error:
-            failure: DetailResponse = {"detail": str(error)}
+            failure: DetailResponse = {"detail": error.detail}
             return Response(failure, status=error.status_code)
         except Exception:
             logger.exception("seer.synthetic_metric_breach.creation_failed")

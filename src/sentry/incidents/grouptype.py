@@ -60,6 +60,8 @@ StoredMetricResult = float | StoredAnomalyDetectionResult | None
 @dataclass
 class MetricIssueEvidenceData(EvidenceData[StoredMetricResult]):
     alert_id: int
+    synthetic: bool = False
+    source: str | None = None
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):

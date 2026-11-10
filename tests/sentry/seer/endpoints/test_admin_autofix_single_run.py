@@ -9,6 +9,7 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.steps import AutofixStep
@@ -179,6 +180,18 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert occurrence.evidence_data["synthetic"] is True
         assert occurrence.evidence_data["conditions"]
         assert publish.call_args.args[2].is_new is True
+        event, occurrence, info = publish.call_args.args
+        group_event = event.for_group(info.group)
+        group_event.occurrence = occurrence
+        notification = IssueNotificationContext(
+            self.create_action_invocation(
+                event=group_event,
+                group=info.group,
+                action=self.create_action(),
+                detector=self.detector,
+            )
+        )
+        assert notification.alert_context.alert_threshold == 5
         assert DetectorState.objects.filter(id=state.id).values().get() == previous
         self.critical_detector_trigger.refresh_from_db()
         assert self.critical_detector_trigger.comparison == 5
@@ -201,10 +214,23 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
 
     def test_disabled_automation(self) -> None:
         self.config.update(enabled=False)
-        self.get_error_response(
+        response = self.get_error_response(
             organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
         )
+        assert response.data == {
+            "detail": "The monitor has no enabled, environment-compatible automation."
+        }
         assert not Group.objects.filter(type=8001).exists()
+
+    @patch("sentry.seer.endpoints.admin_metric_breaches.create_synthetic_breach")
+    def test_unexpected_error_returns_generic_detail(self, create_breach: MagicMock) -> None:
+        create_breach.side_effect = RuntimeError("Internal processing failure")
+
+        response = self.get_error_response(
+            organizationId=self.organization.id, monitorId=self.detector.id, status_code=503
+        )
+
+        assert response.data == {"detail": "Test issue creation is unavailable."}
 
     @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_anomaly_monitor_bypasses_evaluation(self, publish: MagicMock) -> None:
