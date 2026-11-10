@@ -24,7 +24,6 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
-import {isDerivedChartPoint} from 'sentry/components/seer/markdown/embeds/components/chartProvenance';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -1191,22 +1190,17 @@ function getChartMetadata(chart: ReturnType<typeof getRenderableChart>) {
     return null;
   }
 
-  const points = chart.series.flatMap(series => series.data);
-  const values = points.flatMap(point => (point.y === null ? [] : [point.y]));
-  // A filled or smoothed value was never measured, so a sum that includes one
-  // is not a total of anything observed.
-  const total =
-    values.length === 0 || points.some(isDerivedChartPoint)
-      ? null
-      : values.reduce((sum, value) => sum + value, 0);
+  const values = chart.series.flatMap(series =>
+    series.data.flatMap(point => (point.y === null ? [] : [point.y]))
+  );
+  const total = values.reduce((sum, value) => sum + value, 0);
   const firstSeries = chart.series[0];
   const seriesName = firstSeries ? getSeriesName(firstSeries) : null;
-  const totalMetadata =
-    total !== null && Number.isFinite(total)
-      ? seriesName
-        ? t('%s total %s', new Intl.NumberFormat().format(total), seriesName)
-        : t('%s total', new Intl.NumberFormat().format(total))
-      : null;
+  const totalMetadata = Number.isFinite(total)
+    ? seriesName
+      ? t('%s total %s', new Intl.NumberFormat().format(total), seriesName)
+      : t('%s total', new Intl.NumberFormat().format(total))
+    : null;
 
   if (chart.x_axis !== 'time') {
     return totalMetadata;

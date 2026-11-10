@@ -25,8 +25,8 @@ const chartPointSchema = z.object({
 });
 
 // The point Seer is told to produce. Readers accept `chartPointSchema`, which
-// is wider, so every deployed frontend renders gaps and provenance before the
-// agent contract lets Seer send them.
+// is wider, so every deployed frontend reads nulls and transformation flags
+// before the agent contract lets Seer send them.
 const chartGenerationPointSchema = z.object({
   x: z.union([z.string(), z.number()]),
   y: z.number(),

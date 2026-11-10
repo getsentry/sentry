@@ -2769,48 +2769,6 @@ describe('Investigation detail', () => {
     expect(screen.getByText('shown')).toBeInTheDocument();
   });
 
-  it('omits the chart total when a value was filled or smoothed', async () => {
-    const investigation = investigationWithQueryResult();
-    investigation.blocks = [
-      {
-        ...investigation.blocks[1]!,
-        id: 'transformed-chart-block',
-        output: {
-          schemaVersion: 1,
-          preferredView: 'chart',
-          tableMarkdown: '| fallback |\n| --- |\n| table |',
-          chartUnavailableReason: null,
-          isEmpty: false,
-          queryLinks: [],
-          chart: {
-            title: 'Latency over time',
-            visualization: 'line',
-            x_axis: 'time',
-            y_axis_unit: 'duration',
-            series: [
-              {
-                label: 'p95',
-                data: [
-                  {x: '2026-08-17T10:00:00Z', y: 400},
-                  {x: '2026-08-17T10:05:00Z', y: 600, filled: true},
-                  {x: '2026-08-17T10:10:00Z', y: null},
-                ],
-              },
-            ],
-          },
-        },
-      },
-    ];
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-
-    renderView();
-
-    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
-    const header = screen.getAllByTestId('query-block-header')[0]!;
-    expect(within(header).getByText(/Aug 17/)).toBeInTheDocument();
-    expect(within(header).queryByText(/total/)).not.toBeInTheDocument();
-  });
-
   it('renders chart metadata without offering Rerun', async () => {
     const investigation = investigationWithQueryResult();
     const block = {

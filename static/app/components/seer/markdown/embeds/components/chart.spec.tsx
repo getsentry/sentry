@@ -1,7 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
-
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
@@ -13,7 +11,7 @@ jest.mock('sentry/components/charts/baseChart', () => ({
 }));
 
 // The tooltip only renders for the chart under the pointer, which a mocked
-// `BaseChart` never is.
+// chart never is.
 jest.mock('sentry/components/charts/utils', () => ({
   ...jest.requireActual('sentry/components/charts/utils'),
   isChartHovered: () => true,
@@ -320,34 +318,21 @@ describe('Chart embed', () => {
 
     expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
   });
-});
 
-describe('Chart embed gaps and transformation provenance', () => {
-  const T0 = '2026-07-30T12:00:00Z';
-  const T1 = '2026-07-30T13:00:00Z';
-  const T2 = '2026-07-30T14:00:00Z';
-  const T3 = '2026-07-30T15:00:00Z';
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  function lastChartProps() {
-    return jest.mocked(BaseChart).mock.calls.at(-1)![0];
-  }
-
-  it('draws a null value as a gap rather than a zero', () => {
+  it('passes missing values to the chart as nulls', () => {
     render(
       <ExampleChartEmbed
         body={{
           title: 'Error volume',
+          visualization: 'line',
+          x_axis: 'time',
           series: [
             {
               label: 'Errors',
               data: [
-                {x: T0, y: 12},
-                {x: T1, y: null},
-                {x: T2, y: 15},
+                {x: '2026-07-30T12:00:00Z', y: 12},
+                {x: '2026-07-30T13:00:00Z', y: null},
+                {x: '2026-07-30T14:00:00Z', y: 15},
               ],
             },
           ],
@@ -355,191 +340,40 @@ describe('Chart embed gaps and transformation provenance', () => {
       />
     );
 
-    expect(lastChartProps().series).toEqual([
+    expect(jest.mocked(BaseChart).mock.calls.at(-1)![0].series).toEqual([
       expect.objectContaining({
         data: [
-          {value: [Date.parse(T0), 12], symbol: 'circle'},
-          [Date.parse(T1), '-'],
-          {value: [Date.parse(T2), 15], symbol: 'circle'},
+          [Date.parse('2026-07-30T12:00:00Z'), 12],
+          [Date.parse('2026-07-30T13:00:00Z'), '-'],
+          [Date.parse('2026-07-30T14:00:00Z'), 15],
         ],
       }),
     ]);
-    expect(screen.queryByText(/not observed measurements/)).not.toBeInTheDocument();
   });
 
-  it.each(['line', 'area', 'bar'] as const)(
-    'lists all-null %s values as missing data',
-    visualization => {
-      render(
-        <ExampleChartEmbed
-          body={{
-            title: 'Error volume',
-            visualization,
-            series: [{label: 'Errors', data: [{x: T0, y: null}]}],
-          }}
-        />
-      );
-
-      expect(screen.getByRole('columnheader', {name: 'Errors'})).toBeInTheDocument();
-      expect(screen.getByText('No data')).toBeInTheDocument();
-      expect(screen.queryByText('Unable to render')).not.toBeInTheDocument();
-    }
-  );
-
-  it.each([
-    ['2026-07-30T12:00:10Z', '2026-07-30T12:00:20Z', /12:00:10/, /12:00:20/],
-    [
-      '2026-07-30T12:00:00.100Z',
-      '2026-07-30T12:00:00.200Z',
-      /12:00:00\.100/,
-      /12:00:00\.200/,
-    ],
-  ] as const)(
-    'distinguishes table timestamps %s and %s',
-    (first, second, firstLabel, secondLabel) => {
-      render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
-          <ExampleChartEmbed
-            body={{
-              title: 'Error volume',
-              visualization: 'bar',
-              series: [
-                {
-                  label: 'Errors',
-                  data: [
-                    {x: first, y: 12, filled: true},
-                    {x: second, y: 15},
-                  ],
-                },
-              ],
-            }}
-          />
-        </DateTimeProvider>
-      );
-
-      expect(screen.getByText(firstLabel)).toBeInTheDocument();
-      expect(screen.getByText(secondLabel)).toBeInTheDocument();
-    }
-  );
-
-  it('treats points without provenance flags as observed', () => {
-    render(
-      <ExampleChartEmbed
-        body={{
-          title: 'Error volume',
-          series: [
-            {
-              label: 'Errors',
-              data: [
-                {x: T0, y: 12},
-                {x: T1, y: 18, filled: false, smoothed: false},
-              ],
-            },
-          ],
-        }}
-      />
-    );
-
-    const series = lastChartProps().series as Array<Record<string, unknown>>;
-    expect(series).toHaveLength(1);
-    expect(series[0]).not.toHaveProperty('lineStyle.type', 'dashed');
-    expect(screen.queryByTestId('seer-chart-table')).not.toBeInTheDocument();
-    expect(screen.queryByText(/not observed measurements/)).not.toBeInTheDocument();
-  });
-
-  it('dashes filled values on a line and joins them to the observed line', () => {
-    render(
-      <ExampleChartEmbed
-        body={{
-          title: 'Error volume',
-          series: [
-            {
-              label: 'Errors',
-              data: [
-                {x: T0, y: 12},
-                {x: T1, y: 13, filled: true},
-                {x: T2, y: 15},
-              ],
-            },
-          ],
-        }}
-      />
-    );
-
-    expect(lastChartProps().series).toEqual([
-      expect.objectContaining({
-        name: 'seer-chart-series-0',
-        data: [[Date.parse(T0), 12]],
-      }),
-      expect.objectContaining({
-        name: 'seer-chart-series-0',
-        lineStyle: {type: 'dashed'},
-        data: [
-          {value: [Date.parse(T0), 12], symbol: 'none'},
-          {value: [Date.parse(T1), 13], symbol: 'none'},
-          {value: [Date.parse(T2), 15], symbol: 'none'},
-        ],
-      }),
-      expect.objectContaining({
-        name: 'seer-chart-series-0',
-        data: [[Date.parse(T2), 15]],
-      }),
-    ]);
-    expect(
-      screen.getByText(
-        'Dashed lines are values a transformation filled in or smoothed, not observed measurements.'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('marks a derived value that has no neighbouring value to draw a line to', () => {
-    render(
-      <ExampleChartEmbed
-        body={{
-          title: 'Error volume',
-          series: [
-            {
-              label: 'Errors',
-              data: [
-                {x: T0, y: null},
-                {x: T1, y: 13, filled: true},
-                {x: T2, y: null},
-              ],
-            },
-          ],
-        }}
-      />
-    );
-
-    expect(lastChartProps().series).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          lineStyle: {type: 'dashed'},
-          data: expect.arrayContaining([{value: [Date.parse(T1), 13], symbol: 'circle'}]),
-        }),
-      ])
-    );
-  });
-
-  it('names smoothed series in the legend and the tooltip', () => {
+  it('draws filled and smoothed values like observed ones and names them in the tooltip', () => {
+    const t0 = '2026-07-30T12:00:00Z';
+    const t1 = '2026-07-30T13:00:00Z';
     render(
       <ExampleChartEmbed
         body={{
           title: 'Latency',
+          visualization: 'line',
+          x_axis: 'time',
           y_axis_unit: 'duration',
           series: [
             {
               label: 'p95',
               data: [
-                {x: T0, y: 100, smoothed: true},
-                {x: T1, y: 120, smoothed: true},
+                {x: t0, y: 100, smoothed: true},
+                {x: t1, y: 120, filled: true},
               ],
             },
             {
               label: 'p50',
               data: [
-                {x: T0, y: 40},
-                {x: T1, y: 45},
+                {x: t0, y: 40},
+                {x: t1, y: 45},
               ],
             },
           ],
@@ -547,118 +381,36 @@ describe('Chart embed gaps and transformation provenance', () => {
       />
     );
 
-    expect(screen.getByText('p95 (smoothed)')).toBeInTheDocument();
-    expect(screen.getByText('p50')).toBeInTheDocument();
-
-    const formatter = (
-      lastChartProps().tooltip as {formatter: (params: unknown[]) => string}
-    ).formatter;
-    const tooltip = formatter([
-      {
-        seriesName: 'seer-chart-series-0',
-        seriesIndex: 0,
-        value: [Date.parse(T1), 120],
-        data: [Date.parse(T1), 120],
-        axisValue: Date.parse(T1),
-        marker: '',
-      },
-      {
-        seriesName: 'seer-chart-series-1',
-        seriesIndex: 1,
-        value: [Date.parse(T1), 45],
-        data: [Date.parse(T1), 45],
-        axisValue: Date.parse(T1),
-        marker: '',
-      },
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.series).toEqual([
+      expect.objectContaining({
+        name: 'seer-chart-series-0',
+        data: [
+          [Date.parse(t0), 100],
+          [Date.parse(t1), 120],
+        ],
+      }),
+      expect.objectContaining({name: 'seer-chart-series-1'}),
     ]);
-    expect(tooltip).toContain('p95 (smoothed): smoothed value');
-    expect(tooltip).not.toContain('p50: ');
-  });
+    expect(props.series?.[0]).not.toHaveProperty('lineStyle.type', 'dashed');
+    expect(screen.getByText('p95')).toBeInTheDocument();
 
-  it.each(['area', 'bar'] as const)(
-    'lists derived values in a table instead of a %s chart',
-    visualization => {
-      render(
-        <ExampleChartEmbed
-          body={{
-            title: 'Error volume',
-            visualization,
-            series: [
-              {
-                label: 'Errors',
-                data: [
-                  {x: T0, y: 12},
-                  {x: T1, y: 13, filled: true},
-                  {x: T2, y: 14, smoothed: true},
-                  {x: T3, y: null},
-                ],
-              },
-            ],
-          }}
-        />
+    const formatter = (props.tooltip as {formatter: (params: unknown[]) => string})
+      .formatter;
+    const tooltipAt = (timestamp: string) =>
+      formatter(
+        ['seer-chart-series-0', 'seer-chart-series-1'].map((seriesName, seriesIndex) => ({
+          seriesName,
+          seriesIndex,
+          value: [Date.parse(timestamp), 1],
+          data: [Date.parse(timestamp), 1],
+          axisValue: Date.parse(timestamp),
+          marker: '',
+        }))
       );
-
-      expect(BaseChart).not.toHaveBeenCalled();
-      const table = screen.getByTestId('seer-chart-table');
-      expect(table).toBeInTheDocument();
-      expect(screen.getByRole('columnheader', {name: 'Time'})).toBeInTheDocument();
-      expect(screen.getByRole('columnheader', {name: 'Errors'})).toBeInTheDocument();
-      expect(screen.getByText('(filled)')).toBeInTheDocument();
-      expect(screen.getByText('(smoothed)')).toBeInTheDocument();
-      expect(screen.getByText('No data')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Shown as a table so missing, filled, and smoothed values are not mistaken for observed ones.'
-        )
-      ).toBeInTheDocument();
-    }
-  );
-
-  it('lists a category chart with missing values in a table', () => {
-    render(
-      <ExampleChartEmbed
-        body={{
-          title: 'Latency by route',
-          x_axis: 'category',
-          y_axis_unit: 'percentage',
-          series: [
-            {
-              label: 'Error rate',
-              data: [
-                {x: '/home', y: 12.5},
-                {x: '/settings', y: null},
-              ],
-            },
-            {label: 'Baseline', data: [{x: '/home', y: 10}]},
-          ],
-        }}
-      />
-    );
-
-    expect(BaseChart).not.toHaveBeenCalled();
-    expect(screen.getByRole('columnheader', {name: 'Category'})).toBeInTheDocument();
-    expect(screen.getByText('12.5%')).toBeInTheDocument();
-    expect(screen.getByText('No data')).toBeInTheDocument();
-    // `Baseline` has no `/settings` point at all, which differs from a point
-    // reported as having no data.
-    expect(screen.getByText('—')).toBeInTheDocument();
-  });
-
-  it('keeps category charts without gaps or provenance as bars', () => {
-    render(
-      <ExampleChartEmbed
-        body={{
-          title: 'Errors by status',
-          x_axis: 'category',
-          series: [{label: 'Errors', data: [{x: '500', y: 0}]}],
-        }}
-      />
-    );
-
-    expect(screen.queryByTestId('seer-chart-table')).not.toBeInTheDocument();
-    expect(lastChartProps().series).toEqual([
-      expect.objectContaining({type: 'bar', data: [['500', 0]]}),
-    ]);
+    expect(tooltipAt(t0)).toContain('p95: smoothed value');
+    expect(tooltipAt(t1)).toContain('p95: filled value');
+    expect(tooltipAt(t1)).not.toContain('p50: ');
   });
 });
 
