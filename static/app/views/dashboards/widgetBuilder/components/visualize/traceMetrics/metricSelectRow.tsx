@@ -193,6 +193,7 @@ export function MetricSelectRow({
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
+          allowFreeformMetric
           getDisabledOptionReason={
             state.displayType === DisplayType.HEATMAP
               ? getDisabledOptionReason

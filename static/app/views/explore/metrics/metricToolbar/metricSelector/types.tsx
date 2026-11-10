@@ -18,7 +18,17 @@ interface FieldSelectorOption extends SelectOption<string> {
   tooltip?: string;
 }
 
-export type MetricSelectorItem = MetricSelectorOption | FieldSelectorOption;
+interface FreeformSelectorOption extends SelectOption<string> {
+  kind: 'freeform';
+  metricName: string;
+  textValue: string;
+  tooltip?: string;
+}
+
+export type MetricSelectorItem =
+  | MetricSelectorOption
+  | FieldSelectorOption
+  | FreeformSelectorOption;
 
 export function isMetricSelectorOption(
   option: MetricSelectorItem
