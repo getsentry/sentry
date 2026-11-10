@@ -1,20 +1,15 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-} from "sentry-test/reactTestingLibrary";
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import { ConfigStore } from "sentry/stores/configStore";
+import {ConfigStore} from 'sentry/stores/configStore';
 
-import { InvoiceComparison } from "admin/views/invoiceComparison";
+import {InvoiceComparison} from 'admin/views/invoiceComparison';
 
-const US_URL = "https://us.example.com/api/0/";
-const COMPARISON_URL = "/_admin/cells/us/invoice-comparison/";
-const DE_URL = "https://de.example.com/api/0/";
-const DE_COMPARISON_URL = "/_admin/cells/de/invoice-comparison/";
+const US_URL = 'https://us.example.com/api/0/';
+const COMPARISON_URL = '/_admin/cells/us/invoice-comparison/';
+const DE_URL = 'https://de.example.com/api/0/';
+const DE_COMPARISON_URL = '/_admin/cells/de/invoice-comparison/';
 
-function comparisonBody({ rowsPage = 1, rowsTotalPages = 1 } = {}) {
+function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
   return {
     rows: [
       {
@@ -24,22 +19,22 @@ function comparisonBody({ rowsPage = 1, rowsTotalPages = 1 } = {}) {
         legacy_invoice_count: 1,
         legacy_invoice_guid: null,
         organization_id: 1,
-        organization_slug: "org-slug",
+        organization_slug: 'org-slug',
         platform_amount: 1100,
         platform_invoice_count: 1,
         platform_invoice_guid: null,
-        status: "mismatch",
+        status: 'mismatch',
       },
     ],
     unmatched: [],
     summary: {
-      start: "2026-01-01T00:00:00+00:00",
-      end: "2026-01-02T00:00:00+00:00",
+      start: '2026-01-01T00:00:00+00:00',
+      end: '2026-01-02T00:00:00+00:00',
       legacy_count: 1,
       platform_count: 1,
       over_threshold_count: 1,
       over_threshold_pct: 1,
-      queried_at: "2026-01-02T00:00:00+00:00",
+      queried_at: '2026-01-02T00:00:00+00:00',
       row_count: 1,
       rows_page: rowsPage,
       rows_page_size: 25,
@@ -55,87 +50,83 @@ function comparisonBody({ rowsPage = 1, rowsTotalPages = 1 } = {}) {
 function renderComparison(query: Record<string, string>) {
   return render(<InvoiceComparison />, {
     initialRouterConfig: {
-      location: { pathname: "/_admin/billing-platform/", query },
-      route: "/_admin/billing-platform/",
+      location: {pathname: '/_admin/billing-platform/', query},
+      route: '/_admin/billing-platform/',
     },
   });
 }
 
-describe("InvoiceComparison", () => {
+describe('InvoiceComparison', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ConfigStore.set("cells", [{ name: "us", locality_url: US_URL }]);
+    ConfigStore.set('cells', [{name: 'us', locality_url: US_URL}]);
   });
 
-  it("loads the last 24h when the URL has no window", async () => {
+  it('loads the last 24h when the URL has no window', async () => {
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody(),
     });
 
-    renderComparison({ page_size: "25", rows_page: "1", unmatched_page: "1" });
+    renderComparison({page_size: '25', rows_page: '1', unmatched_page: '1'});
 
-    expect(
-      await screen.findByRole("link", { name: "org-slug" }),
-    ).toBeInTheDocument();
-    const { start, end } = mock.mock.calls[0][1].query;
+    expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+    const {start, end} = mock.mock.calls[0][1].query;
     const windowMs = new Date(end).getTime() - new Date(start).getTime();
     expect(windowMs).toBe(24 * 60 * 60 * 1000);
   });
 
-  it("uses the window from the URL", async () => {
-    const start = "2026-01-01T00:00:00.000Z";
-    const end = "2026-01-02T00:00:00.000Z";
+  it('uses the window from the URL', async () => {
+    const start = '2026-01-01T00:00:00.000Z';
+    const end = '2026-01-02T00:00:00.000Z';
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody(),
     });
 
-    renderComparison({ start, end });
+    renderComparison({start, end});
 
-    expect(
-      await screen.findByRole("link", { name: "org-slug" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock).toHaveBeenCalledWith(
       COMPARISON_URL,
       expect.objectContaining({
         host: US_URL,
-        query: expect.objectContaining({ start, end }),
-      }),
+        query: expect.objectContaining({start, end}),
+      })
     );
   });
 
-  it("pins the default window into the URL when paginating", async () => {
+  it('pins the default window into the URL when paginating', async () => {
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,
-      body: comparisonBody({ rowsTotalPages: 2 }),
+      body: comparisonBody({rowsTotalPages: 2}),
     });
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,
-      body: comparisonBody({ rowsPage: 2, rowsTotalPages: 2 }),
-      match: [MockApiClient.matchQuery({ rows_page: 2 })],
+      body: comparisonBody({rowsPage: 2, rowsTotalPages: 2}),
+      match: [MockApiClient.matchQuery({rows_page: 2})],
     });
 
-    const { router } = renderComparison({});
-    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
+    const {router} = renderComparison({});
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
-    expect(router.location.query.rows_page).toBe("2");
+    expect(router.location.query.rows_page).toBe('2');
     expect(router.location.query.start).toEqual(expect.any(String));
     expect(router.location.query.end).toEqual(expect.any(String));
   });
 
-  describe("region", () => {
-    const start = "2026-01-01T00:00:00.000Z";
-    const end = "2026-01-02T00:00:00.000Z";
+  describe('region', () => {
+    const start = '2026-01-01T00:00:00.000Z';
+    const end = '2026-01-02T00:00:00.000Z';
 
     beforeEach(() => {
-      ConfigStore.set("cells", [
-        { name: "us", locality_url: US_URL },
-        { name: "de", locality_url: DE_URL },
+      ConfigStore.set('cells', [
+        {name: 'us', locality_url: US_URL},
+        {name: 'de', locality_url: DE_URL},
       ]);
     });
 
-    it("queries the region named in the URL", async () => {
+    it('queries the region named in the URL', async () => {
       const usMock = MockApiClient.addMockResponse({
         url: COMPARISON_URL,
         body: comparisonBody(),
@@ -145,21 +136,19 @@ describe("InvoiceComparison", () => {
         body: comparisonBody(),
       });
 
-      renderComparison({ start, end, region: "de" });
+      renderComparison({start, end, region: 'de'});
 
       await waitFor(() =>
         expect(deMock).toHaveBeenCalledWith(
           DE_COMPARISON_URL,
-          expect.objectContaining({ host: DE_URL }),
-        ),
+          expect.objectContaining({host: DE_URL})
+        )
       );
       expect(usMock).not.toHaveBeenCalled();
-      expect(screen.getByRole("button", { name: /Region/ })).toHaveTextContent(
-        "de",
-      );
+      expect(screen.getByRole('button', {name: /Region/})).toHaveTextContent('de');
     });
 
-    it("persists the selected region to the URL", async () => {
+    it('persists the selected region to the URL', async () => {
       MockApiClient.addMockResponse({
         url: COMPARISON_URL,
         body: comparisonBody(),
@@ -169,13 +158,13 @@ describe("InvoiceComparison", () => {
         body: comparisonBody(),
       });
 
-      const { router } = renderComparison({ start, end });
+      const {router} = renderComparison({start, end});
 
-      await userEvent.click(screen.getByRole("button", { name: /Region/ }));
-      await userEvent.click(screen.getByRole("option", { name: "de" }));
+      await userEvent.click(screen.getByRole('button', {name: /Region/}));
+      await userEvent.click(screen.getByRole('option', {name: 'de'}));
 
       await waitFor(() =>
-        expect(router.location.query).toEqual({ start, end, region: "de" }),
+        expect(router.location.query).toEqual({start, end, region: 'de'})
       );
     });
   });
