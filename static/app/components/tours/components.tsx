@@ -486,8 +486,9 @@ export function TourGuide({
     offset,
     strategy: 'fixed',
     preventOverflowOptions: keepGuideInViewport,
-    // react-aria would swallow the click that dismisses the guide.
-    isDismissable: false,
+    // react-aria swallows the click that dismisses an overlay. Subtle guides
+    // let it through and are dismissed with `onClickOutside` instead.
+    isDismissable: variant !== 'subtle',
   });
 
   useEffect(() => {

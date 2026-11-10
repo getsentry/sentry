@@ -380,6 +380,7 @@ describe('Tour Components', () => {
           <button onClick={handlePageClick}>Page Button</button>
           <TourGuide
             isOpen
+            variant="subtle"
             title="Test Title"
             description="Test Description"
             actions={<TourAction>Test Action</TourAction>}
@@ -396,6 +397,24 @@ describe('Tour Components', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
       expect(handlePageClick).toHaveBeenCalledTimes(1);
       expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks clicks outside a guide that is not subtle', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handlePageClick = jest.fn();
+
+      render(
+        <div>
+          <button onClick={handlePageClick}>Page Button</button>
+          <TourGuide isOpen title="Test Title" description="Test Description">
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handlePageClick).not.toHaveBeenCalled();
     });
   });
 });
