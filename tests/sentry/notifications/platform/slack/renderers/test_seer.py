@@ -27,7 +27,6 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
 from sentry.notifications.platform.templates.seer import (
     AGENT_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
-    AUTOFIX_OUT_OF_CREDITS_START_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentOutOfCreditsTemplate,
@@ -365,27 +364,23 @@ def assert_out_of_credits_renderable(
 
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def test_render_out_of_credits(self) -> None:
-        for started, message in (
-            (False, AUTOFIX_OUT_OF_CREDITS_START_MESSAGE),
-            (True, AUTOFIX_OUT_OF_CREDITS_MESSAGE),
-        ):
-            data = SeerAutofixOutOfCredits(organization_id=self.organization.id, started=started)
-            renderable = render_seer(
-                data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
-            )
-            assert_out_of_credits_renderable(
-                renderable,
-                message=message,
-                organization_id=self.organization.id,
-                billing_slug=self.organization.slug,
-            )
-
-    def test_render_out_of_credits_missing_organization(self) -> None:
-        data = SeerAutofixOutOfCredits(organization_id=0, started=False)
+        data = SeerAutofixOutOfCredits(organization_id=self.organization.id)
         renderable = render_seer(
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
-        assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_START_MESSAGE
+        assert_out_of_credits_renderable(
+            renderable,
+            message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
+    def test_render_out_of_credits_missing_organization(self) -> None:
+        data = SeerAutofixOutOfCredits(organization_id=0)
+        renderable = render_seer(
+            data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+        assert renderable["text"] == AUTOFIX_OUT_OF_CREDITS_MESSAGE
         assert len(renderable["blocks"]) == 1
         assert isinstance(renderable["blocks"][0], SectionBlock)
 

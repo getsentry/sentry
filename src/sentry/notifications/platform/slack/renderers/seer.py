@@ -29,6 +29,7 @@ from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     AGENT_OUT_OF_CREDITS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
     SeerAgentResponse,
@@ -150,7 +151,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAutofixOutOfCredits):
             return cls._render_out_of_credits(
-                message=data.message,
+                message=AUTOFIX_OUT_OF_CREDITS_MESSAGE,
                 organization_id=data.organization_id,
                 link_decorator=link_decorator,
             )
