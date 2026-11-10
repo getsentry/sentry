@@ -6,7 +6,7 @@ import noop from 'lodash/noop';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
-import {Grid, Container, Stack} from '@sentry/scraps/layout';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
@@ -97,16 +97,14 @@ export default function AccountSecurity() {
       <Container marginBottom="xl">
         <Tabs onChange={noop} value={activeTab}>
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                <TabList.Item key="settings" to={routePrefix}>
-                  {t('Settings')}
-                </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-                  {t('Session History')}
-                </TabList.Item>
-              </TabList>
-            </Stack>
+            <TabList>
+              <TabList.Item key="settings" to={routePrefix}>
+                {t('Settings')}
+              </TabList.Item>
+              <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+                {t('Session History')}
+              </TabList.Item>
+            </TabList>
           )}
         </Tabs>
       </Container>

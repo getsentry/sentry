@@ -14,7 +14,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Tabs} from '@sentry/scraps/tabs';
@@ -665,13 +665,11 @@ function ConfigureIntegration() {
         <TabsContainer>
           <Tabs value={tab} onChange={onTabChange}>
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  {allTabs.map(tabTuple => (
-                    <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-                  ))}
-                </TabList>
-              </Stack>
+              <TabList>
+                {allTabs.map(tabTuple => (
+                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+                ))}
+              </TabList>
             )}
           </Tabs>
         </TabsContainer>

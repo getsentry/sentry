@@ -8,7 +8,7 @@ import type {
   BreadcrumbListProps,
   BreadcrumbTitleItem,
 } from '@sentry/scraps/breadcrumbList';
-import {Stack} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {Tabs, type TabListItemProps, type TabsComponents} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -153,29 +153,31 @@ export function DomainViewHeader<T extends string = string>({
             {null}
           </FeedbackButton>
         </TopBar.Slot>
-        <Stack
-          flexGrow={1}
-          minWidth="0"
-          flexBasis="0"
-          alignSelf="stretch"
-          column="1 / -1"
-        >
-          {hideDefaultTabs && tabs ? (
-            <Tabs value={tabs.value} onChange={tabs.onTabChange}>
-              {({TabList}) => tabs.renderTabList(TabList)}
-            </Tabs>
-          ) : hideDefaultTabs ? null : (
-            <Tabs onChange={noop} value={selectedModule ?? OVERVIEW_PAGE_TITLE}>
-              {({TabList}) => (
-                <TabList>
-                  {tabList.map(tab => (
-                    <TabList.Item {...tab} key={tab.key} />
-                  ))}
-                </TabList>
-              )}
-            </Tabs>
-          )}
-        </Stack>
+        <Container column="1 / -1">
+          {tabsRootProps =>
+            hideDefaultTabs && tabs ? (
+              <Tabs value={tabs.value} onChange={tabs.onTabChange} {...tabsRootProps}>
+                {({TabList}) => tabs.renderTabList(TabList)}
+              </Tabs>
+            ) : (
+              <Tabs
+                onChange={noop}
+                value={selectedModule ?? OVERVIEW_PAGE_TITLE}
+                {...tabsRootProps}
+              >
+                {({TabList}) =>
+                  !hideDefaultTabs && (
+                    <TabList>
+                      {tabList.map(tab => (
+                        <TabList.Item {...tab} key={tab.key} />
+                      ))}
+                    </TabList>
+                  )
+                }
+              </Tabs>
+            )
+          }
+        </Container>
       </Layout.Header>
     </Fragment>
   );

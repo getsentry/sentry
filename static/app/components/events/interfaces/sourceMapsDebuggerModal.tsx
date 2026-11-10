@@ -646,7 +646,7 @@ export function SourceMapsDebuggerModal({
           )}
           <Tabs value={activeTab} onChange={setActiveTab}>
             {({TabList, TabPanels}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+              <Fragment>
                 <TabList>
                   <TabList.Item
                     key="debug-ids"
@@ -883,7 +883,7 @@ export function SourceMapsDebuggerModal({
                     </TabPanels>
                   )}
                 </Container>
-              </Stack>
+              </Fragment>
             )}
           </Tabs>
         </DebuggerSection>

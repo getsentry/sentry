@@ -126,30 +126,28 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
               )}
               <Tabs onChange={noop} value={dataForwarder.provider}>
                 {({TabList}) => (
-                  <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                    <TabList variant="floating">
-                      {PROVIDER_TAB_ORDER.map(key => (
-                        <TabList.Item
-                          key={key}
-                          disabled={key !== provider || !hasFeature}
-                          tooltip={
-                            key === provider
-                              ? undefined
-                              : {
-                                  title: t(
-                                    'Cannot update provider after setup, create a new forwarder instead.'
-                                  ),
-                                }
-                          }
-                        >
-                          <Flex align="center" gap="sm">
-                            <PluginIcon pluginId={key} />
-                            <b>{ProviderLabels[key]}</b>
-                          </Flex>
-                        </TabList.Item>
-                      ))}
-                    </TabList>
-                  </Stack>
+                  <TabList variant="floating">
+                    {PROVIDER_TAB_ORDER.map(key => (
+                      <TabList.Item
+                        key={key}
+                        disabled={key !== provider || !hasFeature}
+                        tooltip={
+                          key === provider
+                            ? undefined
+                            : {
+                                title: t(
+                                  'Cannot update provider after setup, create a new forwarder instead.'
+                                ),
+                              }
+                        }
+                      >
+                        <Flex align="center" gap="sm">
+                          <PluginIcon pluginId={key} />
+                          <b>{ProviderLabels[key]}</b>
+                        </Flex>
+                      </TabList.Item>
+                    ))}
+                  </TabList>
                 )}
               </Tabs>
               <Access access={['org:write']}>

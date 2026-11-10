@@ -1,4 +1,4 @@
-import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
@@ -69,13 +69,11 @@ export function TraceTabsAndVitals({
     <ToolbarLayout>
       <Tabs value={currentTab} onChange={onTabChange}>
         {({TabList}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-            <TabList variant="floating">
-              {tabOptions.map(tab => (
-                <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
-          </Stack>
+          <TabList variant="floating">
+            {tabOptions.map(tab => (
+              <TabList.Item key={tab.slug}>{tab.label}</TabList.Item>
+            ))}
+          </TabList>
         )}
       </Tabs>
       <TraceContextVitals rootEventResults={rootEventResults} tree={tree} />

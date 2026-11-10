@@ -485,16 +485,14 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   }}
                 >
                   {({TabList}) => (
-                    <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                      <TabList>
-                        <TabList.Item key="all">
-                          {t('All Runs (%s)', assigneeRuns.length)}
-                        </TabList.Item>
-                        <TabList.Item key="in_progress">
-                          {t('In Progress (%s)', inProgressCount)}
-                        </TabList.Item>
-                      </TabList>
-                    </Stack>
+                    <TabList>
+                      <TabList.Item key="all">
+                        {t('All Runs (%s)', assigneeRuns.length)}
+                      </TabList.Item>
+                      <TabList.Item key="in_progress">
+                        {t('In Progress (%s)', inProgressCount)}
+                      </TabList.Item>
+                    </TabList>
                   )}
                 </Tabs>
                 <Button

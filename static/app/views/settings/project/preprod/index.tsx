@@ -70,14 +70,10 @@ export default function PreprodSettings() {
         <Container borderBottom="primary">
           <Tabs value={tab} onChange={handleTabChange}>
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>
-                  <TabList.Item key="distribution">
-                    {t('Build Distribution')}
-                  </TabList.Item>
-                </TabList>
-              </Stack>
+              <TabList>
+                <TabList.Item key="size">{t('Size Analysis')}</TabList.Item>
+                <TabList.Item key="distribution">{t('Build Distribution')}</TabList.Item>
+              </TabList>
             )}
           </Tabs>
         </Container>

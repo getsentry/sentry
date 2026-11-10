@@ -186,19 +186,19 @@ To create a basic <component>, wrap content in `<ComponentName>`.
 When a component exposes sub-components, show the full compound usage early:
 
 ```mdx
-`<Tabs>` provides typed components through its child function. Import only `Tabs`, and choose the layout in the caller:
+`<Tabs>` provides typed components through its child function and supplies the tab layout. Import only `Tabs` from the tabs package:
 
 ```jsx
 <Tabs defaultValue="tab1">
   {({TabList, TabPanels}) => (
-    <Flex direction="column">
+    <Fragment>
       <TabList>
         <TabList.Item key="tab1">Tab 1</TabList.Item>
       </TabList>
       <TabPanels>
         <TabPanels.Item key="tab1">Content 1</TabPanels.Item>
       </TabPanels>
-    </Flex>
+    </Fragment>
   )}
 </Tabs>
 ````

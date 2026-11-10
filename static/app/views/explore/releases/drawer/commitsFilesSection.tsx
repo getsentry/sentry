@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
+
 import {Badge} from '@sentry/scraps/badge';
-import {Flex, Container, Stack} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -57,7 +59,7 @@ export function CommitsFilesSection({
   return (
     <Tabs defaultValue="commits" disabled={isError}>
       {({TabList, TabPanels}) => (
-        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+        <Fragment>
           <Container marginBottom="md">
             {layoutProps => (
               <TabList {...layoutProps}>
@@ -119,7 +121,7 @@ export function CommitsFilesSection({
               </TabPanels.Item>
             </TabPanels>
           )}
-        </Stack>
+        </Fragment>
       )}
     </Tabs>
   );

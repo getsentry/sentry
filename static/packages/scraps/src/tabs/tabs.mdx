@@ -17,7 +17,7 @@ import noop from 'lodash/noop';
 import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -32,7 +32,7 @@ Use `<Tabs>` to organize related content into separate views that users can swit
 ```jsx
 <Tabs defaultValue="tab1">
   {({TabList, TabPanels}) => (
-    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+    <Fragment>
       <TabList>
         <TabList.Item key="tab1">Tab 1</TabList.Item>
         <TabList.Item key="tab2">Tab 2</TabList.Item>
@@ -41,7 +41,7 @@ Use `<Tabs>` to organize related content into separate views that users can swit
         <TabPanels.Item key="tab1">Content for Tab 1</TabPanels.Item>
         <TabPanels.Item key="tab2">Content for Tab 2</TabPanels.Item>
       </TabPanels>
-    </Flex>
+    </Fragment>
   )}
 </Tabs>
 ```
@@ -50,7 +50,7 @@ Use `<Tabs>` to organize related content into separate views that users can swit
 
 Import only `Tabs`. Get `TabList` and `TabPanels` from its child function. These components share the string key type of that `Tabs` instance. Use matching string keys for each tab and its panel. Numeric keys are not supported.
 
-- **`<Tabs>`**: Root component that manages state and provides context without adding a DOM element
+- **`<Tabs>`**: Root component that manages state, provides context, and renders the tab layout
 - **`<TabList>`**: Container for tab buttons
 - **`<TabList.Item>`**: Individual tab button
 - **`<TabPanels>`**: Container for tab content panels
@@ -61,7 +61,7 @@ Import only `Tabs`. Get `TabList` and `TabPanels` from its child function. These
 
 ## Layout
 
-`Tabs` adds no DOM element or layout styles. Use `Flex`, `Grid`, or an existing parent to arrange the list and panels. The examples use a column `Flex` for horizontal tabs and a row `Flex` for vertical tabs. Put sizing, spacing, and alignment props on that layout component.
+`Tabs` renders a flex container. It arranges horizontal tabs in a column and vertical tabs in a row. Place `TabList` and `TabPanels` directly in the child function.
 
 ## Basic Usage
 
@@ -76,13 +76,7 @@ export function BasicDemo() {
   return (
     <Tabs defaultValue="one">
       {({TabList, TabPanels}) => (
-        <Flex
-          direction="column"
-          flexGrow={1}
-          minWidth="0"
-          flexBasis="0"
-          alignSelf="stretch"
-        >
+        <Fragment>
           <TabList>
             {TABS.map(tab => (
               <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -93,7 +87,7 @@ export function BasicDemo() {
               <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
             ))}
           </TabPanels>
-        </Flex>
+        </Fragment>
       )}
     </Tabs>
   );
@@ -106,7 +100,7 @@ export function BasicDemo() {
 ```jsx
 <Tabs defaultValue="one">
   {({TabList, TabPanels}) => (
-    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+    <Fragment>
       <TabList>
         <TabList.Item key="one">Label 1</TabList.Item>
         <TabList.Item key="two">Label 2</TabList.Item>
@@ -117,7 +111,7 @@ export function BasicDemo() {
         <TabPanels.Item key="two">Content 2</TabPanels.Item>
         <TabPanels.Item key="three">Content 3</TabPanels.Item>
       </TabPanels>
-    </Flex>
+    </Fragment>
   )}
 </Tabs>
 ```
@@ -132,13 +126,7 @@ export function BasicDemo() {
       <Text>{size === 'md' ? 'md (default)' : size}</Text>
       <Tabs defaultValue="one" size={size}>
         {({TabList, TabPanels}) => (
-          <Flex
-            direction="column"
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="0"
-            alignSelf="stretch"
-          >
+          <Fragment>
             <TabList aria-label={`${size} tabs`}>
               <TabList.Item key="one">Tab 1</TabList.Item>
               <TabList.Item key="two">Tab 2</TabList.Item>
@@ -149,7 +137,7 @@ export function BasicDemo() {
               <TabPanels.Item key="two">Content 2</TabPanels.Item>
               <TabPanels.Item key="three">Content 3</TabPanels.Item>
             </TabPanels>
-          </Flex>
+          </Fragment>
         )}
       </Tabs>
     </Stack>
@@ -159,17 +147,17 @@ export function BasicDemo() {
 ```jsx
 <Tabs defaultValue="one" size="md">
 {({TabList, TabPanels}) => (
-<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
+<Fragment>{/* tabs and panels */}</Fragment>
 )}
 </Tabs>
 <Tabs defaultValue="one" size="sm">
 {({TabList, TabPanels}) => (
-<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
+<Fragment>{/* tabs and panels */}</Fragment>
 )}
 </Tabs>
 <Tabs defaultValue="one" size="xs">
 {({TabList, TabPanels}) => (
-<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
+<Fragment>{/* tabs and panels */}</Fragment>
 )}
 </Tabs>
 ```
@@ -181,13 +169,7 @@ Uncontrolled tabs require `defaultValue` to specify the initial selection. Their
 <Storybook.Demo>
   <Tabs defaultValue="two">
     {({TabList, TabPanels}) => (
-      <Flex
-        direction="column"
-        flexGrow={1}
-        minWidth="0"
-        flexBasis="0"
-        alignSelf="stretch"
-      >
+      <Fragment>
         <TabList>
           <TabList.Item key="one">Tab 1</TabList.Item>
           <TabList.Item key="two">Tab 2 (default)</TabList.Item>
@@ -198,7 +180,7 @@ Uncontrolled tabs require `defaultValue` to specify the initial selection. Their
           <TabPanels.Item key="two">Content 2 (initially visible)</TabPanels.Item>
           <TabPanels.Item key="three">Content 3</TabPanels.Item>
         </TabPanels>
-      </Flex>
+      </Fragment>
     )}
   </Tabs>
 </Storybook.Demo>
@@ -208,13 +190,10 @@ const handleChange = (tab: string) => console.log(tab);
 
 <Tabs defaultValue="two" onChange={handleChange}>
   {({TabList}) => (
-    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-      <TabList>
-        <TabList.Item key="two">Tab 2</TabList.Item>
-        {/* other tabs */}
-      </TabList>
-      {/* panels */}
-    </Flex>
+    <TabList>
+      <TabList.Item key="two">Tab 2</TabList.Item>
+      {/* other tabs */}
+    </TabList>
   )}
 </Tabs>;
 ```
@@ -230,13 +209,7 @@ export function ControlledDemo() {
       <p>Selected: {selected}</p>
       <Tabs value={selected} onChange={setSelected}>
         {({TabList, TabPanels}) => (
-          <Flex
-            direction="column"
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="0"
-            alignSelf="stretch"
-          >
+          <Fragment>
             <TabList>
               <TabList.Item key="one">Tab 1</TabList.Item>
               <TabList.Item key="two">Tab 2</TabList.Item>
@@ -247,7 +220,7 @@ export function ControlledDemo() {
               <TabPanels.Item key="two">Content 2</TabPanels.Item>
               <TabPanels.Item key="three">Content 3</TabPanels.Item>
             </TabPanels>
-          </Flex>
+          </Fragment>
         )}
       </Tabs>
     </Fragment>
@@ -263,11 +236,7 @@ type TabKey = 'one' | 'two' | 'three';
 const [selected, setSelected] = useState<TabKey>('one');
 
 <Tabs value={selected} onChange={setSelected}>
-  {({TabList, TabPanels}) => (
-    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-      {/* tabs and panels */}
-    </Flex>
-  )}
+  {({TabList, TabPanels}) => <Fragment>{/* tabs and panels */}</Fragment>}
 </Tabs>;
 ```
 
@@ -281,13 +250,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
       <p>All tabs disabled</p>
       <Tabs defaultValue="one" disabled>
         {({TabList, TabPanels}) => (
-          <Flex
-            direction="column"
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="0"
-            alignSelf="stretch"
-          >
+          <Fragment>
             <TabList>
               <TabList.Item key="one">Tab 1</TabList.Item>
               <TabList.Item key="two">Tab 2</TabList.Item>
@@ -296,7 +259,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
               <TabPanels.Item key="one">Content 1</TabPanels.Item>
               <TabPanels.Item key="two">Content 2</TabPanels.Item>
             </TabPanels>
-          </Flex>
+          </Fragment>
         )}
       </Tabs>
     </div>
@@ -304,13 +267,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
       <p>One tab disabled</p>
       <Tabs defaultValue="one">
         {({TabList, TabPanels}) => (
-          <Flex
-            direction="column"
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="0"
-            alignSelf="stretch"
-          >
+          <Fragment>
             <TabList>
               <TabList.Item key="one">Tab 1</TabList.Item>
               <TabList.Item key="two" disabled>
@@ -323,7 +280,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
               <TabPanels.Item key="two">Content 2</TabPanels.Item>
               <TabPanels.Item key="three">Content 3</TabPanels.Item>
             </TabPanels>
-          </Flex>
+          </Fragment>
         )}
       </Tabs>
     </div>
@@ -334,9 +291,9 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
 // Disable all tabs
 <Tabs defaultValue="two" disabled>
 {({TabList, TabPanels}) => (
-<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+<Fragment>
   {/* tabs and panels */}
-</Flex>
+</Fragment>
 )}
 </Tabs>
 
@@ -356,13 +313,7 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
       <Text>{variant === 'flat' ? 'flat (default)' : variant}</Text>
       <Tabs defaultValue="one">
         {({TabList, TabPanels}) => (
-          <Flex
-            direction="column"
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="0"
-            alignSelf="stretch"
-          >
+          <Fragment>
             <TabList variant={variant} aria-label={`${variant} tabs`}>
               <TabList.Item key="one">Tab 1</TabList.Item>
               <TabList.Item key="two">Tab 2</TabList.Item>
@@ -373,7 +324,7 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
               <TabPanels.Item key="two">{variant} variant content 2</TabPanels.Item>
               <TabPanels.Item key="three">{variant} variant content 3</TabPanels.Item>
             </TabPanels>
-          </Flex>
+          </Fragment>
         )}
       </Tabs>
     </Stack>
@@ -392,13 +343,7 @@ Set `orientation` to control keyboard navigation and tab styling. Choose the mat
 <Storybook.Demo direction="column" align="stretch" gap="3xl">
   <Tabs defaultValue="one" orientation="horizontal">
     {({TabList, TabPanels}) => (
-      <Flex
-        direction="column"
-        flexGrow={1}
-        minWidth="0"
-        flexBasis="0"
-        alignSelf="stretch"
-      >
+      <Fragment>
         <TabList>
           <TabList.Item key="one">Tab 1</TabList.Item>
           <TabList.Item key="two">Tab 2</TabList.Item>
@@ -407,20 +352,12 @@ Set `orientation` to control keyboard navigation and tab styling. Choose the mat
           <TabPanels.Item key="one">Horizontal content 1</TabPanels.Item>
           <TabPanels.Item key="two">Horizontal content 2</TabPanels.Item>
         </TabPanels>
-      </Flex>
+      </Fragment>
     )}
   </Tabs>
   <Tabs defaultValue="one" orientation="vertical">
     {({TabList, TabPanels}) => (
-      <Flex
-        direction="row"
-        flexGrow={1}
-        minWidth="0"
-        flexBasis="auto"
-        alignSelf="auto"
-        height="100%"
-        align="stretch"
-      >
+      <Fragment>
         <TabList>
           <TabList.Item key="one">Tab 1</TabList.Item>
           <TabList.Item key="two">Tab 2</TabList.Item>
@@ -429,7 +366,7 @@ Set `orientation` to control keyboard navigation and tab styling. Choose the mat
           <TabPanels.Item key="one">Vertical content 1</TabPanels.Item>
           <TabPanels.Item key="two">Vertical content 2</TabPanels.Item>
         </TabPanels>
-      </Flex>
+      </Fragment>
     )}
   </Tabs>
 </Storybook.Demo>
@@ -437,12 +374,12 @@ Set `orientation` to control keyboard navigation and tab styling. Choose the mat
 ```jsx
 <Tabs defaultValue="overview" orientation="horizontal">
 {({TabList, TabPanels}) => (
-<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* default */}</Flex>
+<Fragment>{/* default */}</Fragment>
 )}
 </Tabs>
 <Tabs defaultValue="overview" orientation="vertical">
 {({TabList, TabPanels}) => (
-<Flex direction="row" flexGrow={1} minWidth="0" flexBasis="auto" alignSelf="auto" height="100%" align="stretch">{/* side-by-side layout */}</Flex>
+<Fragment>{/* side-by-side layout */}</Fragment>
 )}
 </Tabs>
 ```
@@ -456,13 +393,7 @@ Resize the demo to see tabs move into and out of the overflow menu.
 <Storybook.Demo resizable>
   <Tabs defaultValue="overview">
     {({TabList, TabPanels}) => (
-      <Flex
-        direction="column"
-        flexGrow={1}
-        minWidth="0"
-        flexBasis="0"
-        alignSelf="stretch"
-      >
+      <Fragment>
         <TabList>
           <TabList.Item key="overview">Overview</TabList.Item>
           <TabList.Item key="activity">Activity</TabList.Item>
@@ -477,7 +408,7 @@ Resize the demo to see tabs move into and out of the overflow menu.
           <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
           <TabPanels.Item key="settings">Settings content</TabPanels.Item>
         </TabPanels>
-      </Flex>
+      </Fragment>
     )}
   </Tabs>
 </Storybook.Demo>
@@ -485,7 +416,7 @@ Resize the demo to see tabs move into and out of the overflow menu.
 ```tsx
 <Tabs defaultValue="overview">
   {({TabList, TabPanels}) => (
-    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+    <Fragment>
       <TabList>
         <TabList.Item key="overview">Overview</TabList.Item>
         <TabList.Item key="activity">Activity</TabList.Item>
@@ -500,7 +431,7 @@ Resize the demo to see tabs move into and out of the overflow menu.
         <TabPanels.Item key="attachments">Attachments content</TabPanels.Item>
         <TabPanels.Item key="settings">Settings content</TabPanels.Item>
       </TabPanels>
-    </Flex>
+    </Fragment>
   )}
 </Tabs>
 ```
@@ -528,13 +459,7 @@ export function LinkedTabsDemo() {
   return (
     <Tabs onChange={noop} value={value}>
       {({TabList, TabPanels}) => (
-        <Flex
-          direction="column"
-          flexGrow={1}
-          minWidth="0"
-          flexBasis="0"
-          alignSelf="stretch"
-        >
+        <Fragment>
           <TabList aria-label="Linked tabs">
             {tabs.map(({key, label}) => (
               <TabList.Item
@@ -553,7 +478,7 @@ export function LinkedTabsDemo() {
               <TabPanels.Item key={key}>{label} content</TabPanels.Item>
             ))}
           </TabPanels>
-        </Flex>
+        </Fragment>
       )}
     </Tabs>
   );
@@ -585,13 +510,7 @@ function LinkedTabsDemo() {
   return (
     <Tabs onChange={noop} value={value}>
       {({TabList, TabPanels}) => (
-        <Flex
-          direction="column"
-          flexGrow={1}
-          minWidth="0"
-          flexBasis="0"
-          alignSelf="stretch"
-        >
+        <Fragment>
           <TabList aria-label="Linked tabs">
             {tabs.map(({key, label}) => (
               <TabList.Item
@@ -610,7 +529,7 @@ function LinkedTabsDemo() {
               <TabPanels.Item key={key}>{label} content</TabPanels.Item>
             ))}
           </TabPanels>
-        </Flex>
+        </Fragment>
       )}
     </Tabs>
   );
@@ -636,7 +555,7 @@ Use tabs to organize related content into distinct views:
 ```jsx
 <Tabs defaultValue="overview">
   {({TabList, TabPanels}) => (
-    <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+    <Fragment>
       <TabList>
         <TabList.Item key="overview">Overview</TabList.Item>
         <TabList.Item key="activity">Activity</TabList.Item>
@@ -653,7 +572,7 @@ Use tabs to organize related content into distinct views:
           <SettingsForm />
         </TabPanels.Item>
       </TabPanels>
-    </Flex>
+    </Fragment>
   )}
 </Tabs>
 ```
@@ -674,9 +593,9 @@ const [tab, setTab] = useQueryState(
 
 <Tabs value={tab} onChange={setTab}>
 {({TabList, TabPanels}) => (
-<Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+<Fragment>
   {/* tabs */}
-</Flex>
+</Fragment>
 )}
 </Tabs>;
 ```

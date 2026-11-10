@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
@@ -27,37 +27,43 @@ export function ReplayDiffChooser() {
 
   return (
     <Grid gap="md" height="100%" rows="max-content 1fr">
-      <Tabs defaultValue={DiffType.SLIDER} onChange={onTabChange}>
-        {({TabList, TabPanels}) => (
-          <Fragment>
-            <TabList>
-              <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
-              <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>
-              <TabList.Item key={DiffType.MUTATIONS}>{t('Mutations')}</TabList.Item>
-              <TabList.Item key={DiffType.HTML}>{t('HTML Diff')}</TabList.Item>
-            </TabList>
+      <Container display="contents">
+        {tabsRootProps => (
+          <Tabs defaultValue={DiffType.SLIDER} onChange={onTabChange} {...tabsRootProps}>
+            {({TabList, TabPanels}) => (
+              <Fragment>
+                <TabList>
+                  <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
+                  <TabList.Item key={DiffType.VISUAL}>
+                    {t('Side By Side Diff')}
+                  </TabList.Item>
+                  <TabList.Item key={DiffType.MUTATIONS}>{t('Mutations')}</TabList.Item>
+                  <TabList.Item key={DiffType.HTML}>{t('HTML Diff')}</TabList.Item>
+                </TabList>
 
-            <Stack>
-              {layoutProps => (
-                <TabPanels {...layoutProps}>
-                  <TabPanels.Item key={DiffType.VISUAL}>
-                    <ReplaySideBySideImageDiff />
-                  </TabPanels.Item>
-                  <TabPanels.Item key={DiffType.HTML}>
-                    <ReplayTextDiff />
-                  </TabPanels.Item>
-                  <TabPanels.Item key={DiffType.SLIDER}>
-                    <ReplaySliderDiff />
-                  </TabPanels.Item>
-                  <TabPanels.Item key={DiffType.MUTATIONS}>
-                    <ReplayMutationTree />
-                  </TabPanels.Item>
-                </TabPanels>
-              )}
-            </Stack>
-          </Fragment>
+                <Stack>
+                  {layoutProps => (
+                    <TabPanels {...layoutProps}>
+                      <TabPanels.Item key={DiffType.VISUAL}>
+                        <ReplaySideBySideImageDiff />
+                      </TabPanels.Item>
+                      <TabPanels.Item key={DiffType.HTML}>
+                        <ReplayTextDiff />
+                      </TabPanels.Item>
+                      <TabPanels.Item key={DiffType.SLIDER}>
+                        <ReplaySliderDiff />
+                      </TabPanels.Item>
+                      <TabPanels.Item key={DiffType.MUTATIONS}>
+                        <ReplayMutationTree />
+                      </TabPanels.Item>
+                    </TabPanels>
+                  )}
+                </Stack>
+              </Fragment>
+            )}
+          </Tabs>
         )}
-      </Tabs>
+      </Container>
     </Grid>
   );
 }

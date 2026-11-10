@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -71,7 +71,7 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
           {({TabList, TabPanels}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <Fragment>
               <Container padding="0 2xl" borderBottom="primary">
                 <TabList>
                   <TabList.Item key="activity">{t('Activity')}</TabList.Item>
@@ -95,7 +95,7 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
                   </PageFiltersContainer>
                 </TabPanels.Item>
               </TabPanels>
-            </Stack>
+            </Fragment>
           )}
         </Tabs>
       </Container>

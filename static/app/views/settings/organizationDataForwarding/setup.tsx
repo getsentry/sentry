@@ -112,30 +112,28 @@ export default function OrganizationDataForwardingSetup() {
               )}
               <Tabs value={provider ?? PROVIDER_TAB_ORDER[0]} onChange={setProvider}>
                 {({TabList}) => (
-                  <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                    <TabList variant="floating">
-                      {PROVIDER_TAB_ORDER.map(key => (
-                        <TabList.Item
-                          key={key}
-                          disabled={disabledProviders.has(key) || !hasFeature}
-                          tooltip={
-                            disabledProviders.has(key)
-                              ? {
-                                  title: t(
-                                    'Only one configuration is allowed per provider.'
-                                  ),
-                                }
-                              : undefined
-                          }
-                        >
-                          <Flex align="center" gap="sm">
-                            <PluginIcon pluginId={key} />
-                            <b>{ProviderLabels[key]}</b>
-                          </Flex>
-                        </TabList.Item>
-                      ))}
-                    </TabList>
-                  </Stack>
+                  <TabList variant="floating">
+                    {PROVIDER_TAB_ORDER.map(key => (
+                      <TabList.Item
+                        key={key}
+                        disabled={disabledProviders.has(key) || !hasFeature}
+                        tooltip={
+                          disabledProviders.has(key)
+                            ? {
+                                title: t(
+                                  'Only one configuration is allowed per provider.'
+                                ),
+                              }
+                            : undefined
+                        }
+                      >
+                        <Flex align="center" gap="sm">
+                          <PluginIcon pluginId={key} />
+                          <b>{ProviderLabels[key]}</b>
+                        </Flex>
+                      </TabList.Item>
+                    ))}
+                  </TabList>
                 )}
               </Tabs>
               {provider && (

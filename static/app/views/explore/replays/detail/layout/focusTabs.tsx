@@ -126,19 +126,17 @@ export function FocusTabs({isVideoReplay}: Props) {
         }}
       >
         {({TabList}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-            <TabList>
-              {tabs.map(({key: tab, label}) => (
-                <TabList.Item
-                  key={tab}
-                  textValue={tab}
-                  data-test-id={`replay-details-${tab}-btn`}
-                >
-                  {label}
-                </TabList.Item>
-              ))}
-            </TabList>
-          </Stack>
+          <TabList>
+            {tabs.map(({key: tab, label}) => (
+              <TabList.Item
+                key={tab}
+                textValue={tab}
+                data-test-id={`replay-details-${tab}-btn`}
+              >
+                {label}
+              </TabList.Item>
+            ))}
+          </TabList>
         )}
       </Tabs>
     </Stack>

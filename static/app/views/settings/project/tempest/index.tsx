@@ -3,7 +3,7 @@ import {IconClose} from '@sentry/icons/close';
 import {parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -118,13 +118,11 @@ export default function TempestSettings() {
       <Flex align="center" justify="between" style={{marginBottom: '1rem'}}>
         <Tabs value={tab} onChange={handleTabChange}>
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                {TABS.map(key => (
-                  <TabList.Item key={key}>{TAB_LABELS[key]}</TabList.Item>
-                ))}
-              </TabList>
-            </Stack>
+            <TabList>
+              {TABS.map(key => (
+                <TabList.Item key={key}>{TAB_LABELS[key]}</TabList.Item>
+              ))}
+            </TabList>
           )}
         </Tabs>
         <RequestSdkAccessButton

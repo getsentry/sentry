@@ -59,7 +59,7 @@ function StoryLayout() {
   return (
     <Tabs value={tab} onChange={setTab}>
       {({TabList, TabPanels}) => (
-        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+        <Fragment>
           {isMDXStory(story) ? <MDXStoryTitle story={story} TabList={TabList} /> : null}
           <StoryGrid>
             <Stack
@@ -80,7 +80,7 @@ function StoryLayout() {
             </Stack>
             <StoryTableOfContents />
           </StoryGrid>
-        </Stack>
+        </Fragment>
       )}
     </Tabs>
   );

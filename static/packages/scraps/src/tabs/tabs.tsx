@@ -3,6 +3,8 @@ import {useState} from 'react';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {TabsContext} from './context';
 import type {TabListItemProps, TabPanelItemProps} from './item';
 import type {TabProps} from './tab';
@@ -41,6 +43,7 @@ interface BaseTabsProps
       | 'isDisabled'
       | 'disabledKeys'
     > {
+  className?: string;
   disabled?: boolean;
   size?: TabProps['size'];
 }
@@ -82,8 +85,28 @@ function TabStateProvider({
 
 const components = {TabList, TabPanels};
 
-function TabsRoot({children, ...props}: TabsProps) {
-  return <TabStateProvider {...props}>{children(components)}</TabStateProvider>;
+function TabsRoot({
+  children,
+  className,
+  orientation = 'horizontal',
+  ...props
+}: TabsProps) {
+  return (
+    <TabStateProvider orientation={orientation} {...props}>
+      <Flex
+        className={className}
+        direction={orientation === 'horizontal' ? 'column' : 'row'}
+        flexGrow={1}
+        minWidth="0"
+        flexBasis={orientation === 'horizontal' ? '0' : 'auto'}
+        alignSelf={orientation === 'horizontal' ? 'stretch' : 'auto'}
+        height={orientation === 'vertical' ? '100%' : undefined}
+        align={orientation === 'vertical' ? 'stretch' : undefined}
+      >
+        {children(components)}
+      </Flex>
+    </TabStateProvider>
+  );
 }
 
 // Bind the key type without wrapping the collection items or changing their identity.

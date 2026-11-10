@@ -61,13 +61,11 @@ export function AgentsTable({
     <Stack gap="md">
       <Tabs value={activeTab} onChange={onTabChange} size="sm">
         {({TabList}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-            <TabList variant="floating">
-              <TabList.Item key="conversations">{t('Conversations')}</TabList.Item>
-              <TabList.Item key="traces">{t('Traces')}</TabList.Item>
-              <TabList.Item key="spans">{t('LLM Calls')}</TabList.Item>
-            </TabList>
-          </Stack>
+          <TabList variant="floating">
+            <TabList.Item key="conversations">{t('Conversations')}</TabList.Item>
+            <TabList.Item key="traces">{t('Traces')}</TabList.Item>
+            <TabList.Item key="spans">{t('LLM Calls')}</TabList.Item>
+          </TabList>
         )}
       </Tabs>
       {searchBar}

@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
@@ -79,12 +78,10 @@ function SentryAppExternalIssueModal(props: Props) {
       <TabsContainer>
         <Tabs value={action} onChange={setAction}>
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                <TabList.Item key="create">{t('Create')}</TabList.Item>
-                <TabList.Item key="link">{t('Link')}</TabList.Item>
-              </TabList>
-            </Stack>
+            <TabList>
+              <TabList.Item key="create">{t('Create')}</TabList.Item>
+              <TabList.Item key="link">{t('Link')}</TabList.Item>
+            </TabList>
           )}
         </Tabs>
       </TabsContainer>

@@ -7,7 +7,7 @@ import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from '
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
@@ -279,22 +279,20 @@ export default function ProjectEnvironments() {
       <TabsContainer>
         <Tabs onChange={noop} value={isHidden ? 'hidden' : 'environments'}>
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                <TabList.Item
-                  key="environments"
-                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
-                >
-                  {t('Environments')}
-                </TabList.Item>
-                <TabList.Item
-                  key="hidden"
-                  to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
-                >
-                  {t('Hidden')}
-                </TabList.Item>
-              </TabList>
-            </Stack>
+            <TabList>
+              <TabList.Item
+                key="environments"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+              >
+                {t('Environments')}
+              </TabList.Item>
+              <TabList.Item
+                key="hidden"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+              >
+                {t('Hidden')}
+              </TabList.Item>
+            </TabList>
           )}
         </Tabs>
       </TabsContainer>

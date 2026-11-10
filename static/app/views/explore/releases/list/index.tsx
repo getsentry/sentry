@@ -490,59 +490,57 @@ function ReleasesListInnerPage() {
                 </Container>
                 <Tabs value={selectedTab} onChange={handleTabChange}>
                   {({TabList}) => (
-                    <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                      <TabList aria-label={t('Releases tab selector')}>
-                        <TabList.Item
-                          key="releases"
-                          to={{
-                            pathname: location.pathname,
-                            query: {
-                              ...location.query,
-                              query: undefined,
-                              tab: undefined,
-                            },
-                          }}
-                          textValue={t('Releases')}
-                        >
-                          {t('Releases')}
-                        </TabList.Item>
-                        <TabList.Item
-                          key="mobile-builds"
-                          hidden={!shouldShowMobileBuildsTab}
-                          to={{
-                            pathname: location.pathname,
-                            query: {
-                              ...location.query,
-                              query: undefined,
-                              tab: 'mobile-builds',
-                            },
-                          }}
-                          textValue={t('Mobile Builds')}
-                        >
-                          <Flex align="center" gap="sm">
-                            {t('Mobile Builds')}
-                            <FeatureBadge type="new" />
-                          </Flex>
-                        </TabList.Item>
-                        <TabList.Item
-                          key="snapshots"
-                          to={{
-                            pathname: location.pathname,
-                            query: {
-                              ...location.query,
-                              query: undefined,
-                              tab: 'snapshots',
-                            },
-                          }}
-                          textValue={t('Snapshots')}
-                        >
-                          <Flex align="center" gap="sm">
-                            {t('Snapshots')}
-                            <FeatureBadge type="beta" />
-                          </Flex>
-                        </TabList.Item>
-                      </TabList>
-                    </Stack>
+                    <TabList aria-label={t('Releases tab selector')}>
+                      <TabList.Item
+                        key="releases"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: undefined,
+                          },
+                        }}
+                        textValue={t('Releases')}
+                      >
+                        {t('Releases')}
+                      </TabList.Item>
+                      <TabList.Item
+                        key="mobile-builds"
+                        hidden={!shouldShowMobileBuildsTab}
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'mobile-builds',
+                          },
+                        }}
+                        textValue={t('Mobile Builds')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Mobile Builds')}
+                          <FeatureBadge type="new" />
+                        </Flex>
+                      </TabList.Item>
+                      <TabList.Item
+                        key="snapshots"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'snapshots',
+                          },
+                        }}
+                        textValue={t('Snapshots')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Snapshots')}
+                          <FeatureBadge type="beta" />
+                        </Flex>
+                      </TabList.Item>
+                    </TabList>
                   )}
                 </Tabs>
               </Stack>

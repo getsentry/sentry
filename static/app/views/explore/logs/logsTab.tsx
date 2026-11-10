@@ -7,7 +7,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tabs} from '@sentry/scraps/tabs';
@@ -530,12 +530,10 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
             <LogsTableActionsContainer>
               <Tabs value={tableTab} onChange={setTableTab} size="sm">
                 {({TabList}) => (
-                  <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                    <TabList variant="floating">
-                      <TabList.Item key="logs">{t('Logs')}</TabList.Item>
-                      <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
-                    </TabList>
-                  </Stack>
+                  <TabList variant="floating">
+                    <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                    <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
+                  </TabList>
                 )}
               </Tabs>
               {tableTab === 'logs' && (

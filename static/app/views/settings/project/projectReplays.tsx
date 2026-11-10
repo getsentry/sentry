@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
@@ -119,27 +120,33 @@ export default function ProjectReplaySettings() {
     <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
       <SettingsPageHeader title={t('Replays')} />
       {hasAccess ? (
-        <Tabs value={tab} onChange={value => setTab(value)}>
-          {({TabList, TabPanels}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch" gap="xl">
-              <TabList>
-                <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
-                <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
-              </TabList>
-              <TabPanels>
-                <TabPanels.Item key="replay-issues">{replayIssuesContent}</TabPanels.Item>
-                <TabPanels.Item key="bulk-delete">
-                  <p>
-                    {t(
-                      'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
-                    )}
-                  </p>
-                  <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
-                </TabPanels.Item>
-              </TabPanels>
-            </Stack>
+        <Stack gap="xl">
+          {tabsRootProps => (
+            <Tabs value={tab} onChange={value => setTab(value)} {...tabsRootProps}>
+              {({TabList, TabPanels}) => (
+                <Fragment>
+                  <TabList>
+                    <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
+                    <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanels.Item key="replay-issues">
+                      {replayIssuesContent}
+                    </TabPanels.Item>
+                    <TabPanels.Item key="bulk-delete">
+                      <p>
+                        {t(
+                          'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
+                        )}
+                      </p>
+                      <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
+                    </TabPanels.Item>
+                  </TabPanels>
+                </Fragment>
+              )}
+            </Tabs>
           )}
-        </Tabs>
+        </Stack>
       ) : (
         replayIssuesContent
       )}

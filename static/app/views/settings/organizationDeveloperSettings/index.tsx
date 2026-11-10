@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tabs} from '@sentry/scraps/tabs';
 
@@ -156,13 +156,11 @@ function OrganizationDeveloperSettings() {
         <Flex align="center" justify="between" gap="md">
           <Tabs value={tab} onChange={setTab}>
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  {TABS.map(key => (
-                    <TabList.Item key={key}>{TAB_LABELS[key]}</TabList.Item>
-                  ))}
-                </TabList>
-              </Stack>
+              <TabList>
+                {TABS.map(key => (
+                  <TabList.Item key={key}>{TAB_LABELS[key]}</TabList.Item>
+                ))}
+              </TabList>
             )}
           </Tabs>
           {inlineActions}

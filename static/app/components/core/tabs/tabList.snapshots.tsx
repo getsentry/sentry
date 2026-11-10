@@ -1,4 +1,3 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
@@ -24,13 +23,11 @@ describe('TabList', () => {
           <Wrapper>
             <Tabs size={size} defaultValue="activity">
               {({TabList}) => (
-                <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                  <TabList variant={variant}>
-                    {TABS.map(tab => (
-                      <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                    ))}
-                  </TabList>
-                </Stack>
+                <TabList variant={variant}>
+                  {TABS.map(tab => (
+                    <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                  ))}
+                </TabList>
               )}
             </Tabs>
           </Wrapper>
@@ -49,21 +46,11 @@ describe('TabList', () => {
         <Wrapper>
           <Tabs orientation="vertical" defaultValue="activity">
             {({TabList}) => (
-              <Flex
-                direction="row"
-                flexGrow={1}
-                minWidth="0"
-                flexBasis="auto"
-                alignSelf="auto"
-                height="100%"
-                align="stretch"
-              >
-                <TabList variant={variant}>
-                  {TABS.map(tab => (
-                    <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                  ))}
-                </TabList>
-              </Flex>
+              <TabList variant={variant}>
+                {TABS.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
             )}
           </Tabs>
         </Wrapper>
@@ -80,13 +67,11 @@ describe('TabList', () => {
       <Wrapper>
         <Tabs disabled defaultValue="activity">
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                {TABS.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
-            </Stack>
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
           )}
         </Tabs>
       </Wrapper>
@@ -102,15 +87,13 @@ describe('TabList', () => {
       <Wrapper>
         <Tabs defaultValue="details">
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                {TABS.map(tab => (
-                  <TabList.Item key={tab.key} disabled={tab.key === 'user-feedback'}>
-                    {tab.label}
-                  </TabList.Item>
-                ))}
-              </TabList>
-            </Stack>
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} disabled={tab.key === 'user-feedback'}>
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
           )}
         </Tabs>
       </Wrapper>

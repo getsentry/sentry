@@ -2,7 +2,6 @@ import {useLocation} from 'react-router';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
@@ -45,15 +44,13 @@ function LinkedTabs({
       disabled={disabled}
     >
       {({TabList}) => (
-        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key} to={`/tabs/${tab.key}/`}>
-                {tab.label}
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Stack>
+        <TabList>
+          {TABS.map(tab => (
+            <TabList.Item key={tab.key} to={`/tabs/${tab.key}/`}>
+              {tab.label}
+            </TabList.Item>
+          ))}
+        </TabList>
       )}
     </Tabs>
   );

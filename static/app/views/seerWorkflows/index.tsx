@@ -50,28 +50,26 @@ export default function AutomationsLayout() {
         <Flex justify="between" align="center" gap="lg">
           <Tabs onChange={noop} value={activeTab} size="sm">
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  <TabList.Item
-                    key="automations"
-                    to={getAutomationsPath(organization.slug)}
-                    textValue={t('Automations')}
-                  >
-                    <Text bold={activeTab === 'automations'} variant="inherit">
-                      {t('Automations')}
-                    </Text>
-                  </TabList.Item>
-                  <TabList.Item
-                    key="runs"
-                    to={getAutomationRunsPath(organization.slug)}
-                    textValue={t('Runs')}
-                  >
-                    <Text bold={activeTab === 'runs'} variant="inherit">
-                      {t('Runs')}
-                    </Text>
-                  </TabList.Item>
-                </TabList>
-              </Stack>
+              <TabList>
+                <TabList.Item
+                  key="automations"
+                  to={getAutomationsPath(organization.slug)}
+                  textValue={t('Automations')}
+                >
+                  <Text bold={activeTab === 'automations'} variant="inherit">
+                    {t('Automations')}
+                  </Text>
+                </TabList.Item>
+                <TabList.Item
+                  key="runs"
+                  to={getAutomationRunsPath(organization.slug)}
+                  textValue={t('Runs')}
+                >
+                  <Text bold={activeTab === 'runs'} variant="inherit">
+                    {t('Runs')}
+                  </Text>
+                </TabList.Item>
+              </TabList>
             )}
           </Tabs>
           <LinkButton

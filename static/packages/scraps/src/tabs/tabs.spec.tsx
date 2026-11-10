@@ -10,7 +10,6 @@ import {
 import {userEvent} from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 import {lightTheme} from '@sentry/scraps/theme';
 
@@ -35,40 +34,6 @@ const TABS = [
 ] as const;
 
 describe('Tabs', () => {
-  it('renders caller content as direct Grid children', async () => {
-    render(
-      <Grid role="group" aria-label="Tabs layout" columns="auto 1fr">
-        <Tabs defaultValue="details">
-          {({TabList, TabPanels}) => (
-            <Fragment>
-              <TabList aria-label="Sections">
-                <TabList.Item key="details">Details</TabList.Item>
-                <TabList.Item key="activity">Activity</TabList.Item>
-              </TabList>
-              <TabPanels>
-                <TabPanels.Item key="details">Details content</TabPanels.Item>
-                <TabPanels.Item key="activity">Activity content</TabPanels.Item>
-              </TabPanels>
-            </Fragment>
-          )}
-        </Tabs>
-      </Grid>,
-      {wrapper: ThemeWrapper}
-    );
-
-    const layout = screen.getByRole('group', {name: 'Tabs layout'});
-    const panel = screen.getByRole('tabpanel');
-    // oxlint-disable-next-line testing-library/no-node-access -- The root API must not insert a DOM element around caller content.
-    expect(panel.parentElement).toBe(layout);
-    // oxlint-disable-next-line testing-library/no-node-access -- The tab list wrapper must remain a direct child of the caller's layout.
-    expect(layout.children).toHaveLength(2);
-
-    await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
-
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('Activity content');
-    expect(screen.queryByText('Details content')).not.toBeInTheDocument();
-  });
-
   it('infers the same key union for selection, list items, and panels', async () => {
     const onChange = jest.fn();
     render(
@@ -297,7 +262,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -308,7 +273,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Stack>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -333,7 +298,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details" disabled>
         {({TabList, TabPanels}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -344,7 +309,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Stack>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -370,7 +335,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -381,7 +346,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Stack>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -430,7 +395,7 @@ describe('Tabs', () => {
       render(
         <Tabs defaultValue="details" keyboardActivation={activation}>
           {({TabList, TabPanels}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <Fragment>
               <TabList>
                 {TABS.map(tab => (
                   <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -441,7 +406,7 @@ describe('Tabs', () => {
                   <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
                 ))}
               </TabPanels>
-            </Stack>
+            </Fragment>
           )}
         </Tabs>,
         {wrapper: ThemeWrapper}
@@ -466,15 +431,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details" orientation="vertical">
         {({TabList, TabPanels}) => (
-          <Flex
-            direction="row"
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="auto"
-            alignSelf="auto"
-            height="100%"
-            align="stretch"
-          >
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -485,7 +442,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Flex>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -510,7 +467,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key} disabled>
@@ -523,7 +480,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Stack>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -541,7 +498,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key} to="/#some-link">
@@ -554,7 +511,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Stack>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -595,7 +552,7 @@ describe('Tabs', () => {
     render(
       <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <Fragment>
             <TabList>
               {TABS.map(tab => (
                 <TabList.Item key={tab.key} to="/#some-link" disabled>
@@ -608,7 +565,7 @@ describe('Tabs', () => {
                 <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
               ))}
             </TabPanels>
-          </Stack>
+          </Fragment>
         )}
       </Tabs>,
       {wrapper: ThemeWrapper}
@@ -825,13 +782,11 @@ describe('Tabs overflow', () => {
       return (
         <Tabs defaultValue="details">
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                {items.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
-            </Stack>
+            <TabList>
+              {items.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
           )}
         </Tabs>
       );
@@ -875,15 +830,7 @@ function OverflowTabs({orientation}: {orientation?: 'horizontal' | 'vertical'}) 
   return (
     <Tabs defaultValue="details" orientation={orientation}>
       {({TabList, TabPanels}) => (
-        <Flex
-          direction={orientation === 'vertical' ? 'row' : 'column'}
-          flexGrow={1}
-          minWidth="0"
-          flexBasis={orientation === 'vertical' ? 'auto' : '0'}
-          alignSelf={orientation === 'vertical' ? 'auto' : 'stretch'}
-          height={orientation === 'vertical' ? '100%' : undefined}
-          align={orientation === 'vertical' ? 'stretch' : undefined}
-        >
+        <Fragment>
           <TabList>
             {TABS.map(tab => (
               <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
@@ -894,7 +841,7 @@ function OverflowTabs({orientation}: {orientation?: 'horizontal' | 'vertical'}) 
               <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
             ))}
           </TabPanels>
-        </Flex>
+        </Fragment>
       )}
     </Tabs>
   );
@@ -910,12 +857,10 @@ function ControlledTabs({
   return (
     <Tabs value={value} onChange={onChange}>
       {({TabList}) => (
-        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-          <TabList>
-            <TabList.Item key="details">Details</TabList.Item>
-            <TabList.Item key="activity">Activity</TabList.Item>
-          </TabList>
-        </Stack>
+        <TabList>
+          <TabList.Item key="details">Details</TabList.Item>
+          <TabList.Item key="activity">Activity</TabList.Item>
+        </TabList>
       )}
     </Tabs>
   );

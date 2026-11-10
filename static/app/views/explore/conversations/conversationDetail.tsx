@@ -108,12 +108,10 @@ function ConversationDetailPage() {
         <Flex flexShrink={0} align="center" justify="between" gap="md">
           <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList variant="floating">
-                  <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
-                  <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
-                </TabList>
-              </Stack>
+              <TabList variant="floating">
+                <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+                <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+              </TabList>
             )}
           </Tabs>
           {queryState.tab === 'transcript' && messages.length > 0 && (

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconBot} from '@sentry/icons/bot';
@@ -307,7 +308,7 @@ function ConversationOnboardingPanel({
                     }}
                   >
                     {({TabList, TabPanels}) => (
-                      <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+                      <Fragment>
                         <TabList variant="floating">
                           <TabList.Item
                             key="agent"
@@ -358,7 +359,7 @@ function ConversationOnboardingPanel({
                             <Container paddingTop="md">{children}</Container>
                           </TabPanels.Item>
                         </TabPanels>
-                      </Stack>
+                      </Fragment>
                     )}
                   </Tabs>
                 </Setup>

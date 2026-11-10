@@ -396,12 +396,10 @@ export function ExternalIssueForm({
           <Heading as="h2">{title}</Heading>
           <Tabs value={action} onChange={handleClick}>
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  <TabList.Item key="create">{t('Create')}</TabList.Item>
-                  <TabList.Item key="link">{t('Link')}</TabList.Item>
-                </TabList>
-              </Stack>
+              <TabList>
+                <TabList.Item key="create">{t('Create')}</TabList.Item>
+                <TabList.Item key="link">{t('Link')}</TabList.Item>
+              </TabList>
             )}
           </Tabs>
         </Stack>

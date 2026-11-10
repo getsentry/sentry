@@ -461,13 +461,11 @@ export function ProjectKeyCredentials({
         <Fragment>
           <Tabs value={activeTab} onChange={setActiveTab}>
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  {availableTabs.map(tab => (
-                    <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                  ))}
-                </TabList>
-              </Stack>
+              <TabList>
+                {availableTabs.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
             )}
           </Tabs>
           {renderTabContent()}

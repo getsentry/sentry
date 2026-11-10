@@ -5,7 +5,7 @@ import noop from 'lodash/noop';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
@@ -99,22 +99,20 @@ export default function TeamDetails() {
           <TabsContainer>
             <Tabs onChange={noop} value={activeTab}>
               {({TabList}) => (
-                <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                  <TabList>
-                    <TabList.Item key="members" to={`${routePrefix}members/`}>
-                      {t('Members')}
-                    </TabList.Item>
-                    <TabList.Item key="projects" to={`${routePrefix}projects/`}>
-                      {t('Projects')}
-                    </TabList.Item>
-                    <TabList.Item key="notifications" to={`${routePrefix}notifications/`}>
-                      {t('Notifications')}
-                    </TabList.Item>
-                    <TabList.Item key="settings" to={`${routePrefix}settings/`}>
-                      {t('Settings')}
-                    </TabList.Item>
-                  </TabList>
-                </Stack>
+                <TabList>
+                  <TabList.Item key="members" to={`${routePrefix}members/`}>
+                    {t('Members')}
+                  </TabList.Item>
+                  <TabList.Item key="projects" to={`${routePrefix}projects/`}>
+                    {t('Projects')}
+                  </TabList.Item>
+                  <TabList.Item key="notifications" to={`${routePrefix}notifications/`}>
+                    {t('Notifications')}
+                  </TabList.Item>
+                  <TabList.Item key="settings" to={`${routePrefix}settings/`}>
+                    {t('Settings')}
+                  </TabList.Item>
+                </TabList>
               )}
             </Tabs>
           </TabsContainer>

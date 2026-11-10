@@ -244,29 +244,25 @@ export function ReleaseHeader({
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <Tabs onChange={noop} value={getActiveTabTo()}>
-        {({TabList}) => (
-          <Stack
-            flexGrow={1}
-            minWidth="0"
-            flexBasis="0"
-            alignSelf="stretch"
-            column="1 / -1"
-          >
-            <TabList>
-              {tabs.map(tab => (
-                <TabList.Item
-                  key={tab.to}
-                  to={getTabUrl(tab.to)}
-                  textValue={tab.textValue}
-                >
-                  {tab.title}
-                </TabList.Item>
-              ))}
-            </TabList>
-          </Stack>
+      <Stack column="1 / -1">
+        {tabsRootProps => (
+          <Tabs onChange={noop} value={getActiveTabTo()} {...tabsRootProps}>
+            {({TabList}) => (
+              <TabList>
+                {tabs.map(tab => (
+                  <TabList.Item
+                    key={tab.to}
+                    to={getTabUrl(tab.to)}
+                    textValue={tab.textValue}
+                  >
+                    {tab.title}
+                  </TabList.Item>
+                ))}
+              </TabList>
+            )}
+          </Tabs>
         )}
-      </Tabs>
+      </Stack>
     </Layout.Header>
   );
 }

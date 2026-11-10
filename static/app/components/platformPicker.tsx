@@ -8,7 +8,7 @@ import {PlatformIcon} from 'platformicons';
 import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -219,13 +219,11 @@ export function PlatformPicker({
             }}
           >
             {({TabList}) => (
-              <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-                <TabList>
-                  {categoryList.map(({id, name}) => (
-                    <TabList.Item key={id}>{name}</TabList.Item>
-                  ))}
-                </TabList>
-              </Stack>
+              <TabList>
+                {categoryList.map(({id, name}) => (
+                  <TabList.Item key={id}>{name}</TabList.Item>
+                ))}
+              </TabList>
             )}
           </Tabs>
         </Container>

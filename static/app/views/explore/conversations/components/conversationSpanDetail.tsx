@@ -278,67 +278,75 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <Tabs value={getVisibleTab(activeTab, combinedTab)} onChange={onTabChange}>
-          {({TabList, TabPanels}) => (
-            <Fragment>
-              <TabList>
-                <TabList.Item key="input" hidden={combinedTab !== null}>
-                  {t('Input')}
-                </TabList.Item>
-                <TabList.Item key="output" hidden={combinedTab !== null}>
-                  {t('Output')}
-                </TabList.Item>
-                <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
-                  {t('Decision')}
-                </TabList.Item>
-                <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
-                  {t('Extraction')}
-                </TabList.Item>
-                <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-              </TabList>
+        <Container display="contents">
+          {tabsRootProps => (
+            <Tabs
+              value={getVisibleTab(activeTab, combinedTab)}
+              onChange={onTabChange}
+              {...tabsRootProps}
+            >
+              {({TabList, TabPanels}) => (
+                <Fragment>
+                  <TabList>
+                    <TabList.Item key="input" hidden={combinedTab !== null}>
+                      {t('Input')}
+                    </TabList.Item>
+                    <TabList.Item key="output" hidden={combinedTab !== null}>
+                      {t('Output')}
+                    </TabList.Item>
+                    <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
+                      {t('Decision')}
+                    </TabList.Item>
+                    <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
+                      {t('Extraction')}
+                    </TabList.Item>
+                    <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+                  </TabList>
 
-              <Container
-                flex="0 0 auto"
-                minHeight="0"
-                width="100%"
-                overflowX="visible"
-                overflowY="visible"
-                // Gutter so the scroll container doesn't clip a focused input's focus ring.
-                padding="xs"
-              >
-                <TabPanels
-                  css={css`
-                    padding-top: 0;
-                  `}
-                >
-                  <TabPanels.Item key="input">
-                    {memory ? (
-                      <MemoryInputTab memory={memory} />
-                    ) : (
-                      <InputTab node={node} attributes={attributes} />
-                    )}
-                  </TabPanels.Item>
-                  <TabPanels.Item key="output">
-                    {memory ? (
-                      <MemoryOutputTab memory={memory} />
-                    ) : (
-                      <OutputTab node={node} attributes={attributes} />
-                    )}
-                  </TabPanels.Item>
-                  <TabPanels.Item key="decision">
-                    {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
-                  </TabPanels.Item>
-                  <TabPanels.Item key="extraction">
-                    {extraction ? <ExtractionTab extraction={extraction} /> : null}
-                  </TabPanels.Item>
-                  <TabPanels.Item key="attributes">
-                    <AttributesTab node={node} attributes={attributes} />
-                  </TabPanels.Item>
-                </TabPanels>
-              </Container>
-            </Fragment>
+                  <Container
+                    flex="0 0 auto"
+                    minHeight="0"
+                    width="100%"
+                    overflowX="visible"
+                    overflowY="visible"
+                    // Gutter so the scroll container doesn't clip a focused input's focus ring.
+                    padding="xs"
+                  >
+                    <TabPanels
+                      css={css`
+                        padding-top: 0;
+                      `}
+                    >
+                      <TabPanels.Item key="input">
+                        {memory ? (
+                          <MemoryInputTab memory={memory} />
+                        ) : (
+                          <InputTab node={node} attributes={attributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="output">
+                        {memory ? (
+                          <MemoryOutputTab memory={memory} />
+                        ) : (
+                          <OutputTab node={node} attributes={attributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="decision">
+                        {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="extraction">
+                        {extraction ? <ExtractionTab extraction={extraction} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="attributes">
+                        <AttributesTab node={node} attributes={attributes} />
+                      </TabPanels.Item>
+                    </TabPanels>
+                  </Container>
+                </Fragment>
+              )}
+            </Tabs>
           )}
-        </Tabs>
+        </Container>
       )}
     </SpanDetailCard>
   );

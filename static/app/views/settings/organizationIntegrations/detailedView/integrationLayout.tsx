@@ -106,18 +106,13 @@ function IntegrationTabs({
   return (
     <Tabs value={activeTab} onChange={tab => onTabChange?.(tab)}>
       {({TabList}) => (
-        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-          <TabList>
-            {tabs.map(tab => (
-              <TabList.Item
-                key={tab}
-                textValue={getTabDisplay ? getTabDisplay(tab) : tab}
-              >
-                <Capitalized>{renderTab(tab)}</Capitalized>
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Stack>
+        <TabList>
+          {tabs.map(tab => (
+            <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
+              <Capitalized>{renderTab(tab)}</Capitalized>
+            </TabList.Item>
+          ))}
+        </TabList>
       )}
     </Tabs>
   );

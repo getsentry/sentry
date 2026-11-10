@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import noop from 'lodash/noop';
 
-import {Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
 
@@ -55,16 +54,14 @@ export default function SessionHistory() {
       <TabsContainer>
         <Tabs onChange={noop} value={activeTab}>
           {({TabList}) => (
-            <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-              <TabList>
-                <TabList.Item key="settings" to={routePrefix}>
-                  {t('Settings')}
-                </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-                  {t('Session History')}
-                </TabList.Item>
-              </TabList>
-            </Stack>
+            <TabList>
+              <TabList.Item key="settings" to={routePrefix}>
+                {t('Settings')}
+              </TabList.Item>
+              <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+                {t('Session History')}
+              </TabList.Item>
+            </TabList>
           )}
         </Tabs>
       </TabsContainer>

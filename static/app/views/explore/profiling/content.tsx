@@ -223,35 +223,28 @@ function ProfilingContentInner() {
                   <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
                       {({TabList}) => (
-                        <Stack
-                          flexGrow={1}
-                          minWidth="0"
-                          flexBasis="0"
-                          alignSelf="stretch"
-                        >
-                          <TabList>
-                            <TabList.Item key="transactions">
-                              {t('Transactions')}
-                              <StyledQuestionTooltip
-                                position="top"
-                                size="sm"
-                                title={t(
-                                  'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
-                                )}
-                              />
-                            </TabList.Item>
-                            <TabList.Item key="flamegraph">
-                              {t('Aggregate Flamegraph')}
-                              <StyledQuestionTooltip
-                                position="top"
-                                size="sm"
-                                title={t(
-                                  'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
-                                )}
-                              />
-                            </TabList.Item>
-                          </TabList>
-                        </Stack>
+                        <TabList>
+                          <TabList.Item key="transactions">
+                            {t('Transactions')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
+                              )}
+                            />
+                          </TabList.Item>
+                          <TabList.Item key="flamegraph">
+                            {t('Aggregate Flamegraph')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                              )}
+                            />
+                          </TabList.Item>
+                        </TabList>
                       )}
                     </Tabs>
                     {tab === 'flamegraph' ? (

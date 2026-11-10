@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
@@ -28,13 +27,11 @@ function NetworkDetailsTabs() {
     <TabsContainer>
       <Tabs value={activeTab} onChange={tab => setActiveTab(tab)}>
         {({TabList}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-            <TabList>
-              {TABS.map(tab => (
-                <TabList.Item key={tab}>{TAB_LABELS[tab]}</TabList.Item>
-              ))}
-            </TabList>
-          </Stack>
+          <TabList>
+            {TABS.map(tab => (
+              <TabList.Item key={tab}>{TAB_LABELS[tab]}</TabList.Item>
+            ))}
+          </TabList>
         )}
       </Tabs>
     </TabsContainer>
