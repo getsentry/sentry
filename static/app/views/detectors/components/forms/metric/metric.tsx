@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect} from 'react';
+import {Fragment, useContext, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
@@ -41,6 +41,7 @@ import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/deta
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
+import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
@@ -618,6 +619,7 @@ function DetectSection({step}: {step?: number}) {
           )}
           {detectionType === 'dynamic' && (
             <Stack>
+              <AnomalyDetectionWarmupWarning />
               <SelectField
                 required
                 name={METRIC_DETECTOR_FORM_FIELDS.sensitivity}
@@ -663,6 +665,37 @@ function DetectSection({step}: {step?: number}) {
         )}
       </FormSection>
     </Container>
+  );
+}
+
+// Seer needs this much history before anomaly detection has a real baseline.
+const ANOMALY_DETECTION_MIN_HISTORY_MS = 7 * 24 * 60 * 60 * 1000;
+
+function AnomalyDetectionWarmupWarning() {
+  const project = useDetectorFormProject();
+  const [now] = useState(Date.now);
+
+  if (!project.firstEvent) {
+    return (
+      <Alert variant="warning">
+        {t(
+          "This project hasn't received any events yet. Anomaly detection needs at least 7 days of data to learn what normal looks like. Until then, this monitor may create issues as soon as data starts coming in. Consider using a static threshold until the project has a week of data."
+        )}
+      </Alert>
+    );
+  }
+
+  const historyMs = now - new Date(project.firstEvent).getTime();
+  if (historyMs >= ANOMALY_DETECTION_MIN_HISTORY_MS) {
+    return null;
+  }
+
+  return (
+    <Alert variant="warning">
+      {t(
+        'This project has less than 7 days of data. Anomaly detection needs at least 7 days to learn what normal looks like, so this monitor may create issues for ordinary traffic until then. Consider using a static threshold until the project has a week of data.'
+      )}
+    </Alert>
   );
 }
 

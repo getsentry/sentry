@@ -222,4 +222,50 @@ describe('NewMetricDetectorForm', () => {
       expect(within(search).getByRole('row', {name: 'status:500'})).toBeInTheDocument();
     }
   );
+
+  describe('anomaly detection warm-up warning', () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    async function renderWithDynamicDetection() {
+      render(
+        <DetectorFormProvider detectorType="metric_issue">
+          <NewMetricDetectorForm />
+        </DetectorFormProvider>,
+        {organization}
+      );
+      await userEvent.click(await screen.findByRole('radio', {name: /Dynamic/i}));
+    }
+
+    it('warns when the project has not received any events', async () => {
+      ProjectsStore.loadInitialData([{...project, firstEvent: null}]);
+      await renderWithDynamicDetection();
+
+      expect(
+        screen.getByText(/This project hasn't received any events yet/)
+      ).toBeInTheDocument();
+    });
+
+    it('warns when the project has less than 7 days of data', async () => {
+      ProjectsStore.loadInitialData([
+        {...project, firstEvent: new Date(Date.now() - 2 * DAY_MS).toISOString()},
+      ]);
+      await renderWithDynamicDetection();
+
+      expect(
+        screen.getByText(/This project has less than 7 days of data/)
+      ).toBeInTheDocument();
+    });
+
+    it('does not warn when the project has at least 7 days of data', async () => {
+      ProjectsStore.loadInitialData([
+        {...project, firstEvent: new Date(Date.now() - 30 * DAY_MS).toISOString()},
+      ]);
+      await renderWithDynamicDetection();
+
+      expect(
+        screen.getByRole('textbox', {name: 'Level of responsiveness'})
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Anomaly detection needs/)).not.toBeInTheDocument();
+    });
+  });
 });
