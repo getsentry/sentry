@@ -2135,11 +2135,6 @@
       "count": 1
     }
   },
-  "utils/performance/contexts/metricsEnhancedSetting.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "utils/profiling/canvasScheduler.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 6
@@ -2449,11 +2444,6 @@
   "views/dashboards/widgetCard/warningsList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "views/dashboards/widgetLegendSelectionState.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 4
     }
   },
   "views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization.tsx": {
@@ -3404,11 +3394,6 @@
   },
   "views/insights/crons/components/timezoneOverride.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/insights/mobile/screens/views/screenDetailsPage.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4703,11 +4688,6 @@
   "views/settings/projectDebugFiles/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "views/settings/projectDebugFiles/sources/customRepositories/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
     }
   },
   "views/settings/projectDebugFiles/sources/customRepositories/repository.tsx": {

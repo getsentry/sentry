@@ -2,11 +2,8 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  MEPState,
-  useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/useMEPSettingContext';
+import {MEPSettingProvider} from './metricsEnhancedSetting';
+import {MEPState, useMEPSettingContext} from './useMEPSettingContext';
 
 function MEPSettingControls() {
   const {metricSettingState, setMetricSettingState} = useMEPSettingContext();

@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectErrorsBasicChart} from 'sentry/views/projectDetail/charts/projectErrorsBasicChart';
+import {ProjectErrorsBasicChart} from './projectErrorsBasicChart';
 
 describe('ProjectErrorsBasicChart', () => {
   let projectsRequest: jest.Mock;
