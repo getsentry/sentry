@@ -3,7 +3,8 @@ import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
+
+import {IssueViewQueryCount} from './issueViewQueryCount';
 
 describe('IssueViewQueryCount', () => {
   const mockView = {

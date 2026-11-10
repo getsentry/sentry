@@ -2,6 +2,8 @@ import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsInteger, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
@@ -39,7 +41,6 @@ import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -52,14 +53,15 @@ import {
   ExploreBodySearch,
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
-import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
-import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {SetupLogsButton} from './setupLogsButton';
+import {StyledPageFilterBar} from './styles';
 
 type OnboardingProps = {
   organization: Organization;
@@ -264,7 +266,10 @@ function Onboarding({organization, project}: OnboardingProps) {
     'guidedStep',
     parseAsInteger.withOptions({history: 'push'})
   );
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;

@@ -5,8 +5,6 @@ from datetime import datetime
 from functools import partial
 from typing import cast, overload
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -19,6 +17,7 @@ from sentry.api.event_search import (
     default_config,
 )
 from sentry.api.event_search import parse_search_query as base_parse_query
+from sentry.auth.principal import RequestPrincipal
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import (
     GroupCategory,
@@ -45,7 +44,6 @@ from sentry.search.utils import (
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.issue_search import AUTOFIX_STATE_VALUES
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
-from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 is_filter_translation: dict[str, tuple[str, int]] = {
@@ -89,7 +87,7 @@ ValueConverter = Callable[
     [
         Iterable[str],
         Sequence[Project],
-        User | RpcUser | AnonymousUser | None,
+        RequestPrincipal | None,
         Sequence[Environment] | None,
     ],
     str | list[str] | list[RpcUser | Team | None] | list[RpcUser] | list[int] | list[float],
@@ -99,7 +97,7 @@ ValueConverter = Callable[
 def convert_actor_or_none_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[RpcUser | Team | None]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -116,7 +114,7 @@ def convert_actor_or_none_value(
 def convert_user_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[RpcUser]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -127,7 +125,7 @@ def convert_user_value(
 def convert_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> str | list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -144,7 +142,7 @@ def convert_release_value(
 def convert_first_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
@@ -158,7 +156,7 @@ def convert_first_release_value(
 def convert_substatus_value(
     value: Iterable[str | int],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     parsed = []
@@ -173,7 +171,7 @@ def convert_substatus_value(
 def convert_status_value(
     value: Iterable[str | int],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     parsed = []
@@ -188,7 +186,7 @@ def convert_status_value(
 def convert_category_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
@@ -204,7 +202,7 @@ def convert_category_value(
 def convert_priority_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'high' or 'medium' to the Priority value for issue lookup"""
@@ -220,7 +218,7 @@ def convert_priority_value(
 def convert_type_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
@@ -236,7 +234,7 @@ def convert_type_value(
 def convert_device_class_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     """Convert high, medium, and low to the underlying device class values"""
@@ -252,7 +250,7 @@ def convert_device_class_value(
 def convert_seer_actionability_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[float]:
     """Convert high, medium, and low to fixability score thresholds"""
@@ -268,7 +266,7 @@ def convert_seer_actionability_value(
 def convert_issue_progress_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     results: list[str] = []
@@ -284,7 +282,7 @@ def convert_issue_progress_value(
 def convert_autofix_state_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     results: list[str] = []
@@ -298,7 +296,7 @@ def convert_autofix_state_value(
 def convert_detector_value(
     value: Iterable[str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
 ) -> list[str]:
     """Convert detector ID(s) to a list of strings for consistent handling"""
@@ -332,7 +330,7 @@ value_converters: Mapping[str, ValueConverter] = {
 def convert_query_values(
     search_filters: list[SearchFilter],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
     value_converters: Mapping[str, ValueConverter] = value_converters,
     allow_aggregate_filters: bool = False,
@@ -344,7 +342,7 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[AggregateFilter | SearchFilter],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
     value_converters: Mapping[str, ValueConverter] = value_converters,
     allow_aggregate_filters: bool = False,
@@ -355,7 +353,7 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[QueryToken],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
     value_converters: Mapping[str, ValueConverter] = value_converters,
     allow_aggregate_filters: bool = False,
@@ -366,7 +364,7 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[ParsedTerm],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
     value_converters: Mapping[str, ValueConverter] = value_converters,
     allow_aggregate_filters: bool = False,
@@ -376,7 +374,7 @@ def convert_query_values(
 def convert_query_values(
     search_filters: Sequence[QueryToken | str],
     projects: Sequence[Project],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     environments: Sequence[Environment] | None,
     value_converters: Mapping[str, ValueConverter] = value_converters,
     allow_aggregate_filters: bool = False,

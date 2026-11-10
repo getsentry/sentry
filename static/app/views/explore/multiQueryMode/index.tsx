@@ -2,7 +2,7 @@ import {useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -10,10 +10,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {MultiQueryModeContent} from './content';
 
 export default function MultiQueryMode() {
   const organization = useOrganization();

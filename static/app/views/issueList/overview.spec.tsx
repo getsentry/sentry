@@ -5,7 +5,6 @@ import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
@@ -19,17 +18,17 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
-import IssueListOverview from 'sentry/views/issueList/overview';
+
+import IssueListOverview from './overview';
 import {
   DEFAULT_QUERY,
   getStoredIssueSort,
   IssueSortOptions,
   setStoredIssueSort,
-} from 'sentry/views/issueList/utils';
+} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -104,18 +103,6 @@ describe('IssueList', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: tags,
@@ -145,7 +132,7 @@ describe('IssueList', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -211,20 +198,6 @@ describe('IssueList', () => {
     });
 
     it('loads with a query in URL', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [
-          SearchFixture({
-            id: '123',
-            name: 'Assigned to Me',
-            isPinned: false,
-            isGlobal: true,
-            query: 'assigned:me',
-            type: 0,
-          }),
-        ],
-      });
-
       render(<IssueListOverview />, {
         organization,
 
@@ -266,7 +239,7 @@ describe('IssueList', () => {
       });
     });
 
-    it('does not request derived data when the progress UI flag is disabled', async () => {
+    it('does not request derived data when the issue inbox flag is disabled', async () => {
       render(<IssueListOverview />, {
         organization,
         initialRouterConfig,
@@ -360,6 +333,7 @@ describe('IssueList', () => {
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -379,6 +353,7 @@ describe('IssueList', () => {
           page: '2',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -394,6 +369,7 @@ describe('IssueList', () => {
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -410,43 +386,24 @@ describe('IssueList', () => {
   });
 
   describe('sort persistence', () => {
-    it('does not persist sort to localStorage without the recommended-sort feature', async () => {
+    it('persists sort to localStorage', async () => {
       render(<IssueListOverview />, {organization, initialRouterConfig});
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
-
-      // Writing while the feature is off would leave a stale value that overrides
-      // the Recommended default once the flag is enabled.
-      expect(getStoredIssueSort(organization.slug)).toBeNull();
-    });
-
-    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
       await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
       await userEvent.click(screen.getByRole('option', {name: 'Events'}));
 
-      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+      expect(getStoredIssueSort(organization.slug)).toBe(IssueSortOptions.FREQ);
     });
 
     it('does not read or write the stored sort on a view page', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      setStoredIssueSort(featureOrg.slug, IssueSortOptions.FREQ);
+      setStoredIssueSort(organization.slug, IssueSortOptions.FREQ);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture({querySort: IssueSortOptions.DATE}),
       });
 
       render(<IssueListOverview />, {
-        organization: featureOrg,
+        organization,
         initialRouterConfig: {
           ...initialRouterConfig,
           location: {
@@ -461,7 +418,7 @@ describe('IssueList', () => {
       await userEvent.click(screen.getByRole('option', {name: 'Users'}));
 
       // Changing the sort within a view does not overwrite the feed's stored sort
-      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+      expect(getStoredIssueSort(organization.slug)).toBe(IssueSortOptions.FREQ);
     });
   });
 
@@ -489,6 +446,7 @@ describe('IssueList', () => {
           groupStatsPeriod: 'auto',
           project: project.id.toString(),
           query: 'is:ignored',
+          sort: IssueSortOptions.RECOMMENDED,
           statsPeriod: '14d',
           referrer: 'issue-list',
         });
@@ -607,7 +565,7 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&sort=recommended&statsPeriod=14d',
           })
         );
       });
@@ -639,7 +597,7 @@ describe('IssueList', () => {
           2,
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&sort=recommended&statsPeriod=14d',
           })
         );
       });
@@ -919,30 +877,8 @@ describe('IssueList', () => {
     });
   });
 
-  describe('project low trends queue alert', () => {
-    beforeEach(() => {
-      act(() => ProjectsStore.reset());
-    });
-
-    it('does not render event processing alert', async () => {
-      act(() => ProjectsStore.loadInitialData([project]));
-
-      render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe('new view page', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [],
-      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture(),

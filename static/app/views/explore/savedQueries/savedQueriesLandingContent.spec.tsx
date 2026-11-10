@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
+import {SavedQueriesLandingContent} from './savedQueriesLandingContent';
 
 describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();

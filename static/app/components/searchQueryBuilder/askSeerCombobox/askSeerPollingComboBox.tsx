@@ -1,24 +1,20 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {
-  AskSeerComboBox,
-  type AskSeerComboBoxProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
-import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
-import type {
-  AskSeerStrategy,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
-import {formatQueryToNaturalLanguage} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+
+import {AskSeerComboBox, type AskSeerComboBoxProps} from './askSeerComboBox';
+import {AskSeerLoadingStatus} from './askSeerLoadingStatus';
+import {BaseAskSeerComboBox} from './baseAskSeerComboBox';
+import type {AskSeerStrategy, QueryTokensProps} from './types';
+import {useAskSeerPolling} from './useAskSeerPolling';
+import {formatQueryToNaturalLanguage, getAskSeerErrorMessage} from './utils';
 
 interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;
@@ -71,6 +67,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     completedSteps,
     reset,
     startFailed,
+    requestError,
+    isCompleted,
     runId,
   } = useAskSeerPolling<T>({
     projectIds,
@@ -78,7 +76,12 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     referrer: 'search_bar',
     options: extraOptions,
     onError: error => {
-      addErrorMessage(t('Seer failed to process your search. Please try again.'));
+      toast.error(
+        getAskSeerErrorMessage(
+          error,
+          t('Seer failed to process your search. Please try again.')
+        )
+      );
       trackAnalytics('ai_query.error', {
         organization,
         area: analyticsArea,
@@ -112,7 +115,12 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     }
   }, [isSessionError, organization, analyticsArea, searchQuery]);
 
-  if (startFailed && fallbackMutationOptions) {
+  // The fallback endpoint runs the same access checks, so after a 403 it would
+  // only fail again with a vaguer message.
+  const isAccessDenied =
+    requestError instanceof RequestError && requestError.status === 403;
+
+  if (startFailed && fallbackMutationOptions && !isAccessDenied) {
     return (
       <AskSeerComboBox
         {...props}
@@ -137,9 +145,16 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       unsupportedReason={unsupportedReason}
       submitQuery={submitQuery}
       isPending={isSessionPending || isPolling}
-      isError={isSessionError}
+      isError={isSessionError || startFailed}
+      hasResponse={isCompleted}
       loadingContent={loadingContent}
-      errorTitle={t('Seer failed to process your search. Please try again.')}
+      errorTitle={
+        unsupportedReason ||
+        getAskSeerErrorMessage(
+          requestError,
+          t('Seer failed to process your search. Please try again.')
+        )
+      }
       emptyTitle={t("Describe what you're looking for")}
       additionalFeedbackTags={
         runId

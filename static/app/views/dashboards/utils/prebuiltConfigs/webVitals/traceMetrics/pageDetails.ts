@@ -3,15 +3,16 @@ import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
 import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
+import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import {ModuleName} from 'sentry/views/insights/types';
+
 import {
   PAGELOADS_FIELD,
   scoreBreakdownChartWidget,
   scoreBreakdownWheelWidget,
   WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
   webVitalP75Meter,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
-import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {ModuleName} from 'sentry/views/insights/types';
+} from './widgets';
 
 // TODO: Move these to trace metrics once the metrics can back them.
 const SPANS_WIDGET_IDS = new Set([

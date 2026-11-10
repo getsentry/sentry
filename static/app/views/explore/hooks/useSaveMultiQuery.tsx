@@ -8,16 +8,14 @@ import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  useInvalidateSavedQueries,
-  useInvalidateSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   loadQueryParamsFromLocation,
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
+
+import {useInvalidateSavedQueries, useInvalidateSavedQuery} from './useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 const SAVED_QUERY_PARSERS = {id: parseAsScalar, title: parseAsScalar};

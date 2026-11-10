@@ -16,8 +16,8 @@ import {useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -62,11 +62,6 @@ import {
   LogTableBody,
   LogTableHeadCell,
 } from 'sentry/views/explore/logs/styles';
-import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
-import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
-import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -94,6 +89,17 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
+
+import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
+import {LogsEmptyResults} from './logsEmptyResults';
+import {LogsRateLimitError} from './logsRateLimitError';
+import {LogRowContent} from './logsTableRow';
+import {useLogsTableColumnWidths} from './useLogsTableColumnWidths';
+
+/**
+ * This sentinel value means the pseudo row sits after every loaded row.
+ */
+const SECOND_TO_LAST_ROW_SENTINEL = -2;
 
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;
@@ -160,6 +166,7 @@ export function LogsInfiniteTable({
     refetch,
     fetchNextPage,
     fetchPreviousPage,
+    canFetchNextPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -206,7 +213,7 @@ export function LogsInfiniteTable({
       row =>
         isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
     );
-    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
+    return index === -1 ? SECOND_TO_LAST_ROW_SENTINEL : index; // If the event is older than all the data, add it to the end with a sentinel value of SECOND_TO_LAST_ROW_SENTINEL. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
   const data = useMemo(() => {
@@ -222,7 +229,8 @@ export function LogsInfiniteTable({
       withEvent = baseData || [];
     } else {
       withEvent = [...baseData];
-      const newSelectedIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+      const newSelectedIndex =
+        pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
       withEvent.splice(
         newSelectedIndex,
         0,
@@ -369,20 +377,25 @@ export function LogsInfiniteTable({
     [virtualizer]
   );
 
-  // The -2 sentinel means the pseudo row sits after every loaded row. Reading the
-  // row count from an effect event keeps it out of the effect deps, so scrolling
+  // Reading the row count from an effect event keeps it out of the effect deps, so scrolling
   // does not repeat each time the infinite table loads another page.
   const scrollToPseudoRow = useEffectEvent(() => {
-    const scrollToIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+    const scrollToIndex =
+      pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
     virtualizer.scrollToIndex(scrollToIndex, {
       behavior: 'smooth',
       align: 'center',
     });
   });
 
+  // Scrolling to the end would load another page and move the event's row again.
+  const isPseudoRowPastLoadedPages =
+    pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL && canFetchNextPage;
+
   useEffect(() => {
     if (
       pseudoRowIndex === -1 ||
+      isPseudoRowPastLoadedPages ||
       !tableBodyRef?.current ||
       additionalData?.scrollToDisabled
     ) {
@@ -390,7 +403,13 @@ export function LogsInfiniteTable({
     }
     const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
     return () => clearTimeout(timeoutId);
-  }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
+  }, [
+    pseudoRowIndex,
+    isPseudoRowPastLoadedPages,
+    virtualizer,
+    tableBodyRef,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -523,7 +542,7 @@ export function LogsInfiniteTable({
         log_id: anchorId,
         organization,
       });
-      addErrorMessage(t('This log is not in the current results'));
+      toast.error(t('This log is not in the current results'));
       clearAnchor();
       return;
     }

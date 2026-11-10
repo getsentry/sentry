@@ -10,7 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -27,10 +27,10 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {getSavedQueryWithDataset} from './savedQuery/utils';
+import {makeDiscoverPathname} from './pathnames';
 import {QueryList} from './queryList';
 import {getPrebuiltQueries} from './utils';
 

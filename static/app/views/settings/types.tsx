@@ -34,6 +34,10 @@ export type NavigationItem = {
    */
   description?: string;
   /**
+   * Icon shown next to the page in the command palette.
+   */
+  icon?: ReactElement;
+  /**
    * A string identifier for the navigation item. May be used in hooks to
    * augment navigation items.
    */

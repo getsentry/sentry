@@ -6,17 +6,6 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  SearchQueryBuilderProvider,
-  useSearchQueryBuilderConfig,
-} from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
-import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
-import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {SearchQueryBuilderParenIcon} from 'sentry/components/searchQueryBuilder/tokens/paren';
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {
   FilterType,
   Token,
   type ParseResultToken,
@@ -25,6 +14,15 @@ import {
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
+
+import {AggregateKeyVisual} from './tokens/filter/aggregateKeyVisual';
+import {FilterValueText} from './tokens/filter/filterValueText';
+import {getOperatorInfo} from './tokens/filter/getOperatorInfo';
+import {isAggregateFilterToken} from './tokens/filter/utils';
+import {SearchQueryBuilderParenIcon} from './tokens/paren';
+import {SearchQueryBuilderProvider, useSearchQueryBuilderConfig} from './context';
+import type {FieldDefinitionGetter} from './types';
+import {parseQueryBuilderValue} from './utils';
 
 export type FormattedQueryProps = {
   query: string;

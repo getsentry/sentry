@@ -5,7 +5,7 @@ import {useQueryStates} from 'nuqs';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
@@ -16,12 +16,10 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
-import {
-  CONVERSATIONS_LANDING_TITLE,
-  MAX_PICKABLE_DAYS,
-} from 'sentry/views/explore/conversations/settings';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {CONVERSATIONS_LANDING_TITLE, MAX_PICKABLE_DAYS} from './settings';
 
 function ConversationsLayout() {
   const organization = useOrganization();

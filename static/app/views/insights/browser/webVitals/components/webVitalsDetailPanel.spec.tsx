@@ -4,7 +4,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
+
+import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();

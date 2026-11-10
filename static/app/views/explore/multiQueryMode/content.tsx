@@ -7,12 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -36,17 +32,15 @@ import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widget
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
-import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
-import {
-  useAddQuery,
-  useReadQueriesFromLocation,
-} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {
   loadQueryParamsFromLocation,
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {MAX_QUERIES_ALLOWED} from './constants';
+import {useAddQuery, useReadQueriesFromLocation} from './locationUtils';
+import {QueryRow} from './queryRow';
 
 const SAVED_QUERY_ID_PARSERS = {id: parseAsScalar};
 
@@ -131,16 +125,16 @@ function Content({datePageFilterProps}: ContentProps) {
                       label: t('Existing Query'),
                       onAction: async () => {
                         try {
-                          addLoadingMessage(t('Updating query...'));
+                          toast.loading(t('Updating query...'));
                           await updateQuery();
-                          addSuccessMessage(t('Query updated successfully'));
+                          toast.success(t('Query updated successfully'));
                           trackAnalytics('trace_explorer.save_as', {
                             save_type: 'update_query',
                             ui_source: 'toolbar',
                             organization,
                           });
                         } catch (error) {
-                          addErrorMessage(t('Failed to update query'));
+                          toast.error(t('Failed to update query'));
                           Sentry.captureException(error);
                         }
                       },

@@ -7,14 +7,15 @@ import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {EventMissingBanner} from 'sentry/views/issueDetails/eventMissingBanner';
-import {EventTitle} from 'sentry/views/issueDetails/eventTitle';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
 import {
   EventDetailsContent,
   type EventDetailsContentProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+} from './groupEventDetails/groupEventDetailsContent';
+import {useIssueDetails} from './context';
+import {EventMissingBanner} from './eventMissingBanner';
+import {EventTitle} from './eventTitle';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
@@ -41,9 +42,10 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 
 export function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const navRef = useRef<HTMLDivElement>(null);
-  const {dispatch, eventNavigationHeight} = useIssueDetails();
+  const {dispatch, eventNavigationHeight, scrollContext} = useIssueDetails();
   const {pageContentTop} = useTopOffset();
-  const stickyTopOffset = Number.parseInt(pageContentTop, 10);
+  const stickyTopOffset =
+    scrollContext === 'page' ? Number.parseInt(pageContentTop, 10) || 0 : 0;
 
   const updateNavScrollMargin = useCallback(() => {
     const navHeight = navRef.current?.offsetHeight ?? 0;
@@ -57,7 +59,10 @@ export function StickyEventNav({event, group}: {event: Event; group: Group}) {
   useResizeObserver({ref: navRef, onResize: updateNavScrollMargin});
 
   return (
-    <FloatingEventNavigation topOffset={eventNavigationHeight}>
+    <FloatingEventNavigation
+      relativeTo={scrollContext === 'page' ? 'topBar' : 'scrollContainer'}
+      topOffset={eventNavigationHeight}
+    >
       <EventTitle event={event} group={group} ref={navRef} />
     </FloatingEventNavigation>
   );

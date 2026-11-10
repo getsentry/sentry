@@ -3,11 +3,9 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
-  type TraceResults,
-  useTracesApiOptions,
-} from 'sentry/views/explore/hooks/useTraces';
 import {useQueryParamsCursor} from 'sentry/views/explore/queryParams/context';
+
+import {type TraceResults, useTracesApiOptions} from './useTraces';
 
 interface UseExploreTracesTableOptions {
   limit: number;

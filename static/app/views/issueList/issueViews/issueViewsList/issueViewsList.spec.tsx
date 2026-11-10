@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
+import IssueViewsList from './issueViewsList';
 
 const organization = OrganizationFixture({
   features: ['issue-views'],

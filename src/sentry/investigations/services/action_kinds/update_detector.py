@@ -5,13 +5,13 @@ from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, TypedDict, cast
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.auth.access import Access
+from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.incidents.endpoints.serializers.query_subscription import SnubaQuerySerializer
 from sentry.incidents.grouptype import MetricIssue
@@ -42,8 +42,6 @@ from sentry.models.organization import Organization
 from sentry.notebooks.contracts import StrictContractSerializer
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.snuba.models import SnubaQuery
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.endpoints.organization_detector_details import (
     check_metric_detector_allowed,
 )
@@ -407,7 +405,7 @@ class UpdateDetectorKind(ActionKind):
         *,
         investigations: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         source_detector_ids = {
             investigation_id: source_detector_id(source)
@@ -484,7 +482,7 @@ class UpdateDetectorKind(ActionKind):
         validator = get_detector_validator(
             context.request,
             detector.linked_project,
-            detector.group_type.slug,
+            detector.type,
             detector,
             partial=True,
             data=state.update(changes),

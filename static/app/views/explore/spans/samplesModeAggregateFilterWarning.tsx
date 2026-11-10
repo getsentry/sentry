@@ -5,7 +5,8 @@ import {Link} from '@sentry/scraps/link';
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
+
+import {getTargetWithReadableQueryParams} from './spansQueryParams';
 
 export function SamplesModeAggregateFilterWarning() {
   const location = useLocation();

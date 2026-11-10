@@ -16,6 +16,7 @@ const conversationsResult = {
   data: [],
   isFetching: false,
   error: null,
+  refetch: jest.fn(),
   pageLinks: undefined,
   setCursor: jest.fn(),
   unsetCursor: jest.fn(),

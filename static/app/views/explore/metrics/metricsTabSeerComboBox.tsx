@@ -28,22 +28,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {
-  defaultAggregateSortBys,
-  encodeMetricQueryParams,
-  type BaseMetricQuery,
-  type TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
-import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
-import {
-  makeMetricsAggregate,
-  parseTraceMetricFromQuery,
-  stripTraceMetricTokens,
-} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -54,6 +38,23 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
+
+import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from './constants';
+import {
+  defaultAggregateSortBys,
+  encodeMetricQueryParams,
+  type BaseMetricQuery,
+  type TraceMetric,
+} from './metricQuery';
+import {useMultiMetricsQueryParams} from './multiMetricsQueryParams';
+import {parseAggregateExpression} from './parseAggregateExpression';
+import {parseMetricAggregate} from './parseMetricsAggregate';
+import {isTraceMetricTypeValue} from './types';
+import {
+  makeMetricsAggregate,
+  parseTraceMetricFromQuery,
+  stripTraceMetricTokens,
+} from './utils';
 
 const SEER_QUERY_PARSERS = {
   metric: parseAsFieldList,

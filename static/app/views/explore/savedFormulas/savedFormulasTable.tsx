@@ -2,18 +2,14 @@ import {Fragment} from 'react';
 import {useQueryStates} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t} from 'sentry/locale';
@@ -27,13 +23,10 @@ import type {
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
-import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {
-  buildTokenMap,
-  FormulaToken,
-  FormulaTokens,
-} from 'sentry/views/explore/savedFormulas/formulaTokens';
-import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
+
+import {stripNamePrefix} from './formulaBuilder/draft';
+import {buildTokenMap, FormulaToken, FormulaTokens} from './formulaTokens';
+import {makeSavedFormulasPathname} from './pathnames';
 
 const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
   spans: t('Spans'),
@@ -135,12 +128,12 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
       confirmText: t('Delete Formula'),
       priority: 'danger',
       onConfirm: async () => {
-        addLoadingMessage(t('Deleting formula...'));
+        toast.loading(t('Deleting formula...'));
         try {
           await deleteFormula(formula.id);
-          addSuccessMessage(t('Formula deleted'));
+          toast.success(t('Formula deleted'));
         } catch {
-          addErrorMessage(t('Unable to delete formula'));
+          toast.error(t('Unable to delete formula'));
         }
       },
     });

@@ -7,21 +7,17 @@ import {defined} from 'sentry/utils/defined';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import {extractDomNodes} from 'sentry/utils/replays/extractDomNodes';
-import {
-  hydrateBreadcrumbs,
-  replayInitBreadcrumb,
-} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
-import {hydrateFrames} from 'sentry/utils/replays/hydrateFrames';
-import {
-  clipEndFrame,
-  recordingEndFrame,
-} from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
-import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
-import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
-import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+
+import type {Extraction} from './extractDomNodes';
+import {extractDomNodes} from './extractDomNodes';
+import {hydrateBreadcrumbs, replayInitBreadcrumb} from './hydrateBreadcrumbs';
+import {hydrateErrors} from './hydrateErrors';
+import {hydrateFrames} from './hydrateFrames';
+import {clipEndFrame, recordingEndFrame} from './hydrateRRWebRecordingFrames';
+import {hydrateSpans} from './hydrateSpans';
+import {replayTimestamps} from './replayDataUtils';
+import {replayerDomQuery} from './replayerDomQuery';
 import type {
   BreadcrumbFrame,
   ClipWindow,
@@ -37,7 +33,7 @@ import type {
   SpanFrame,
   VideoEvent,
   WebVitalFrame,
-} from 'sentry/utils/replays/types';
+} from './types';
 import {
   BreadcrumbCategories,
   EventType,
@@ -54,8 +50,7 @@ import {
   isTouchStartFrame,
   isWebVitalFrame,
   NodeType,
-} from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+} from './types';
 
 interface ReplayReaderParams {
   /**

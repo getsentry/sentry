@@ -1,6 +1,6 @@
 import {Fragment, useId, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -8,8 +8,8 @@ import {Input} from '@sentry/scraps/input';
 import {Container} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -19,9 +19,9 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -51,15 +51,13 @@ interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
   organizations: string[];
 }
 
+const mergeAccountsOptions = apiOptions.as<UserWithOrganizations[]>()(
+  '/auth-v2/merge-accounts/',
+  {staleTime: 0}
+);
+
 function MergeAccounts() {
-  const {
-    data: users = [],
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<UserWithOrganizations[]>(makeMergeAccountsEndpointKey(), {
-    staleTime: 0,
-  });
+  const {data: users = [], isPending, isError, refetch} = useQuery(mergeAccountsOptions);
   const user = useUser();
   const queryClient = useQueryClient();
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
@@ -95,17 +93,17 @@ function MergeAccounts() {
       });
     },
     onSuccess: data => {
-      addSuccessMessage(t('Accounts merged!'));
+      toast.success(t('Accounts merged!'));
       setSelectedUserIds([]);
-      setApiQueryData<UserWithOrganizations[]>(
-        queryClient,
-        makeMergeAccountsEndpointKey(),
-        data
-      );
+      queryClient.setQueryData(mergeAccountsOptions.queryKey, response => ({
+        ...response,
+        headers: response?.headers ?? {},
+        json: data,
+      }));
     },
     onError: (err: RequestError) => {
       if (err.responseJSON && !('raw' in err.responseJSON)) {
-        addErrorMessage(
+        toast.error(
           Object.values(err.responseJSON ?? {})
             .flat()
             .join(' ')
@@ -123,7 +121,7 @@ function MergeAccounts() {
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Verification code posted!'));
+      toast.success(t('Verification code posted!'));
       setVerificationCodeSent(true);
     },
   });
@@ -220,10 +218,6 @@ function MergeAccounts() {
 }
 
 export default MergeAccounts;
-
-function makeMergeAccountsEndpointKey(): ApiQueryKey {
-  return [ENDPOINT];
-}
 
 type AccountSelectionProps = {
   onSelect: (newUserId: string) => void;

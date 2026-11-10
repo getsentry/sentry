@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getARTContextData,
-  type ARTContext,
-} from 'sentry/components/events/contexts/knownContext/art';
+
+import {getARTContextData, type ARTContext} from './art';
 
 const MOCK_ART_CONTEXT: ARTContext = {
   'gc.blocking_count': 5,

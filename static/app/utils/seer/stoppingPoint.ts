@@ -3,12 +3,13 @@ import {useMemo} from 'react';
 import {AutofixStoppingPoint} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import type {
   InternalAutomationTuning,
   SeerAutofixStoppingPoint,
   UserFacingStoppingPoint,
-} from 'sentry/utils/seer/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './types';
 
 // @deprecated: Call `useStoppingPointSelectOptions()` instead
 export const PROJECT_STOPPING_POINT_OPTIONS: Array<{

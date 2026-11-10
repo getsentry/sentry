@@ -6,9 +6,16 @@ from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus, ScheduleType
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    ScheduleType,
+)
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import MonitorTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -89,6 +96,67 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[0]["id"] == str(checkin3.guid)
         assert resp.data[1]["id"] == str(checkin2.guid)
         assert resp.data[2]["id"] == str(checkin1.guid)
+
+    def _walk_pages(
+        self, monitor: Monitor, **params: str
+    ) -> tuple[list[list[str]], list[list[str]]]:
+        """Follow next links to the end, then prev links back to the start."""
+        pages = []
+        cursor = ""
+        while True:
+            resp = self.get_success_response(
+                self.organization.slug, monitor.slug, statsPeriod="1d", cursor=cursor, **params
+            )
+            pages.append([c["id"] for c in resp.data])
+            links = {link["rel"]: link for link in parse_link_header(resp["Link"]).values()}
+            if links["next"]["results"] != "true":
+                break
+            cursor = links["next"]["cursor"] or ""
+
+        back = [pages[-1]]
+        while links["previous"]["results"] == "true":
+            resp = self.get_success_response(
+                self.organization.slug,
+                monitor.slug,
+                statsPeriod="1d",
+                cursor=links["previous"]["cursor"],
+                **params,
+            )
+            back.insert(0, [c["id"] for c in resp.data])
+            links = {link["rel"]: link for link in parse_link_header(resp["Link"]).values()}
+        return pages, back
+
+    def test_pagination(self) -> None:
+        monitor = self._create_monitor()
+        jungle = self._create_monitor_environment(monitor, name="jungle")
+        volcano = self._create_monitor_environment(monitor, name="volcano")
+        desert = self._create_monitor_environment(monitor, name="desert")
+
+        base = (monitor.date_added - timedelta(minutes=30)).replace(microsecond=0)
+        for i in range(7):
+            # Missed check-ins in different environments share a timestamp.
+            for seconds, monitor_environment in ((0, jungle), (0, desert), (20, volcano)):
+                MonitorCheckIn.objects.create(
+                    monitor_environment=monitor_environment,
+                    date_added=base + timedelta(minutes=i, seconds=seconds),
+                    status=CheckInStatus.OK,
+                )
+
+        for env_params, envs in (
+            ({}, (jungle, volcano, desert)),
+            ({"environment": "jungle"}, (jungle,)),
+        ):
+            expected = [
+                str(guid)
+                for guid in MonitorCheckIn.objects.filter(monitor_environment__in=envs)
+                .order_by("-date_added", "-id")
+                .values_list("guid", flat=True)
+            ]
+            for per_page in (1, 2, 3, 5):
+                pages, back = self._walk_pages(monitor, per_page=str(per_page), **env_params)
+                assert [guid for page in pages for guid in page] == expected
+                assert all(len(page) == per_page for page in pages[:-1])
+                assert back == pages
 
     def test_statsperiod_constraints(self) -> None:
         monitor = self._create_monitor()

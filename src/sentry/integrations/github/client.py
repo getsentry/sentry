@@ -37,8 +37,6 @@ from sentry.integrations.source_code_management.commit_context import (
     SourceLineInfo,
 )
 from sentry.integrations.source_code_management.metrics import (
-    SCMIntegrationInteractionEvent,
-    SCMIntegrationInteractionType,
     get_current_scm_interaction_type,
     normalize_scm_provider_key,
 )
@@ -111,6 +109,8 @@ query SearchLabels($owner: String!, $name: String!, $search: String!) {
 # Github's secondary (concurrent request) rate limits.
 PAGINATION_MAX_WORKERS = 10
 GET_REPOSITORIES_METRIC = "integrations.source_code_management.get_repositories"
+GET_REPO_TREE_METRIC = "integrations.source_code_management.get_repo_tree"
+GET_RATE_LIMIT_METRIC = "integrations.source_code_management.get_rate_limit"
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
@@ -703,18 +703,24 @@ class GitHubBaseClient(
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture():
+        parent_interaction_type = get_current_scm_interaction_type() or "unattributed"
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": str(parent_interaction_type),
+        }
+        try:
             response = self.get_mapping(
                 "/rate_limit", api_request_type=GitHubApiRequestType.GET_RATE_LIMIT
             )
             resources = response["resources"]
             resource = resources[specific_resource]
-            return GithubRateLimitInfo(_int_values(resource, context="rate limit"))
+            rate_limit = GithubRateLimitInfo(_int_values(resource, context="rate limit"))
+        except Exception:
+            metrics.incr(GET_RATE_LIMIT_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        metrics.incr(GET_RATE_LIMIT_METRIC, tags={**metric_tags, "result": "success"})
+        return rate_limit
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -724,35 +730,39 @@ class GitHubBaseClient(
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture() as lifecycle:
-            try:
-                # We do not cache this call since it is a rather large object
-                contents = self.get_mapping(
-                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-                    params={"recursive": 1},
-                    api_request_type=GitHubApiRequestType.GET_REPO_TREE,
-                )
-            except ApiConflictError as e:
-                # Empty repos return a 409 which is expected
-                lifecycle.record_halt(e)
-                raise
-            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-            if contents.get("truncated"):
-                # e.g. getsentry/DataForThePeople
-                logger.warning(
-                    "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
-                    repo_full_name,
-                )
-            return contents["tree"]
+        parent_interaction_type = get_current_scm_interaction_type() or "unattributed"
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": str(parent_interaction_type),
+        }
+        try:
+            # We do not cache this call since it is a rather large object
+            contents = self.get_mapping(
+                f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                params={"recursive": 1},
+                api_request_type=GitHubApiRequestType.GET_REPO_TREE,
+            )
+        except ApiConflictError:
+            # Empty repos return a 409 which is expected
+            metrics.incr(GET_REPO_TREE_METRIC, tags={**metric_tags, "result": "halted"})
+            raise
+        except Exception:
+            metrics.incr(GET_REPO_TREE_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+        if contents.get("truncated"):
+            # e.g. getsentry/DataForThePeople
+            logger.warning(
+                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                repo_full_name,
+            )
+        metrics.incr(GET_REPO_TREE_METRIC, tags={**metric_tags, "result": "success"})
+        return contents["tree"]
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:

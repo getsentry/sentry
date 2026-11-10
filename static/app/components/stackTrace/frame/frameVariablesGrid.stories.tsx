@@ -5,12 +5,13 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import * as Storybook from 'sentry/stories';
 import type {NativeFrameVariable} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FrameVariablesGrid} from './frameVariablesGrid';
 
 const filteredMeta: Partial<Meta> = {rem: [['project:0', 'x']]};
 const replacedMeta: Partial<Meta> = {rem: [['project:0', 's']]};

@@ -49,16 +49,12 @@ class GitlabSearchTest(GitLabTestCase):
             {"value": "5#25", "label": "(#25) AEIOU Error"},
             {"value": "5#45", "label": "(#45) AEIOU Error"},
         ]
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_finds_external_issue_results_with_iid(self) -> None:
@@ -100,18 +96,12 @@ class GitlabSearchTest(GitLabTestCase):
             {"value": "getsentry/sentry", "label": "GetSentry / Sentry"},
             {"value": "getsentry2/sentry2", "label": "GetSentry2 / Sentry2"},
         ]
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = (
-            product_calls  # calls get, which calls handle_search_repositories
-        )
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_finds_project_results_with_pagination(self) -> None:
@@ -250,17 +240,12 @@ class GitlabSearchTest(GitLabTestCase):
             self.url, data={"field": "externalIssue", "query": "GetSentry", "project": "5"}
         )
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.FAILURE
-        # NOTE: handle_search_issues returns without raising an API error, so for the
-        # purposes of logging the GET request completes successfully
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, failure = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert failure.args[0] == EventLifecycleOutcome.FAILURE
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -268,14 +253,9 @@ class GitlabSearchTest(GitLabTestCase):
         responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
         assert resp.status_code == 400
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.FAILURE
-        # NOTE: handle_search_issues returns without raising an API error, so for the
-        # purposes of logging the GET request completes successfully
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, failure = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert failure.args[0] == EventLifecycleOutcome.FAILURE

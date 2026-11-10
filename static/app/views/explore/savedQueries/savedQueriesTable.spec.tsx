@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SavedQueriesTable} from 'sentry/views/explore/savedQueries/savedQueriesTable';
+import {SavedQueriesTable} from './savedQueriesTable';
 
 describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();

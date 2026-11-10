@@ -3,7 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {SavedFormulasTable} from 'sentry/views/explore/savedFormulas/savedFormulasTable';
+
+import {SavedFormulasTable} from './savedFormulasTable';
 
 function SavedFormulaFixture(params: Partial<SavedFormula> = {}): SavedFormula {
   return {

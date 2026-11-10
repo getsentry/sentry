@@ -178,6 +178,16 @@ class TestUpdater(TestCase):
         assert service_hook.url == "http://example.com/hooks"
         assert service_hook.events == expand_events(["event.alert"])
 
+    def test_app_without_application_keeps_other_tokens_scopes(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+        self.sentry_app.update(application=None)
+
+        self.updater.scopes = ["project:read", "project:write"]
+        self.updater.run(user=self.user)
+
+        token.refresh_from_db()
+        assert token.scope_list == ["org:read"]
+
     def test_updates_redirect_url(self) -> None:
         self.updater.redirect_url = "http://example.com/finish-setup"
         self.updater.run(self.user)

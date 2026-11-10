@@ -4,16 +4,14 @@ import {HeatMapSeriesFixture} from 'sentry-fixture/heatMapSeries';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {HeatMapZoomContext} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
-import {
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricsHeatMap} from 'sentry/views/explore/metrics/metricsHeatMap';
-import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
+
+import {defaultMetricQuery, encodeMetricQueryParams} from './metricQuery';
+import {MetricsHeatMap} from './metricsHeatMap';
+import {MetricsQueryParamsProvider} from './metricsQueryParams';
 import {
   MultiMetricsQueryParamsProvider,
   useMultiMetricsQueryParams,
-} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+} from './multiMetricsQueryParams';
 
 jest.mock(
   'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization',

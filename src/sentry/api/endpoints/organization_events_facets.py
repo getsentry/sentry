@@ -50,7 +50,10 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
+        with handle_query_errors():
+            update_snuba_params_with_timestamp(
+                request, snuba_params, timestamp_key="traceTimestamp"
+            )
 
         dataset = self.get_dataset(request, organization)
 

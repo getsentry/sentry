@@ -4,9 +4,9 @@ import {parseAsString, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
@@ -27,11 +27,12 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupResolutionActions} from 'sentry/views/issueDetails/actions/index';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
-import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
-import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
-import type {IssueSummary} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
+
+import {IssuePreviewActions} from './issuePreviewActions';
+import {useIssuePreviewSeer} from './issuePreviewSeer';
+import {IssuePreviewSeerActions} from './issuePreviewSeerActions';
+import type {IssueSummary} from './issuePreviewSummary';
 
 interface IssuePreviewHeaderActionsProps {
   event: Event | undefined;
@@ -111,8 +112,8 @@ function IssuePreviewResolutionActions({
         itemIds: [group.id],
         data,
       });
-      clearIndicators();
-      addSuccessMessage(
+      toast.dismiss();
+      toast.success(
         data.status === GroupStatus.UNRESOLVED
           ? t('Issue marked unresolved')
           : t('Issue resolved')

@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 import orjson
 import pytest
-from django.contrib.auth.models import AnonymousUser
 
 from sentry.auth.access import Access
+from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_PROJECTION_BYTES,
@@ -32,8 +32,6 @@ from sentry.investigations.services.action_kinds.base import (
     CannotApplyReason,
 )
 from sentry.notebooks.models import Notebook, NotebookActionRequest
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
 from tests.sentry.notebooks.test_contracts import golden_payload
 
@@ -536,7 +534,7 @@ class RecordingKind(ActionKind):
         # The requests after_upsert ran for, in order.
         self.upserted: list[NotebookActionRequest] = []
         # The arguments from each cannot_apply_reasons call.
-        self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
+        self.checked: list[tuple[list[int], list[int], Access, RequestPrincipal]] = []
         # Which of check_remote, check and apply ran, in order.
         self.calls: list[str] = []
         # What check and apply raise, if anything.
@@ -557,7 +555,7 @@ class RecordingKind(ActionKind):
         *,
         investigations: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         self.checked.append(
             ([item.id for item in action_requests], sorted(investigations), access, user)

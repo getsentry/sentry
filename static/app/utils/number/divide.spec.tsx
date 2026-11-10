@@ -1,4 +1,4 @@
-import {divide} from 'sentry/utils/number/divide';
+import {divide} from './divide';
 
 describe('divide', () => {
   it('divides numbers safely', () => {

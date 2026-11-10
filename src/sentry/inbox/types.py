@@ -5,6 +5,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 
 from django.db import router, transaction
+from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from sentry import features
@@ -97,25 +98,37 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
             metrics.timer("inbox.record.duration", tags=tags),
             transaction.atomic(using=router.db_for_write(InboxItem)),
         ):
-            for user_id in sorted(recipients):
-                item, _ = InboxItem.objects.select_for_update().get_or_create(
-                    organization=organization,
-                    user_id=user_id,
-                    subject_type=self.item_type.subject_type,
-                    subject_id=subject_id,
-                    defaults={"last_activity_at": timezone.now()},
-                )
-                event = InboxItemEvent.objects.create(
-                    inbox_item=item,
-                    type=self.event_type,
-                    actor_type=actor.type,
-                    actor_id=actor.id,
-                    data=payload,
-                )
-                InboxItem.objects.filter(id=item.id).update(
-                    last_activity_at=max(item.last_activity_at, event.date_added),
-                    status=ObjectStatus.ACTIVE,
-                    date_updated=event.date_added,
-                )
+            items = InboxItem.objects.bulk_create(
+                [
+                    InboxItem(
+                        organization=organization,
+                        user_id=user_id,
+                        subject_type=self.item_type.subject_type,
+                        subject_id=subject_id,
+                        last_activity_at=timezone.now(),
+                        status=ObjectStatus.ACTIVE,
+                    )
+                    for user_id in sorted(recipients)
+                ],
+                update_conflicts=True,
+                unique_fields=["user_id", "organization", "subject_type", "subject_id"],
+                update_fields=["status"],
+            )
+            events = InboxItemEvent.objects.bulk_create(
+                [
+                    InboxItemEvent(
+                        inbox_item=item,
+                        type=self.event_type,
+                        actor_type=actor.type,
+                        actor_id=actor.id,
+                        data=payload,
+                    )
+                    for item in items
+                ]
+            )
+            for item, event in zip(items, events):
+                item.last_activity_at = Greatest("last_activity_at", event.date_added)
+                item.date_updated = event.date_added
+            InboxItem.objects.bulk_update(items, ["last_activity_at", "date_updated"])
 
         metrics.incr("inbox.events.recorded", amount=len(recipients), tags=tags)

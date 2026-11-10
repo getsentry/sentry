@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
+import {FloatingTrigger} from './floatingTrigger';
 
 describe('FloatingTrigger', () => {
   it('opens attribute breakdowns for the selection in one history entry when comparing', async () => {

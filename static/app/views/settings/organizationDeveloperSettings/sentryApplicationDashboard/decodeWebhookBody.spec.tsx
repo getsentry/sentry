@@ -1,4 +1,4 @@
-import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
+import {decodeWebhookBody} from './decodeWebhookBody';
 
 describe('decodeWebhookBody', () => {
   it('parses a plain JSON body', () => {

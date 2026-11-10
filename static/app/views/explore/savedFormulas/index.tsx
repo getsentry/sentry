@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -18,9 +18,10 @@ import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetSavedFormulas} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
-import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
-import {SavedFormulasTable} from 'sentry/views/explore/savedFormulas/savedFormulasTable';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {makeSavedFormulasPathname} from './pathnames';
+import {SavedFormulasTable} from './savedFormulasTable';
 
 export default function SavedFormulasView() {
   const organization = useOrganization();

@@ -1,4 +1,4 @@
-import {PlatformizedHttpDomainSummaryPage} from 'sentry/views/insights/http/views/platformizedSummaryPage';
+import {PlatformizedHttpDomainSummaryPage} from './platformizedSummaryPage';
 
 function PageWithProviders() {
   return <PlatformizedHttpDomainSummaryPage />;

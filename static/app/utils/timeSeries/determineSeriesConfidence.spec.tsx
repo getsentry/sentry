@@ -1,6 +1,6 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
+import {determineTimeSeriesConfidence} from './determineSeriesConfidence';
 
 describe('determineTimeSeriesConfidence', () => {
   it('equal null if no data', () => {

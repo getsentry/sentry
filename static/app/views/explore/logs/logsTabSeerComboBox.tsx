@@ -40,12 +40,6 @@ import {
   LOGS_AGGREGATE_SORT_BYS_KEY,
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
-import {
-  defaultVisualizes,
-  getLogsQueryParamsUpdates,
-  LOGS_AGGREGATE_FIELD_KEY,
-  LOGS_QUERY_PARSERS,
-} from 'sentry/views/explore/logs/logsQueryParams';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -54,6 +48,13 @@ import {
   getSeerExploreQuery,
   getSeerWritableAggregateFields,
 } from 'sentry/views/explore/seerQuery';
+
+import {
+  defaultVisualizes,
+  getLogsQueryParamsUpdates,
+  LOGS_AGGREGATE_FIELD_KEY,
+  LOGS_QUERY_PARSERS,
+} from './logsQueryParams';
 
 const LOGS_SEER_QUERY_PARSERS = {
   ...LOGS_QUERY_PARSERS,

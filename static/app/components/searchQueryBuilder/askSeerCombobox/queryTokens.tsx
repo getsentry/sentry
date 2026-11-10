@@ -3,20 +3,21 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  formatDateRange,
-  getCrossEventFilterQuery,
-  normalizeSeerDateTimeParams,
-  resolveSeerProjectSelection,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {useAiQueryContext} from './aiQueryContext';
+import type {QueryTokensProps} from './types';
+import {
+  formatDateRange,
+  getCrossEventFilterQuery,
+  normalizeSeerDateTimeParams,
+  resolveSeerProjectSelection,
+} from './utils';
 
 const MAX_PROJECT_CHIPS = 3;
 const MAX_FIELD_CHIPS = 3;

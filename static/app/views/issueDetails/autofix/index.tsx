@@ -17,10 +17,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
-import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+import {useAutofixPanel} from './context';
+import {hasAutofixPage} from './utils';
 
 // getsentry supplies the upgrade CTA; open source has no billing UI to show.
 const AiSetupDataConsent = OverrideOrDefault({

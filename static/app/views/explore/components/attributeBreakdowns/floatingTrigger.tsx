@@ -9,7 +9,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {parseAsChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
@@ -17,6 +16,8 @@ import {
   parseAsMode,
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
+
+import {parseAsChartSelection} from './chartSelectionContext';
 
 const COMPARE_QUERY_PARSERS = {
   mode: parseAsMode,

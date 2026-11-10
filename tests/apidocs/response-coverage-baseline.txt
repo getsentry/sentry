@@ -1,0 +1,25 @@
+# Response fields that are not described or typed yet; see src/sentry/apidocs/README.md#response-fields.
+# Only remove lines: python -m sentry.apidocs.response_coverage --prune
+untyped components/ListReplayRecordingSegments[][]
+untyped components/OrganizationProfilingChunksResponse
+untyped components/OrganizationProfilingFlamegraphResponse
+untyped components/ProjectProfilingProfileResponse
+untyped sentry.ai_monitoring.endpoints.organization_ai_conversation_details.AIConversationDetailsResponse.spans[]
+untyped sentry.api.endpoints.organization_events.EventsApiResponse.data[]
+untyped sentry.api.endpoints.organization_events.EventsMeta.debug_info
+untyped sentry.api.serializers.models.event.BaseEventSerializerResponse._meta
+untyped sentry.api.serializers.models.event.BaseEventSerializerResponse.entries[]
+untyped sentry.api.serializers.models.event.EventDetailFields.context
+untyped sentry.api.serializers.models.organization.OrganizationSummarySerializerResponseOptional.extraOptions{}
+untyped sentry.api.serializers.models.project.DetailedProjectResponse.options
+untyped sentry.api.serializers.models.project.DetailedProjectResponse.seerNightshiftTweaks
+untyped sentry.api.serializers.models.project._OrganizationProjectOptionalResponse.options
+untyped sentry.api.serializers.types.GroupEventReleaseSerializerResponse.data
+untyped sentry.api.serializers.types.ReleaseSerializerResponse.data
+untyped sentry.flags.endpoints.logs.FlagAuditLogModelSerializerResponse.tags
+untyped sentry.integrations.api.serializers.models.integration.OrganizationIntegrationResponse.configData
+untyped sentry.integrations.api.serializers.models.integration.OrganizationIntegrationResponse.configOrganization
+untyped sentry.interfaces.user.EventUserApiContext.data
+untyped sentry.issues.issue_occurrence.IssueOccurrenceResponse.evidenceData
+untyped sentry.seer.autofix.types.AutofixStateResponse.autofix
+untyped sentry.sentry_apps.utils.errors.SentryAppPublicErrorBody.context

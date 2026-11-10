@@ -12,11 +12,9 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {
-  usePageContextCapture,
-  usePageContextReady,
-} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
+
+import {usePageContextCapture, usePageContextReady} from './usePageContextCapture';
 
 // How long the placeholders show before the fixed suggestions replace them.
 // Covers both the page loading its context and the request itself.

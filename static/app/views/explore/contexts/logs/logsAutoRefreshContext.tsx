@@ -12,6 +12,8 @@ import {
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
 
+import {LOGS_ANCHOR_TIMESTAMP_KEY} from './logsPageParams';
+
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
@@ -20,6 +22,7 @@ const MAX_AUTO_REFRESH_PAUSED_TIME_MS = 60 * 1000; // 10 seconds
 const LOGS_AUTO_REFRESH_PARSERS = {
   [LOGS_AUTO_REFRESH_KEY]: parseAsScalar,
   [LOGS_REFRESH_INTERVAL_KEY]: parseAsInteger.withDefault(LOGS_REFRESH_INTERVAL_DEFAULT),
+  [LOGS_ANCHOR_TIMESTAMP_KEY]: parseAsScalar,
 };
 
 export const ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS = 10 * 60 * 1000; // 10 minutes
@@ -172,6 +175,7 @@ export function useSetLogsAutoRefresh() {
 
       const target = applyQueryParamsUpdates(LOGS_AUTO_REFRESH_PARSERS, location, {
         [LOGS_AUTO_REFRESH_KEY]: autoRefresh === 'idle' ? null : autoRefresh,
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: autoRefresh === 'enabled' ? null : undefined,
       });
       navigateIfQueryChanged(navigate, location, target);
     },

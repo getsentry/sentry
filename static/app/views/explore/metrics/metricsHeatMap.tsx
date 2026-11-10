@@ -15,20 +15,21 @@ import {
 } from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {MetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
-import {WidgetWrapper} from 'sentry/views/explore/metrics/metricGraph/styles';
-import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
+import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
+import {prettifyAggregation} from 'sentry/views/explore/utils';
+import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
+
+import type {MetricHeatMapData} from './hooks/useMetricHeatMapData';
+import {WidgetWrapper} from './metricGraph/styles';
+import {encodeMetricQueryParams} from './metricQuery';
 import {
   useMetricLabel,
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
-} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
-import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
-import {prettifyAggregation} from 'sentry/views/explore/utils';
-import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
+} from './metricsQueryParams';
+import {useMultiMetricsQueryParams} from './multiMetricsQueryParams';
+import {STACKED_GRAPH_HEIGHT} from './settings';
 
 const ZOOM_QUERY_PARSERS = {
   metric: parseAsFieldList,

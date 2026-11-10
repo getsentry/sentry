@@ -1,7 +1,9 @@
 import type * as React from 'react';
 import {createContext, useContext} from 'react';
 
-export interface DrawerLocation {
+import type {ModalBoundaryProps} from './modal/types';
+
+export interface OverlayLocation {
   pathname: string;
   query: Record<string, string | string[] | null | undefined>;
   hash?: string;
@@ -19,11 +21,14 @@ export interface OverlayContextValue {
   contentTop?: string;
   drawer?: {
     boundaryComponent?: React.ComponentType<React.PropsWithChildren>;
-    location?: DrawerLocation;
-    shouldCloseOnInteractOutside?: (element: Element) => boolean;
     widthStorage?: DrawerWidthStorage;
   };
   headerHeight?: string;
+  location?: OverlayLocation;
+  modal?: {
+    boundaryComponent?: React.ComponentType<ModalBoundaryProps>;
+    getAppElement?: () => HTMLElement | null;
+  };
 }
 
 const OverlayContext = createContext<OverlayContextValue>({});

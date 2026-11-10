@@ -5,8 +5,9 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
-import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+import {WidgetBuilderSortBySelector} from './sortBySelector';
 
 describe('WidgetBuilderSortBySelector', () => {
   let organization: Organization;

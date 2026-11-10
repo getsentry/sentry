@@ -51,6 +51,23 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
 
+    def test_trace_timestamp_outside_retention(self) -> None:
+        with (
+            self.feature(self.features),
+            mock.patch("sentry.quotas.backend.get_event_retention", return_value=30),
+        ):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "statsPeriod": "90d",
+                    "traceTimestamp": before_now(days=60).timestamp(),
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+
     def test_simple(self) -> None:
         self.store_event(
             data={

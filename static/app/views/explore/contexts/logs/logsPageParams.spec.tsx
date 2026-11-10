@@ -1,10 +1,11 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
 import {
   PersistedLogsPageParamsProvider,
   usePersistedLogsPageParams,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+} from './logsPageParams';
 
 function ColumnsEditor() {
   const [params, setParams] = usePersistedLogsPageParams();

@@ -1,4 +1,4 @@
-import {isUrl} from 'sentry/utils/string/isUrl';
+import {isUrl} from './isUrl';
 
 // URL.parse accepts hostnames like `*` or `{host}` that are not real navigable hosts.
 // Reject wildcard/template characters so we render these as plain text instead of links.
