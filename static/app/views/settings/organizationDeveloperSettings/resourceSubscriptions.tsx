@@ -30,9 +30,7 @@ export function Subscriptions({events, onChange, permissions}: Props) {
   useEffect(() => {
     const permitted = new Set<string>(
       EVENT_CHOICES.flatMap(resource =>
-        hasNoAccess(permissions, resource)
-          ? []
-          : [resource, ...RESOURCE_EVENTS[resource]]
+        hasNoAccess(permissions, resource) ? [] : [resource, ...RESOURCE_EVENTS[resource]]
       )
     );
     const permittedEvents = events.filter(subscription => permitted.has(subscription));
