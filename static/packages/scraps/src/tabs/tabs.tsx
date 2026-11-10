@@ -58,10 +58,10 @@ export type TabsProps<T extends TabKey = TabKey> = BaseTabsProps &
         disabledKeys?: Iterable<NoInfer<T>>;
       }
     | {
-        children: (components: TabsComponents<TabKey>) => ReactNode;
-        defaultValue: TabKey;
-        disabledKeys?: Iterable<TabKey>;
-        onChange?: (key: TabKey) => void;
+        children: (components: TabsComponents<NoInfer<T>>) => ReactNode;
+        defaultValue: NoInfer<T>;
+        disabledKeys?: Iterable<NoInfer<T>>;
+        onChange?: (key: T) => void;
         value?: never;
       }
   );
@@ -110,4 +110,6 @@ function TabsRoot({
 }
 
 // Bind the key type without wrapping the collection items or changing their identity.
-export const Tabs = TabsRoot as <T extends TabKey>(props: TabsProps<T>) => JSX.Element;
+export const Tabs = TabsRoot as <T extends TabKey = TabKey>(
+  props: TabsProps<T>
+) => JSX.Element;

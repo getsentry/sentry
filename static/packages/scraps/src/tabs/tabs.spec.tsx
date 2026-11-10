@@ -74,10 +74,10 @@ describe('Tabs', () => {
 
   it('checks keys without widening from a broad selection callback', () => {
     const element = (
-      // @ts-expect-error Disabled keys must belong to the selected key type.
       <Tabs
         value={'details' as 'details' | 'activity'}
         onChange={(_key: string | number) => {}}
+        // @ts-expect-error Disabled keys must belong to the selected key type.
         disabledKeys={['unknown']}
       >
         {({TabList, TabPanels}) => (
@@ -98,8 +98,8 @@ describe('Tabs', () => {
 
     const narrowCallback = (
       <Tabs
+        // @ts-expect-error The callback must accept the whole selected key union.
         value={'details' as 'details' | 'activity'}
-        // @ts-expect-error A callback must accept every possible selected key.
         onChange={(_key: 'details') => {}}
       >
         {() => null}
@@ -215,21 +215,94 @@ describe('Tabs', () => {
         {() => null}
       </Tabs>
     );
-    const narrowUncontrolledHandler = (
-      <Tabs
-        defaultValue="activity"
-        // @ts-expect-error Uncontrolled callbacks must accept any string key.
-        onChange={(_key: 'details' | 'activity') => {}}
-      >
-        {() => null}
-      </Tabs>
-    );
-
     expectTypeOf(missingSelection).not.toBeAny();
     expectTypeOf(mixedSelection).not.toBeAny();
     expectTypeOf(missingControlledHandler).not.toBeAny();
     expectTypeOf(undefinedSelection).not.toBeAny();
-    expectTypeOf(narrowUncontrolledHandler).not.toBeAny();
+  });
+
+  it('does not infer a literal key type from an uncontrolled default', () => {
+    const element = (
+      <Tabs defaultValue="foo">
+        {({TabList, TabPanels}) => {
+          expectTypeOf<
+            Parameters<typeof TabList.Item>[0]['key']
+          >().toEqualTypeOf<string>();
+          expectTypeOf<
+            Parameters<typeof TabPanels.Item>[0]['key']
+          >().toEqualTypeOf<string>();
+          return (
+            <Fragment>
+              <TabList>
+                <TabList.Item key="bar">Bar</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="bar">Bar content</TabPanels.Item>
+              </TabPanels>
+            </Fragment>
+          );
+        }}
+      </Tabs>
+    );
+    expectTypeOf(element).not.toBeAny();
+  });
+
+  it('infers uncontrolled item keys from a typed callback', () => {
+    const element = (
+      <Tabs defaultValue="foo" onChange={(_key: 'foo' | 'bar') => {}}>
+        {({TabList, TabPanels}) => {
+          expectTypeOf<Parameters<typeof TabList.Item>[0]['key']>().toEqualTypeOf<
+            'foo' | 'bar'
+          >();
+          expectTypeOf<Parameters<typeof TabPanels.Item>[0]['key']>().toEqualTypeOf<
+            'foo' | 'bar'
+          >();
+          return (
+            <Fragment>
+              <TabList>
+                <TabList.Item key="bar">Bar</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="bar">Bar content</TabPanels.Item>
+              </TabPanels>
+            </Fragment>
+          );
+        }}
+      </Tabs>
+    );
+    expectTypeOf(element).not.toBeAny();
+  });
+
+  it('checks uncontrolled defaults and items against callback keys without widening', () => {
+    const element = (
+      // @ts-expect-error The default must belong to the callback key union.
+      <Tabs defaultValue="unknown" onChange={(_key: 'foo' | 'bar') => {}}>
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              {/* @ts-expect-error List keys must belong to the callback key union. */}
+              <TabList.Item key="unknown">Unknown</TabList.Item>
+            </TabList>
+            <TabPanels>
+              {/* @ts-expect-error Panel keys must belong to the callback key union. */}
+              <TabPanels.Item key="unknown">Unknown content</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
+      </Tabs>
+    );
+    expectTypeOf(element).not.toBeAny();
+    const invalidDisabledKey = (
+      <Tabs
+        defaultValue="foo"
+        onChange={(_key: 'foo' | 'bar') => {}}
+        // @ts-expect-error Disabled keys must belong to the callback key union.
+        disabledKeys={['unknown']}
+      >
+        {() => null}
+      </Tabs>
+    );
+    expectTypeOf(invalidDisabledKey).not.toBeAny();
   });
 
   it('does not restrict uncontrolled items to the default or disabled keys', () => {

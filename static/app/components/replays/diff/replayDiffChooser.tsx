@@ -21,7 +21,7 @@ const enum DiffType {
 
 export function ReplayDiffChooser() {
   const organization = useOrganization();
-  const onTabChange = (tabKey: string) => {
+  const onTabChange = (tabKey: DiffType) => {
     trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});
   };
 

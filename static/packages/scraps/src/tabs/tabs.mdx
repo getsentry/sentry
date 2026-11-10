@@ -163,7 +163,7 @@ export function BasicDemo() {
 
 ## Default Selection
 
-Uncontrolled tabs require `defaultValue` to specify the initial selection. Their item keys and optional `onChange` callback use strings. Do not pass `value` with `defaultValue`.
+Uncontrolled tabs require `defaultValue` to specify the initial selection. A typed `onChange` callback can supply a key union for the items and default value. Without one, keys default to `string`. `defaultValue` does not determine the key type, so `defaultValue="foo"` still permits other string keys. Do not pass `value` with `defaultValue`.
 
 <Storybook.Demo>
   <Tabs defaultValue="two">
