@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from rest_framework import serializers
@@ -6,9 +7,46 @@ from rest_framework import serializers
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionGroupValidator
 from sentry.workflow_engine.models import Condition, DataConditionGroup
+from sentry.workflow_engine.registry import condition_handler_registry
 
 
 class TestBaseDataConditionGroupValidator(TestCase):
+    def assert_internal_group_id_rejected(self, payload: dict[str, Any]) -> None:
+        group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=group, type=Condition.FIRST_SEEN_EVENT, comparison=True
+        )
+        data = {"id": group.id, "logicType": "any-short", **payload}
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with patch.object(handler, "is_internal", True):
+            validator = BaseDataConditionGroupValidator(data=data, context=self.context)
+            assert not validator.is_valid()
+            assert "Internal condition groups" in str(validator.errors)
+
+    def test_internal_group_id_without_conditions_rejected(self) -> None:
+        self.assert_internal_group_id_rejected({})
+
+    def test_internal_group_id_with_empty_conditions_rejected(self) -> None:
+        self.assert_internal_group_id_rejected({"conditions": []})
+
+    def test_internal_group_id_with_public_conditions_rejected(self) -> None:
+        self.assert_internal_group_id_rejected(
+            {"conditions": [{"type": "eq", "comparison": 1, "conditionResult": True}]}
+        )
+
+    def test_internal_group_instance_rejected_without_id(self) -> None:
+        group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=group, type=Condition.FIRST_SEEN_EVENT, comparison=True
+        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with patch.object(handler, "is_internal", True):
+            validator = BaseDataConditionGroupValidator(
+                instance=group, data={"logicType": "any-short"}, context=self.context, partial=True
+            )
+            assert not validator.is_valid()
+            assert "Internal condition groups" in str(validator.errors)
+
     def setUp(self) -> None:
         self.context = {"organization": self.organization, "request": self.make_request()}
 
