@@ -29,6 +29,12 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {getAnomalyMarkerSeries} from 'sentry/views/detectors/utils/anomalyChart';
+import {
+  createAnomalyThresholdSeries,
+  filterAnomalyThresholdSeries,
+  getAnomalyThresholdType,
+  type AnomalyThresholdDataPoint,
+} from 'sentry/views/detectors/utils/anomalyThresholdSeries';
 import {convertOpenPeriodsToIncidentPeriods} from 'sentry/views/detectors/utils/convertOpenPeriodsToIncidentPeriods';
 import {
   createIncidentMarkerSeries,
@@ -50,12 +56,20 @@ export type MetricDetectorChartData = {
   detector: MetricDetector;
   timeseriesData: Series[];
   anomalies?: Anomaly[];
+  /**
+   * Seer's expected range for anomaly detection monitors, keyed by bucket start
+   */
+  anomalyThresholds?: AnomalyThresholdDataPoint[];
+  /**
+   * The same metric one comparison period earlier, for percent change monitors
+   */
+  comparisonTimeseriesData?: Series[];
   openPeriods?: GroupOpenPeriod[];
 };
 
 export interface MetricDetectorChartOption {
   /**
-   * Threshold lines, threshold bands and open period markers, drawn as they are
+   * Threshold lines and bands, anomaly bounds and open period markers, drawn as they are
    */
   additionalSeries: Array<LineSeriesOption | CustomSeriesOption>;
   /**
@@ -104,8 +118,13 @@ function createOpenPeriodMarkerOptions({
     chartEndTimestampMs,
   });
 
+  // In an image the trigger interval is a sliver with no tooltip to explain it
+  const openPeriodSegments = incidentPeriods.filter(
+    period => period.type !== 'trigger-interval'
+  );
+
   const openPeriodMarkerSeries = createIncidentMarkerSeries({
-    incidentPeriods,
+    incidentPeriods: openPeriodSegments,
     theme,
     seriesName: t('Open Periods'),
     yAxisIndex: OPEN_PERIOD_MARKER_Y_AXIS_INDEX,
@@ -126,6 +145,40 @@ function createOpenPeriodMarkerOptions({
     xAxis: INCIDENT_MARKER_X_AXIS_CONFIG,
     grid: INCIDENT_MARKER_GRID,
   };
+}
+
+/**
+ * Seer bounds line up with the start of each bucket, so they move to the bucket end
+ * along with the metric
+ */
+function createAnomalyBoundSeries({
+  anomalyThresholds,
+  detector,
+  intervalSeconds,
+  series,
+  theme,
+}: {
+  anomalyThresholds: AnomalyThresholdDataPoint[];
+  detector: MetricDetector;
+  intervalSeconds: number;
+  series: Series[];
+  theme: Theme;
+}) {
+  const anomalyThresholdsAtBucketEnd = anomalyThresholds.map(point => ({
+    ...point,
+    timestamp: point.timestamp + intervalSeconds,
+  }));
+
+  const anomalyThresholdSeries = createAnomalyThresholdSeries({
+    anomalyThresholds: anomalyThresholdsAtBucketEnd,
+    series,
+    theme,
+  });
+
+  return filterAnomalyThresholdSeries({
+    anomalyThresholdSeries,
+    thresholdType: getAnomalyThresholdType(detector),
+  });
 }
 
 function getAlertThresholdValues(
@@ -186,10 +239,18 @@ function getTimestampMs(point: Series['data'][number] | undefined): number | und
 
 /**
  * Builds the metric detector chart that Chartcuterie renders for notifications, from
- * the same thresholds, threshold bands and open period markers as the details page chart.
+ * the same thresholds, threshold bands, anomaly bounds and open period markers as the
+ * details page chart.
  */
 export function getMetricDetectorChartOption(
-  {timeseriesData, detector, openPeriods = [], anomalies}: MetricDetectorChartData,
+  {
+    timeseriesData,
+    detector,
+    openPeriods = [],
+    anomalies,
+    anomalyThresholds = [],
+    comparisonTimeseriesData = [],
+  }: MetricDetectorChartData,
   theme: Theme
 ): MetricDetectorChartOption {
   const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
@@ -209,10 +270,24 @@ export function getMetricDetectorChartOption(
 
   const lastTimestampMs = getTimestampMs(metricData.at(-1));
 
+  const comparisonSeries = shiftSeriesToBucketEnd(
+    comparisonTimeseriesData,
+    snubaQuery.timeWindow
+  );
+
   const thresholdSeries = getMetricDetectorThresholdSeries({
     aggregate: snubaQuery.aggregate,
     conditions,
     detectionType: detector.config.detectionType,
+    theme,
+    comparisonSeries,
+  });
+
+  const anomalyBoundSeries = createAnomalyBoundSeries({
+    anomalyThresholds,
+    detector,
+    intervalSeconds: snubaQuery.timeWindow,
+    series,
     theme,
   });
 
@@ -256,6 +331,7 @@ export function getMetricDetectorChartOption(
     series: [...series, ...anomalyMarkerSeries],
     additionalSeries: [
       ...thresholdSeries.additionalSeries,
+      ...anomalyBoundSeries,
       ...openPeriodMarkerOptions.series,
     ],
     yAxis,

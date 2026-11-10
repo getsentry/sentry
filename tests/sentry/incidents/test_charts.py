@@ -11,10 +11,12 @@ from sentry.incidents.charts import (
     incident_date_range,
 )
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -213,6 +215,140 @@ class BuildMetricAlertChartTest(TestCase):
         assert url == "chart-url"
         mock_generate_chart.assert_called()
         assert mock_client_get.call_args[1]["params"]["yAxis"] == equation
+
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.client.get")
+    def test_percent_change_alert_sends_comparison_series(
+        self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
+    ) -> None:
+        mock_client_get.return_value.data = {
+            "data": [[1652731200, [{"count": 12, "comparisonCount": 8}]]]
+        }
+        alert_rule = self.create_alert_rule()
+        alert_context = AlertContext(
+            name=alert_rule.name,
+            action_identifier_id=alert_rule.id,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.PERCENT,
+            comparison_delta=86400,
+            sensitivity=None,
+            resolve_threshold=120,
+            alert_threshold=150,
+        )
+
+        build_metric_alert_chart(
+            self.organization,
+            alert_context=alert_context,
+            snuba_query=alert_rule.snuba_query,
+        )
+
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert mock_client_get.call_args[1]["params"]["comparisonDelta"] == "86400"
+        assert chart_data["timeseriesData"][0]["data"] == [{"name": 1652731200000, "value": 12.0}]
+        assert chart_data["comparisonTimeseriesData"][0]["data"] == [
+            {"name": 1652731200000, "value": 8.0}
+        ]
+
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.client.get")
+    def test_static_alert_sends_no_comparison_series(
+        self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
+    ) -> None:
+        mock_client_get.return_value.data = {"data": [[1652731200, [{"count": 12}]]]}
+        alert_rule = self.create_alert_rule()
+
+        build_metric_alert_chart(
+            self.organization,
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            snuba_query=alert_rule.snuba_query,
+        )
+
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert "comparisonDelta" not in mock_client_get.call_args[1]["params"]
+        assert "comparisonTimeseriesData" not in chart_data
+        assert "anomalyThresholds" not in chart_data
+
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.get_anomaly_threshold_data_from_seer")
+    @patch("sentry.incidents.charts.client.get")
+    def test_anomaly_detection_alert_sends_anomaly_thresholds(
+        self,
+        mock_client_get: MagicMock,
+        mock_get_anomaly_thresholds: MagicMock,
+        mock_generate_chart: MagicMock,
+    ) -> None:
+        anomaly_thresholds = [
+            {
+                "external_alert_id": 1,
+                "timestamp": 1652731200.0,
+                "value": 12.0,
+                "yhat_lower": 4.0,
+                "yhat_upper": 20.0,
+            }
+        ]
+        mock_client_get.return_value.data = {"data": [[1652731200, [{"count": 12}]]]}
+        mock_get_anomaly_thresholds.return_value = anomaly_thresholds
+        alert_rule = self.create_alert_rule()
+        alert_context = AlertContext(
+            name=alert_rule.name,
+            action_identifier_id=alert_rule.id,
+            threshold_type=AnomalyDetectionThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            comparison_delta=None,
+            sensitivity="low",
+            resolve_threshold=0,
+            alert_threshold=0,
+        )
+
+        build_metric_alert_chart(
+            self.organization,
+            alert_context=alert_context,
+            snuba_query=alert_rule.snuba_query,
+            start="2022-05-16T18:00:00",
+            end="2022-05-16T20:00:00",
+        )
+
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["anomalyThresholds"] == anomaly_thresholds
+        assert mock_get_anomaly_thresholds.call_args[1] == {
+            "subscription": alert_rule.snuba_query.subscriptions.get(),
+            "start": 1652724000.0,
+            "end": 1652731200.0,
+        }
+
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch(
+        "sentry.incidents.charts.get_anomaly_threshold_data_from_seer",
+        side_effect=ConnectionError("Seer is down"),
+    )
+    @patch("sentry.incidents.charts.client.get")
+    def test_anomaly_detection_alert_renders_without_seer(
+        self,
+        mock_client_get: MagicMock,
+        mock_get_anomaly_thresholds: MagicMock,
+        mock_generate_chart: MagicMock,
+    ) -> None:
+        mock_client_get.return_value.data = {"data": [[1652731200, [{"count": 12}]]]}
+        alert_rule = self.create_alert_rule()
+        alert_context = AlertContext(
+            name=alert_rule.name,
+            action_identifier_id=alert_rule.id,
+            threshold_type=AnomalyDetectionThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            comparison_delta=None,
+            sensitivity="low",
+            resolve_threshold=0,
+            alert_threshold=0,
+        )
+
+        url = build_metric_alert_chart(
+            self.organization,
+            alert_context=alert_context,
+            snuba_query=alert_rule.snuba_query,
+        )
+
+        assert url == "chart-url"
+        assert mock_generate_chart.call_args[0][1]["anomalyThresholds"] == []
 
 
 class FetchOpenPeriodsTest(BaseMetricIssueTest):

@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  smartRound,
-  useMetricDetectorAnomalyThresholds,
-} from './useMetricDetectorAnomalyThresholds';
+import {smartRound} from 'sentry/views/detectors/utils/anomalyThresholdSeries';
+
+import {useMetricDetectorAnomalyThresholds} from './useMetricDetectorAnomalyThresholds';
 
 describe('smartRound', () => {
   it('rounds by magnitude while preserving small fractional values', () => {

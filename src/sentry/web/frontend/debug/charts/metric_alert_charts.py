@@ -5,6 +5,9 @@ from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.seer.anomaly_detection.types import AnomalyType
 from sentry.web.frontend.base import internal_cell_silo_view
+from sentry.web.frontend.debug.charts.metric_detector_examples import (
+    build_metric_detector_examples,
+)
 from sentry.web.frontend.debug.mail import MailPreview
 
 incident = {
@@ -541,6 +544,15 @@ class DebugMetricAlertChartRendererView(View):
                 ),
                 "title": "Slack metric alert with anomalies",
             }
+        )
+        ret.extend(
+            {
+                "chart": charts.generate_chart(
+                    ChartType.SLACK_METRIC_DETECTOR_EVENTS, example.chart_data
+                ),
+                "title": example.title,
+            }
+            for example in build_metric_detector_examples()
         )
 
         return MailPreview(

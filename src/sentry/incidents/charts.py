@@ -1,5 +1,5 @@
-from collections.abc import Mapping
-from datetime import datetime, timedelta
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime, timedelta
 from functools import reduce
 from typing import Any
 
@@ -12,9 +12,12 @@ from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.discover.arithmetic import is_equation
 from sentry.incidents.logic import translate_aggregate_field
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
+from sentry.seer.anomaly_detection.types import AnomalyThresholdDataPoint
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -90,12 +93,35 @@ def fetch_metric_alert_sessions_data(
         raise
 
 
+def build_events_timeseries(
+    series_name: str, points: Sequence[Any], count_key: str
+) -> dict[str, Any]:
+    return {
+        "seriesName": series_name,
+        "data": [
+            {
+                "name": point[0] * 1000,
+                "value": reduce(
+                    lambda total, counts: total + float(counts.get(count_key) or 0),
+                    point[1],
+                    0.0,
+                ),
+            }
+            for point in points
+        ],
+    }
+
+
 def fetch_metric_alert_events_timeseries(
     organization: Organization,
     rule_aggregate: str,
     query_params: Mapping[str, str],
     user: User | RpcUser | None = None,
-) -> list[Any]:
+) -> dict[str, list[Any]]:
+    """
+    The metric as `timeseriesData`, plus `comparisonTimeseriesData` when the query asks for
+    a `comparisonDelta`, which percent change monitors compare against
+    """
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -107,18 +133,17 @@ def fetch_metric_alert_events_timeseries(
                 **query_params,
             },
         )
-        # Format the data into a timeseries object for charts
-        series = {
-            "seriesName": rule_aggregate,
-            "data": [
-                {
-                    "name": point[0] * 1000,
-                    "value": reduce(lambda a, b: a + float(b["count"] or 0), point[1], 0.0),
-                }
-                for point in resp.data["data"]
-            ],
-        }
-        return [series]
+
+        points = resp.data["data"]
+
+        timeseries = {"timeseriesData": [build_events_timeseries(rule_aggregate, points, "count")]}
+
+        if "comparisonDelta" not in query_params:
+            return timeseries
+
+        comparison_series = build_events_timeseries(rule_aggregate, points, "comparisonCount")
+
+        return {**timeseries, "comparisonTimeseriesData": [comparison_series]}
     except Exception as exc:
         logger.error(
             "Failed to load events-stats for chart: %s",
@@ -156,6 +181,34 @@ def fetch_metric_issue_open_periods(
             exc_info=True,
         )
         return []
+
+
+def parse_chart_time(chart_time: str) -> float:
+    parsed_time = datetime.fromisoformat(chart_time)
+
+    return parsed_time.replace(tzinfo=parsed_time.tzinfo or UTC).timestamp()
+
+
+def fetch_anomaly_thresholds(
+    subscription: QuerySubscription, time_period: Mapping[str, str]
+) -> list[AnomalyThresholdDataPoint]:
+    """
+    Seer's expected range for each bucket on the chart. The chart still renders without it.
+    """
+    try:
+        anomaly_thresholds = get_anomaly_threshold_data_from_seer(
+            subscription=subscription,
+            start=parse_chart_time(time_period["start"]),
+            end=parse_chart_time(time_period["end"]),
+        )
+    except Exception:
+        logger.exception(
+            "Failed to load anomaly thresholds for chart",
+            extra={"subscription_id": subscription.id},
+        )
+        return []
+
+    return anomaly_thresholds or []
 
 
 def build_metric_alert_chart(
@@ -227,7 +280,9 @@ def build_metric_alert_chart(
     if first_subscription_or_none is None:
         return None
 
-    project_id = subscription.project_id if subscription else first_subscription_or_none.project_id
+    chart_subscription = subscription or first_subscription_or_none
+
+    project_id = chart_subscription.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
@@ -280,12 +335,24 @@ def build_metric_alert_chart(
             query_params["dataset"] = "errors"
         else:
             query_params["dataset"] = "discover"
-        chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
-            organization,
-            aggregate,
-            query_params,
-            user,
+
+        if (
+            alert_context.detection_type == AlertRuleDetectionType.PERCENT
+            and alert_context.comparison_delta
+        ):
+            query_params["comparisonDelta"] = str(alert_context.comparison_delta)
+
+        chart_data.update(
+            fetch_metric_alert_events_timeseries(
+                organization,
+                aggregate,
+                query_params,
+                user,
+            )
         )
+
+    if alert_context.detection_type == AlertRuleDetectionType.DYNAMIC:
+        chart_data["anomalyThresholds"] = fetch_anomaly_thresholds(chart_subscription, time_period)
 
     try:
         chart_data.update(chart_data_detector)

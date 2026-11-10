@@ -1,7 +1,11 @@
 import {useMemo} from 'react';
 
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertRuleThresholdType} from 'sentry/views/alerts/rules/metric/types';
+import {
+  filterAnomalyThresholdSeries,
+  getAnomalyThresholdType,
+} from 'sentry/views/detectors/utils/anomalyThresholdSeries';
 
 interface UseFilteredAnomalyThresholdSeriesProps {
   anomalyThresholdSeries: any[];
@@ -31,47 +35,16 @@ export function useFilteredAnomalyThresholdSeries({
   thresholdType: directThresholdType,
 }: UseFilteredAnomalyThresholdSeriesProps) {
   return useMemo(() => {
-    if (!anomalyThresholdSeries.length) {
-      return [];
-    }
-
-    let thresholdType: AlertRuleThresholdType | undefined;
-
     if (detector) {
-      const condition = detector.conditionGroup?.conditions[0];
-      if (condition?.type !== 'anomaly_detection') {
-        return [];
-      }
-
-      if (typeof condition.comparison === 'number') {
-        return [];
-      }
-
-      thresholdType = condition.comparison.thresholdType;
-    } else {
-      if (!isAnomalyDetection) {
-        return [];
-      }
-      thresholdType = directThresholdType;
+      return filterAnomalyThresholdSeries({
+        anomalyThresholdSeries,
+        thresholdType: getAnomalyThresholdType(detector),
+      });
     }
 
-    if (thresholdType === undefined) {
-      return [];
-    }
-
-    const [upperThreshold, lowerThreshold, seerValue] = anomalyThresholdSeries;
-
-    const filtered = [];
-    if (thresholdType !== AlertRuleThresholdType.BELOW) {
-      filtered.push(upperThreshold);
-    }
-    if (thresholdType !== AlertRuleThresholdType.ABOVE) {
-      filtered.push(lowerThreshold);
-    }
-    if (seerValue) {
-      filtered.push(seerValue);
-    }
-
-    return filtered.filter((s): s is NonNullable<typeof s> => !!s);
+    return filterAnomalyThresholdSeries({
+      anomalyThresholdSeries,
+      thresholdType: isAnomalyDetection ? directThresholdType : undefined,
+    });
   }, [anomalyThresholdSeries, detector, isAnomalyDetection, directThresholdType]);
 }
