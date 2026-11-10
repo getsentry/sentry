@@ -424,6 +424,20 @@ class SlackNotificationProviderSendTest(TestCase):
         ):
             SlackNotificationProvider.send(target=target, renderable=renderable)
 
+    def test_send_halts_when_integration_is_gone(self) -> None:
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_id="C1234567890",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            integration_id=99999,
+            organization_id=self.organization.id,
+        )
+
+        result = SlackNotificationProvider.send(target=target, renderable=self._create_renderable())
+
+        assert isinstance(result, SendFailure)
+        assert result.status == SendFailureStatus.HALT
+
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_send_to_direct_message(self, mock_slack_client: Mock) -> None:
         """Test sending message to direct message (user)"""
