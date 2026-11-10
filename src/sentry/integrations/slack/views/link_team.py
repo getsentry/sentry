@@ -7,6 +7,8 @@ from typing import Any
 from django import forms
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 
 from sentry import options
 from sentry.api.utils import generate_locality_url
@@ -80,12 +82,17 @@ class SlackLinkTeamView(SlackLinkageView, LinkTeamView, ReactMixin):
     control silo. Everything else still runs in the cell.
     """
 
+    @method_decorator(never_cache)
     def handle(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
-        if is_react_team_link_request(request):
+        # The Slack request parser only sends GET requests for the React page
+        # to control, after checking the option itself.
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            if request.method != "GET":
+                return self.render_error_page(request, status=404, body_text="HTTP 404: Not found")
             return self.handle_react(request)
 
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            return self.render_error_page(request, status=404, body_text="HTTP 404: Not found")
+        if is_react_team_link_request(request):
+            return self.handle_react(request)
 
         return super().handle(request, signed_params)
 
