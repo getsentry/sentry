@@ -11,6 +11,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -369,6 +370,27 @@ function orderDepthFirst(
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+// Covers request latency and client clock drift against the API's own cutoff.
+const RETENTION_CUTOFF_SLACK_MS = 10 * 60 * 1000;
+
+/**
+ * Pads the conversation's window by an hour on each side, but never starts it
+ * before the API's 30-day cutoff, which rejects such requests with a 400.
+ */
+function getPaddedConversationWindow(startTimestamp: number, endTimestamp: number) {
+  const earliestStart =
+    Date.now() - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS;
+  const paddedStart = startTimestamp - ONE_HOUR_MS;
+  const paddedEnd = endTimestamp + ONE_HOUR_MS;
+  // A window that ends before the cutoff has nothing left to load; leave it as is.
+  const start =
+    paddedEnd > earliestStart ? Math.max(paddedStart, earliestStart) : paddedStart;
+  return {
+    start: new Date(start).toISOString(),
+    end: new Date(paddedEnd).toISOString(),
+  };
+}
 
 function buildConversationQueryParams(
   conversation: UseConversationsOptions,
@@ -381,10 +403,10 @@ function buildConversationQueryParams(
 
   const datetimeParams =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
-      ? {
-          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
-          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
-        }
+      ? getPaddedConversationWindow(
+          conversation.startTimestamp,
+          conversation.endTimestamp
+        )
       : hasExplicitDatetime
         ? normalizeDateTimeParams(selection.datetime)
         : {};

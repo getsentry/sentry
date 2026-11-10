@@ -80,6 +80,10 @@ describe('useConversation', () => {
     });
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns empty nodes when conversationId is empty', () => {
     const {result} = renderHookWithProviders(
       () => useConversation({conversationId: ''}),
@@ -489,6 +493,43 @@ describe('useConversation', () => {
     // Ensure environment is not included in the query when using conversation timestamps
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
     expect(queryArg).not.toHaveProperty('environment');
+  });
+
+  it('starts the padded window no earlier than the 30-day cutoff', async () => {
+    const now = Date.UTC(2026, 10, 10);
+    jest.spyOn(Date, 'now').mockReturnValue(now);
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-cutoff/`,
+      body: envelope([]),
+    });
+
+    const day = 24 * 60 * 60 * 1000;
+    const cutoff = now - 30 * day;
+    const endTimestamp = now - 29 * day;
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useConversation({
+          conversationId: 'conv-cutoff',
+          startTimestamp: cutoff + 30 * 60 * 1000,
+          endTimestamp,
+        }),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(mockRequest).toHaveBeenCalledWith(
+      expect.stringContaining('/agents/conversations/conv-cutoff/'),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          start: new Date(cutoff + 10 * 60 * 1000).toISOString(),
+          end: new Date(endTimestamp + 60 * 60 * 1000).toISOString(),
+        }),
+      })
+    );
   });
 
   it('uses span.name for description and name fields', async () => {
