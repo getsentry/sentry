@@ -1,5 +1,3 @@
-import base64
-import binascii
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from unittest.mock import patch
@@ -39,18 +37,19 @@ def fernet_keys(primary_id: str | None, keys: Mapping[str, Fernet]) -> Generator
         FernetKeyStore._is_loaded = original_is_loaded
 
 
-def _b64(data: bytes) -> str:
-    return base64.b64encode(data).decode("ascii")
-
-
 @no_silo_test
 def test_fernet_round_trip() -> None:
-    with fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}):
+    k1 = Fernet(Fernet.generate_key())
+    with fernet_keys("k1", {"k1": k1}):
         stored = CacheEncrypter.encrypt(PAYLOAD, EncryptionMethod.FERNET)
 
         assert stored.startswith("enc:fernet:k1:")
         assert "user@example.com" not in stored
         assert CacheEncrypter.decrypt(stored) == PAYLOAD
+
+    # The stored suffix is the raw Fernet token, with no extra encoding layer.
+    token = stored.removeprefix("enc:fernet:k1:")
+    assert k1.decrypt(token) == PAYLOAD.encode("utf-8")
 
 
 @no_silo_test
@@ -73,25 +72,30 @@ def test_decrypt_unknown_method_raises() -> None:
 
 
 @no_silo_test
-def test_decrypt_corrupt_base64_raises() -> None:
-    fernet_value = "enc:fernet:k1:not*base64!"
-
+@pytest.mark.parametrize(
+    ("value", "cause_type"),
+    [
+        pytest.param("enc:fernet:k1:not*base64!", InvalidToken, id="invalid_base64"),
+        pytest.param("enc:fernet:k1:tökén", UnicodeEncodeError, id="non_ascii"),
+    ],
+)
+def test_decrypt_corrupt_payload_raises(value: str, cause_type: type[Exception]) -> None:
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
         patch("sentry.hybridcloud.rpc.caching.encryption.logger") as logger,
         pytest.raises(DecryptionError) as exc_info,
     ):
-        CacheEncrypter.decrypt(fernet_value)
+        CacheEncrypter.decrypt(value)
 
     cause = exc_info.value.__cause__
-    assert isinstance(cause, binascii.Error)
+    assert isinstance(cause, cause_type)
     logger.exception.assert_called_once()
     assert logger.exception.call_args.args[0] == "hybridcloud.rpc_cache.decryption"
 
 
 @no_silo_test
 def test_decrypt_invalid_token_raises() -> None:
-    value = f"enc:fernet:k1:{_b64(b'not a fernet token')}"
+    value = "enc:fernet:k1:not-a-fernet-token"
 
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
@@ -110,7 +114,7 @@ def test_decrypt_invalid_token_raises() -> None:
 def test_decrypt_non_utf8_plaintext_raises() -> None:
     k1 = Fernet(Fernet.generate_key())
     token = k1.encrypt(b"\xff\xfe")
-    value = f"enc:fernet:k1:{_b64(token)}"
+    value = f"enc:fernet:k1:{token.decode()}"
 
     with fernet_keys("k1", {"k1": k1}):
         with pytest.raises(InvalidEncodingError):
@@ -127,7 +131,7 @@ def test_decrypt_non_utf8_plaintext_raises() -> None:
 )
 def test_decrypt_failures_share_base_exception(make_token: Callable[[Fernet], bytes]) -> None:
     k1 = Fernet(Fernet.generate_key())
-    value = f"enc:fernet:k1:{_b64(make_token(k1))}"
+    value = f"enc:fernet:k1:{make_token(k1).decode()}"
 
     with fernet_keys("k1", {"k1": k1}):
         with pytest.raises(CacheDecryptionError):
@@ -192,7 +196,7 @@ def test_key_rotation_keeps_old_entries_readable() -> None:
 
 @no_silo_test
 def test_decrypt_failure_records_metric() -> None:
-    value = f"enc:fernet:k1:{_b64(b'not a fernet token')}"
+    value = "enc:fernet:k1:not-a-fernet-token"
 
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
@@ -222,3 +226,17 @@ def test_encrypt_success_records_metric() -> None:
     metrics.incr.assert_called_once_with(
         "hybridcloud.caching.encrypt", tags={"method": "fernet", "status": "success"}
     )
+
+
+@no_silo_test
+def test_is_encrypted() -> None:
+    with fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}):
+        stored = CacheEncrypter.encrypt(PAYLOAD, EncryptionMethod.FERNET)
+
+    assert CacheEncrypter.is_encrypted(stored) is True
+
+    # Unprefixed and unknown-method values hit the InvalidEncryptionMethod branch.
+    assert CacheEncrypter.is_encrypted(PAYLOAD) is False
+    assert CacheEncrypter.is_encrypted("") is False
+    assert CacheEncrypter.is_encrypted("enc:tink:abcd") is False
+    assert CacheEncrypter.is_encrypted("enc:nocolon") is False

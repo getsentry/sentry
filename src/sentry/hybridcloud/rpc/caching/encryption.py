@@ -1,4 +1,3 @@
-import base64
 import logging
 from abc import ABC, abstractmethod
 from enum import StrEnum
@@ -99,7 +98,7 @@ class CacheEncrypter:
             raise
 
         metrics.incr(f"{METRICS_PREFIX}.encrypt", tags={**tags, "status": "success"})
-        encoded = base64.b64encode(encrypted_bytes).decode("utf-8")
+        encoded = encrypted_bytes.decode("ascii")
         return f"{CACHE_ENCRYPTION_PREFIX}{method}:{key_id}:{encoded}"
 
     @staticmethod
@@ -118,7 +117,7 @@ class CacheEncrypter:
         tags = {"method": parsed.method}
         try:
             with metrics.timer(f"{METRICS_PREFIX}.decrypt.duration", tags=tags):
-                decrypted = handler.decrypt(base64.b64decode(parsed.payload), parsed.key_id)
+                decrypted = handler.decrypt(parsed.payload.encode("ascii"), parsed.key_id)
         except Exception as e:
             logger.exception("hybridcloud.rpc_cache.decryption", extra={"method": parsed.method})
             metrics.incr(f"{METRICS_PREFIX}.decrypt", tags={**tags, "status": "failure"})
