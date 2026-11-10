@@ -1,4 +1,5 @@
 import os
+import pkgutil
 import sysconfig
 from pathlib import Path
 from unittest import mock
@@ -7,7 +8,8 @@ import click
 import pytest
 from click.testing import CliRunner
 
-from sentry.runner.main import _COMMANDS, _FALLBACK_ENV, cli
+from sentry.runner import commands
+from sentry.runner.main import _FALLBACK_ENV, _load_command, _SentryGroup, cli
 
 
 @pytest.fixture
@@ -18,15 +20,29 @@ def other_sentry(tmp_path: Path) -> Path:
     return binary
 
 
-@pytest.mark.parametrize("name", sorted(_COMMANDS))
-def test_lazy_command_imports(name: str) -> None:
-    command = cli.get_command(click.Context(cli), name)
-    assert isinstance(command, click.Command)
+@pytest.mark.parametrize(
+    "module",
+    [m.name for m in pkgutil.iter_modules(commands.__path__) if not m.ispkg],
+)
+def test_every_command_module_has_its_command(module: str) -> None:
+    assert _load_command(f"{commands.__name__}.{module}") is not None
 
 
-def test_list_commands() -> None:
+def test_listed_commands_resolve_lazily() -> None:
     names = cli.list_commands(click.Context(cli))
-    assert names == sorted({*_COMMANDS, "shell"})
+    assert "devserver" in names
+    assert "write-hashes" in names
+    assert "shell" in names
+
+    group = _SentryGroup(commands={"shell": cli.commands["shell"]})
+    for name in names:
+        command = group.get_command(click.Context(group), name)
+        assert command is not None and command.name == name
+
+
+@pytest.mark.parametrize("name", ["presenters", "write_hashes", "import_", "foo.bar", "../x"])
+def test_non_command_names_do_not_resolve(name: str) -> None:
+    assert cli.get_command(click.Context(cli), name) is None
 
 
 def test_unknown_command_execs_other_sentry(other_sentry: Path) -> None:

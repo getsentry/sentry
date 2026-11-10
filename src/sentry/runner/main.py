@@ -1,5 +1,9 @@
+import importlib
+import importlib.util
+import keyword
 import logging
 import os
+import pkgutil
 import shutil
 import sys
 import sysconfig
@@ -8,47 +12,30 @@ from collections.abc import Sequence
 import click
 
 import sentry
-from sentry.utils.imports import import_string
+from sentry.runner import commands
 
-# Commands import lazily: importing all of them up front costs about a second,
-# which every invocation paid before click even parsed argv.
-_COMMANDS = {
-    "backup": "sentry.runner.commands.backup.backup",
-    "export": "sentry.runner.commands.backup.export",
-    "import": "sentry.runner.commands.backup.import_",
-    "cleanup": "sentry.runner.commands.cleanup.cleanup",
-    "config": "sentry.runner.commands.config.config",
-    "configoptions": "sentry.runner.commands.configoptions.configoptions",
-    "createflag": "sentry.runner.commands.createflag.createflag",
-    "createissueflag": "sentry.runner.commands.createflag.createissueflag",
-    "createorg": "sentry.runner.commands.createorg.createorg",
-    "createproject": "sentry.runner.commands.createproject.createproject",
-    "createuser": "sentry.runner.commands.createuser.createuser",
-    "devserver": "sentry.runner.commands.devserver.devserver",
-    "django": "sentry.runner.commands.django.django",
-    "exec": "sentry.runner.commands.exec.exec_",
-    "sendmail": "sentry.runner.commands.sendmail.sendmail",
-    "execfile": "sentry.runner.commands.execfile.execfile",
-    "files": "sentry.runner.commands.files.files",
-    "help": "sentry.runner.commands.help.help",
-    "init": "sentry.runner.commands.init.init",
-    "impact": "sentry.runner.commands.impact.impact",
-    "migrations": "sentry.runner.commands.migrations.migrations",
-    "migrate_debugfiles_to_objectstore": "sentry.runner.commands.migrate_debugfiles_to_objectstore.migrate_debugfiles_to_objectstore",
-    "repair": "sentry.runner.commands.repair.repair",
-    "rpcschema": "sentry.runner.commands.rpcschema.rpcschema",
-    "run": "sentry.runner.commands.run.run",
-    "start": "sentry.runner.commands.start.start",
-    "tsdb": "sentry.runner.commands.tsdb.tsdb",
-    "upgrade": "sentry.runner.commands.upgrade.upgrade",
-    "permissions": "sentry.runner.commands.permissions.permissions",
-    "devservices": "sentry.runner.commands.devservices.devservices",
-    "performance": "sentry.runner.commands.performance.performance",
-    "spans": "sentry.runner.commands.spans.spans",
-    "write-hashes": "sentry.runner.commands.spans.write_hashes",
-    "notifications": "sentry.runner.commands.notifications.notifications",
-    "deletions": "sentry.runner.commands.deletions.deletions",
-}
+
+# Command `foo-bar` is the click command `foo_bar` (or `foo_bar_`, to not shadow
+# a keyword or builtin) in `sentry.runner.commands.foo_bar`. Finding it by
+# module name imports only that module: importing them all costs about a second.
+def _command_module(cmd_name: str) -> str | None:
+    module = cmd_name.replace("-", "_")
+    if keyword.iskeyword(module):
+        module += "_"
+    if not module.isidentifier():
+        return None
+    return f"{commands.__name__}.{module}"
+
+
+def _load_command(module_name: str) -> click.Command | None:
+    module = importlib.import_module(module_name)
+    attr = module_name.rpartition(".")[2]
+    command = getattr(module, attr, None) or getattr(module, f"{attr}_", None)
+    if isinstance(command, click.Command) and command.name:
+        if _command_module(command.name) == module_name:
+            return command
+    return None
+
 
 # Set on the Sentry CLI we exec, so a second server `sentry` on PATH can't hand
 # the command back and loop.
@@ -78,11 +65,23 @@ def _exec_sentry_cli(args: Sequence[str]) -> None:
 
 class _SentryGroup(click.Group):
     def list_commands(self, ctx: click.Context) -> list[str]:
-        return sorted({*self.commands, *_COMMANDS})
+        # Only --help, completion, and dump_cli_commands list commands, and
+        # --help needs every command's help text anyway, so this imports all.
+        names = set(self.commands)
+        for info in pkgutil.iter_modules(commands.__path__):
+            if not info.ispkg:
+                command = _load_command(f"{commands.__name__}.{info.name}")
+                if command is not None and command.name:
+                    names.add(command.name)
+        return sorted(names)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
-        if cmd_name not in self.commands and cmd_name in _COMMANDS:
-            self.add_command(import_string(_COMMANDS[cmd_name]), cmd_name)
+        if cmd_name not in self.commands:
+            module = _command_module(cmd_name)
+            if module is not None and importlib.util.find_spec(module) is not None:
+                command = _load_command(module)
+                if command is not None and command.name == cmd_name:
+                    self.add_command(command)
         return super().get_command(ctx, cmd_name)
 
     def resolve_command(
