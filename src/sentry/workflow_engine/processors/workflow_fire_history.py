@@ -50,13 +50,15 @@ def create_workflow_fire_histories(
 
     if start_timestamp:
         fire_latency_seconds = (datetime.now(timezone.utc) - start_timestamp).total_seconds()
-        group_type = event_data.group.issue_type.slug if event_data.group else "none"
 
         for _ in workflow_ids:
             metrics.timing(
                 "workflow_fire_history.latency",
                 fire_latency_seconds,
-                tags={"delayed": is_delayed, "group_type": group_type},
+                tags={
+                    "delayed": is_delayed,
+                    "group_type": event_data.group.issue_type.slug if event_data.group else "none",
+                },
             )
 
     fire_histories = [

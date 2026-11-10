@@ -17,24 +17,14 @@ workflow pipeline.
 
 ## Evaluation without an issue
 
-`WorkflowEventData` accepts explicit organization context and an optional issue group.
-Organization sources implement the `OrganizationWorkflowEvent` identity contract
-(`organization_id` and a UUID `event_id`); concrete payloads and serialization belong
-to their producers. Their UUID is stored as 32-character hex in fire history.
+`evaluate_workflows()` evaluates selected workflows using `WorkflowEventData` with
+organization context and an optional issue group. It returns passing action groups,
+delayed items, and evaluation artifacts. Workflow selection and action dispatch remain
+the caller's responsibility; `process_workflows()` handles these for issue events.
 
-`evaluate_workflows()` evaluates a selected set of workflows without detector lookup,
-a project, action suppression, or dispatch. It returns passing action groups, delayed
-items, and evaluation artifacts. Organization events only evaluate workflows belonging
-to their organization and cannot match an environment-specific workflow without an
-environment. The existing `process_workflows()` entry point uses this evaluator and
-retains issue-specific lookup, frequency checks, history creation, and action dispatch.
-
-Conditions default to requiring issue context. A condition that supports organization
-events must explicitly set `supports_group_less = True`. An incompatible condition
-rejects the entire condition group, including `NONE` groups, before delayed processing.
-Issue-only consumers use `require_group()` to enforce their boundary. Organization
-workflow selection, concrete investigation events, and group-less action dispatch are
-separate integrations; this boundary does not enable those producers.
+Conditions must opt in to evaluation without an issue with `supports_group_less = True`.
+Otherwise, the entire condition group is rejected. Issue-only consumers use
+`require_group()` to enforce that requirement.
 
 ## Detection Pipeline
 

@@ -120,10 +120,7 @@ class _WorkflowEventLocalCache(TypedDict, total=False):
 
 
 class OrganizationWorkflowEvent(Protocol):
-    """Source identity for organization events, independent of issue/project models.
-
-    Concrete payloads and their serialization belong to their event producers.
-    """
+    """Source identity for organization events, independent of issue/project models."""
 
     @property
     def organization_id(self) -> int: ...
@@ -196,7 +193,6 @@ class WorkflowEventData:
         return self.group.id if self.group is not None else None
 
     def require_group(self) -> Group:
-        """Guard issue-only operations until their callers support organization events."""
         if self.group is None:
             from sentry.workflow_engine.processors.evaluations import (
                 DataConditionEvaluationException,
@@ -354,7 +350,7 @@ class DataConditionHandler(Generic[T]):
     comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
-    # Existing conditions assume issue context. Organization conditions explicitly opt in.
+    # Existing conditions assume issue context.
     supports_group_less: ClassVar[bool] = False
 
     @staticmethod

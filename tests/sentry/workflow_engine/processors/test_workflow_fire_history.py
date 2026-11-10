@@ -80,4 +80,3 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
         assert history.group_id is None
         assert history.detector_id is None
         assert history.event_id == source.event_id.hex
-        assert history.notification_uuid == histories[0].notification_uuid

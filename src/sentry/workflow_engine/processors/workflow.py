@@ -625,9 +625,7 @@ def process_workflows(
     evaluation = evaluate_workflows(
         workflows, event_data, event_start_time, detector=associated_detector
     )
-    if not evaluation.delayed_items and not any(
-        item.triggered for item in evaluation.result.evaluations.values()
-    ):
+    if not evaluation.should_process_actions:
         return evaluation.result
     enqueue_workflows(batch_client, evaluation.delayed_items)
 
@@ -671,6 +669,7 @@ class EvaluatedWorkflows:
     result: ProcessWorkflowsResult
     action_groups: set[DataConditionGroup]
     delayed_items: dict[Workflow, DelayedWorkflowItem]
+    should_process_actions: bool
 
     def with_actions(
         self, actions: Iterable[Action], action_to_workflow_id: dict[int, WorkflowId]
@@ -700,11 +699,7 @@ def evaluate_workflows(
     *,
     detector: Detector | None = None,
 ) -> EvaluatedWorkflows:
-    """Evaluate selected workflows without requiring issue lookup or action dispatch.
-
-    Organization events supply explicit organization/source identity. Their workflow
-    selection and action invocation are separate from this shared evaluation boundary.
-    """
+    """Evaluate selected workflows without requiring issue lookup or action dispatch."""
     organization = event_data.get_organization()
     WorkflowEventContext.set(WorkflowEventContextData(organization=organization, detector=detector))
     try:
@@ -718,6 +713,7 @@ def evaluate_workflows(
             ),
             set(),
             {},
+            should_process_actions=False,
         )
     WorkflowEventContext.set(
         WorkflowEventContextData(
@@ -748,15 +744,19 @@ def evaluate_workflows(
             ),
             set(),
             {},
+            should_process_actions=False,
         )
 
     triggered_workflows, delayed_items, trigger_stats, trigger_evals = evaluate_workflow_triggers(
         workflows, event_data, event_start_time
     )
+    # Partial trigger evaluations can be marked triggered without being eligible
+    # for action processing (e.g. activities with unresolved slow conditions).
+    should_process_actions = bool(triggered_workflows or delayed_items)
     action_groups: set[DataConditionGroup] = set()
     filter_evals: dict[Workflow, list[DataConditionGroupEvaluation]] = {}
     action_stats = EvaluationStats()
-    if triggered_workflows or delayed_items:
+    if should_process_actions:
         action_groups, delayed_items, action_stats, filter_evals = (
             evaluate_workflows_action_filters(
                 triggered_workflows, event_data, delayed_items, event_start_time
@@ -780,4 +780,5 @@ def evaluate_workflows(
         ),
         action_groups,
         delayed_items,
+        should_process_actions=should_process_actions,
     )

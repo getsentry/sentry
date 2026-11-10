@@ -394,6 +394,44 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         assert get_environment_by_event(self._activity_event_data()) == env
 
+    def test_activity_with_incomplete_trigger_skips_action_processing(self) -> None:
+        self.group.update(priority=PriorityLevel.HIGH)
+        trigger_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ALL)
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.ISSUE_PRIORITY_EQUALS,
+            comparison=PriorityLevel.HIGH,
+            condition_result=True,
+        )
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=trigger_group)
+        self.create_workflow_action(self.workflow)
+        event_data = self._activity_event_data()
+
+        with (
+            patch("sentry.workflow_engine.processors.workflow.enqueue_workflows") as enqueue,
+            patch(
+                "sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions",
+                return_value=([], {}),
+            ) as suppress_actions,
+        ):
+            result = process_workflows(
+                self.batch_client, event_data, FROZEN_TIME, detector=self.detector
+            )
+
+        # The fast condition passed, but activities cannot complete slow conditions.
+        evaluation = result.evaluations[self.workflow.id]
+        assert evaluation.triggered
+        assert evaluation.data["filter_group_evals"] == []
+        assert evaluation.result == []
+        enqueue.assert_not_called()
+        suppress_actions.assert_not_called()
+
     # The unresolved cases all return None, so each also asserts its metric outcome to prove
     # which branch it took.
 

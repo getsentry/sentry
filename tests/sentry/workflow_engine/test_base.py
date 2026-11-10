@@ -56,8 +56,6 @@ except AlreadyRegisteredError:
 
 @dataclass(frozen=True)
 class OrganizationEvent:
-    """Minimal source contract; concrete investigation payloads are implemented separately."""
-
     organization_id: int
     event_id: UUID
 
