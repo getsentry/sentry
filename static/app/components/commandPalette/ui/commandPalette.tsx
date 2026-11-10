@@ -24,7 +24,7 @@ import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
-import {InputGroup} from '@sentry/scraps/input';
+import {InputGroup, passwordManagerIgnoreProps} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import type {ListItemProps} from '@sentry/scraps/menu';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
@@ -624,8 +624,7 @@ export function CommandPalette({
                 <StyledInputGroupInput
                   seerEnabled={seerExplorerEnabled}
                   autoFocus
-                  data-1p-ignore
-                  data-protonpass-ignore="true"
+                  {...passwordManagerIgnoreProps}
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}
