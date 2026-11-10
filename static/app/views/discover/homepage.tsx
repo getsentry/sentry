@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -16,12 +16,9 @@ import {
   useAiQueryContext,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {DataCategory} from 'sentry/types/dataCategory';
-import type {Organization, SavedQuery} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {SavedQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,15 +30,7 @@ import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 
 import {DEFAULT_EVENT_VIEW_MAP} from './results/data';
 import {getSavedQueryWithDataset} from './savedQuery/utils';
-import {Results} from './results';
-
-function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
-}
+import {Results, makeDiscoverHomepageOptions} from './results';
 
 function Homepage() {
   const {addAlert} = useGlobalAlerts();
@@ -52,13 +41,10 @@ function Homepage() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const {getRunIdForAnalytics} = useAiQueryContext();
-  const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
-    makeDiscoverHomepageQueryKey(organization),
-    {
-      staleTime: 0,
-      enabled: organization.features.includes('discover-query'),
-    }
-  );
+  const {data, isLoading, isError, refetch} = useQuery({
+    ...makeDiscoverHomepageOptions(organization),
+    enabled: organization.features.includes('discover-query'),
+  });
 
   const savedQuery = getSavedQueryWithDataset(data);
 
@@ -149,7 +135,13 @@ function Homepage() {
   }
 
   const setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    queryClient.setQueryData(makeDiscoverHomepageQueryKey(organization), newSavedQuery);
+    queryClient.setQueryData(
+      makeDiscoverHomepageOptions(organization).queryKey,
+      previous =>
+        newSavedQuery === undefined
+          ? previous
+          : {...previous, headers: previous?.headers ?? {}, json: newSavedQuery}
+    );
   };
 
   return (

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -14,6 +14,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import integration_service
@@ -22,8 +23,16 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 
 
 class CodeOwnersProjectAssociationsResponse(TypedDict):
-    associations: dict[str, str]
-    errors: CodeOwnersErrors
+    associations: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Sentry user or team for each owner in the CODEOWNERS file, keyed by the owner's name in the file"
+        ),
+    ]
+    errors: Annotated[
+        CodeOwnersErrors,
+        ApiDescription("Owners in the CODEOWNERS file that couldn't be associated, by reason"),
+    ]
 
 
 @extend_schema(tags=["Integrations"])

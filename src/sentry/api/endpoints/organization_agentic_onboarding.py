@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, get_args
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -26,7 +26,10 @@ from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
+    STAGE_INDEX,
+    ConnectionMethod,
     InvalidProgressUpdate,
+    OnboardingRun,
     OnboardingRunExpired,
     OnboardingRunTerminal,
     ProgressUpdate,
@@ -43,10 +46,12 @@ from sentry.onboarding.agentic_progress.service import (
     RunOwnershipMismatch,
     get_onboarding_progress_service,
 )
+from sentry.utils import metrics
 
 INVALID_PROGRESS_UPDATE_DETAIL = "Invalid onboarding progress update"
 
 StageValue = Literal[
+    "connect_agent",
     "connect_mcp",
     "analyze_project",
     "create_project",
@@ -59,10 +64,12 @@ StageValue = Literal[
 ]
 StageStatusValue = Literal["active", "waiting", "completed", "skipped", "failed"]
 
+STAGE_INPUT_ALIASES: dict[str, Stage] = {"connect_agent": Stage.CONNECT_MCP}
+
 
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
-    onboarding_code: str
+    onboarding_code: str | None
     origin: RunOrigin | None
 
 
@@ -78,6 +85,7 @@ class AgenticOnboardingStatusRequest(TypedDict):
 
 class AgenticOnboardingStatusData(TypedDict):
     run_token: str
+    stage_input: str
     update: ProgressUpdate[Any]
 
 
@@ -90,8 +98,12 @@ class AgenticOnboardingPermission(OrganizationPermission):
 
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
-    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$", required=False, default=None)
     origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
+
+
+class ConnectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    method = serializers.ChoiceField(choices=get_args(ConnectionMethod))
 
 
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -103,6 +115,7 @@ class VerificationErrorExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
 
 
 EXTRA_SERIALIZER_BY_STAGE = {
+    Stage.CONNECT_MCP: ConnectExtraSerializer,
     Stage.CREATE_PROJECT: CreateProjectExtraSerializer,
     Stage.RECEIVE_VERIFICATION_ERROR: VerificationErrorExtraSerializer,
 }
@@ -126,7 +139,9 @@ def deserialize_stage_extra(stage: Stage, value: dict[str, Any]) -> StageExtra:
 class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboardingStatusData]):
     schema_version = serializers.IntegerField(min_value=1, max_value=1)
     run_token = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
-    stage = serializers.ChoiceField(choices=[stage.value for stage in Stage])
+    stage = serializers.ChoiceField(
+        choices=[*(stage.value for stage in Stage), *STAGE_INPUT_ALIASES]
+    )
     status = serializers.ChoiceField(
         choices=[
             stage_status.value
@@ -143,7 +158,8 @@ class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboa
     extra = serializers.DictField(required=False, allow_empty=False)
 
     def validate(self, attrs: AgenticOnboardingStatusRequest) -> AgenticOnboardingStatusData:
-        stage = Stage(attrs["stage"])
+        stage_input = attrs["stage"]
+        stage = STAGE_INPUT_ALIASES.get(stage_input) or Stage(stage_input)
         update = ProgressUpdate(
             stage=stage,
             status=StageStatus(attrs["status"]),
@@ -156,7 +172,64 @@ class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboa
         except InvalidProgressUpdate as error:
             raise serializers.ValidationError({error.field.value: str(error)}) from error
 
-        return {"run_token": attrs["run_token"], "update": update}
+        return {"run_token": attrs["run_token"], "stage_input": stage_input, "update": update}
+
+
+def _connection_method(run: OnboardingRun) -> str | None:
+    extra = get_stage_definition(Stage.CONNECT_MCP).extra_from(
+        run.stages[STAGE_INDEX[Stage.CONNECT_MCP]]
+    )
+    return extra.method if extra is not None else None
+
+
+def _record_progress_analytics(
+    *,
+    user_id: int,
+    organization_id: int,
+    run: OnboardingRun,
+    update: ProgressUpdate[Any],
+    changed: bool,
+    stage_status_changed: bool,
+) -> None:
+    connection_method = _connection_method(run)
+
+    if stage_status_changed:
+        analytics.record(
+            AgenticOnboardingStageStatusChangedEvent(
+                user_id=user_id,
+                organization_id=organization_id,
+                run_id=run.run_id,
+                origin=run.origin,
+                stage=update.stage.value,
+                status=update.status.value,
+                connection_method=connection_method,
+            )
+        )
+
+        if update.status is StageStatus.COMPLETED:
+            analytics.record(
+                AgenticOnboardingStageCompletedEvent(
+                    user_id=user_id,
+                    organization_id=organization_id,
+                    run_id=run.run_id,
+                    origin=run.origin,
+                    stage=update.stage.value,
+                    status=update.status.value,
+                    connection_method=connection_method,
+                )
+            )
+
+    if changed and run.run_status is RunStatus.COMPLETED:
+        analytics.record(
+            AgenticOnboardingRunCompletedEvent(
+                user_id=user_id,
+                organization_id=organization_id,
+                run_id=run.run_id,
+                origin=run.origin,
+                status=run.run_status.value,
+                connection_method=connection_method,
+            )
+        )
 
 
 @cell_silo_endpoint
@@ -215,6 +288,12 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         values = serializer.validated_data
         user_id = require_user(request).id
 
+        if values["update"].stage is Stage.CONNECT_MCP:
+            metrics.incr(
+                "agentic_onboarding.connect_stage_input",
+                tags={"input": values["stage_input"]},
+            )
+
         try:
             run, changed, stage_status_changed = get_onboarding_progress_service().update(
                 token=values["run_token"],
@@ -231,40 +310,14 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
 
-        if stage_status_changed:
-            analytics.record(
-                AgenticOnboardingStageStatusChangedEvent(
-                    user_id=user_id,
-                    organization_id=organization.id,
-                    run_id=run.run_id,
-                    origin=run.origin,
-                    stage=values["update"].stage.value,
-                    status=values["update"].status.value,
-                )
-            )
-
-            if values["update"].status is StageStatus.COMPLETED:
-                analytics.record(
-                    AgenticOnboardingStageCompletedEvent(
-                        user_id=user_id,
-                        organization_id=organization.id,
-                        run_id=run.run_id,
-                        origin=run.origin,
-                        stage=values["update"].stage.value,
-                        status=values["update"].status.value,
-                    )
-                )
-
-        if changed and run.run_status is RunStatus.COMPLETED:
-            analytics.record(
-                AgenticOnboardingRunCompletedEvent(
-                    user_id=user_id,
-                    organization_id=organization.id,
-                    run_id=run.run_id,
-                    origin=run.origin,
-                    status=run.run_status.value,
-                )
-            )
+        _record_progress_analytics(
+            user_id=user_id,
+            organization_id=organization.id,
+            run=run,
+            update=values["update"],
+            changed=changed,
+            stage_status_changed=stage_status_changed,
+        )
 
         snapshot = serialize(run, request.user, AgenticOnboardingRunSerializer())
         return Response(snapshot)

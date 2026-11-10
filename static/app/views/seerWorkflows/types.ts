@@ -9,11 +9,21 @@ type SeerWorkflowError = {
   message: string;
 };
 
+/**
+ * Something an execution produced, e.g. a linked investigation
+ */
+type ExecutionOutput = {
+  id: string;
+  title: string;
+  type: 'investigation';
+};
+
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
   dateCompleted: string | null;
   dateUpdated: string;
   id: string;
+  outputs: ExecutionOutput[];
   seerRunId: string | null;
 };
 
@@ -28,6 +38,36 @@ type SeerWorkflowExecution = SeerWorkflowExecutionBase &
     | {error: SeerWorkflowError; status: 'failed'}
   );
 
+/**
+ * The metric monitor breach that started a run
+ */
+type MonitorTrigger = {
+  /**
+   * The monitor may have since been deleted
+   */
+  detectorId: string;
+  environment: string | null;
+  eventId: string;
+  groupId: string;
+  observedAt: string;
+  occurrenceId: string;
+  projectId: string;
+  type: 'monitor';
+  groupShortId?: string | null;
+};
+
+/**
+ * A scheduled run
+ */
+type CronTrigger = {
+  type: 'cron';
+};
+
+/**
+ * What started a run. Discriminated by `type`; add new trigger variants to this union.
+ */
+type WorkflowTrigger = MonitorTrigger | CronTrigger;
+
 type SeerAutomationRunBase = {
   configId: string;
   dateAdded: string;
@@ -36,6 +76,7 @@ type SeerAutomationRunBase = {
   executions: SeerWorkflowExecution[];
   id: string;
   strategy: string;
+  trigger: WorkflowTrigger | null;
 };
 
 export type SeerAutomationRun = SeerAutomationRunBase &

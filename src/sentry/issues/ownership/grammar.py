@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, NamedTuple, NotRequired, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -11,6 +11,7 @@ from parsimonious.nodes import Node
 from parsimonious.nodes import NodeVisitor as BaseNodeVisitor
 from rest_framework.serializers import ValidationError
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -37,8 +38,10 @@ _CODEOWNERS_SPLIT_RE = re.compile(r"(?<!\\)\s")
 
 
 class OwnershipRuleMatcher(TypedDict):
-    type: str
-    pattern: str
+    type: Annotated[
+        str, ApiDescription("What the rule matches on, path, module, url, codeowners or tags.<key>")
+    ]
+    pattern: Annotated[str, ApiDescription("Pattern the value is matched against")]
 
 
 class OwnershipRuleOwner(TypedDict):

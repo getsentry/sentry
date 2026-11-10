@@ -3,9 +3,13 @@ from datetime import datetime
 from drf_spectacular.utils import OpenApiExample
 
 from sentry.api.helpers.group_index.types import MutateIssueResponse
-from sentry.api.serializers.models.group import GroupDetailsResponse
+from sentry.api.serializers.models.group import (
+    GroupDetailsResponse,
+    SharedGroupSerializerResponse,
+)
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
-from sentry.apidocs.formats import absolute_url
+from sentry.apidocs.examples.release_examples import RELEASE
+from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
@@ -30,7 +34,12 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "metadata": {"title": "This is an example Python exception"},
     "numComments": 0,
     "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
-    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station", "platform": "python"},
+    "project": {
+        "id": numeric_id("2"),
+        "name": "Pump Station",
+        "slug": slug("pump-station"),
+        "platform": "python",
+    },
     "shareId": "123def456abc",
     "shortId": "PUMP-STATION-1",
     "stats": {
@@ -151,7 +160,7 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
 
 
 GROUP_DETAILS: GroupDetailsResponse = {
-    "id": "1",
+    "id": numeric_id("1"),
     "shareId": "123def456abc",
     "shortId": "PUMP-STATION-1",
     "title": "This is an example Python exception",
@@ -171,7 +180,12 @@ GROUP_DETAILS: GroupDetailsResponse = {
     "seerFixabilityScore": None,
     "seerAutofixLastTriggered": None,
     "seerExplorerAutofixLastTriggered": None,
-    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station", "platform": "python"},
+    "project": {
+        "id": numeric_id("2"),
+        "name": "Pump Station",
+        "slug": slug("pump-station"),
+        "platform": "python",
+    },
     "type": "default",
     "issueType": "error",
     "issueCategory": "error",
@@ -190,25 +204,20 @@ GROUP_DETAILS: GroupDetailsResponse = {
     # Always added by the detail view
     "activity": [
         {
-            "data": {},
+            "data": {"priority": "high"},
             "dateCreated": "2018-11-06T21:19:55Z",
             "id": "0",
+            "commentId": None,
             "type": "first_seen",
             "user": None,
+            "sentry_app": None,
         }
     ],
     "seenBy": [],
     "userReportCount": 0,
     "participants": [],
     # Default-included unless suppressed via `?collapse=...`
-    "firstRelease": {
-        "version": "17642328ead24b51867165985996d04b29310337",
-        "shortVersion": "1764232",
-        "dateCreated": "2018-11-06T21:19:55.146Z",
-        "dateReleased": None,
-        "ref": None,
-        "url": None,
-    },
+    "firstRelease": RELEASE,
     "lastRelease": None,
     "tags": [
         {"key": "browser", "name": "Browser", "totalValues": 150},
@@ -217,6 +226,55 @@ GROUP_DETAILS: GroupDetailsResponse = {
     "stats": {
         "24h": [[1541451600.0, 557], [1541455200.0, 473]],
         "30d": [[1538870400.0, 565], [1538956800.0, 12862]],
+    },
+}
+
+SHARED_ISSUE: SharedGroupSerializerResponse = {
+    "id": "1",
+    "shortId": "PUMP-STATION-1",
+    "title": "Payment failed",
+    "culprit": "payments.checkout in charge",
+    "permalink": absolute_url(
+        "https://sentry.io/organizations/the-interstellar-jurisdiction/issues/1/"
+    ),
+    "isUnhandled": False,
+    "issueCategory": "error",
+    "latestEvent": {
+        "id": hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1"),
+        "eventID": hex_id("9fac2ceed9344f2bbfdd1fdacb0ed9b1"),
+        "groupID": numeric_id("1"),
+        "projectID": numeric_id("2"),
+        "title": "Payment failed",
+        "message": "Payment failed",
+        "location": None,
+        "culprit": "payments.checkout in charge",
+        "type": "default",
+        "platform": "python",
+        "dist": None,
+        "size": 1113,
+        "dateCreated": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        "dateReceived": datetime.fromisoformat("2018-11-06T21:19:56Z"),
+        "entries": [{"type": "message", "data": {"formatted": "Payment failed"}}],
+        "packages": {},
+        "metadata": {"title": "Payment failed"},
+        "fingerprints": ["1305a2b0c6c0eaf556d3ac2b18e25155"],
+        "groupingConfig": {
+            "id": "newstyle:2026-01-20",
+            "enhancements": "KLUv_SAd6QAAkwORuGFsbC1wbGF0",
+        },
+        "crashFile": None,
+        "occurrence": None,
+        "_meta": {"entries": {}, "message": None, "packages": None},
+    },
+    "project": {
+        "slug": "pump-station",
+        "name": "Pump Station",
+        "color": "#bf6e3f",
+        "features": [],
+        "organization": {
+            "slug": "the-interstellar-jurisdiction",
+            "name": "The Interstellar Jurisdiction",
+        },
     },
 }
 
@@ -242,6 +300,14 @@ class IssueExamples:
         OpenApiExample(
             "Return an issue",
             value=GROUP_DETAILS,
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    SHARED_ISSUE_DETAILS = [
+        OpenApiExample(
+            "Return a shared issue",
+            value=SHARED_ISSUE,
             response_only=True,
             status_codes=["200"],
         )
