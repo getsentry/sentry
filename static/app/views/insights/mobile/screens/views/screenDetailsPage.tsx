@@ -1,10 +1,10 @@
 import type React from 'react';
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import omit from 'lodash/omit';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
-import {Tabs, type TabsComponents} from '@sentry/scraps/tabs';
+import type {TabsComponents} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -103,31 +103,25 @@ function ScreenDetailsPage() {
       <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
       <Stack flex={1}>
         <PageAlertProvider>
-          <Tabs value={selectedTabKey} onChange={handleTabChange}>
-            {() => (
-              <Fragment>
-                <MobileHeader
-                  module={moduleName}
-                  hideDefaultTabs
-                  tabs={{
-                    renderTabList,
-                    value: selectedTabKey,
-                    onTabChange: handleTabChange,
-                  }}
-                  headerTitle={transactionName}
-                  breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
-                />
-                <Layout.Body>
-                  <Layout.Main width="full">
-                    <PageAlert />
-                    {tabs
-                      .filter(tab => tab.key === selectedTabKey)
-                      .map(tab => tab.content())}
-                  </Layout.Main>
-                </Layout.Body>
-              </Fragment>
-            )}
-          </Tabs>
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+            <MobileHeader
+              module={moduleName}
+              hideDefaultTabs
+              tabs={{
+                renderTabList,
+                value: selectedTabKey,
+                onTabChange: handleTabChange,
+              }}
+              headerTitle={transactionName}
+              breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
+            />
+            <Layout.Body>
+              <Layout.Main width="full">
+                <PageAlert />
+                {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
+              </Layout.Main>
+            </Layout.Body>
+          </Stack>
         </PageAlertProvider>
       </Stack>
     </PageFiltersContainer>
