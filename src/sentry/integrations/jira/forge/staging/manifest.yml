@@ -13,7 +13,7 @@ remotes:
 modules:
   trigger:
     - key: installation
-      endpoint: installation
+      endpoint: installation-endpoint
       events:
         - avi:forge:installed:app
         - avi:forge:upgraded:app
@@ -21,10 +21,10 @@ modules:
     # Forge only sends tokens when it calls us, and each one is valid for at least
     # 2 hours, so this keeps a usable token stored for background API calls.
     - key: token-refresh
-      endpoint: installation
+      endpoint: installation-endpoint
       interval: hour
   endpoint:
-    - key: installation
+    - key: installation-endpoint
       remote: sentry
       route:
         path: /extensions/jira/forge/installation/
