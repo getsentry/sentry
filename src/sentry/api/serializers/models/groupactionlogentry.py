@@ -60,6 +60,20 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Entries written before SeerPullRequestItem kept pr_number an int store it as a string.
+# Reading them through the model turns it back into one.
+_SEER_PULL_REQUEST_ACTION_TYPES = {
+    GroupActionType.SEER_PR_CREATED.value,
+    GroupActionType.SEER_PR_READY_FOR_REVIEW.value,
+}
+
+# The stored ID of the other issue in an unmerge, and the key that returns it serialized,
+# as ActivitySerializer does.
+_UNMERGE_GROUP_KEYS = {
+    GroupActionType.UNMERGE_SOURCE.value: ("destination_id", "destination"),
+    GroupActionType.UNMERGE_DESTINATION.value: ("source_id", "source"),
+}
+
 
 class GroupActionLogEntrySerializerResponse(ActivitySerializerResponse):
     source: Annotated[
@@ -304,6 +318,23 @@ class GroupActionLogEntrySerializer(Serializer):
         else:
             pull_requests = {}
 
+        from sentry.api.serializers.models.group import GroupSerializer
+        from sentry.models.group import Group
+
+        unmerge_group_ids = {
+            item: item.data[_UNMERGE_GROUP_KEYS[item.type][0]]
+            for item in item_list
+            if item.type in _UNMERGE_GROUP_KEYS and item.data
+        }
+        group_list = list(Group.objects.filter(id__in=set(unmerge_group_ids.values())))
+        groups_by_id = {
+            group.id: serialized
+            for group, serialized in zip(
+                group_list,
+                serialize(group_list, user, serializer=GroupSerializer(collapse=["stats"])),
+            )
+        }
+
         return {
             item: {
                 "user": (
@@ -318,6 +349,7 @@ class GroupActionLogEntrySerializer(Serializer):
                 ),
                 "commit": commits.get(item),
                 "pull_request": pull_requests.get(item),
+                "unmerge_group": groups_by_id.get(unmerge_group_ids.get(item)),
             }
             for item in item_list
         }
@@ -357,6 +389,13 @@ class GroupActionLogEntrySerializer(Serializer):
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTION_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
+        elif obj.type in _SEER_PULL_REQUEST_ACTION_TYPES:
+            data = obj.action.json_dict()
+        elif obj.type in _UNMERGE_GROUP_KEYS:
+            data = {
+                "fingerprints": (obj.data or {}).get("fingerprints", []),
+                _UNMERGE_GROUP_KEYS[obj.type][1]: attrs["unmerge_group"],
+            }
         elif obj.type == GroupActionType.MERGE_FROM_OTHER.value:
             # Activity stores merged issues as a list of objects; GALE stores only ids.
             counterpart_group_ids = (obj.data or {}).get("counterpart_group_ids", [])

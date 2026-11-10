@@ -14,17 +14,16 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         lock.acquire()
         acquired = lock.token
         assert acquired is not None
-        backend.acquire.assert_called_once_with(key, duration, routing_key, acquired)
+        backend.acquire.assert_called_once_with(key, duration, acquired)
 
         lock.locked()
-        backend.locked.assert_called_once_with(key, routing_key)
+        backend.locked.assert_called_once_with(key)
 
         backend.acquire.side_effect = Exception("Boom!")
         with pytest.raises(UnableToAcquireLock):
@@ -36,26 +35,25 @@ class LockTestCase(unittest.TestCase):
         backend.acquire.side_effect = None
 
         lock.release()
-        backend.release.assert_called_once_with(key, routing_key, acquired)
+        backend.release.assert_called_once_with(key, acquired)
         assert lock.token is None
 
         lock.release()
-        backend.release.assert_called_once_with(key, routing_key, acquired)
+        backend.release.assert_called_once_with(key, acquired)
 
     def test_context_manager_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         with lock.acquire():
             token = lock.token
-            backend.acquire.assert_called_once_with(key, duration, routing_key, token)
+            backend.acquire.assert_called_once_with(key, duration, token)
             assert token is not None
 
-        backend.release.assert_called_once_with(key, routing_key, token)
+        backend.release.assert_called_once_with(key, token)
         assert lock.token is None
 
     def test_release_without_acquire_does_not_call_backend(self) -> None:
@@ -71,7 +69,7 @@ class LockTestCase(unittest.TestCase):
 
         lock.release()
 
-        backend.release.assert_called_once_with("lock", None, "holder")
+        backend.release.assert_called_once_with("lock", "holder")
         # The release did not succeed, so a retry still has the token to send.
         assert lock.token == "holder"
 
@@ -89,11 +87,11 @@ class LockTestCase(unittest.TestCase):
         assert second is not None
         assert first != second
         assert backend.acquire.call_args_list == [
-            call("lock", 60, None, first),
-            call("lock", 60, None, second),
+            call("lock", 60, first),
+            call("lock", 60, second),
         ]
         assert backend.release.call_args_list == [
-            call("lock", None, first),
+            call("lock", first),
         ]
 
     @patch("sentry.utils.locking.lock.random.random", return_value=0.5)
@@ -102,9 +100,8 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         class MockTime:
             time: float = 0

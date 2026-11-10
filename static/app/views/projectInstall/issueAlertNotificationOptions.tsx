@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -11,8 +12,7 @@ import {t} from 'sentry/locale';
 import {IssueAlertActionType, type IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -58,15 +58,18 @@ type RestoreResolver = (
 function useNotificationPicker(resolveRestore: RestoreResolver) {
   const organization = useOrganization();
 
-  const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+  const messagingIntegrationsQuery = useQuery({
+    ...apiOptions.as<OrganizationIntegration[]>()(
+      '/organizations/$organizationIdOrSlug/integrations/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {integrationType: 'messaging'}},
-    ],
-    {staleTime: 0, refetchOnWindowFocus: true}
-  );
+        query: {integrationType: 'messaging'},
+        staleTime: 0,
+      }
+    ),
+
+    refetchOnWindowFocus: true,
+  });
 
   const providersToIntegrations = useMemo(() => {
     const map: Record<string, OrganizationIntegration[]> = {};

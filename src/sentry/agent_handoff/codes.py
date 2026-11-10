@@ -6,9 +6,17 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
+from typing import Literal
 
 from django.utils import timezone
-from pydantic import BaseModel, Extra, StrictBool, StrictInt, StrictStr
+from pydantic import (
+    BaseModel,
+    Extra,
+    Field,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+)
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import hashlib, redis
@@ -24,10 +32,20 @@ class HandoffFlow(StrEnum):
     ONBOARDING = "onboarding"
 
 
-class AgentHandoff(BaseModel):
+class OnboardingHandoffContext(BaseModel):
+    run_id: StrictStr = Field(regex=r"^[a-f0-9]{32}$")
+
+    class Config:
+        frozen = True
+        extra = Extra.forbid
+
+
+HandoffContext = OnboardingHandoffContext | None
+
+
+class _AgentHandoff(BaseModel):
     """Authorization context approved by the user for one agent handoff."""
 
-    flow: HandoffFlow = HandoffFlow.GUIDED_NEXT_STEPS
     user_id: StrictInt
     organization_id: StrictInt
     application_id: StrictInt
@@ -38,6 +56,23 @@ class AgentHandoff(BaseModel):
     class Config:
         frozen = True
         extra = Extra.forbid
+
+
+class GuidedNextStepsHandoff(_AgentHandoff):
+    flow: Literal[HandoffFlow.GUIDED_NEXT_STEPS] = HandoffFlow.GUIDED_NEXT_STEPS
+    context: None = None
+
+
+class OnboardingHandoff(_AgentHandoff):
+    flow: Literal[HandoffFlow.ONBOARDING]
+    context: OnboardingHandoffContext
+
+
+AgentHandoff = GuidedNextStepsHandoff | OnboardingHandoff
+
+
+class _StoredAgentHandoff(BaseModel):
+    __root__: AgentHandoff
 
 
 class HandoffIPMismatch(Exception):
@@ -68,21 +103,25 @@ def issue_handoff(
     scope_list: Sequence[str],
     ip_address: str,
     disable_ip_pinning: bool = False,
+    context: HandoffContext = None,
 ) -> IssuedAgentHandoff:
-    context = AgentHandoff(
-        flow=flow,
-        user_id=user_id,
-        organization_id=organization_id,
-        application_id=application_id,
-        scope_list=tuple(scope_list),
-        ip_address=str(ipaddress.ip_address(ip_address)),
-        disable_ip_pinning=disable_ip_pinning,
-    )
+    handoff = _StoredAgentHandoff.parse_obj(
+        {
+            "flow": flow,
+            "user_id": user_id,
+            "organization_id": organization_id,
+            "application_id": application_id,
+            "scope_list": tuple(scope_list),
+            "ip_address": str(ipaddress.ip_address(ip_address)),
+            "disable_ip_pinning": disable_ip_pinning,
+            "context": context,
+        },
+    ).__root__
     code = f"sntryh_{secrets.token_urlsafe(32)}"
     expires_at = timezone.now() + HANDOFF_LIFETIME
     stored = _get_redis_client().set(
         _handoff_key(code),
-        context.json(exclude_defaults=True),
+        handoff.json(exclude_defaults=True),
         ex=int(HANDOFF_LIFETIME.total_seconds()),
         nx=True,
     )
@@ -100,7 +139,7 @@ def consume_handoff(code: str, *, ip_address: str | None) -> AgentHandoff | None
     if value is None:
         return None
 
-    handoff = AgentHandoff.parse_raw(value)
+    handoff = _StoredAgentHandoff.parse_raw(value).__root__
     if (
         not handoff.disable_ip_pinning
         and handoff.ip_address is not None

@@ -33,9 +33,11 @@ from sentry.auth.idpmigration import SSO_VERIFICATION_KEY
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -45,6 +47,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -235,6 +238,36 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
                 referrer="in-app",
             ),
         )
+
+    def test_outbox_flush_failure_completes_signup(self) -> None:
+        with mock.patch.object(
+            AuthIdentity, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            auth_identity = self.handler.handle_new_user()
+
+        mock_replication.assert_called()
+        user = auth_identity.user
+        assert user.email == self.email
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert OrganizationMember.objects.filter(
+                organization=self.organization, user_id=user.id
+            ).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.AUTH_IDENTITY_UPDATE, object_identifier=auth_identity.id
+        ).exists()
+
+        # At this point, the identity change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not AuthIdentityReplica.objects.filter(
+                auth_identity_id=auth_identity.id
+            ).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).exists()
 
     def test_associated_existing_member_invite_by_email(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
@@ -432,6 +465,41 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
         mock_messages.add_message.assert_called_with(
             self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
         )
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_new_identity_outbox_flush_failure(self, mock_messages: mock.MagicMock) -> None:
+        request_user = self.set_up_user()
+
+        with mock.patch.object(
+            AuthIdentity, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            auth_identity = self.handler.handle_attach_identity()
+
+        mock_replication.assert_called()
+        assert auth_identity.user_id == request_user.id
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert OrganizationMember.objects.filter(
+                user_id=request_user.id, organization=self.organization
+            ).exists()
+        mock_messages.add_message.assert_called_with(
+            self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
+        )
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.AUTH_IDENTITY_UPDATE, object_identifier=auth_identity.id
+        ).exists()
+
+        # At this point, the identity change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not AuthIdentityReplica.objects.filter(
+                auth_identity_id=auth_identity.id
+            ).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert AuthIdentityReplica.objects.filter(auth_identity_id=auth_identity.id).exists()
 
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity_with_existing_om(self, mock_messages: mock.MagicMock) -> None:

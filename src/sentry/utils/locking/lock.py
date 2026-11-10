@@ -15,13 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class Lock:
-    def __init__(
-        self, backend: LockBackend, key: str, duration: int, routing_key: str | None = None
-    ) -> None:
+    def __init__(self, backend: LockBackend, key: str, duration: int) -> None:
         self.backend = backend
         self.key = key
         self.duration = duration
-        self.routing_key = routing_key
         # Set by a successful acquire. Release sends this token so a stale
         # holder cannot delete a newer acquisition that reused the process uuid.
         self.token: str | None = None
@@ -40,7 +37,7 @@ class Lock:
         """
         token = uuid4().hex
         try:
-            self.backend.acquire(self.key, self.duration, self.routing_key, token)
+            self.backend.acquire(self.key, self.duration, token)
         except Exception as error:
             raise UnableToAcquireLock(
                 f"Unable to acquire {self!r} due to error: {error}"
@@ -100,7 +97,7 @@ class Lock:
         if token is None:
             return
         try:
-            self.backend.release(self.key, self.routing_key, token)
+            self.backend.release(self.key, token)
         except Exception as error:
             logger.warning("Failed to release %r due to error: %r", self, error, exc_info=True)
         else:
@@ -110,4 +107,4 @@ class Lock:
         """
         See if the lock has been taken somewhere else.
         """
-        return self.backend.locked(self.key, self.routing_key)
+        return self.backend.locked(self.key)
