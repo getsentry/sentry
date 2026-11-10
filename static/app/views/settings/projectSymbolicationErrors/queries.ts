@@ -1,9 +1,12 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken} from '@tanstack/react-query';
 
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {STATS_INTERVAL, STATS_PERIOD, SYMBOLICATION_ERROR_TYPES_QUERY} from './constants';
 
@@ -12,38 +15,38 @@ const REFERRER = 'api.project-settings.symbolication-errors';
 
 // One page holds as many rows as the stats endpoint returns top events, so one
 // stats request draws the trend of every row on the page.
-export const PAGE_SIZE = 10;
+const PAGE_SIZE = 10;
 
 // The chart above the table shows this many causes. Rows with another cause
-// draw their trend in the neutral colour.
-export const CHART_CAUSES = 5;
+// draw their trend in the accent colour.
+const CHART_CAUSES = 5;
 
 export interface FailureRow {
   'count_unique(event_id)': number;
   error_type: string;
   group_id: number | string;
-  'project.id': number | string;
   title: string;
 }
 
 export const FAILURE_FIELDS = [
-  'project.id',
   'group_id',
   'title',
   'error_type',
   'count_unique(event_id)',
 ];
 
-export function useSymbolicationFailures({
+interface ProjectQueryParams {
+  organization: Organization;
+  project: Project;
+}
+
+/** One page of (issue, cause) pairs, the most failures first. */
+export function symbolicationFailuresOptions({
+  organization,
   project,
   cursor,
-}: {
-  cursor: string | undefined;
-  project: Project;
-}) {
-  const organization = useOrganization();
-
-  return useQuery({
+}: ProjectQueryParams & {cursor: string | undefined}) {
+  return {
     ...apiOptions.as<{data: FailureRow[]}>()(
       '/organizations/$organizationIdOrSlug/events/',
       {
@@ -62,9 +65,8 @@ export function useSymbolicationFailures({
         staleTime: STALE_TIME,
       }
     ),
-    select: selectJsonWithHeaders,
     retry: false,
-  });
+  };
 }
 
 export interface IssueVolume {
@@ -76,20 +78,16 @@ export interface IssueVolume {
 export const ISSUE_VOLUME_FIELDS = ['issue.id', 'issue', 'count()'];
 
 /** Every event of the listed issues in the period, with the issue short id. */
-export function useIssueVolumes({
+export function issueVolumesOptions({
+  organization,
   project,
   groupIds,
-}: {
-  groupIds: string[];
-  project: Project;
-}) {
-  const organization = useOrganization();
-
-  return useQuery({
+}: ProjectQueryParams & {groupIds: string[]}) {
+  return {
     ...apiOptions.as<{data: IssueVolume[]}>()(
       '/organizations/$organizationIdOrSlug/events/',
       {
-        path: {organizationIdOrSlug: organization.slug},
+        path: groupIds.length > 0 ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {
           dataset: 'errors',
           field: ISSUE_VOLUME_FIELDS,
@@ -102,9 +100,42 @@ export function useIssueVolumes({
         staleTime: STALE_TIME,
       }
     ),
-    enabled: groupIds.length > 0,
     retry: false,
-  });
+  };
+}
+
+/**
+ * Events per day for each listed issue, keyed by the issue short id. The
+ * endpoint resolves the short ids only for the `issue` field. With `issue.id`
+ * every series gets the key "unknown".
+ */
+export function issueVolumeTrendsOptions({
+  organization,
+  project,
+  groupIds,
+}: ProjectQueryParams & {groupIds: string[]}) {
+  return {
+    ...apiOptions.as<MultiSeriesEventsStats>()(
+      '/organizations/$organizationIdOrSlug/events-stats/',
+      {
+        path: groupIds.length > 0 ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {
+          dataset: 'errors',
+          field: ['issue', 'count()'],
+          yAxis: 'count()',
+          topEvents: PAGE_SIZE,
+          excludeOther: 1,
+          query: `issue.id:[${groupIds.join(',')}]`,
+          statsPeriod: STATS_PERIOD,
+          interval: STATS_INTERVAL,
+          project: project.id,
+          referrer: REFERRER,
+        },
+        staleTime: STALE_TIME,
+      }
+    ),
+    retry: false,
+  };
 }
 
 export function trendKey(row: Pick<FailureRow, 'group_id' | 'error_type'>): string {
@@ -119,20 +150,16 @@ function trendQuery(rows: FailureRow[]): string {
 }
 
 /** One failure time series per row, keyed by `trendKey`. */
-export function useFailureTrends({
+export function failureTrendsOptions({
+  organization,
   project,
   rows,
-}: {
-  project: Project;
-  rows: FailureRow[];
-}) {
-  const organization = useOrganization();
-
-  return useQuery({
+}: ProjectQueryParams & {rows: FailureRow[]}) {
+  return {
     ...apiOptions.as<MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
       {
-        path: {organizationIdOrSlug: organization.slug},
+        path: rows.length > 0 ? {organizationIdOrSlug: organization.slug} : skipToken,
         query: {
           dataset: 'processing_errors',
           field: ['group_id', 'error_type', 'count_unique(event_id)'],
@@ -148,16 +175,13 @@ export function useFailureTrends({
         staleTime: STALE_TIME,
       }
     ),
-    enabled: rows.length > 0,
     retry: false,
-  });
+  };
 }
 
 /** Failures per day for the most common causes, keyed by cause. */
-export function useCauseTimeseries({project}: {project: Project}) {
-  const organization = useOrganization();
-
-  return useQuery({
+export function causeTimeseriesOptions({organization, project}: ProjectQueryParams) {
+  return {
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
       {
@@ -178,5 +202,56 @@ export function useCauseTimeseries({project}: {project: Project}) {
       }
     ),
     retry: false,
-  });
+  };
+}
+
+/** Events per day with at least one symbolication failure. */
+export function failedEventsTimeseriesOptions({
+  organization,
+  project,
+}: ProjectQueryParams) {
+  return {
+    ...apiOptions.as<EventsStats>()(
+      '/organizations/$organizationIdOrSlug/events-stats/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          dataset: 'processing_errors',
+          yAxis: 'count_unique(event_id)',
+          query: SYMBOLICATION_ERROR_TYPES_QUERY,
+          statsPeriod: STATS_PERIOD,
+          interval: STATS_INTERVAL,
+          project: project.id,
+          referrer: REFERRER,
+        },
+        staleTime: STALE_TIME,
+      }
+    ),
+    retry: false,
+  };
+}
+
+/** Every error event of the project per day. */
+export function totalEventsTimeseriesOptions({
+  organization,
+  project,
+}: ProjectQueryParams) {
+  return {
+    ...apiOptions.as<EventsStats>()(
+      '/organizations/$organizationIdOrSlug/events-stats/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          dataset: 'errors',
+          yAxis: 'count()',
+          statsPeriod: STATS_PERIOD,
+          interval: STATS_INTERVAL,
+          project: project.id,
+          referrer: REFERRER,
+        },
+        staleTime: STALE_TIME,
+      }
+    ),
+    retry: false,
+  };
 }

@@ -1,17 +1,14 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import ProjectSymbolicationErrors from 'sentry/views/settings/projectSymbolicationErrors';
-import {
-  FAILURE_FIELDS,
-  ISSUE_VOLUME_FIELDS,
-} from 'sentry/views/settings/projectSymbolicationErrors/queries';
+import {FAILURE_FIELDS, ISSUE_VOLUME_FIELDS} from './queries';
+import ProjectSymbolicationErrors from '.';
 
 describe('ProjectSymbolicationErrors', () => {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['symbolication-errors-page']},
-  });
+  const organization = OrganizationFixture({features: ['symbolication-errors-page']});
+  const project = ProjectFixture();
   const eventsUrl = `/organizations/${organization.slug}/events/`;
   const statsUrl = `/organizations/${organization.slug}/events-stats/`;
 
@@ -30,15 +27,23 @@ describe('ProjectSymbolicationErrors', () => {
   }
 
   beforeEach(() => {
-    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({url: statsUrl, body: {data: []}});
     MockApiClient.addMockResponse({
       url: statsUrl,
-      match: [MockApiClient.matchQuery({topEvents: 5})],
-      body: {data: []},
+      match: [MockApiClient.matchQuery({dataset: 'errors', topEvents: 10})],
+      body: {
+        'PROJ-1': {
+          data: [
+            [1700000000, [{count: 10}]],
+            [1700003600, [{count: 20}]],
+          ],
+          order: 0,
+        },
+      },
     });
     MockApiClient.addMockResponse({
       url: statsUrl,
-      match: [MockApiClient.matchQuery({topEvents: 10})],
+      match: [MockApiClient.matchQuery({dataset: 'processing_errors', topEvents: 10})],
       body: {
         '1,native_missing_dsym': {
           data: [
@@ -59,7 +64,6 @@ describe('ProjectSymbolicationErrors', () => {
     mockFailures({
       data: [
         {
-          'project.id': Number(project.id),
           group_id: 1,
           title: 'EXC_BAD_ACCESS in main',
           error_type: 'native_missing_dsym',
@@ -110,7 +114,7 @@ describe('ProjectSymbolicationErrors', () => {
 
   it('shows a 404 without the flag', () => {
     render(<ProjectSymbolicationErrors />, {
-      organization: {...organization, features: []},
+      organization: OrganizationFixture(),
       outletContext: {project},
       initialRouterConfig,
     });
