@@ -9,6 +9,7 @@ from django.http.response import HttpResponseBase
 from rest_framework import status
 from slack_sdk.web import SlackResponse
 
+from sentry import options
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
@@ -19,6 +20,7 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack, link_team
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -126,6 +128,44 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         self.team = self.create_team(
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
+
+    def build_url_in_cell(self) -> str:
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch(
+                "sentry.integrations.slack.views.link_team.generate_locality_url",
+                return_value="https://de.example.com",
+            ),
+        ):
+            return build_team_linking_url(
+                integration=self.integration,
+                slack_id=self.external_id,
+                channel_id=self.channel_id,
+                channel_name=self.channel_name,
+                response_url=self.response_url,
+            )
+
+    def test_linking_url_uses_the_cell_locality(self) -> None:
+        assert self.build_url_in_cell().startswith("https://de.example.com/extensions/slack/")
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_react_linking_url_uses_the_primary_domain(self) -> None:
+        url_prefix = options.get("system.url-prefix")
+
+        assert self.build_url_in_cell().startswith(f"{url_prefix}/extensions/slack/")
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_serves_the_react_page(self) -> None:
+        response = self.get_success_response()
+
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_links_through_the_form_with_the_react_page_enabled(self) -> None:
+        response = self.get_success_response(data={"team": self.team.id})
+
+        self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
+        assert len(self.get_linked_teams()) == 1
 
     def test_link_team(self) -> None:
         """Test that we successfully link a team to a Slack channel"""

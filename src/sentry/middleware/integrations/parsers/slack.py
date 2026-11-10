@@ -32,7 +32,10 @@ from sentry.integrations.slack.requests.event import SlackEventRequest, is_event
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views import SALT
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
-from sentry.integrations.slack.views.link_team import SlackLinkTeamView
+from sentry.integrations.slack.views.link_team import (
+    SlackLinkTeamView,
+    is_react_team_link_request,
+)
 from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
 from sentry.integrations.slack.views.unlink_team import SlackUnlinkTeamView
 from sentry.integrations.slack.webhooks.action import (
@@ -435,6 +438,9 @@ class SlackRequestParser(BaseRequestParser):
         Slack Webhook Requests all require synchronous responses.
         """
         if self.view_class in self.control_classes:
+            return self.get_response_from_control_silo()
+
+        if self.view_class == SlackLinkTeamView and is_react_team_link_request(self.request):
             return self.get_response_from_control_silo()
 
         # Handle event interactions challenge request
