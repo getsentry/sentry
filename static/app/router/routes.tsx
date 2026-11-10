@@ -194,6 +194,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/sentryAppExternalInstallation')),
     },
     {
+      path: '/extensions/slack/link-team/:signedParams/',
+      component: make(() => import('sentry/views/slackLinkTeam')),
+    },
+    {
       path: '/account/',
       redirectTo: '/settings/account/details/',
     },
