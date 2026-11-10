@@ -111,3 +111,5 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     user_context: str | None = None
     should_run_repo_checks: bool = False
     pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
+    existing_run_id: int | None = None
+    reply: str | None = None

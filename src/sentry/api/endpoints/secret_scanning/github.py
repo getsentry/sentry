@@ -17,6 +17,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
+from sentry.service_accounts.models import ServiceAccountToken
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.utils import json, metrics
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 TOKEN_TYPE_HUMAN_READABLE = {
     AuthTokenType.USER: "Personal Token",
     AuthTokenType.ORG: "Organization Token",
+    AuthTokenType.SERVICE_ACCOUNT: "Service Account Token",
 }
 
 REVOKE_URLS = {
@@ -85,6 +87,8 @@ class SecretScanningGitHubEndpoint(View):
             token_type = AuthTokenType.USER
             if alerted_token_str.startswith(AuthTokenType.ORG):
                 token_type = AuthTokenType.ORG
+            elif alerted_token_str.startswith(AuthTokenType.SERVICE_ACCOUNT):
+                token_type = AuthTokenType.SERVICE_ACCOUNT
             elif alerted_token_str.startswith((AuthTokenType.USER_APP, AuthTokenType.INTEGRATION)):
                 # TODO: add support for other token types
                 return HttpResponse(
@@ -92,13 +96,18 @@ class SecretScanningGitHubEndpoint(View):
                 )
 
             try:
-                token: ApiToken | OrgAuthToken
+                token: ApiToken | OrgAuthToken | ServiceAccountToken
 
                 if token_type == AuthTokenType.USER:
                     token = ApiToken.objects.get(hashed_token=hashed_alerted_token)
 
                 if token_type == AuthTokenType.ORG:
                     token = OrgAuthToken.objects.get(
+                        token_hashed=hashed_alerted_token, date_deactivated=None
+                    )
+
+                if token_type == AuthTokenType.SERVICE_ACCOUNT:
+                    token = ServiceAccountToken.objects.get(
                         token_hashed=hashed_alerted_token, date_deactivated=None
                     )
 
@@ -123,8 +132,8 @@ class SecretScanningGitHubEndpoint(View):
                 if isinstance(token, ApiToken):
                     # for personal token, send an alert to the token owner
                     users = User.objects.filter(id=token.user_id)
-                elif isinstance(token, OrgAuthToken):
-                    # for org token, send an alert to all organization owners
+                elif isinstance(token, (OrgAuthToken, ServiceAccountToken)):
+                    # for org and service account tokens, alert all organization owners
                     organization = organization_service.get(id=token.organization_id)
                     if organization is None:
                         continue
@@ -175,6 +184,7 @@ class SecretScanningGitHubEndpoint(View):
                 ApiTokenReplica.DoesNotExist,
                 OrgAuthToken.DoesNotExist,
                 OrgAuthTokenReplica.DoesNotExist,
+                ServiceAccountToken.DoesNotExist,
             ):
                 response.append(
                     {

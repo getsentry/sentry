@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconInfo} from '@sentry/icons/info';
 import {IconSeer} from '@sentry/icons/seer';
@@ -7,7 +8,6 @@ import moment from 'moment-timezone';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -47,12 +47,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
     return <SeerWalletError />;
   }
 
-  const openModal = () =>
-    openSeerAutoTopUpModal({
-      organization,
-      autoTopUp,
-      creditPriceCents,
-    });
+  const openModal = () => openSeerAutoTopUpModal({organization});
 
   return (
     <SubscriptionHeaderCard
@@ -61,7 +56,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
           <SeerTitle />
           <AutoTopUpStatus isPaused={isPaused} autoTopUpEnabled={autoTopUp.enabled} />
         </Flex>,
-        <Stack key="balance" gap="xs">
+        <Stack key="balance" gap="sm">
           <Text size="xl" bold>
             {wallet.balance.toLocaleString()}
           </Text>
@@ -72,7 +67,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
               })}
             </Text>
             <Tooltip
-              maxWidth={320}
+              maxWidth={240}
               title={
                 <CreditBreakdown
                   wallet={wallet}
@@ -88,17 +83,17 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
           </Flex>
         </Stack>,
         autoTopUp.enabled ? (
-          <Button key="action" size="sm" onClick={openModal}>
+          <Button key="action" size="xs" onClick={openModal}>
             {t('Edit')}
           </Button>
         ) : (
           <Button
             key="action"
-            size="sm"
+            size="xs"
             variant={isPaused ? 'primary' : 'secondary'}
             onClick={openModal}
           >
-            {t('Turn on auto top-up')}
+            {t('Turn on auto-reload')}
           </Button>
         ),
       ]}
@@ -141,9 +136,9 @@ function AutoTopUpStatus({
     return <Tag variant="warning">{t('Paused')}</Tag>;
   }
   if (autoTopUpEnabled) {
-    return <Tag variant="success">{t('Auto top-up on')}</Tag>;
+    return <Tag variant="success">{t('Auto-reload on')}</Tag>;
   }
-  return <Tag variant="muted">{t('Auto top-up off')}</Tag>;
+  return <Tag variant="muted">{t('Auto-reload off')}</Tag>;
 }
 
 function CreditBreakdown({
@@ -159,64 +154,65 @@ function CreditBreakdown({
   const showPurchased = purchased.total > 0 || autoTopUp.enabled;
 
   return (
-    <Stack gap="md" width="280px" align="stretch">
+    <Stack gap="md" width="216px" align="stretch">
+      <Flex justify="between" gap="md">
+        <Text size="sm" bold>
+          {t('Included')}
+        </Text>
+        {included.resetsAt && (
+          <Text size="sm" variant="muted">
+            {tct('Resets [date]', {date: moment(included.resetsAt).format('MMM D')})}
+          </Text>
+        )}
+      </Flex>
       <Stack gap="sm">
+        <CreditMeter remaining={included.remaining} total={included.total} />
         <Flex justify="between" gap="md">
-          <Text bold>{t('Included')}</Text>
-          {included.resetsAt && (
-            <Text variant="muted">
-              {tct('Resets [date]', {date: moment(included.resetsAt).format('MMM D')})}
-            </Text>
-          )}
-        </Flex>
-        <CreditMeter
-          remaining={included.remaining}
-          total={included.total}
-          variant="included"
-        />
-        <Flex justify="between" gap="md">
-          <Text>
+          <Text size="sm">
             {tct('[remaining] remaining', {
               remaining: Math.max(included.remaining, 0).toLocaleString(),
             })}
           </Text>
-          <Text>{included.total.toLocaleString()}</Text>
+          <Text size="sm">{included.total.toLocaleString()}</Text>
         </Flex>
       </Stack>
       {showPurchased && (
-        <Stack gap="sm">
-          <Separator orientation="horizontal" border="primary" />
-          <Flex justify="between" gap="md">
-            <Text bold>{t('Purchased')}</Text>
+        <Fragment>
+          <Flex justify="between" gap="md" paddingTop="lg" borderTop="muted">
+            <Text size="sm" bold>
+              {t('Purchased')}
+            </Text>
             {purchased.expiresAt && (
-              <Text variant="muted">
+              <Text size="sm" variant="muted">
                 {tct('Expires [date]', {
                   date: moment(purchased.expiresAt).format('MMM D, YYYY'),
                 })}
               </Text>
             )}
           </Flex>
-          <CreditMeter
-            remaining={purchased.remaining}
-            total={purchased.total}
-            variant="purchased"
-          />
-          <Flex justify="between" gap="md">
-            <Text>
-              {tct('[remaining] remaining', {
-                remaining: purchased.remaining.toLocaleString(),
-              })}
-            </Text>
-            <Text>{purchased.total.toLocaleString()}</Text>
-          </Flex>
+          <Text size="sm" align="left">
+            {tct('[remaining] remaining', {
+              remaining: purchased.remaining.toLocaleString(),
+            })}
+          </Text>
           {autoTopUp.enabled && (
-            <Grid columns="1fr auto" gap="xs md" paddingLeft="md" borderLeft="primary">
-              <Text align="left">{t('If credits fall below')}</Text>
-              <Text align="right">{autoTopUp.thresholdCredits.toLocaleString()}</Text>
-              <Text align="left">{t('Top up by')}</Text>
-              <Text align="right">{autoTopUp.topUpCredits.toLocaleString()}</Text>
-              <Text align="left">{t('Up to a maximum of')}</Text>
-              <Text align="right">
+            <Grid columns="1fr auto" gap="sm md" paddingLeft="md" borderLeft="primary">
+              <Text size="sm" align="left">
+                {t('If credits fall below')}
+              </Text>
+              <Text size="sm" align="right">
+                {autoTopUp.thresholdCredits.toLocaleString()}
+              </Text>
+              <Text size="sm" align="left">
+                {t('Reload amount')}
+              </Text>
+              <Text size="sm" align="right">
+                {autoTopUp.topUpCredits.toLocaleString()}
+              </Text>
+              <Text size="sm" align="left">
+                {t('Up to a maximum of')}
+              </Text>
+              <Text size="sm" align="right">
                 {tct('[credits] / day', {
                   credits: Math.floor(
                     autoTopUp.dailySpendCapCents / creditPriceCents
@@ -225,21 +221,13 @@ function CreditBreakdown({
               </Text>
             </Grid>
           )}
-        </Stack>
+        </Fragment>
       )}
     </Stack>
   );
 }
 
-function CreditMeter({
-  remaining,
-  total,
-  variant,
-}: {
-  remaining: number;
-  total: number;
-  variant: 'included' | 'purchased';
-}) {
+function CreditMeter({remaining, total}: {remaining: number; total: number}) {
   const percent = total > 0 ? Math.min(Math.max(remaining / total, 0), 1) * 100 : 0;
   return (
     <MeterTrack
@@ -248,23 +236,20 @@ function CreditMeter({
       aria-valuemin={0}
       aria-valuemax={total}
     >
-      <MeterFill percent={percent} variant={variant} />
+      <MeterFill percent={percent} />
     </MeterTrack>
   );
 }
 
 const MeterTrack = styled('div')`
-  height: 6px;
+  height: 5px;
   border-radius: 100px;
   overflow: hidden;
   background: ${p => p.theme.tokens.graphics.neutral.muted};
 `;
 
-const MeterFill = styled('div')<{percent: number; variant: 'included' | 'purchased'}>`
+const MeterFill = styled('div')<{percent: number}>`
   height: 100%;
   width: ${p => p.percent}%;
-  background: ${p =>
-    p.variant === 'included'
-      ? p.theme.tokens.graphics.success.vibrant
-      : p.theme.tokens.graphics.accent.vibrant};
+  background: ${p => p.theme.tokens.graphics.success.vibrant};
 `;

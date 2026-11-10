@@ -1,75 +1,81 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand/vanilla';
 
-import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {callSetOrganizationCallback} from 'sentry/utils/routeAnalytics/setOrganizationCallback';
 
-import type {StrictStoreDefinition} from './types';
+// Errors that may occur during the fetching of organization details
+export const ORGANIZATION_FETCH_ERROR_TYPES = {
+  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
+  ORG_NO_ACCESS: 'ORG_NO_ACCESS',
+  NO_ORGS: 'NO_ORGS',
+} as const;
 
-type State = {
-  dirty: boolean;
-  loading: boolean;
-  organization: Organization | null;
-  error?: RequestError | null;
-  errorType?: string | null;
-};
+type OrganizationFetchErrorType =
+  (typeof ORGANIZATION_FETCH_ERROR_TYPES)[keyof typeof ORGANIZATION_FETCH_ERROR_TYPES];
 
-interface OrganizationStoreDefinition extends StrictStoreDefinition<State> {
-  get(): State;
-  onFetchOrgError(err: RequestError): void;
-  onUpdate(org: Organization, options?: {replace: true}): void;
-  onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
-  reset(): void;
-  setNoOrganization(): void;
+interface OrganizationState {
+  readonly error: RequestError | null;
+  readonly errorType: OrganizationFetchErrorType | null;
+  readonly loading: boolean;
+  readonly organization: Organization | null;
 }
 
-const storeConfig: OrganizationStoreDefinition = {
-  state: {
-    dirty: false,
-    loading: true,
-    organization: null,
-    error: null,
-    errorType: null,
-  },
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
+const initialState: OrganizationState = {
+  loading: true,
+  organization: null,
+  error: null,
+  errorType: null,
+};
 
-    this.reset();
-  },
+const store = createStore<OrganizationState>()(() => initialState);
 
-  reset() {
-    this.state = {
-      dirty: false,
-      loading: true,
-      organization: null,
-      error: null,
-      errorType: null,
-    };
-    this.trigger(this.get());
-  },
+function onUpdate(org: Organization, options?: {replace: true}): void;
+function onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
+function onUpdate(
+  updatedOrg: Partial<Organization>,
+  {replace = false}: {replace?: boolean} = {}
+): void {
+  const organization = (
+    replace ? updatedOrg : {...store.getState().organization, ...updatedOrg}
+  ) as Organization;
 
-  onUpdate(updatedOrg: Organization, {replace = false} = {}) {
-    const organization = replace
-      ? updatedOrg
-      : {...this.state.organization, ...updatedOrg};
-    this.state = {
+  store.setState(
+    {
       loading: false,
-      dirty: false,
       errorType: null,
       error: null,
       organization,
-    };
-    this.trigger(this.get());
+    },
+    true
+  );
 
-    callSetOrganizationCallback(organization);
+  callSetOrganizationCallback(organization);
+}
+
+export const OrganizationStore = {
+  // State is only written through the methods below.
+  getState: store.getState,
+  getInitialState: store.getInitialState,
+  subscribe: store.subscribe,
+
+  /**
+   * Same as reset(). Kept for the tests that call it.
+   */
+  init(): void {
+    OrganizationStore.reset();
   },
 
-  onFetchOrgError(err) {
-    let errorType: State['errorType'] = null;
+  reset(): void {
+    store.setState(initialState, true);
+  },
 
-    switch (err?.status) {
+  onUpdate,
+
+  onFetchOrgError(err: RequestError): void {
+    let errorType: OrganizationState['errorType'] = null;
+
+    switch (err.status) {
       case 401:
         errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS;
         break;
@@ -78,34 +84,23 @@ const storeConfig: OrganizationStoreDefinition = {
         break;
       default:
     }
-    this.state = {
-      errorType,
-      dirty: false,
-      error: err,
-      loading: false,
-      organization: null,
-    };
-    this.trigger(this.get());
+
+    store.setState(
+      {
+        errorType,
+        error: err,
+        loading: false,
+        organization: null,
+      },
+      true
+    );
   },
 
-  setNoOrganization() {
-    this.state = {
-      ...this.state,
+  setNoOrganization(): void {
+    store.setState({
       organization: null,
       errorType: ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS,
       loading: false,
-      dirty: false,
-    };
-    this.trigger(this.get());
-  },
-
-  get() {
-    return this.state;
-  },
-
-  getState() {
-    return this.state;
+    });
   },
 };
-
-export const OrganizationStore = createStore(storeConfig);

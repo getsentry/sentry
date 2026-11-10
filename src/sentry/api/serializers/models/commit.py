@@ -9,7 +9,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import PullRequestSerializerResponse
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
-from sentry.api.serializers.release_details_types import Author
+from sentry.api.serializers.release_details_types import Author, EmptyAuthor
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -18,12 +18,6 @@ from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-
-
-class EmptyAuthor(TypedDict):
-    """The commit serializer emits ``{}`` for ``author`` when the commit has no
-    mapped author, so the published schema must allow an empty object alongside a
-    populated ``Author``."""
 
 
 class CommitSerializerResponse(TypedDict):

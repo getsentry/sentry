@@ -4,11 +4,11 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoText} from '@sentry/scraps/info';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Confirm} from 'sentry/components/confirm';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';

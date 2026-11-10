@@ -17,7 +17,7 @@ from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
-from sentry.auth.principal import RequestPrincipal, acting_user_id
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
@@ -312,6 +312,7 @@ class SeerAgentClient:
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
             enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
+            enable_inbox_tools: Let Code Mode read and update the user's personal inbox. Only takes effect where the inbox endpoints themselves would answer, i.e. for a user with the organizations:universal-inbox feature. Default is False.
     """
 
     def __init__(
@@ -338,6 +339,7 @@ class SeerAgentClient:
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
         enable_investigation_tools: bool = False,
+        enable_inbox_tools: bool = False,
     ):
         self.organization = organization
         self.user = user
@@ -375,6 +377,13 @@ class SeerAgentClient:
         # operations that would only 404.
         self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
             organization, actor=user
+        )
+        # The inbox endpoints are personal, so they answer only with a user behind the run.
+        self.enable_inbox_tools = (
+            enable_inbox_tools
+            and user is not None
+            and has_user(user)
+            and features.has("organizations:universal-inbox", organization, actor=user)
         )
 
         self.viewer_context = self._build_viewer_context()
@@ -449,6 +458,7 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_inbox_tools": self.enable_inbox_tools,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -795,6 +805,7 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_inbox_tools": self.enable_inbox_tools,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
@@ -937,11 +948,12 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: tuple[str, ...] | None = None,
     ) -> SeerAgentRun | None:
         """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
-            source=self.category_key or "",
+            source__in=sources or (self.category_key or "",),
         )
         if only_current_user and self._user_id is not None:
             qs = qs.filter(run__user_id=self._user_id)
@@ -961,9 +973,12 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: tuple[str, ...] | None = None,
     ) -> SeerRunState | None:
         """The remote state of the latest live run mirror for this client, or None."""
-        run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
+        run = self.latest_run(
+            group_id=group_id, only_current_user=only_current_user, sources=sources
+        )
         if run is None:
             return None
         run_state_id = run.run.seer_run_state_id
@@ -990,6 +1005,7 @@ class SeerAgentClient:
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
         allow_force_push: bool = True,
+        source: str | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1004,6 +1020,7 @@ class SeerAgentClient:
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
             allow_force_push: Overwrite the branch if it has commits Seer didn't push
+            source: Stable caller-flow label, or None when unspecified; not the commit author
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1021,6 +1038,7 @@ class SeerAgentClient:
         # Trigger PR creation
         payload: dict[str, Any] = {
             "type": "create_pr",
+            "source": source,
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
             "allow_force_push": allow_force_push,

@@ -48,6 +48,10 @@ class AutofixStatus(str, enum.Enum):
     WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
+PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
+AUTOFIX_RUN_SCOPES = frozenset({"event:write", "event:admin", "seer:write"})
+
+
 class AutofixReferrer(enum.StrEnum):
     GROUP_AUTOFIX_ENDPOINT = "api.group_ai_autofix"
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"

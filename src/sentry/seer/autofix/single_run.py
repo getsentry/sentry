@@ -6,12 +6,19 @@ from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
+    from sentry.seer.models.run import SeerRun
 
 SINGLE_RUN_ROOT_CAUSE_KEY = "single_run_root_cause"
 
 
 def is_single_run(state: SeerRunState) -> bool:
     return (state.metadata or {}).get("feature_id") == SINGLE_RUN_FEATURE_ID
+
+
+def is_single_run_record(run: SeerRun) -> bool:
+    from sentry.seer.models.run import SeerAgentRun
+
+    return SeerAgentRun.objects.filter(run=run, source=SINGLE_RUN_FEATURE_ID).exists()
 
 
 def single_run_root_cause_payload(state: SeerRunState) -> dict[str, Any] | None:

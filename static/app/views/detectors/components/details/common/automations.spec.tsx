@@ -289,7 +289,7 @@ describe('DetectorDetailsAutomations', () => {
     });
 
     // Mock the drawer's all automations query (no detector param)
-    MockApiClient.addMockResponse({
+    const allAutomationsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       method: 'GET',
       body: [automation1],
@@ -314,6 +314,11 @@ describe('DetectorDetailsAutomations', () => {
     expect(
       await within(allAutomationsList).findByText(automation1.name)
     ).toBeInTheDocument();
+    // All Alerts must ask for every project, or alerts without a monitor are left out.
+    expect(allAutomationsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/workflows/',
+      expect.objectContaining({query: expect.objectContaining({project: [-1]})})
+    );
 
     await userEvent.click(within(drawer).getByRole('button', {name: 'Connect'}));
 

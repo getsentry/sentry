@@ -66,7 +66,6 @@ describe('OrganizationMemberDetail', () => {
     roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
-    invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
   const expiredMember = MemberFixture({
@@ -74,7 +73,6 @@ describe('OrganizationMemberDetail', () => {
     roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
-    invite_link: 'http://example.com/i/abc123',
     pending: true,
     expired: true,
   });

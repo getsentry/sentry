@@ -19,6 +19,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
 
 import {
+  NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
   getSettingsLastProjectKey,
 } from './constants';
@@ -1425,6 +1426,78 @@ describe('desktop navigation', () => {
               'false'
             );
           });
+        });
+
+        it('hides the sidebar on mouse leave when a collapsible section is expanded', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+            })
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+          expect(screen.getByRole('button', {name: 'Autofix'})).toHaveAttribute(
+            'aria-expanded',
+            'true'
+          );
+
+          await userEvent.unhover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'false'
+            );
+          });
+        });
+
+        it('keeps the sidebar open on mouse leave while a popup is open', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+
+          const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+          await userEvent.click(whatsNewButton);
+          expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
+
+          await userEvent.unhover(primaryNav);
+          // Wait past the collapse delay so a close would have happened.
+          await new Promise(resolve =>
+            setTimeout(resolve, NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS + 100)
+          );
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
         });
 
         it('shows the sidebar when a nav element receives keyboard focus while collapsed', async () => {
