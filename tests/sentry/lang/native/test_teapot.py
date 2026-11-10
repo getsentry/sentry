@@ -558,6 +558,23 @@ def test_client_sends_sources_only_when_given(mock_objectstore: mock.Mock) -> No
     assert with_sources["sources"] == [source]
 
 
+@pytest.mark.parametrize(("timeout", "max_decode_ms"), [(5, 3000), (2, 1000)])
+def test_client_gives_teapot_a_budget_below_its_timeout(
+    mock_objectstore: mock.Mock, timeout: int, max_decode_ms: int
+) -> None:
+    with (
+        _configured_teapot(),
+        mock.patch("sentry.lang.native.teapot._timeout", return_value=timeout),
+        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
+    ):
+        mock_post.return_value = _FakeResponse(200, _completed_response())
+        TeapotClient(_FakeProject(), "abc").symbolicate(_FakeAttachment(stored_id="dump"))
+
+    kwargs = mock_post.call_args.kwargs
+    assert kwargs["timeout"] == timeout
+    assert orjson.loads(kwargs["data"])["options"] == {"max_decode_ms": max_decode_ms}
+
+
 def test_client_redacts_source_tokens_from_errors(
     mock_objectstore: mock.Mock, caplog: pytest.LogCaptureFixture
 ) -> None:

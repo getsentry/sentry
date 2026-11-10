@@ -61,6 +61,11 @@ class TeapotAttachment(Protocol):
 DEFAULT_TIMEOUT = 5
 DEFAULT_MAX_ATTEMPTS = 2
 
+# Teapot's budget ends before the timeout, so it answers with what it has
+# instead of being cut off. `MIN_DECODE_BUDGET_MS` is teapot's lower limit.
+DECODE_BUDGET_MARGIN_MS = 2000
+MIN_DECODE_BUDGET_MS = 1000
+
 RETRYABLE_STATUS = (502, 503, 504)
 
 # Bounded exponential backoff between transient retries.
@@ -73,6 +78,10 @@ def _timeout() -> int:
         return int(options.get("teapot.timeout-seconds")) or DEFAULT_TIMEOUT
     except Exception:
         return DEFAULT_TIMEOUT
+
+
+def _max_decode_ms() -> int:
+    return max(MIN_DECODE_BUDGET_MS, _timeout() * 1000 - DECODE_BUDGET_MARGIN_MS)
 
 
 def _max_attempts() -> int:
@@ -164,6 +173,7 @@ class TeapotClient:
                 }
                 for att in shader_debug_info
             ],
+            "options": {"max_decode_ms": _max_decode_ms()},
         }
         secrets: list[str] = []
         if sources:
