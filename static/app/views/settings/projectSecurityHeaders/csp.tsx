@@ -158,7 +158,7 @@ export default function ProjectCspReports() {
                   )}
                 >
                   <field.Switch
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                     disabled={!hasAccess}
                   />
@@ -180,7 +180,7 @@ export default function ProjectCspReports() {
                   )}
                 >
                   <field.TextArea
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     autosize
                     rows={4}

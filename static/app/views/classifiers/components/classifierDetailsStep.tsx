@@ -1,64 +1,67 @@
 import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
-import {withForm} from '@sentry/scraps/form';
+import {ScrapsForm} from '@sentry/scraps/form';
 
 import {t} from 'sentry/locale';
+import type {useClassifierForm} from 'sentry/views/classifiers/hooks/useClassifierForm';
 
 import {WizardBody, WizardFooter, WizardStep} from './wizardLayout';
 
-export const ClassifierDetailsStep = withForm({
-  defaultValues: {name: '', resultAttribute: ''},
-  props: {} as {onBack: () => void},
-  render: function ClassifierDetailsStepRender({form, onBack}) {
-    return (
-      <WizardStep>
-        <form.AppForm form={form}>
-          <WizardBody maxWidth="622px">
-            <form.AppField name="name">
-              {field => (
-                <field.Layout.Stack
-                  label={t('Classifier title')}
-                  hintText={t('This is what the classifier is called within Sentry.')}
-                  required
-                >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="resultAttribute">
-              {field => (
-                <field.Layout.Stack
-                  label={t('Attribute name')}
-                  hintText={t(
-                    'This is how the attribute is listed when it surfaces. This might be difficult to change later.'
-                  )}
-                  required
-                >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </WizardBody>
-        </form.AppForm>
-        <WizardFooter step={2}>
-          <Button onClick={onBack}>{t('Back')}</Button>
-          <form.Subscribe selector={state => state.isSubmitting}>
-            {isSubmitting => (
-              <Button
-                type="submit"
-                form={form.formId}
-                variant="primary"
-                icon={<IconAdd />}
-                busy={isSubmitting}
-                disabled={isSubmitting}
+export function ClassifierDetailsStep({
+  form,
+  onBack,
+}: {
+  form: ReturnType<typeof useClassifierForm>['form'];
+  onBack: () => void;
+}) {
+  return (
+    <WizardStep>
+      <ScrapsForm form={form}>
+        <WizardBody maxWidth="622px">
+          <form.Field name="name">
+            {field => (
+              <field.Layout.Stack
+                label={t('Classifier title')}
+                hintText={t('This is what the classifier is called within Sentry.')}
+                required
               >
-                {t('Create classifier')}
-              </Button>
+                <field.Input value={field.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
             )}
-          </form.Subscribe>
-        </WizardFooter>
-      </WizardStep>
-    );
-  },
-});
+          </form.Field>
+          <form.Field name="resultAttribute">
+            {field => (
+              <field.Layout.Stack
+                label={t('Attribute name')}
+                hintText={t(
+                  'This is how the attribute is listed when it surfaces. This might be difficult to change later.'
+                )}
+                required
+              >
+                <field.Input value={field.value} onChange={field.handleChange} />
+              </field.Layout.Stack>
+            )}
+          </form.Field>
+        </WizardBody>
+      </ScrapsForm>
+      <WizardFooter step={2}>
+        <Button onClick={onBack}>{t('Back')}</Button>
+        <form.Subscribe selector={state => state.isSubmitting}>
+          {isSubmitting => (
+            <Button
+              type="submit"
+              form={form.formId}
+              variant="primary"
+              icon={<IconAdd />}
+              busy={isSubmitting}
+              disabled={isSubmitting}
+            >
+              {t('Create classifier')}
+            </Button>
+          )}
+        </form.Subscribe>
+      </WizardFooter>
+    </WizardStep>
+  );
+}

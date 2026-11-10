@@ -11,9 +11,9 @@ function isFieldControl(name: string): boolean {
  * Field state and handlers alone do not provide the accessibility, validation,
  * and layout behavior of bound field components. Custom controls need field.Base.
  * Layout and Meta alone do not satisfy this requirement.
- * Checks inline AppField and scraps AutoSaveForm render functions. AppField is
+ * Checks inline Field and scraps AutoSaveForm render functions. Field is
  * identified by its member name because forms and field groups are created locally.
- * Array-mode AppFields manage collections and are exempt; their item fields are checked.
+ * ArrayFields manage collections and are exempt; their item fields are checked.
  */
 export const requireFieldComponent = defineRule({
   meta: {
@@ -29,7 +29,7 @@ export const requireFieldComponent = defineRule({
   },
   create(context) {
     if (
-      !context.sourceCode.text.includes('AppField') &&
+      !context.sourceCode.text.includes('Field') &&
       !context.sourceCode.text.includes('AutoSaveForm')
     ) {
       return {};
@@ -106,32 +106,9 @@ export const requireFieldComponent = defineRule({
 
       'JSXElement:exit'(node) {
         const name = node.openingElement.name;
-        const isAppField =
-          name.type === 'JSXMemberExpression' && name.property.name === 'AppField';
-        if (
-          !isAppField &&
-          !importTracker.is(name, '@sentry/scraps/form', 'AutoSaveForm')
-        ) {
-          return;
-        }
-
-        if (
-          isAppField &&
-          node.openingElement.attributes.some(attribute => {
-            if (
-              attribute.type !== 'JSXAttribute' ||
-              attribute.name.type !== 'JSXIdentifier' ||
-              attribute.name.name !== 'mode'
-            ) {
-              return false;
-            }
-            const value =
-              attribute.value?.type === 'JSXExpressionContainer'
-                ? attribute.value.expression
-                : attribute.value;
-            return value?.type === 'Literal' && value.value === 'array';
-          })
-        ) {
+        const isField =
+          name.type === 'JSXMemberExpression' && name.property.name === 'Field';
+        if (!isField && !importTracker.is(name, '@sentry/scraps/form', 'AutoSaveForm')) {
           return;
         }
 

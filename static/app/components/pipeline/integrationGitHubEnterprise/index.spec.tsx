@@ -61,7 +61,7 @@ describe('GHE InstallationConfigStep', () => {
   });
 
   it('calls advance with form data on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<InstallationConfigStep {...makeStepProps({stepData: {}, advance})} />);
 
     await fillRequiredConfigFields();
@@ -83,7 +83,7 @@ describe('GHE InstallationConfigStep', () => {
   });
 
   it('strips trailing slashes from the installation URL', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<InstallationConfigStep {...makeStepProps({stepData: {}, advance})} />);
 
     await fillRequiredConfigFields();
@@ -115,7 +115,7 @@ describe('GHE InstallationConfigStep', () => {
 
 describe('GHE AppInstallRedirectStep', () => {
   it('opens the install popup and advances on installation_id callback', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <AppInstallRedirectStep
         {...makeStepProps({
@@ -232,7 +232,7 @@ describe('GHE OAuthLoginStep', () => {
   });
 
   it('calls advance with code and state on OAuth callback', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <GHEOAuthLoginStep
         {...makeStepProps({

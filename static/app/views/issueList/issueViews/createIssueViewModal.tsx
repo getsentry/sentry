@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
@@ -94,7 +94,6 @@ export function CreateIssueViewModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       name: initialName,
       query: initialQuery,
@@ -109,7 +108,7 @@ export function CreateIssueViewModal({
       },
       starred: true,
     },
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => createIssueView(value).catch(() => {}),
   });
 
@@ -142,7 +141,7 @@ export function CreateIssueViewModal({
   };
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h4>{t('New Issue View')}</h4>
       </Header>
@@ -156,11 +155,11 @@ export function CreateIssueViewModal({
           </Alert.Container>
         )}
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack label={t('Name')} required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => {
                     field.handleChange(value);
                     handleNameChange();
@@ -174,14 +173,14 @@ export function CreateIssueViewModal({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="starred">
+          </form.Field>
+          <form.Field name="starred">
             {field => (
               <field.Layout.Stack label={t('Starred')}>
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
 
@@ -191,6 +190,6 @@ export function CreateIssueViewModal({
           <form.SubmitButton>{t('Create View')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

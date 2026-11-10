@@ -42,7 +42,7 @@ A minimal form with validation and submission.
 ```jsx
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
   email: z.email('Please enter a valid email'),
@@ -51,39 +51,37 @@ const schema = z.object({
 
 function MyForm() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {email: '', name: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       console.log(value);
     },
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="name">
+    <ScrapsForm form={form}>
+      <form.Field name="name">
         {field => (
           <field.Layout.Row label={t('Name')} required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </form.AppField>
+      </form.Field>
       <form.SubmitButton>Submit</form.SubmitButton>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 ```
 
 ## Form Hook: `useScrapsForm`
 
-Create a form by calling `useScrapsForm` with your configuration. Always spread `defaultFormOptions` first — it configures validation to run on submit initially, then revalidate on every change after the first submission attempt, and it also makes sure that the first erroneous field is automatically focused.
+Create a form by calling `useScrapsForm` with your configuration. The Sentry form hook configures error visibility globally: validators run on change, but their errors stay hidden until the first submit attempt. The first invalid field is focused after an invalid submit.
 
 ```jsx
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues: {email: '', name: ''},
-  validators: {onDynamic: schema},
-  onSubmit: ({value, formApi}) => {
+  validators: defaultFormValidators(schema),
+  onSubmit: ({value}) => {
     // Handle submission
   },
 });
@@ -91,21 +89,22 @@ const form = useScrapsForm({
 
 ### Returned Properties
 
-| Property         | Description                                                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `AppForm`        | Root wrapper component. Provides form context and renders a `<form>` element. Must receive `form={form}` prop.     |
-| `AppField`       | Field renderer. Takes a `name` prop and a render function receiving the field API with all bound field components. |
-| `FieldGroup`     | Section grouping with a title header. Renders a `Panel` with a `PanelHeader`.                                      |
-| `SubmitButton`   | Pre-wired submit button. Automatically disables while submission is pending.                                       |
-| `Subscribe`      | Subscribes to form state changes. Use `selector` to pick specific values.                                          |
-| `reset()`        | Reset the form to its default values.                                                                              |
-| `handleSubmit()` | Manually trigger form submission.                                                                                  |
+| Property         | Description                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `AppForm`        | Context wrapper. It takes children only; use the exported `<ScrapsForm form={form}>` helper for the normal form element. |
+| `Field`          | Field renderer. Takes a `name` prop and a render function receiving the field API with all bound field components.       |
+| `ArrayField`     | Array field renderer. Use it for array operations such as `pushValue` and `removeValue`.                                 |
+| `FieldGroup`     | Section grouping with a title header. Renders a `Panel` with a `PanelHeader`.                                            |
+| `SubmitButton`   | Pre-wired submit button. Automatically disables while submission is pending.                                             |
+| `Subscribe`      | Subscribes to form state changes. Use `selector` to pick specific values.                                                |
+| `reset()`        | Reset the form to its default values.                                                                                    |
+| `handleSubmit()` | Manually trigger form submission.                                                                                        |
 
 ## Validation with Zod
 
-Define a Zod schema and pass it as `validators: {onDynamic: schema}`. Always provide helpful error messages.
+Define a Zod schema and pass it in a validator array. Always provide helpful error messages.
 
-We use `onDynamic` instead of `onChange` or `onBlur` because its behavior adapts based on form state — our forms are configured to only validate on submit initially, then revalidate on every change after the first submission attempt. This avoids showing errors while the user is still filling out the form for the first time. See the [TanStack Form dynamic validation guide](https://tanstack.com/form/latest/docs/framework/react/guides/dynamic-validation) for details.
+The default policy hides errors until the first submit attempt. Use `defaultFormValidators(schema)` for form-level validation. It runs the validator on submit and on change after a submit attempt.
 
 ```jsx
 const schema = z.object({
@@ -137,21 +136,24 @@ const schema = z
 
 ### Per-Field Validators
 
-For conditional validation on individual fields, use the `validators` prop on `AppField`:
+For conditional validation on an individual field, use the `validators` prop on `Field`:
 
 ```jsx
-<form.AppField
+<form.Field
   name="secret"
-  validators={{
-    onDynamic: z.string().min(1, 'Secret is required'),
-  }}
+  validators={[
+    {
+      run: z.string().min(1, 'Secret is required'),
+      triggers: ['change'],
+    },
+  ]}
 >
   {field => (
     <field.Layout.Row label={t('Secret')} required>
-      <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
+      <field.Input value={field.value ?? ''} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ## Layouts
@@ -168,7 +170,7 @@ Label above, field below. Best for forms with longer labels or when vertical spa
   hintText={t("We'll never share your email")}
   required
 >
-  <field.Input value={field.state.value} onChange={field.handleChange} />
+  <field.Input value={field.value} onChange={field.handleChange} />
 </field.Layout.Stack>
 ```
 
@@ -182,7 +184,7 @@ Label on the left (~50%), field on the right. Compact layout for settings pages.
   hintText={t('We will never share your email address')}
   required
 >
-  <field.Input value={field.state.value} onChange={field.handleChange} />
+  <field.Input value={field.value} onChange={field.handleChange} />
 </field.Layout.Row>
 ```
 
@@ -220,29 +222,29 @@ Both layouts support `variant="compact"`, which moves hint text into a tooltip o
 You can skip the built-in layouts and use `field.Meta.Label` and `field.Meta.HintText` directly:
 
 ```jsx
-<form.AppField name="firstName">
+<form.Field name="firstName">
   {field => (
     <Flex gap="md">
       <field.Meta.Label required>{t('First Name')}</field.Meta.Label>
-      <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
+      <field.Input value={field.value ?? ''} onChange={field.handleChange} />
     </Flex>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ## Field Groups
 
-Group related fields into titled sections using `form.FieldGroup`. It renders a `Panel` with a header and body.
+Group related fields into titled sections using `form.FieldGroup`. It renders a `Panel` with a header and body. For reusable groups, use `defineAppFieldGroup` and bind a component to a `fields` prop; use plain `FieldGroup` inside that component.
 
 ```jsx
 <form.FieldGroup title={t("Personal Information")}>
-  <form.AppField name="firstName">{/* ... */}</form.AppField>
-  <form.AppField name="lastName">{/* ... */}</form.AppField>
+  <form.Field name="firstName">{/* ... */}</form.Field>
+  <form.Field name="lastName">{/* ... */}</form.Field>
 </form.FieldGroup>
 
 <form.FieldGroup title={t("Contact Information")}>
-  <form.AppField name="email">{/* ... */}</form.AppField>
-  <form.AppField name="phone">{/* ... */}</form.AppField>
+  <form.Field name="email">{/* ... */}</form.Field>
+  <form.Field name="phone">{/* ... */}</form.Field>
 </form.FieldGroup>
 ```
 
@@ -252,12 +254,12 @@ Fields accept `disabled` as a boolean or a string. When a string is provided, it
 
 ```jsx
 // Boolean — disabled without explanation
-<field.Input disabled value={field.state.value} onChange={field.handleChange} />
+<field.Input disabled value={field.value} onChange={field.handleChange} />
 
 // String — disabled with a reason shown as tooltip
 <field.Input
   disabled={t("This feature requires a Business plan")}
-  value={field.state.value}
+  value={field.value}
   onChange={field.handleChange}
 />
 ```
@@ -277,13 +279,13 @@ Use `form.Subscribe` to show or hide fields based on other field values:
 <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
   {showBilling =>
     showBilling ? (
-      <form.AppField name="billingEmail">
+      <form.Field name="billingEmail">
         {field => (
           <field.Layout.Row label={t('Billing Email')} required>
-            <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
+            <field.Input value={field.value ?? ''} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </form.AppField>
+      </form.Field>
     ) : null
   }
 </form.Subscribe>
@@ -297,29 +299,52 @@ Client-side validation is automatic when using a Zod schema. Errors display as a
 
 ### Server-Side Errors
 
-Use `setFieldErrors` to display backend validation errors on specific fields:
+Return `toFieldErrors` from `onSubmit` to display backend validation errors on specific fields:
 
 ```jsx
-import {setFieldErrors} from '@sentry/scraps/form';
+import {ScrapsForm, toFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 
-onSubmit: async ({value, formApi}) => {
+const form = useScrapsForm({
+  defaultValues,
+  onSubmit: async ({value, createValidationError}) => {
+    try {
+      await mutation.mutateAsync(value);
+    } catch (error) {
+      const fieldErrors = toFieldErrors({value, createValidationError}, error);
+      if (fieldErrors) {
+        return fieldErrors;
+      }
+      throw error;
+    }
+  },
+});
+
+return <ScrapsForm form={form}>{/* fields */}</ScrapsForm>;
+```
+
+For manually constructed errors, return `createValidationError` directly:
+
+```jsx
+onSubmit: async ({value, createValidationError}) => {
   try {
     await mutation.mutateAsync(value);
   } catch (error) {
-    setFieldErrors(formApi, {
-      email: {message: 'This email is already registered'},
-      'address.city': {message: 'City not found'},
+    return createValidationError({
+      fields: {
+        email: {message: 'This email is already registered'},
+        'address.city': {message: 'City not found'},
+      },
     });
   }
 },
 ```
 
 > [!NOTE]
-> `setFieldErrors` supports nested paths with dot notation, e.g. `'address.city'`.
+> Validation failures are returned from `onSubmit`. Thrown or rejected errors are submit failures. Handle transient network failures in the query layer; return `toFieldErrors` only for field validation errors.
 
 ## Form Submission
 
-Always use TanStack Query mutations (`useMutation`) for form submissions. Return the promise from `onSubmit` so that `form.isSubmitting` stays accurate, and add `.catch(() => {})` to avoid unhandled promise rejections — error handling is done by TanStack Query.
+Use TanStack Query mutations (`useMutation`) for form submissions. Return the mutation promise from `onSubmit` so that `form.state.isSubmitting` stays accurate. Return a validation error for a known field failure. A thrown or rejected error is a submit failure and is handled by the form's invalid-submit path.
 
 ```jsx
 import {useMutation} from '@tanstack/react-query';
@@ -333,22 +358,19 @@ function MyForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {...},
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
-      return mutation.mutateAsync(value).catch(() => {});
-    },
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value}) => mutation.mutateAsync(value),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       {/* fields */}
       <Flex gap="md" justify="end">
         <form.ResetButton>Reset</form.ResetButton>
         <form.SubmitButton>Save Changes</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 ```
@@ -363,8 +385,7 @@ When a form stays on the page after submission (e.g., settings pages), call `for
 onSubmit: ({value}) =>
   mutation
     .mutateAsync(value)
-    .then(() => form.reset())
-    .catch(() => {}),
+    .then(() => form.reset()),
 ```
 
 After `form.reset()`, the form re-syncs with the (now-updated) `defaultValues`, becoming pristine again. This means any UI that depends on the form being dirty (like conditionally shown Save/Cancel buttons or unsaved-changes warnings) will update correctly.
@@ -379,7 +400,7 @@ When a required field has no meaningful initial value (e.g., a select that start
 ```jsx
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
   provider: z
@@ -402,9 +423,8 @@ function MyForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       // schema.parse validates and narrows null away
       return mutation.mutateAsync(schema.parse(value)).catch(() => {});
@@ -412,12 +432,12 @@ function MyForm() {
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="provider">
+    <ScrapsForm form={form}>
+      <form.Field name="provider">
         {field => (
           <field.Layout.Row label={t('Provider')} required>
             <field.Select
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder={t('Select a provider')}
               options={[
@@ -427,16 +447,16 @@ function MyForm() {
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-      <form.AppField name="name">
+      </form.Field>
+      <form.Field name="name">
         {field => (
           <field.Layout.Row label={t('Name')} required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </form.AppField>
+      </form.Field>
       <form.SubmitButton>Submit</form.SubmitButton>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 ```

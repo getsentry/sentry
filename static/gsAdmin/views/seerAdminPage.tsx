@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -130,18 +130,17 @@ function NightShiftForm() {
     singleRun: false,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: formSchema},
-    onSubmit: ({value}) =>
+    validators: defaultFormValidators(formSchema),
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(formSchema.parse(value))
-        .then(() => form.setFieldValue('organizationId', null))
+        .then(() => formApi.setFieldValue('organizationId', null))
         .catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Trigger Night Shift Run</Heading>
@@ -159,61 +158,61 @@ function NightShiftForm() {
               repeatedly.
             </Alert>
           </Alert.Container>
-          <form.AppField name="locality">
+          <form.Field name="locality">
             {field => (
               <field.Layout.Stack label="Region" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={regionOptions(localities)}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="organizationId">
+          </form.Field>
+          <form.Field name="organizationId">
             {field => (
               <field.Layout.Stack label="Organization ID (blank = all orgs)">
                 <field.Number
                   min={1}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="Leave blank to trigger every eligible org"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="maxCandidates">
+          </form.Field>
+          <form.Field name="maxCandidates">
             {field => (
               <field.Layout.Stack label="Max candidates (optional)">
                 <field.Number
                   min={1}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="Leave blank to use default"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="dryRun">
+          </form.Field>
+          <form.Field name="dryRun">
             {field => (
               <field.Layout.Stack label="Dry run (triage only, no autofix triggered)">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           <form.Subscribe selector={state => state.values.organizationId}>
             {organizationId => (
-              <form.AppField name="singleRun">
+              <form.Field name="singleRun">
                 {field => (
                   <field.Layout.Stack label="Single-run Autofix (Sentry org only)">
                     <field.Switch
-                      checked={field.state.value}
+                      checked={field.value}
                       onChange={field.handleChange}
                       disabled={organizationId !== SENTRY_ORGANIZATION_ID}
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             )}
           </form.Subscribe>
           <Flex justify="end">
@@ -221,7 +220,7 @@ function NightShiftForm() {
           </Flex>
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -251,18 +250,17 @@ function AutofixRetryForm() {
     runIds: '',
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: retryFormSchema},
-    onSubmit: ({value}) =>
+    validators: defaultFormValidators(retryFormSchema),
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(retryFormSchema.parse(value))
-        .then(() => form.setFieldValue('runIds', ''))
+        .then(() => formApi.setFieldValue('runIds', ''))
         .catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">Retry Autofix Runs</Heading>
@@ -271,29 +269,29 @@ function AutofixRetryForm() {
             aren't in an error state, have a pull request or coding agent, or failed
             during PR iteration are skipped.
           </Text>
-          <form.AppField name="locality">
+          <form.Field name="locality">
             {field => (
               <field.Layout.Stack label="Region" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={regionOptions(localities)}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="runIds">
+          </form.Field>
+          <form.Field name="runIds">
             {field => (
               <field.Layout.Stack label="Run IDs" required>
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   rows={3}
                   placeholder={`Up to ${MAX_RETRY_RUN_IDS}, separated by commas or whitespace`}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           <Flex justify="end">
             <form.SubmitButton>Retry Runs</form.SubmitButton>
           </Flex>
@@ -322,7 +320,7 @@ function AutofixRetryForm() {
           )}
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -358,15 +356,14 @@ function SingleRunForm() {
     automated: false,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: singleRunFormSchema},
+    validators: defaultFormValidators(singleRunFormSchema),
     onSubmit: ({value}) =>
       mutation.mutateAsync(singleRunFormSchema.parse(value)).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Container background="secondary" border="primary" radius="md" padding="lg">
         <Stack gap="lg" align="stretch">
           <Heading as="h3">[Temporary, for testing] Start Single-Run Autofix</Heading>
@@ -374,35 +371,35 @@ function SingleRunForm() {
             Start a single-run Autofix on one issue in the Sentry org, using the
             project&apos;s Autofix settings.
           </Text>
-          <form.AppField name="locality">
+          <form.Field name="locality">
             {field => (
               <field.Layout.Stack label="Region" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={regionOptions(localities)}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="shortId">
+          </form.Field>
+          <form.Field name="shortId">
             {field => (
               <field.Layout.Stack label="Issue short ID" required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="SENTRY-5RDF"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="automated">
+          </form.Field>
+          <form.Field name="automated">
             {field => (
               <field.Layout.Stack label="Start as automated (no owner)">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           <Flex justify="end">
             <form.SubmitButton>Start Single Run</form.SubmitButton>
           </Flex>
@@ -413,7 +410,7 @@ function SingleRunForm() {
           )}
         </Stack>
       </Container>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

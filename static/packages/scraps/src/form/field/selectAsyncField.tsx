@@ -1,8 +1,10 @@
+import type * as React from 'react';
 import {useState} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {type BaseFieldProps} from './baseField';
@@ -12,8 +14,9 @@ type SelectAsyncFieldProps<
   TData,
   TValue,
   TOption extends SelectValue<TValue>,
-> = BaseFieldProps<HTMLInputElement> &
-  DistributedOmit<
+> = BaseFieldProps<HTMLInputElement> & {
+  field: FieldWithValue<unknown>;
+} & DistributedOmit<
     SelectFieldProps<TValue, TOption>,
     'options' | 'isLoading' | 'onInputChange'
   > & {
@@ -45,7 +48,7 @@ type SelectAsyncFieldProps<
 
 const DEBOUNCE_MS = 250;
 
-export function SelectAsyncField<
+function SelectAsyncField<
   TData,
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
@@ -70,3 +73,15 @@ export function SelectAsyncField<
     />
   );
 }
+
+type SelectAsyncLooseField = <
+  TData,
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>(
+  props: Omit<SelectAsyncFieldProps<TData, TValue, TOption>, 'field'>
+) => React.ReactNode;
+export const SelectAsyncLooseField = fieldComponent.loose(
+  SelectAsyncField,
+  'field'
+) as SelectAsyncLooseField;

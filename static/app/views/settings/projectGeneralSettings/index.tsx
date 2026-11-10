@@ -9,11 +9,11 @@ import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Confirm} from '@sentry/scraps/confirm';
 import {
+  defaultFormValidators,
   AutoSaveForm,
-  defaultFormOptions,
   FieldGroup,
   FormSearch,
-  setFieldErrors,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -231,10 +231,9 @@ function ProjectSlugForm({
   const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {slug: project.slug},
-    validators: {onDynamic: slugSchema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(slugSchema),
+    onSubmit: ({value, createValidationError}) =>
       updateProject
         .mutateAsync({slug: value.slug})
         .then(updatedProject => {
@@ -246,18 +245,17 @@ function ProjectSlugForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(
-              formApi,
-              requestErrorToFieldErrors(error, formApi.state.values)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/">
-        <form.AppField name="slug">
+        <form.Field name="slug">
           {field => (
             <field.Layout.Row
               label={t('Slug')}
@@ -265,13 +263,13 @@ function ProjectSlugForm({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={value => field.handleChange(slugify(value))}
                 disabled={disabled}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         {!disabled && (
           <form.Subscribe selector={state => !state.isDefaultValue}>
@@ -293,34 +291,29 @@ function ProjectSlugForm({
           </form.Subscribe>
         )}
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
 function ProjectIdField({project}: {project: DetailedProject}) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {projectId: project.id},
-    validators: {onDynamic: projectIdSchema},
+    validators: defaultFormValidators(projectIdSchema),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="projectId">
+    <ScrapsForm form={form}>
+      <form.Field name="projectId">
         {field => (
           <field.Layout.Row
             label={t('Project ID')}
             hintText={t('The unique identifier for this project. It cannot be modified.')}
           >
-            <field.Input
-              value={field.state.value}
-              onChange={field.handleChange}
-              disabled
-            />
+            <field.Input value={field.value} onChange={field.handleChange} disabled />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -334,32 +327,27 @@ function AutoResolveForm({
   const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {resolveAge: project.resolveAge ?? 0},
-    validators: {onDynamic: resolveAgeSchema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(resolveAgeSchema),
+    onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync({resolveAge: value.resolveAge})
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(
-              formApi,
-              requestErrorToFieldErrors(error, formApi.state.values)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/">
-        <form.AppField name="resolveAge">
+        <form.Field name="resolveAge">
           {field => {
-            const index = Math.max(
-              0,
-              RESOLVE_AGE_ALLOWED_VALUES.indexOf(field.state.value)
-            );
+            const index = Math.max(0, RESOLVE_AGE_ALLOWED_VALUES.indexOf(field.value));
             return (
               <field.Layout.Row
                 label={t('Auto Resolve')}
@@ -369,7 +357,7 @@ function AutoResolveForm({
               >
                 <Stack gap="xs">
                   <Text variant="muted" bold>
-                    {formatResolveAge(field.state.value)}
+                    {formatResolveAge(field.value)}
                   </Text>
                   <field.Range
                     aria-label={t('Auto Resolve')}
@@ -387,7 +375,7 @@ function AutoResolveForm({
               </field.Layout.Row>
             );
           }}
-        </form.AppField>
+        </form.Field>
 
         {!disabled && (
           <form.Subscribe selector={state => !state.isDefaultValue}>
@@ -410,7 +398,7 @@ function AutoResolveForm({
           </form.Subscribe>
         )}
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -428,42 +416,40 @@ function SecurityTokenForm({
   const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       securityToken: getDynamicText({
         value: project.securityToken ?? '',
         fixed: '__SECURITY_TOKEN__',
       }),
     },
-    validators: {onDynamic: securityTokenSchema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(securityTokenSchema),
+    onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync({securityToken: value.securityToken})
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(
-              formApi,
-              requestErrorToFieldErrors(error, formApi.state.values)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/">
-        <form.AppField name="securityToken">
+        <form.Field name="securityToken">
           {field => (
             <field.Layout.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={disabled}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         {!disabled && (
           <form.Subscribe selector={state => !state.isDefaultValue}>
@@ -483,7 +469,7 @@ function SecurityTokenForm({
           </form.Subscribe>
         )}
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -497,41 +483,39 @@ function SecurityTokenHeaderForm({
   const updateProject = useMutation(useUpdateProjectMutationOptions(project));
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {securityTokenHeader: project.securityTokenHeader ?? ''},
-    validators: {onDynamic: securityTokenHeaderSchema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(securityTokenHeaderSchema),
+    onSubmit: ({value, createValidationError, formApi}) =>
       updateProject
         .mutateAsync({securityTokenHeader: value.securityTokenHeader})
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(
-              formApi,
-              requestErrorToFieldErrors(error, formApi.state.values)
-            );
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/">
-        <form.AppField name="securityTokenHeader">
+        <form.Field name="securityTokenHeader">
           {field => (
             <field.Layout.Row
               label={t('Security Token Header')}
               hintText={SECURITY_TOKEN_HELP}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('X-Sentry-Token')}
                 disabled={disabled}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         {!disabled && (
           <form.Subscribe selector={state => !state.isDefaultValue}>
@@ -551,7 +535,7 @@ function SecurityTokenHeaderForm({
           </form.Subscribe>
         )}
       </FormSearch>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -709,7 +693,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 hintText={t('The primary platform for this project')}
               >
                 <field.Select
-                  value={field.state.value ?? null}
+                  value={field.value ?? null}
                   onChange={field.handleChange}
                   options={platformOptions.map(option => ({
                     ...option,
@@ -744,7 +728,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 hintText={t('Choose a custom prefix for emails from this project')}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('e.g. [my-org]')}
                   disabled={disabled}
@@ -785,7 +769,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={disabled}
                 />
@@ -819,7 +803,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 )}
               >
                 <field.Select
-                  value={field.state.value ?? INHERIT_DEBUG_FILES_ROLE}
+                  value={field.value ?? INHERIT_DEBUG_FILES_ROLE}
                   onChange={value =>
                     field.handleChange(value === INHERIT_DEBUG_FILES_ROLE ? null : value)
                   }
@@ -868,7 +852,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 hintText={allowedDomainsHelp}
               >
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   autosize
                   rows={1}
@@ -894,7 +878,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={orgScrapeJavaScript ? disabled : ORG_DISABLED_REASON}
                 />
@@ -923,7 +907,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={disabled}
                 />
@@ -949,7 +933,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={disabled}
                 />

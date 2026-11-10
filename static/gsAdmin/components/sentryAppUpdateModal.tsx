@@ -2,7 +2,7 @@ import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
@@ -60,15 +60,6 @@ export function SentryAppUpdateModal(props: Props) {
       }));
       closeModal();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      toast.error('Unable to update the Sentry App.');
-    },
     onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: sentryAppQueryOptions.queryKey,
@@ -92,10 +83,19 @@ export function SentryAppUpdateModal(props: Props) {
       [],
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) =>
+      mutation.mutateAsync(schema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
+        }
+        toast.error('Unable to update the Sentry App.');
+        return;
+      }),
   });
 
   if (isPending) {
@@ -112,13 +112,13 @@ export function SentryAppUpdateModal(props: Props) {
   }));
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <Heading as="h2">Update Sentry App</Heading>
       </Header>
       <Body>
         <Stack gap="lg">
-          <form.AppField name="popularity">
+          <form.Field name="popularity">
             {field => (
               <field.Layout.Stack
                 label="New popularity"
@@ -126,7 +126,7 @@ export function SentryAppUpdateModal(props: Props) {
                 required
               >
                 <field.Number
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   min={POPULARITY_MIN}
                   max={POPULARITY_MAX}
@@ -134,8 +134,8 @@ export function SentryAppUpdateModal(props: Props) {
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="features">
+          </form.Field>
+          <form.Field name="features">
             {field => (
               <field.Layout.Stack
                 label="Features"
@@ -144,14 +144,14 @@ export function SentryAppUpdateModal(props: Props) {
               >
                 <field.Select
                   multiple
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={options}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -160,6 +160,6 @@ export function SentryAppUpdateModal(props: Props) {
           <form.SubmitButton>Save</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

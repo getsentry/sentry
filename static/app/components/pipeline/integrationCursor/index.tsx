@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,6 +11,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const apiKeySchema = z.object({
@@ -20,50 +20,47 @@ const apiKeySchema = z.object({
 
 function CursorApiKeyStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<Record<string, never>, {apiKey: string}>) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {apiKey: ''},
-    validators: {onDynamic: apiKeySchema},
-    onSubmit: ({value}) => {
-      advance({apiKey: value.apiKey});
-    },
+    validators: defaultFormValidators(apiKeySchema),
+    onSubmit: ({value, createValidationError}) =>
+      advance({apiKey: value.apiKey}).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t('Enter your Cursor API key to connect Cursor Agents with Sentry.')}
         </Text>
-        <form.AppField name="apiKey">
+        <form.Field name="apiKey">
           {field => (
             <field.Layout.Stack label={t('Cursor API Key')} required>
               <field.Input
                 type="password"
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="crsr_..."
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

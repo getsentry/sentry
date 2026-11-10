@@ -3,31 +3,37 @@ import {z} from 'zod';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 
-import {defaultFormOptions, DisplayField, useScrapsForm} from '@sentry/scraps/form';
+import {
+  DisplayField,
+  useScrapsForm,
+  ScrapsForm,
+  defaultFormValidators,
+} from '@sentry/scraps/form';
 import {Container} from '@sentry/scraps/layout';
 
 function ExampleForm({onSubmit}: {onSubmit?: (value: {name: string}) => void}) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {name: ''},
-    validators: {onDynamic: z.object({name: z.string().min(1, 'Enter a name')})},
+    validators: defaultFormValidators(
+      z.object({name: z.string().min(1, 'Enter a name')})
+    ),
     onSubmit: ({value}) => onSubmit?.(value),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <DisplayField.Row label="Created" hintText="When the key was created.">
         January 1, 2025
       </DisplayField.Row>
-      <form.AppField name="name">
+      <form.Field name="name">
         {field => (
           <field.Layout.Row label="Name" hintText="Enter a key name.">
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </form.AppField>
+      </form.Field>
       <form.SubmitButton>Save</form.SubmitButton>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

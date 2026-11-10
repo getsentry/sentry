@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -88,19 +88,6 @@ function SimulateLlmUsageModal({
       onSuccess();
       closeModal();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      toast.error(
-        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
-          ? error.responseJSON.detail
-          : 'Unable to record simulated LLM usage.'
-      );
-    },
   });
 
   const defaultValues: z.input<typeof schema> = {
@@ -112,10 +99,9 @@ function SimulateLlmUsageModal({
     notes: '',
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) => {
       const parsed = schema.parse(value);
       return mutation
         .mutateAsync({
@@ -129,7 +115,21 @@ function SimulateLlmUsageModal({
           ticketUrl: parsed.ticketUrl,
           notes: parsed.notes,
         })
-        .catch(() => {});
+        .catch(error => {
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
+          }
+          toast.error(
+            error instanceof RequestError &&
+              typeof error.responseJSON?.detail === 'string'
+              ? error.responseJSON.detail
+              : 'Unable to record simulated LLM usage.'
+          );
+          return;
+        });
     },
   });
 
@@ -152,7 +152,7 @@ function SimulateLlmUsageModal({
   }));
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h2">Simulate LLM Usage</Heading>
       </Header>
@@ -163,42 +163,42 @@ function SimulateLlmUsageModal({
             it like real usage, so the customer is invoiced for test_paid usage. Refund it
             afterwards with Change Balance or Grant Ledger Credit.
           </Text>
-          <form.AppField name="feature">
+          <form.Field name="feature">
             {field => (
               <field.Layout.Stack label="Feature" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={FEATURE_OPTIONS}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="projectId">
+          </form.Field>
+          <form.Field name="projectId">
             {field => (
               <field.Layout.Stack label="Project" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={projectOptions}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="costUsd">
+          </form.Field>
+          <form.Field name="costUsd">
             {field => (
               <field.Layout.Stack label="Cost" hintText="In dollars" required>
                 <field.Number
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="timestamp">
+          </form.Field>
+          <form.Field name="timestamp">
             {field => (
               <field.Layout.Stack
                 label="Timestamp"
@@ -206,37 +206,37 @@ function SimulateLlmUsageModal({
               >
                 <field.Input
                   type="datetime-local"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="ticketUrl">
+          </form.Field>
+          <form.Field name="ticketUrl">
             {field => (
               <field.Layout.Stack label="Ticket URL">
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="notes">
+          </form.Field>
+          <form.Field name="notes">
             {field => (
               <field.Layout.Stack label="Notes" required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   maxLength={500}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -245,7 +245,7 @@ function SimulateLlmUsageModal({
           <form.SubmitButton>Record Usage</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

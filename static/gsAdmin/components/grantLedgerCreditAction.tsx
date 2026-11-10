@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -110,19 +110,6 @@ function GrantLedgerCreditModal({
       onSuccess();
       closeModal();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      toast.error(
-        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
-          ? error.responseJSON.detail
-          : 'Unable to grant ledger credit.'
-      );
-    },
   });
 
   const defaultValues: z.input<typeof schema> = {
@@ -134,10 +121,9 @@ function GrantLedgerCreditModal({
     notes: '',
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) => {
       const parsed = schema.parse(value);
       return mutation
         .mutateAsync({
@@ -148,7 +134,21 @@ function GrantLedgerCreditModal({
           ticketUrl: parsed.ticketUrl,
           notes: parsed.notes,
         })
-        .catch(() => {});
+        .catch(error => {
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
+          }
+          toast.error(
+            error instanceof RequestError &&
+              typeof error.responseJSON?.detail === 'string'
+              ? error.responseJSON.detail
+              : 'Unable to grant ledger credit.'
+          );
+          return;
+        });
     },
   });
 
@@ -171,7 +171,7 @@ function GrantLedgerCreditModal({
   }));
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h2">Grant Ledger Credit</Heading>
       </Header>
@@ -186,68 +186,68 @@ function GrantLedgerCreditModal({
               The current contract has no credit-only line items.
             </Text>
           ) : null}
-          <form.AppField name="lineItemUid">
+          <form.Field name="lineItemUid">
             {field => (
               <field.Layout.Stack label="Line Item" required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={lineItemOptions}
                   disabled={mutation.isPending || lineItemOptions.length === 0}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="amount">
+          </form.Field>
+          <form.Field name="amount">
             {field => (
               <field.Layout.Stack label="Amount" hintText="In dollars" required>
                 <field.Number
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="ticketUrl">
+          </form.Field>
+          <form.Field name="ticketUrl">
             {field => (
               <field.Layout.Stack label="Ticket URL">
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="notes">
+          </form.Field>
+          <form.Field name="notes">
             {field => (
               <field.Layout.Stack label="Notes">
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   maxLength={500}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="multipleGrantsToday">
+          </form.Field>
+          <form.Field name="multipleGrantsToday">
             {field => (
               <field.Checkbox
                 label="I am providing multiple grants to this customer in one day"
                 hintText="Only one grant per line item is allowed each day (UTC) unless you set a client key."
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={mutation.isPending}
               />
             )}
-          </form.AppField>
+          </form.Field>
           <form.Subscribe selector={state => state.values.multipleGrantsToday}>
             {multipleGrantsToday =>
               multipleGrantsToday ? (
-                <form.AppField name="clientKey">
+                <form.Field name="clientKey">
                   {field => (
                     <field.Layout.Stack
                       label="Client Key"
@@ -255,14 +255,14 @@ function GrantLedgerCreditModal({
                       required
                     >
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         maxLength={MAX_CLIENT_KEY_LENGTH}
                         disabled={mutation.isPending}
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               ) : null
             }
           </form.Subscribe>
@@ -274,7 +274,7 @@ function GrantLedgerCreditModal({
           <form.SubmitButton>Grant Credit</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

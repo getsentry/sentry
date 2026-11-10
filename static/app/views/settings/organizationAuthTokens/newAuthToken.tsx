@@ -3,7 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
@@ -79,9 +79,8 @@ function AuthTokenCreateForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {name: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
@@ -89,19 +88,19 @@ function AuthTokenCreateForm({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('Create New Organization Token')}>
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Row
               label={t('Name')}
               hintText={t('A name to help you identify this token.')}
               required
             >
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         <FieldGroup
           label={t('Scopes')}
@@ -119,7 +118,7 @@ function AuthTokenCreateForm({
         <Button onClick={handleGoBack}>{t('Cancel')}</Button>
         <form.SubmitButton>{t('Create Token')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

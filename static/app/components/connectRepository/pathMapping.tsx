@@ -64,7 +64,11 @@ export function PathMapping({
           // https://github.com/TanStack/form/issues/1648
           key={fields}
           form={form}
-          fields={fields}
+          fields={{
+            branch: `${fields}.branch`,
+            stackRoot: `${fields}.stackRoot`,
+            sourceRoot: `${fields}.sourceRoot`,
+          }}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}

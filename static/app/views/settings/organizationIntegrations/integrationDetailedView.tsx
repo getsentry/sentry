@@ -561,7 +561,7 @@ export default function IntegrationDetailedView() {
                   }
                 >
                   <field.Switch
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                     disabled={isDisabled}
                     aria-label={t('Enable Slack threads on Issue Alerts')}
@@ -587,7 +587,7 @@ export default function IntegrationDetailedView() {
                   }
                 >
                   <field.Switch
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                     disabled={isDisabled}
                     aria-label={t('Enable Slack threads on Metric Alerts')}

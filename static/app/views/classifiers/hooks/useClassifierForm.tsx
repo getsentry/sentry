@@ -1,7 +1,7 @@
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, useScrapsForm} from '@sentry/scraps/form';
 import {toast} from '@sentry/scraps/toast';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -40,13 +40,12 @@ export function useClassifierForm({dataset, filterQuery}: UseClassifierFormOptio
   const createClassifier = useCreateClassifier();
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       name: prebuilt?.name ?? '',
       resultAttribute: prebuilt?.resultAttribute ?? '',
     },
-    validators: {onDynamic: classifierDetailsSchema},
-    onSubmit: async ({value, formApi}) => {
+    validators: defaultFormValidators(classifierDetailsSchema),
+    onSubmit: async ({value, createValidationError}) => {
       const project = selection.projects[0];
       if (!prebuilt || project === undefined) {
         return;
@@ -63,16 +62,15 @@ export function useClassifierForm({dataset, filterQuery}: UseClassifierFormOptio
         toast.success(t('Classifier created'));
         navigate(getClassifierDetailPath(organization.slug, classifier.id));
       } catch (error) {
-        const fieldErrors =
-          error instanceof RequestError
-            ? requestErrorToFieldErrors(error, formApi.state.values)
-            : {};
-        if (Object.keys(fieldErrors).length > 0) {
-          setFieldErrors(formApi, fieldErrors);
-        } else {
-          toast.error(t('Failed to create classifier'));
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
         }
+        toast.error(t('Failed to create classifier'));
       }
+      return;
     },
   });
 

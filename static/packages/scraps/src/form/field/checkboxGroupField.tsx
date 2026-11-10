@@ -3,33 +3,34 @@ import {useId} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
+import {getLabelId} from '@sentry/scraps/form/field/fieldIds';
 import {GroupProvider, useGroupItemContext} from '@sentry/scraps/form/field/groupContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
 interface CheckboxGroupProps extends BaseFieldProps<HTMLDivElement> {
   children: React.ReactNode;
+  field: FieldWithValue<unknown>;
   onChange: (value: string[]) => void;
   value: string[];
 }
 
-export function CheckboxGroup({
+function CheckboxGroupImpl({
+  field,
   children,
   value,
   onChange,
   disabled,
   ref,
 }: CheckboxGroupProps) {
-  const field = useFieldContext();
-  const labelId = useLabelId();
+  const labelId = getLabelId(field);
   const autoSaveContext = useAutoSaveContext();
 
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {({disabled: isDisabled, name, ...baseProps}, {indicator}) => (
         <GroupProvider
           value={{
@@ -71,7 +72,7 @@ export function CheckboxGroup({
           {indicator}
         </GroupProvider>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }
 
@@ -106,3 +107,5 @@ export function CheckboxGroupItem({
     </Flex>
   );
 }
+
+export const CheckboxGroup = fieldComponent.loose(CheckboxGroupImpl, 'field');

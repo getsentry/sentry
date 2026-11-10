@@ -2,14 +2,14 @@ import type * as React from 'react';
 import {useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
+import {getLabelId} from '@sentry/scraps/form/field/fieldIds';
 import {
   GroupProvider,
   useGroupItemContext,
   type GroupContextValue,
 } from '@sentry/scraps/form/field/groupContext';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -19,16 +19,16 @@ import {useAutoSaveIndicator} from './baseField';
 // Radio.Group component
 interface RadioGroupProps {
   children: React.ReactNode;
+  field: FieldWithValue<unknown>;
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
 }
 
-function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
-  const field = useFieldContext();
-  const labelId = useLabelId();
+function RadioGroup({children, value, onChange, disabled, field}: RadioGroupProps) {
+  const labelId = getLabelId(field);
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
+  const indicator = useAutoSaveIndicator(field);
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
@@ -46,7 +46,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
     },
     onBlur: field.handleBlur,
     disabled: isDisabled,
-    'aria-invalid': !field.state.meta.isValid,
+    'aria-invalid': !field.meta.isValid,
   };
 
   return (
@@ -61,7 +61,8 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
 }
 
 // Radio.Item component
-interface RadioItemProps {
+/** @public Required by generated form declarations. */
+export interface RadioItemProps {
   children: React.ReactNode;
   value: string;
   description?: React.ReactNode;
@@ -92,10 +93,7 @@ function RadioItem({children, value, description}: RadioItemProps) {
   );
 }
 
-// Export as namespace
-export function RadioField() {
-  return null;
-}
-
-RadioField.Group = RadioGroup;
-RadioField.Item = RadioItem;
+export const RadioField = Object.assign(() => null, {
+  Group: fieldComponent.loose(RadioGroup, 'field'),
+  Item: RadioItem,
+});

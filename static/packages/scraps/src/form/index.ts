@@ -1,12 +1,11 @@
 /** @public */
 export {
-  formOptions,
   useScrapsForm,
-  defaultFormOptions,
-  setFieldErrors,
+  ScrapsForm,
   type FieldErrors,
-  withFieldGroup,
-  withForm,
+  type CreateValidationErrorFn,
+  defaultFormValidators,
+  defineAppFieldGroup,
 } from './scrapsForm';
 export {AutoSaveForm} from './autoSaveForm';
 export {AutoSaveContextProvider} from './autoSaveContext';
@@ -15,4 +14,4 @@ export {DisplayField} from './displayField';
 export {useStackedLayout} from './layout/useStackedLayout';
 export {FormSearch} from './FormSearch';
 // eslint-disable-next-line no-restricted-imports
-export {useStore} from '@tanstack/react-form';
+export {useSelector} from '@tanstack/react-form';

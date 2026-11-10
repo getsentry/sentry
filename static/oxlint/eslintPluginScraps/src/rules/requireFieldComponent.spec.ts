@@ -13,96 +13,96 @@ const errors = [{messageId: 'missingComponent'}];
 ruleTester.run('require-field-component', requireFieldComponent, {
   valid: [
     {
-      name: 'allows array-mode AppFields without a bound component',
-      code: '<form.AppField name="pathMappings" mode="array">{field => <CustomList values={field.state.value} />}</form.AppField>',
+      name: 'allows ArrayFields without a bound component',
+      code: '<form.ArrayField name="pathMappings">{field => <CustomList values={field.value} />}</form.ArrayField>',
     },
     {
       name: 'allows array mode passed as an expression on a field group',
-      code: '<group.AppField name="items" mode={"array"}>{field => <CustomList onAdd={() => field.pushValue({name: ""})} />}</group.AppField>',
+      code: '<group.ArrayField name="items">{field => <CustomList onAdd={() => field.pushValue({name: ""})} />}</group.ArrayField>',
     },
     {
       name: 'allows array-mode children attributes without a field parameter',
-      code: '<form.AppField name="items" mode="array" children={() => <CustomList />} />',
+      code: '<form.ArrayField name="items" children={() => <CustomList />} />',
     },
     {
-      name: 'uses Field for collection management and AppField for item inputs',
-      code: '<form.Field name="items" mode="array">{arrayField => <><form.AppField name="items[0].name">{field => <field.Input />}</form.AppField><button onClick={() => arrayField.pushValue({name: ""})}>Add item</button></>}</form.Field>',
+      name: 'uses ArrayField for collection management and Field for item inputs',
+      code: '<form.ArrayField name="items">{arrayField => <><form.Field name="items[0].name">{field => <field.Input />}</form.Field><button onClick={() => arrayField.pushValue({name: ""})}>Add item</button></>}</form.ArrayField>',
     },
     {
       name: 'renders a bound input',
-      code: '<group.AppField name="sourceRoot">{field => <field.Input value={field.state.value} onChange={field.handleChange} />}</group.AppField>',
+      code: '<group.Field name="sourceRoot">{field => <field.Input value={field.value} onChange={field.handleChange} />}</group.Field>',
     },
     {
       name: 'uses Base for a custom control',
-      code: '<form.AppField name="name">{field => <field.Base><CustomInput /></field.Base>}</form.AppField>',
+      code: '<form.Field name="name">{field => <field.Base><CustomInput /></field.Base>}</form.Field>',
     },
     {
       name: 'does not depend on the callback parameter name',
-      code: '<form.AppField name="name">{nameField => <nameField.Select />}</form.AppField>',
+      code: '<form.Field name="name">{nameField => <nameField.Select />}</form.Field>',
     },
     {
       name: 'accepts a bound control with layout and meta components',
-      code: '<form.AppField name="name">{field => <field.Layout.Row><field.Input /><field.Meta /></field.Layout.Row>}</form.AppField>',
+      code: '<form.Field name="name">{field => <field.Layout.Row><field.Input /><field.Meta /></field.Layout.Row>}</form.Field>',
     },
     {
       name: 'accepts other field components',
-      code: '<form.AppField name="name">{field => <field.CustomControl />}</form.AppField>',
+      code: '<form.Field name="name">{field => <field.CustomControl />}</form.Field>',
     },
     {
       name: 'finds a field component inside wrappers and fragments',
-      code: '<form.AppField name="name">{field => <Wrapper><><field.Input /></></Wrapper>}</form.AppField>',
+      code: '<form.Field name="name">{field => <Wrapper><><field.Input /></></Wrapper>}</form.Field>',
     },
     {
       name: 'supports conditional rendering',
-      code: '<form.AppField name="name">{field => condition ? <field.Input /> : null}</form.AppField>',
+      code: '<form.Field name="name">{field => condition ? <field.Input /> : null}</form.Field>',
     },
     {
       name: 'supports logical expressions',
-      code: '<form.AppField name="name">{field => condition && <field.Input />}</form.AppField>',
+      code: '<form.Field name="name">{field => condition && <field.Input />}</form.Field>',
     },
     {
       name: 'supports block callbacks and early null returns',
-      code: '<form.AppField name="name">{field => { if (hidden) return null; return <field.Input />; }}</form.AppField>',
+      code: '<form.Field name="name">{field => { if (hidden) return null; return <field.Input />; }}</form.Field>',
     },
     {
       name: 'supports function expressions',
-      code: '<form.AppField name="name">{function(field) { return <field.Input />; }}</form.AppField>',
+      code: '<form.Field name="name">{function(field) { return <field.Input />; }}</form.Field>',
     },
     {
       name: 'supports children attributes',
-      code: '<form.AppField name="name" children={field => <field.Input />} />',
+      code: '<form.Field name="name" children={field => <field.Input />} />',
     },
     {
       name: 'supports parenthesized callbacks',
-      code: '<form.AppField name="name">{((field => <field.Input />))}</form.AppField>',
+      code: '<form.Field name="name">{((field => <field.Input />))}</form.Field>',
     },
     {
       name: 'supports typed callback parameters',
-      code: '<form.AppField name="name">{(field: FieldApi) => <field.Input />}</form.AppField>',
+      code: '<form.Field name="name">{(field: FieldApi) => <field.Input />}</form.Field>',
     },
     {
       name: 'supports destructured field components and aliases',
-      code: '<form.AppField name="name">{({Input: NameInput}) => <NameInput />}</form.AppField>',
+      code: '<form.Field name="name">{({Input: NameInput}) => <NameInput />}</form.Field>',
     },
     {
       name: 'supports destructured Base with layout and meta components',
-      code: '<form.AppField name="name">{({Base, Layout, Meta}) => <Layout.Row><Base><CustomInput /></Base><Meta /></Layout.Row>}</form.AppField>',
+      code: '<form.Field name="name">{({Base, Layout, Meta}) => <Layout.Row><Base><CustomInput /></Base><Meta /></Layout.Row>}</form.Field>',
     },
     {
       name: 'supports other destructured field components and aliases',
-      code: '<form.AppField name="name">{({CustomControl: Input}) => <Input />}</form.AppField>',
+      code: '<form.Field name="name">{({CustomControl: Input}) => <Input />}</form.Field>',
     },
     {
       name: 'supports default parameters',
-      code: '<form.AppField name="name">{(field = fallback) => <field.Input />}</form.AppField>',
+      code: '<form.Field name="name">{(field = fallback) => <field.Input />}</form.Field>',
     },
     {
       name: 'supports rest properties',
-      code: '<form.AppField name="name">{({state, ...field}) => <field.Input />}</form.AppField>',
+      code: '<form.Field name="name">{({state, ...field}) => <field.Input />}</form.Field>',
     },
     {
       name: 'supports nested fields with the same parameter name',
-      code: '<form.AppField name="outer">{field => <field.Base><form.AppField name="inner">{field => <field.Input />}</form.AppField></field.Base>}</form.AppField>',
+      code: '<form.Field name="outer">{field => <field.Base><form.Field name="inner">{field => <field.Input />}</form.Field></field.Base>}</form.Field>',
     },
     {
       name: 'supports AutoSaveForm',
@@ -126,34 +126,34 @@ ruleTester.run('require-field-component', requireFieldComponent, {
     },
     {
       name: 'ignores callbacks that are not inline',
-      code: '<form.AppField name="name">{renderField}</form.AppField>',
+      code: '<form.Field name="name">{renderField}</form.Field>',
     },
   ],
   invalid: [
     {
       name: 'rejects layout and meta without a bound control',
-      code: '<form.AppField name="name">{field => <field.Layout.Row><CustomInput /><field.Meta /></field.Layout.Row>}</form.AppField>',
+      code: '<form.Field name="name">{field => <field.Layout.Row><CustomInput /><field.Meta /></field.Layout.Row>}</form.Field>',
       errors,
     },
     ...['Layout', 'Meta'].flatMap(component => [
       {
         name: `rejects ${component} alone`,
-        code: `<form.AppField name="name">{field => <field.${component} />}</form.AppField>`,
+        code: `<form.Field name="name">{field => <field.${component} />}</form.Field>`,
         errors,
       },
       {
         name: `rejects destructured ${component}`,
-        code: `<form.AppField name="name">{({${component}}) => <${component} />}</form.AppField>`,
+        code: `<form.Field name="name">{({${component}}) => <${component} />}</form.Field>`,
         errors,
       },
       {
         name: `rejects aliased ${component}`,
-        code: `<form.AppField name="name">{({${component}: Input}) => <Input />}</form.AppField>`,
+        code: `<form.Field name="name">{({${component}: Input}) => <Input />}</form.Field>`,
         errors,
       },
       {
         name: `rejects ${component} on a rest binding`,
-        code: `<form.AppField name="name">{({state, ...field}) => <field.${component} />}</form.AppField>`,
+        code: `<form.Field name="name">{({state, ...field}) => <field.${component} />}</form.Field>`,
         errors,
       },
       {
@@ -164,122 +164,117 @@ ruleTester.run('require-field-component', requireFieldComponent, {
     ]),
     {
       name: 'rejects a layout namespace member',
-      code: '<form.AppField name="name">{field => <field.Layout.Row />}</form.AppField>',
+      code: '<form.Field name="name">{field => <field.Layout.Row />}</form.Field>',
       errors,
     },
     {
       name: 'rejects a destructured layout namespace member',
-      code: '<form.AppField name="name">{({Layout}) => <Layout.Row />}</form.AppField>',
+      code: '<form.Field name="name">{({Layout}) => <Layout.Row />}</form.Field>',
       errors,
     },
     {
       name: 'rejects nested layout destructuring',
-      code: '<form.AppField name="name">{({Layout: {Row: Input}}) => <Input />}</form.AppField>',
+      code: '<form.Field name="name">{({Layout: {Row: Input}}) => <Input />}</form.Field>',
       errors,
     },
     {
       name: 'checks item fields inside an exempt array-mode AppField',
-      code: '<form.AppField name="items" mode="array">{arrayField => arrayField.state.value.map((_, index) => <form.AppField key={index} name={`items[${index}].name`}>{field => <CustomInput value={field.state.value} />}</form.AppField>)}</form.AppField>',
+      code: '<form.ArrayField name="items">{arrayField => arrayField.value.map((_, index) => <form.Field key={index} name={`items[${index}].name`}>{field => <CustomInput value={field.value} />}</form.Field>)}</form.ArrayField>',
       errors,
     },
     {
-      name: 'does not exempt value-mode AppFields',
-      code: '<form.AppField name="name" mode="value">{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      name: 'does not exempt value-mode Fields',
+      code: '<form.Field name="name" mode="value">{field => <CustomInput value={field.value} />}</form.Field>',
       errors,
     },
     {
       name: 'does not exempt unknown modes',
-      code: '<form.AppField name="name" mode={mode}>{field => <CustomInput value={field.state.value} />}</form.AppField>',
+      code: '<form.Field name="name" mode={mode}>{field => <CustomInput value={field.value} />}</form.Field>',
       errors,
     },
     {
       name: 'does not exempt AutoSaveForm based on its mode prop',
-      code: 'import {AutoSaveForm} from "@sentry/scraps/form"; <AutoSaveForm mode="array">{field => <CustomInput value={field.state.value} />}</AutoSaveForm>',
-      errors,
-    },
-    {
-      name: 'checks item inputs inside a collection Field',
-      code: '<form.Field name="items" mode="array">{arrayField => arrayField.state.value.map((_, index) => <form.AppField key={index} name={`items[${index}].name`}>{field => <CustomInput value={field.state.value} />}</form.AppField>)}</form.Field>',
+      code: 'import {AutoSaveForm} from "@sentry/scraps/form"; <AutoSaveForm mode="array">{field => <CustomInput value={field.value} />}</AutoSaveForm>',
       errors,
     },
     {
       name: 'rejects custom controls without Base',
-      code: '<group.AppField name="sourceRoot">{field => <CustomInput value={field.state.value} onChange={field.handleChange} />}</group.AppField>',
+      code: '<group.Field name="sourceRoot">{field => <CustomInput value={field.value} onChange={field.handleChange} />}</group.Field>',
       errors,
     },
     {
       name: 'requires a field callback parameter',
-      code: '<form.AppField name="name">{() => <CustomInput />}</form.AppField>',
+      code: '<form.Field name="name">{() => <CustomInput />}</form.Field>',
       errors,
     },
     {
       name: 'rejects callbacks with no field component',
-      code: '<form.AppField name="name">{field => <CustomInput />}</form.AppField>',
+      code: '<form.Field name="name">{field => <CustomInput />}</form.Field>',
       errors,
     },
     {
       name: 'rejects state-only rendering',
-      code: '<form.AppField name="name">{field => <span>{field.state.value}</span>}</form.AppField>',
+      code: '<form.Field name="name">{field => <span>{field.value}</span>}</form.Field>',
       errors,
     },
     {
       name: 'rejects destructured state and handlers',
-      code: '<form.AppField name="name">{({state, handleChange}) => <CustomInput value={state.value} onChange={handleChange} />}</form.AppField>',
+      code: '<form.Field name="name">{({state, handleChange}) => <CustomInput value={state.value} onChange={handleChange} />}</form.Field>',
       errors,
     },
     {
       name: 'does not mistake a destructured state property for a field component',
-      code: '<form.AppField name="name">{({state: {value: Input}}) => <Input />}</form.AppField>',
+      code: '<form.Field name="name">{({state: {value: Input}}) => <Input />}</form.Field>',
       errors,
     },
     {
       name: 'does not count passing a component as a prop',
-      code: '<form.AppField name="name">{field => <CustomInput component={field.Input} />}</form.AppField>',
+      code: '<form.Field name="name">{field => <CustomInput component={field.Input} />}</form.Field>',
       errors,
     },
     {
       name: 'does not count a component on another object',
-      code: '<form.AppField name="name">{field => <otherField.Input />}</form.AppField>',
+      code: '<form.Field name="name">{field => <otherField.Input />}</form.Field>',
       errors,
     },
     {
       name: 'does not count members of field state',
-      code: '<form.AppField name="name">{field => <field.state.Input />}</form.AppField>',
+      code: '<form.Field name="name">{field => <field.state.Input />}</form.Field>',
       errors,
     },
     {
       name: 'does not count shadowed parameter bindings',
-      code: '<form.AppField name="name">{field => <Wrapper>{items.map(field => <field.Input />)}</Wrapper>}</form.AppField>',
+      code: '<form.Field name="name">{field => <Wrapper>{items.map(field => <field.Input />)}</Wrapper>}</form.Field>',
       errors,
     },
     {
       name: 'does not count components from a nested field for the outer field',
-      code: '<form.AppField name="outer">{field => <form.AppField name="inner">{field => <field.Input />}</form.AppField>}</form.AppField>',
+      code: '<form.Field name="outer">{field => <form.Field name="inner">{field => <field.Input />}</form.Field>}</form.Field>',
       errors,
     },
     {
       name: 'reports each field independently',
-      code: '<form.AppField name="outer">{field => <form.AppField name="inner">{field => <CustomInput />}</form.AppField>}</form.AppField>',
+      code: '<form.Field name="outer">{field => <form.Field name="inner">{field => <CustomInput />}</form.Field>}</form.Field>',
       errors: [...errors, ...errors],
     },
     {
       name: 'checks block callbacks',
-      code: '<form.AppField name="name">{field => { return <CustomInput onChange={field.handleChange} />; }}</form.AppField>',
+      code: '<form.Field name="name">{field => { return <CustomInput onChange={field.handleChange} />; }}</form.Field>',
       errors,
     },
     {
       name: 'checks children attributes',
-      code: '<form.AppField name="name" children={field => <CustomInput />} />',
+      code: '<form.Field name="name" children={field => <CustomInput />} />',
       errors,
     },
     {
       name: 'checks callbacks returning null',
-      code: '<form.AppField name="name">{field => null}</form.AppField>',
+      code: '<form.Field name="name">{field => null}</form.Field>',
       errors,
     },
     {
       name: 'checks AutoSaveForm custom controls',
-      code: 'import {AutoSaveForm} from "@sentry/scraps/form"; <AutoSaveForm>{field => <CustomInput value={field.state.value} />}</AutoSaveForm>',
+      code: 'import {AutoSaveForm} from "@sentry/scraps/form"; <AutoSaveForm>{field => <CustomInput value={field.value} />}</AutoSaveForm>',
       errors,
     },
     {
