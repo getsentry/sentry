@@ -13,9 +13,9 @@ account's scopes and projects.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Protocol, TypedDict
 from uuid import uuid4
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -28,6 +28,27 @@ logger = logging.getLogger(__name__)
 
 class ServiceAccountOwnerKind(StrEnum):
     SEER_WORKFLOW_CONFIG = "seer_workflow_config"
+
+
+class ServiceAccountCreatePayload(TypedDict):
+    """Outbox payload for SERVICE_ACCOUNT_CREATE. Shared by producer and receiver."""
+
+    owner_kind: str
+    owner_id: int
+    name: str
+    scope_list: list[str]
+    project_ids: list[int]
+    all_projects: bool
+    created_by_id: int | None
+    idempotency_key: str
+
+
+class ServiceAccountGrantUpdatePayload(TypedDict):
+    """Outbox payload for SERVICE_ACCOUNT_GRANT_UPDATE. Shared by producer and receiver."""
+
+    scope_list: list[str]
+    project_ids: list[int]
+    all_projects: bool
 
 
 class ServiceAccountOwner(Protocol):
@@ -57,29 +78,30 @@ def service_account_create_outbox(
 
     Callers validate the grant first. Control rejecting it leaves the owner without an account.
     """
+    payload: ServiceAccountCreatePayload = {
+        "owner_kind": owner_kind.value,
+        "owner_id": owner_id,
+        "name": name,
+        "scope_list": list(scope_list),
+        "project_ids": [] if all_projects else list(project_ids),
+        "all_projects": all_projects,
+        "created_by_id": created_by_id,
+        # Stable across redeliveries of this outbox, so control returns the account
+        # an earlier attempt created instead of making a second one.
+        "idempotency_key": uuid4().hex,
+    }
     return CellOutbox(
         shard_scope=OutboxScope.SERVICE_ACCOUNT_SCOPE,
         shard_identifier=organization_id,
         category=OutboxCategory.SERVICE_ACCOUNT_CREATE,
         # Every create is its own message, so creates for different owners never coalesce.
         object_identifier=CellOutbox.next_object_identifier(),
-        payload={
-            "owner_kind": owner_kind.value,
-            "owner_id": owner_id,
-            "name": name,
-            "scope_list": list(scope_list),
-            "project_ids": [] if all_projects else list(project_ids),
-            "all_projects": all_projects,
-            "created_by_id": created_by_id,
-            # Stable across redeliveries of this outbox, so control returns the account
-            # an earlier attempt created instead of making a second one.
-            "idempotency_key": uuid4().hex,
-        },
+        payload=payload,
     )
 
 
 def create_owned_service_account(
-    organization_id: int, payload: Mapping[str, Any], owner: ServiceAccountOwner
+    organization_id: int, payload: ServiceAccountCreatePayload, owner: ServiceAccountOwner
 ) -> None:
     """Create the account in control and link it to its owner. Safe to retry."""
     owner_id = payload["owner_id"]
@@ -124,21 +146,22 @@ def service_account_grant_update_outbox(
     Save it in the owner's transaction. Callers validate the grant first. Updates to one account
     coalesce, so only the latest grant is applied. A deleted account is left as it is.
     """
+    payload: ServiceAccountGrantUpdatePayload = {
+        "scope_list": list(scope_list),
+        "project_ids": [] if all_projects else list(project_ids),
+        "all_projects": all_projects,
+    }
     return CellOutbox(
         shard_scope=OutboxScope.SERVICE_ACCOUNT_SCOPE,
         shard_identifier=organization_id,
         category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE,
         object_identifier=service_account_id,
-        payload={
-            "scope_list": list(scope_list),
-            "project_ids": [] if all_projects else list(project_ids),
-            "all_projects": all_projects,
-        },
+        payload=payload,
     )
 
 
 def update_service_account_grant(
-    organization_id: int, service_account_id: int, payload: Mapping[str, Any]
+    organization_id: int, service_account_id: int, payload: ServiceAccountGrantUpdatePayload
 ) -> None:
     """Replace the account's scopes and projects in control. Safe to retry."""
     try:

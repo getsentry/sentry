@@ -52,6 +52,8 @@ from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_age
 from sentry.seer.workflows.workflow import SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.service_accounts.outbox import (
+    ServiceAccountCreatePayload,
+    ServiceAccountGrantUpdatePayload,
     ServiceAccountOwner,
     ServiceAccountOwnerKind,
     create_owned_service_account,
@@ -259,7 +261,9 @@ def _service_account_owner(kind: ServiceAccountOwnerKind) -> ServiceAccountOwner
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_CREATE)
-def handle_service_account_create(shard_identifier: int, payload: Any, **kwds: Any) -> None:
+def handle_service_account_create(
+    shard_identifier: int, payload: ServiceAccountCreatePayload, **kwds: Any
+) -> None:
     create_owned_service_account(
         shard_identifier,
         payload,
@@ -269,7 +273,10 @@ def handle_service_account_create(shard_identifier: int, payload: Any, **kwds: A
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE)
 def handle_service_account_grant_update(
-    shard_identifier: int, object_identifier: int, payload: Any, **kwds: Any
+    shard_identifier: int,
+    object_identifier: int,
+    payload: ServiceAccountGrantUpdatePayload,
+    **kwds: Any,
 ) -> None:
     update_service_account_grant(shard_identifier, object_identifier, payload)
 
