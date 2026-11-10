@@ -6,6 +6,8 @@ import {InvoiceComparison} from 'admin/views/invoiceComparison';
 
 const US_URL = 'https://us.example.com/api/0/';
 const COMPARISON_URL = '/_admin/cells/us/invoice-comparison/';
+const DE_URL = 'https://de.example.com/api/0/';
+const DE_COMPARISON_URL = '/_admin/cells/de/invoice-comparison/';
 
 function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
   return {
@@ -210,5 +212,59 @@ describe('InvoiceComparison', () => {
     await waitFor(() => expect(router.location.query.rows_page).toBe('2'));
     expect(router.location.query.start).toEqual(expect.any(String));
     expect(router.location.query.end).toEqual(expect.any(String));
+  });
+
+  describe('region', () => {
+    const start = '2026-01-01T00:00:00.000Z';
+    const end = '2026-01-02T00:00:00.000Z';
+
+    beforeEach(() => {
+      ConfigStore.set('cells', [
+        {name: 'us', locality_url: US_URL},
+        {name: 'de', locality_url: DE_URL},
+      ]);
+    });
+
+    it('queries the region named in the URL', async () => {
+      const usMock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+      const deMock = MockApiClient.addMockResponse({
+        url: DE_COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start, end, region: 'de'});
+
+      await waitFor(() =>
+        expect(deMock).toHaveBeenCalledWith(
+          DE_COMPARISON_URL,
+          expect.objectContaining({host: DE_URL})
+        )
+      );
+      expect(usMock).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', {name: /Region/})).toHaveTextContent('de');
+    });
+
+    it('persists the selected region to the URL', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+      MockApiClient.addMockResponse({
+        url: DE_COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      const {router} = renderComparison({start, end});
+
+      await userEvent.click(screen.getByRole('button', {name: /Region/}));
+      await userEvent.click(screen.getByRole('option', {name: 'de'}));
+
+      await waitFor(() =>
+        expect(router.location.query).toEqual({start, end, region: 'de'})
+      );
+    });
   });
 });
