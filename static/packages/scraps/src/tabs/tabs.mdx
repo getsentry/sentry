@@ -13,7 +13,6 @@ resources:
 ---
 
 import {Fragment, useState} from 'react';
-import noop from 'lodash/noop';
 import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -457,7 +456,7 @@ export function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs onChange={noop} value={value}>
+    <Tabs onChange={() => {}} value={value}>
       {({TabList, TabPanels}) => (
         <Fragment>
           <TabList aria-label="Linked tabs">
@@ -508,7 +507,7 @@ function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs onChange={noop} value={value}>
+    <Tabs onChange={() => {}} value={value}>
       {({TabList, TabPanels}) => (
         <Fragment>
           <TabList aria-label="Linked tabs">
