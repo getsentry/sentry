@@ -331,11 +331,19 @@ describe('getAggregatesMetricsTotalFilter', () => {
   it('does not filter by unit when an aggregate has a dash unit', () => {
     const result = getAggregatesMetricsTotalFilter([
       'p50(value,my_metric,distribution,-)',
-      'p95(value,my_metric,distribution,-)',
+    ]);
+
+    expect(result).toBe('( metric.name:my_metric metric.type:distribution )');
+  });
+
+  it('merges identical filters when aggregates read the same metric', () => {
+    const result = getAggregatesMetricsTotalFilter([
+      'p50(value,my_metric,distribution,millisecond)',
+      'p95(value,my_metric,distribution,millisecond)',
     ]);
 
     expect(result).toBe(
-      '( metric.name:my_metric metric.type:distribution ) OR ( metric.name:my_metric metric.type:distribution )'
+      '( metric.name:my_metric metric.type:distribution metric.unit:millisecond )'
     );
   });
 

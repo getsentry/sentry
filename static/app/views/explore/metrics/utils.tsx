@@ -394,7 +394,7 @@ export function getEquationMetricsTotalFilter(equation: string) {
 }
 
 export function getAggregatesMetricsTotalFilter(aggregates: string[]) {
-  return aggregates
+  const filters = aggregates
     .map(aggregate => {
       const {traceMetric} = parseMetricAggregate(aggregate);
       if (!traceMetric.name || !traceMetric.type) {
@@ -413,6 +413,7 @@ export function getAggregatesMetricsTotalFilter(aggregates: string[]) {
 
       return createTraceMetricEventsFilter([traceMetric]);
     })
-    .filter(defined)
-    .join(' OR ');
+    .filter(defined);
+
+  return [...new Set(filters)].join(' OR ');
 }

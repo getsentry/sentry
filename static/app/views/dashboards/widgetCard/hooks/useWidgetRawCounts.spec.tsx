@@ -240,8 +240,7 @@ describe('useWidgetRawCounts', () => {
         },
       ],
     });
-    const query =
-      '( metric.name:my_metric metric.type:distribution ) OR ( metric.name:my_metric metric.type:distribution )';
+    const query = '( metric.name:my_metric metric.type:distribution )';
 
     const normalRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -263,6 +262,55 @@ describe('useWidgetRawCounts', () => {
           sampling: 'NORMAL',
           dataset: 'tracemetrics',
           query,
+          extrapolationMode: 'serverOnly',
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
+  });
+
+  it('reads the trace metric after the condition argument of _if aggregates', async () => {
+    const selection = PageFiltersFixture({projects: [2], environments: ['prod']});
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: ['sum_if(`status:error`,value,metricA,counter,millisecond)'],
+          fields: ['sum_if(`status:error`,value,metricA,counter,millisecond)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query: '( metric.name:metricA metric.type:counter metric.unit:millisecond )',
+          disableAggregateExtrapolation: '1',
+        }),
+      ],
+    });
+    const totalCountRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query: '( metric.name:metricA metric.type:counter metric.unit:millisecond )',
           extrapolationMode: 'serverOnly',
         }),
       ],
