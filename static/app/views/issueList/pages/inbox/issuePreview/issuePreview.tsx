@@ -309,11 +309,13 @@ function IssuePreviewContent() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
-          {/* Stands in for the header's Seer button, which has no room for it. */}
+          {/* The header's disabled Seer button has no room for the CTA. */}
           {!previewSeer.creditCheck.hasEnoughCredits && (
             <SeerOutOfCreditsCta
               reason={
-                previewSeer.state === 'start' ? 'autofix-start' : 'autofix-continue'
+                previewSeer.creditAction === 'root_cause'
+                  ? 'autofix-start'
+                  : 'autofix-continue'
               }
             />
           )}

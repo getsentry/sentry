@@ -17,6 +17,11 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
+import {
+  hidesCodingAgentResultLink,
+  useIssuePreviewPullRequests,
+} from './issuePreviewPullRequests';
+
 type IssuePreviewSeerState =
   | 'unavailable'
   | 'loading'
@@ -47,7 +52,8 @@ export function hasCodeChanges(section: AutofixSection): boolean {
  */
 function getSeerButtonAction(
   state: IssuePreviewSeerState,
-  autofix: ReturnType<typeof useExplorerAutofix>
+  autofix: ReturnType<typeof useExplorerAutofix>,
+  {suppressResultLink}: {suppressResultLink: boolean}
 ) {
   if (state === 'start') {
     return 'root_cause';
@@ -69,7 +75,10 @@ function getSeerButtonAction(
   }
 
   const codingAgents = Object.values(runState.coding_agents ?? {});
-  if (findCodingAgentResultLink(codingAgents) || codingAgents.some(a => a.agent_url)) {
+  if (
+    (findCodingAgentResultLink(codingAgents) && !suppressResultLink) ||
+    codingAgents.some(a => a.agent_url)
+  ) {
     return null;
   }
 
@@ -94,6 +103,7 @@ function useIssuePreviewSeerState(group: Group, project: Project) {
   const {isPending: isSetupPending, setupType} = useAutofixSetupStep({
     seerReposLinked: aiConfig.seerReposLinked,
   });
+  const {pullRequests} = useIssuePreviewPullRequests(group);
   let state: IssuePreviewSeerState;
   if (!aiConfig.hasAutofix) {
     state = 'unavailable';
@@ -112,15 +122,23 @@ function useIssuePreviewSeerState(group: Group, project: Project) {
     state = 'summary';
   }
 
-  const creditCheck = useAutofixCreditCheck(
-    isAwaitingResolution(group, project) ? null : getSeerButtonAction(state, autofix)
-  );
+  const creditAction = isAwaitingResolution(group, project)
+    ? null
+    : getSeerButtonAction(state, autofix, {
+        suppressResultLink: hidesCodingAgentResultLink(pullRequests),
+      });
+  const creditCheck = useAutofixCreditCheck(creditAction);
 
   return {
     aiConfig,
     autofix,
     /**
-     * Whether the org can afford what the header's Seer button would start.
+     * The autofix action the header's Seer button would start, or null when
+     * it starts nothing billable.
+     */
+    creditAction,
+    /**
+     * Whether the org can afford `creditAction`.
      */
     creditCheck,
     state,

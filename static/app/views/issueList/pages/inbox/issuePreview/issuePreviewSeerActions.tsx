@@ -37,6 +37,7 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  hidesCodingAgentResultLink,
   PullRequestButtons,
   useIssuePreviewPullRequests,
 } from './issuePreviewPullRequests';
@@ -53,6 +54,10 @@ interface IssuePreviewSeerActionsProps {
 
 interface SeerActionButtonProps extends IssuePreviewSeerActionsProps {
   autofix: ExplorerAutofix;
+  /**
+   * Whether the org can't afford the step the button would start.
+   */
+  creditsDisabled?: boolean;
   suppressResultLink?: boolean;
   variant?: 'primary' | 'secondary';
 }
@@ -73,6 +78,11 @@ interface RunSeerActionButtonProps extends SeerActionAnalyticsProps {
   label: string;
   onContinueInSeer: () => void;
   codingAgentStep?: 'root_cause' | 'solution';
+  /**
+   * Disables the action, but not the coding agent menu: hand-offs aren't paid
+   * for in Seer credits.
+   */
+  creditsDisabled?: boolean;
   disabled?: boolean;
   tooltip?: string | null;
   variant?: 'primary' | 'secondary';
@@ -108,6 +118,7 @@ function RunSeerActionButton({
   analyticsParams,
   autofix,
   codingAgentStep,
+  creditsDisabled,
   disabled,
   group,
   icon,
@@ -175,7 +186,7 @@ function RunSeerActionButton({
       })}
       icon={icon}
       busy={isStartingAction || waiting}
-      disabled={disabled || isProcessing}
+      disabled={disabled || isProcessing || creditsDisabled}
       onClick={() =>
         startAction({action, groupId: group.id, organizationSlug: organization.slug})
       }
@@ -226,6 +237,7 @@ function RunSeerActionButton({
 
 function SeerActionButton({
   autofix,
+  creditsDisabled,
   disabled,
   group,
   onContinueInSeer,
@@ -244,6 +256,7 @@ function SeerActionButton({
         analyticsEventKey="issue_inbox.start_fix_clicked"
         analyticsEventName="Issue Inbox: Start Fix Clicked"
         autofix={autofix}
+        creditsDisabled={creditsDisabled}
         disabled={disabled}
         group={group}
         icon={<IconBug data-test-id="autofix-root-cause-icon" />}
@@ -425,6 +438,7 @@ function SeerActionButton({
           analyticsEventName="Issue Inbox: Create PR Clicked"
           analyticsParams={{is_retry: false}}
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           icon={<IconPullRequest data-test-id="autofix-pull-request-icon" />}
@@ -441,6 +455,7 @@ function SeerActionButton({
           analyticsEventKey="issue_inbox.code_fix_clicked"
           analyticsEventName="Issue Inbox: Write Code Fix Clicked"
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           codingAgentStep="solution"
@@ -458,6 +473,7 @@ function SeerActionButton({
           analyticsEventKey="issue_inbox.find_solution_clicked"
           analyticsEventName="Issue Inbox: Make a Plan Clicked"
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           codingAgentStep="root_cause"
@@ -475,6 +491,7 @@ function SeerActionButton({
           analyticsEventKey="issue_inbox.start_fix_clicked"
           analyticsEventName="Issue Inbox: Start Fix Clicked"
           autofix={autofix}
+          creditsDisabled={creditsDisabled}
           disabled={disabled}
           group={group}
           icon={<IconRefresh />}
@@ -492,7 +509,7 @@ export function IssuePreviewSeerActions({
   onContinueInSeer,
   onRetryCodeChanges,
 }: IssuePreviewSeerActionsProps) {
-  const {autofix} = useIssuePreviewSeer();
+  const {autofix, creditCheck} = useIssuePreviewSeer();
   const {pullRequests, isPending} = useIssuePreviewPullRequests(group);
 
   if (isPending) {
@@ -504,11 +521,12 @@ export function IssuePreviewSeerActions({
       <PullRequestButtons disabled={disabled} group={group} pullRequests={pullRequests} />
       <SeerActionButton
         autofix={autofix}
+        creditsDisabled={!creditCheck.hasEnoughCredits}
         disabled={disabled}
         group={group}
         onContinueInSeer={onContinueInSeer}
         onRetryCodeChanges={onRetryCodeChanges}
-        suppressResultLink={pullRequests.length > 1}
+        suppressResultLink={hidesCodingAgentResultLink(pullRequests)}
         variant={pullRequests.length > 0 ? 'secondary' : 'primary'}
       />
     </Fragment>

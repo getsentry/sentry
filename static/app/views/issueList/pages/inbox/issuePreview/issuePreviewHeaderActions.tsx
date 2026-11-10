@@ -148,10 +148,7 @@ export function IssuePreviewHeaderActions({
   summary,
 }: IssuePreviewHeaderActionsProps) {
   const {autofix, creditCheck, state} = useIssuePreviewSeer();
-  // Out of credits, the Seer button would only fail, so fall back to the
-  // regular actions. The preview body shows the out-of-credits CTA instead.
-  const shouldShowSeerActions =
-    (state === 'start' || state === 'summary') && creditCheck.hasEnoughCredits;
+  const shouldShowSeerActions = state === 'start' || state === 'summary';
 
   if (isAwaitingResolution(group, project)) {
     return (
