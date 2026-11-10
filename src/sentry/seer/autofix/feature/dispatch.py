@@ -262,12 +262,12 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    # A new run starts under args.seer_feature. A continued run keeps the one it started under.
     existing_agent_run: SeerAgentRun | None = None
     seer_feature = args.seer_feature
-    if args.existing_run_id is not None:
+    if not is_new_run:
         existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
         seer_feature = get_run_seer_feature(existing_agent_run)
+
     try:
         uses_quota = check_autofix_billing(
             group.organization,
