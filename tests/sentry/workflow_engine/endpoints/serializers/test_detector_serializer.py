@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.db import connections, router
+from django.db.models import QuerySet
 from django.test.utils import CaptureQueriesContext
 
 from sentry.api.serializers import serialize
@@ -228,10 +229,18 @@ class TestDetectorSerializer(TestCase):
             name="Migrated Detector",
             type=MetricIssue.slug,
             config={
-                "detection_type": "static",
+                "detection_type": "percent",
                 "comparison_delta": 3600,
             },
         )
+        # Use Django's `update()` directly, since `Detector.objects` would reject the
+        # `detection_type`/`comparison_delta` mismatch
+        QuerySet.update(
+            Detector.objects.filter(id=detector.id),
+            config={"detection_type": "static", "comparison_delta": 3600},
+        )
+        detector.refresh_from_db()
+
         result = serialize(detector)
         assert result["config"]["detectionType"] == "percent"
         assert result["config"]["comparisonDelta"] == 3600
