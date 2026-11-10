@@ -1,12 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import SlackLinkTeam from 'sentry/views/slackLinkTeam';
 
 const SIGNED_PARAMS = 'signed-params';
+const CHANNEL_URL = 'slack://channel?team=TXXXXXXX1&id=CXXXXXXX1';
 
 const initialRouterConfig = {
   route: '/extensions/slack/link-team/:signedParams/',
@@ -36,7 +37,7 @@ describe('SlackLinkTeam', () => {
   function mockContext(organizations = [usOrg, deOrg]) {
     MockApiClient.addMockResponse({
       url: `/integrations/slack/link-team/${SIGNED_PARAMS}/`,
-      body: {channelName: 'alerts', channelUrl: 'slack://channel', organizations},
+      body: {channelName: 'alerts', channelUrl: CHANNEL_URL, organizations},
     });
   }
 
@@ -46,6 +47,23 @@ describe('SlackLinkTeam', () => {
       body: teams,
       match: [(_url, options) => options.host === organization.links.regionUrl],
     });
+  }
+
+  function mockLink(response: {statusCode: number; body?: unknown}) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${deOrg.slug}/slack/link-team/${SIGNED_PARAMS}/`,
+      method: 'POST',
+      match: [(_url, options) => options.host === deOrg.links.regionUrl],
+      ...response,
+    });
+  }
+
+  async function linkTeamInDeOrg() {
+    render(<SlackLinkTeam />, {initialRouterConfig});
+
+    await selectEvent.select(await screen.findByLabelText('Organization'), 'DE Org');
+    await selectEvent.select(screen.getByLabelText('Team'), '#backend');
+    await userEvent.click(screen.getByRole('button', {name: 'Link Team'}));
   }
 
   beforeEach(() => {
@@ -63,6 +81,89 @@ describe('SlackLinkTeam', () => {
 
     expect(teamsMock).toHaveBeenCalled();
     expect(screen.getByText('#backend')).toBeInTheDocument();
+  });
+
+  it('links a team from the selected organization cell', async () => {
+    mockContext();
+    const teamsMock = mockTeams();
+    const linkMock = mockLink({statusCode: 201});
+
+    await linkTeamInDeOrg();
+
+    expect(teamsMock).toHaveBeenCalled();
+    expect(linkMock).toHaveBeenCalledWith(
+      `/organizations/${deOrg.slug}/slack/link-team/${SIGNED_PARAMS}/`,
+      expect.objectContaining({data: {team: '10'}})
+    );
+    expect(await screen.findByRole('heading', {name: 'Team linked'})).toBeInTheDocument();
+    expect(
+      screen.getByText(/will now receive issue alert notifications/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Choose a team/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Go back to Slack'})).toHaveAttribute(
+      'href',
+      CHANNEL_URL
+    );
+  });
+
+  it('shows when the team is already linked', async () => {
+    mockContext();
+    mockTeams();
+    mockLink({
+      statusCode: 409,
+      body: {detail: 'The backend team has already been linked to a Slack channel.'},
+    });
+
+    await linkTeamInDeOrg();
+
+    expect(
+      await screen.findByText(
+        'The backend team has already been linked to a Slack channel.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Go back to Slack'})).toBeInTheDocument();
+  });
+
+  it('shows why linking failed', async () => {
+    mockContext();
+    mockTeams();
+    mockLink({
+      statusCode: 403,
+      body: {
+        detail:
+          "The Slack account that ran this command isn't linked to Sentry. Run /sentry link, then try again.",
+      },
+    });
+
+    await linkTeamInDeOrg();
+
+    expect(
+      await screen.findByText(
+        "The Slack account that ran this command isn't linked to Sentry. Run /sentry link, then try again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Link Team'})).toBeInTheDocument();
+  });
+
+  it('clears a failed link when the organization changes', async () => {
+    mockContext();
+    mockTeams();
+    mockTeams(usOrg);
+    mockLink({
+      statusCode: 403,
+      body: {detail: 'You do not have permission to link this team.'},
+    });
+
+    await linkTeamInDeOrg();
+    expect(
+      await screen.findByText('You do not have permission to link this team.')
+    ).toBeInTheDocument();
+
+    await selectEvent.select(screen.getByLabelText('Organization'), 'US Org');
+
+    expect(
+      screen.queryByText('You do not have permission to link this team.')
+    ).not.toBeInTheDocument();
   });
 
   it('lists teams from every page', async () => {
