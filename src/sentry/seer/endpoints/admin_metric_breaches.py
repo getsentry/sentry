@@ -30,16 +30,9 @@ from sentry.workflow_engine.models import Detector
 logger = logging.getLogger(__name__)
 
 
-class StrictIdField(serializers.IntegerField):
-    def to_internal_value(self, data: Any) -> int:
-        if type(data) is not int:
-            self.fail("invalid")
-        return super().to_internal_value(data)
-
-
 class SyntheticMetricBreachRequest(serializers.Serializer):
-    organizationId = StrictIdField(min_value=1, max_value=I64_MAX)
-    monitorId = StrictIdField(min_value=1, max_value=I64_MAX)
+    organizationId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
+    monitorId = serializers.IntegerField(min_value=1, max_value=I64_MAX)
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
         values = super().to_internal_value(data)
@@ -107,24 +100,22 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
         if not serializer.is_valid():
             return Response({"detail": dict(serializer.errors)}, status=400)
         values = serializer.validated_data
-        organization = Organization.objects.filter(
-            id=values["organizationId"], status=ObjectStatus.ACTIVE
-        ).first()
-        if organization is None:
+        try:
+            organization = Organization.objects.get(
+                id=values["organizationId"], status=ObjectStatus.ACTIVE
+            )
+        except Organization.DoesNotExist:
             raise NotFound
         access = from_request(request, organization)
         if not access.has_scope("event:write"):
             raise PermissionDenied
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
-        detector = (
-            Detector.objects.filter(
+        try:
+            detector = Detector.objects.select_related("project", "workflow_condition_group").get(
                 id=values["monitorId"], project__organization_id=organization.id
             )
-            .select_related("project", "workflow_condition_group")
-            .first()
-        )
-        if detector is None:
+        except Detector.DoesNotExist:
             raise NotFound
         if detector.project is not None and not access.has_project_access(detector.project):
             raise NotFound
