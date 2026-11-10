@@ -15,6 +15,7 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.aws.client import (
     AWS_MCP_REGIONS,
+    AWS_ROLE_ARN_MESSAGE,
     build_cloudformation_template,
     get_mcp_url,
     get_sentry_principal_arn,
@@ -79,8 +80,9 @@ class AwsRoleSerializer(CamelSnakeSerializer[AwsRoleInput]):
     def validate_role_arn(self, value: str) -> str:
         try:
             return parse_role_arn(value)
-        except IntegrationConfigurationError as error:
-            raise ValidationError(str(error)) from error
+        except IntegrationConfigurationError:
+            # Respond with a fixed message so no exception text reaches the client.
+            raise ValidationError(AWS_ROLE_ARN_MESSAGE) from None
 
 
 class AwsRoleApiStep:

@@ -799,7 +799,6 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
 
 
 @control_silo_test
-@override_options({"aws-seer.principal-arn": "arn:aws:iam::987654321098:role/SeerWorkload"})
 class AwsApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
     role_arn = "arn:aws:iam::123456789012:role/SentrySeer"
@@ -807,6 +806,11 @@ class AwsApiPipelineTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
+        # `override_options` as a class decorator replaces the class with a function,
+        # which pytest then silently skips collecting.
+        self.enterContext(
+            self.options({"aws-seer.principal-arn": "arn:aws:iam::987654321098:role/SeerWorkload"})
+        )
         self.enterContext(self.feature("organizations:integrations-aws"))
 
     def test_setup_external_id_is_stable_and_server_generated(self) -> None:
@@ -900,13 +904,18 @@ class AwsApiPipelineTest(APITestCase):
             url, data={"action": "initialize", "provider": "aws"}, format="json"
         )
         assert response.status_code == 200
-        for data in [
-            {"roleArn": "arn:aws:iam::123456789012:root", "region": "us-east-1"},
-            {"roleArn": self.role_arn, "region": "us-east-1.example.com"},
+        for data, field in [
+            ({"roleArn": "arn:aws:iam::123456789012:root", "region": "us-east-1"}, "roleArn"),
+            ({"roleArn": self.role_arn, "region": "us-east-1.example.com"}, "region"),
         ]:
             with self.subTest(data=data):
                 response = self.client.post(url, data=data, format="json")
                 assert response.status_code == 400
+                assert list(response.data) == [field]
+        response = self.client.post(
+            url, data={"roleArn": "not-an-arn", "region": "us-east-1"}, format="json"
+        )
+        assert response.data == {"roleArn": ["Enter an AWS IAM role ARN."]}
         validate.assert_not_called()
         assert not Integration.objects.filter(provider="aws").exists()
 
@@ -948,7 +957,8 @@ class AwsApiPipelineTest(APITestCase):
             response = self.client.post(
                 url, data={"action": "initialize", "provider": "aws"}, format="json"
             )
-        assert response.status_code == 400
+        assert response.status_code == 404
+        assert response.data["detail"] == "This integration is not available for your organization."
 
 
 @control_silo_test

@@ -27,6 +27,7 @@ AWS_MCP_REGIONS = (
 AWS_ROLE_ARN_RE = re.compile(
     r"arn:aws:iam::[0-9]{12}:role/(?:[A-Za-z0-9_+=,.@-]+/)*[A-Za-z0-9_+=,.@-]{1,64}"
 )
+AWS_ROLE_ARN_MESSAGE = "Enter an AWS IAM role ARN."
 AWS_ROLE_ACCESS_MESSAGE = (
     "Could not assume the AWS role. Check the role ARN and trust policy, then try again."
 )
@@ -67,10 +68,10 @@ SEER_TELEMETRY_ACTIONS = [
 
 def parse_role_arn(value: Any) -> str:
     if not isinstance(value, str) or len(value.strip()) > 2048:
-        raise IntegrationConfigurationError("Enter an AWS IAM role ARN.")
+        raise IntegrationConfigurationError(AWS_ROLE_ARN_MESSAGE)
     value = value.strip()
     if not AWS_ROLE_ARN_RE.fullmatch(value):
-        raise IntegrationConfigurationError("Enter an AWS IAM role ARN.")
+        raise IntegrationConfigurationError(AWS_ROLE_ARN_MESSAGE)
     return value
 
 
