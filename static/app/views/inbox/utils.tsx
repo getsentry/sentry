@@ -53,8 +53,12 @@ export const INBOX_EVENT_TYPE_CONFIG: Record<InboxEventType, InboxEventTypeConfi
     subjectType: 'issue',
   },
   'notebook.completed': {label: t('Investigation completed'), subjectType: 'notebook'},
-  'notebook.mentioned': {
+  'notebook.user_mentioned': {
     label: t('Investigation mentioned you'),
+    subjectType: 'notebook',
+  },
+  'notebook.team_mentioned': {
+    label: t('Investigation mentioned your team'),
     subjectType: 'notebook',
   },
   'notebook.participant_added': {
