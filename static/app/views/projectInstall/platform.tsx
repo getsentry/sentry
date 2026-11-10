@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
-import {parseAsStringLiteral, useQueryStates} from 'nuqs';
+import {parseAsNativeArrayOf, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -10,9 +10,9 @@ import {Grid} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {
-  DocsFlow,
+import {
   ProductSolution,
+  type DocsFlow,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -26,7 +26,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -67,13 +66,13 @@ function ProjectCreationGettingStartedAnalytics({
 
 const platformParsers = {
   projectCreationVariant: parseAsStringLiteral(['scm', 'legacy'] as const),
-  product: parseAsStringArray,
+  product: parseAsNativeArrayOf(parseAsStringLiteral(Object.values(ProductSolution))),
 };
 
 export function ProjectInstallPlatform({project, platform}: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const [{projectCreationVariant: variantParam, product}] =
+  const [{projectCreationVariant: variantParam, product: products}] =
     useQueryStates(platformParsers);
   const projectCreationVariant = variantParam ?? undefined;
 
@@ -90,8 +89,6 @@ export function ProjectInstallPlatform({project, platform}: Props) {
       : projectCreationVariant === 'legacy'
         ? 'project-creation'
         : undefined;
-
-  const products = product as ProductSolution[];
 
   const redirectWithProjectSelection = (to: LocationDescriptorObject) => {
     if (!project?.id) {

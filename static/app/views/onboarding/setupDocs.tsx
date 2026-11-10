@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQueryState} from 'nuqs';
+import {parseAsNativeArrayOf, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SetupIntroduction} from 'sentry/views/onboarding/components/setupIntroduction';
@@ -24,7 +23,10 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
   const organization = useOrganization();
   const navigate = useNavigate();
   const {setSelectedFeatures} = useOnboardingContext();
-  const [products] = useQueryState('product', parseAsStringArray);
+  const [products] = useQueryState(
+    'product',
+    parseAsNativeArrayOf(parseAsStringLiteral(Object.values(ProductSolution)))
+  );
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform =
@@ -53,7 +55,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                 platform={currentPlatform}
                 organization={organization}
                 project={project}
-                activeProductSelection={products as ProductSolution[]}
+                activeProductSelection={products}
                 onProductSelectionSync={setSelectedFeatures}
                 docsFlow="onboarding-scm"
               />
