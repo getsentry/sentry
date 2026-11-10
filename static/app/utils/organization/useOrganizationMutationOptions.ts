@@ -32,7 +32,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
     onMutate: (data: Variables) => {
       const previousOrganization =
         queryClient.getQueryData(queryOptions.queryKey)?.json ||
-        OrganizationStore.get().organization ||
+        OrganizationStore.getState().organization ||
         organization;
 
       if (!previousOrganization) {

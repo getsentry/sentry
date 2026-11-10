@@ -424,6 +424,9 @@ def build_sentry_convention_context(
     if deprecation is not None and deprecation.replacement:
         context["replacementAttribute"] = deprecation.replacement
 
+    if metadata.is_in_otel:
+        context["isInOtel"] = True
+
     return context
 
 

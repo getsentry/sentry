@@ -8,6 +8,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
+import {
+  AutofixOutOfCreditsAlert,
+  getAutofixContinueAction,
+} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getOrderedAutofixSections,
@@ -72,12 +76,27 @@ export function SeerDrawerContent({
     );
   }
 
+  // One out-of-credits alert, at the top so it sits above any results. The
+  // triggers below it stay on screen, disabled.
   if (!autofix.runState && aiConfig.hasAutofix) {
-    return <AutofixStartCard autofix={autofix} group={group} />;
+    return (
+      <Stack gap="lg">
+        <AutofixOutOfCreditsAlert action="root_cause" reason="autofix-start" />
+        <AutofixStartCard autofix={autofix} group={group} />
+      </Stack>
+    );
   }
 
   return (
     <Stack gap="lg">
+      <AutofixOutOfCreditsAlert
+        action={getAutofixContinueAction({
+          isPolling: autofix.isPolling,
+          runState: autofix.runState,
+          sections,
+        })}
+        reason="autofix-continue"
+      />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {!isSingleRunAutofix(autofix.runState) &&
         (autofix.runState?.status === 'completed' ||

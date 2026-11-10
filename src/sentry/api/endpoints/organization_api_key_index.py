@@ -34,6 +34,8 @@ class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAdminPermission,)
+    # Keys show their secret and take any scope, so a service account could exceed its own.
+    requires_user = True
 
     def get(
         self,
