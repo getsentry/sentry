@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -209,12 +210,13 @@ export function InvoiceComparison() {
   const cells = getCells();
   const location = useLocation();
   const navigate = useNavigate();
-  const [cell, setCell] = useState(cells[0] ?? null);
 
   // URL is the source of truth for everything that affects the query and
   // the displayed paginator state, so refresh / share-link reproduces the
   // exact view. Local state only tracks what the user is typing in the
   // date inputs before they click Run.
+  const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
+  const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
   const queryStart = firstQueryValue(location.query.start);
   const queryEnd = firstQueryValue(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
@@ -407,11 +409,9 @@ export function InvoiceComparison() {
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps} prefix="Region" />
                 )}
-                value={cell?.locality_url ?? ''}
-                options={cells.map(c => ({label: c.name, value: c.locality_url}))}
-                onChange={opt => {
-                  setCell(cells.find(c => c.locality_url === opt.value) ?? null);
-                }}
+                value={cell?.name ?? ''}
+                options={cells.map(c => ({label: c.name, value: c.name}))}
+                onChange={opt => setQueryRegion(opt.value)}
               />
             </Stack>
             <Stack gap="xs">
