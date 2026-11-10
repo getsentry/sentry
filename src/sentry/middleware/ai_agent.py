@@ -10,7 +10,8 @@ from django.http import HttpRequest, HttpResponse
 
 logger = logging.getLogger(__name__)
 
-PATH_PATTERN = re.compile(r"^/organizations/([^/]+)/(?:projects/([^/]+)/)?")
+# Slugs land in a shell command agents are told to run, so only capture slug characters.
+PATH_PATTERN = re.compile(r"^/organizations/([a-zA-Z0-9_-]+)/(?:projects/([a-zA-Z0-9_-]+)/)?")
 
 
 def _build_cli_mcp_args(org_slug: str | None, project_slug: str | None) -> list[str]:
