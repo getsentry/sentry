@@ -13,6 +13,8 @@ from scm.types import (
     FileStatus,
     GetPullRequestFilesProtocol,
     GetPullRequestProtocol,
+    PaginatedActionResult,
+    PaginationParams,
     PullRequestFile,
 )
 
@@ -27,6 +29,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -70,34 +73,54 @@ def _serialize_file(raw_file: PullRequestFile) -> PullRequestFileResponse:
     return {"path": raw_file["filename"], "patch": raw_file["patch"]}
 
 
-def _read_files(scm: GetPullRequestFilesProtocol, pull_request_key: str) -> list[PullRequestFile]:
+def _read_files(
+    scm: GetPullRequestFilesProtocol, pull_request_key: str
+) -> tuple[list[PullRequestFile], int]:
+    """The files, and how many provider calls reading them took."""
     files: list[PullRequestFile] = []
-    for page in iter_all_pages(
-        lambda pagination: scm_actions.get_pull_request_files(
-            scm, pull_request_key, pagination=pagination
-        )
-    ):
+    calls = 0
+
+    def read_page(pagination: PaginationParams) -> PaginatedActionResult[list[PullRequestFile]]:
+        nonlocal calls
+        calls += 1
+        return scm_actions.get_pull_request_files(scm, pull_request_key, pagination=pagination)
+
+    for page in iter_all_pages(read_page):
         files.extend(page["data"])
-    return files
+    return files, calls
+
+
+def _record_head_sha_read(provider: str, outcome: str, attempts: int, provider_calls: int) -> None:
+    tags = {"provider": provider, "outcome": outcome}
+    metrics.distribution("organization_pull_request_files.head_sha.attempts", attempts, tags=tags)
+    metrics.distribution(
+        "organization_pull_request_files.head_sha.provider_calls", provider_calls, tags=tags
+    )
 
 
 def _read_files_at_one_head(
-    scm: GetPullRequestFilesProtocol, pull_request_key: str
+    scm: GetPullRequestFilesProtocol, pull_request_key: str, provider: str
 ) -> _PullRequestFiles:
     """
     The files, with the PR's head commit read before and after them. If a push moves the head
     while the pages are read, the pages may mix commits, so read them all again.
     """
     if not isinstance(scm, GetPullRequestProtocol):
-        return _PullRequestFiles(_read_files(scm, pull_request_key), None)
+        files, provider_calls = _read_files(scm, pull_request_key)
+        _record_head_sha_read(provider, "no_pull_request_support", 1, provider_calls)
+        return _PullRequestFiles(files, None)
 
     head_sha = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
-    for _ in range(_HEAD_SHA_ATTEMPTS):
-        files = _read_files(scm, pull_request_key)
+    provider_calls = 1
+    for attempt in range(1, _HEAD_SHA_ATTEMPTS + 1):
+        files, page_calls = _read_files(scm, pull_request_key)
         head_sha_after = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+        provider_calls += page_calls + 1
         if head_sha_after == head_sha:
+            _record_head_sha_read(provider, "matched", attempt, provider_calls)
             return _PullRequestFiles(files, head_sha)
         head_sha = head_sha_after
+    _record_head_sha_read(provider, "gave_up", _HEAD_SHA_ATTEMPTS, provider_calls)
     return _PullRequestFiles(files, None)
 
 
@@ -106,11 +129,12 @@ def _fetch_files(
     repository_id: int,
     pull_request_key: str,
     *,
-    with_head_sha: bool = False,
+    head_sha_provider: str | None = None,
 ) -> _PullRequestFiles:
     """
-    Every file the pull request changes, as its provider reports them. With `with_head_sha`,
-    also the head commit they were read at, which costs two or more extra provider calls.
+    Every file the pull request changes, as its provider reports them. With
+    `head_sha_provider` (the repository's provider, used to tag metrics), also the head commit
+    they were read at, which costs two or more extra provider calls.
     """
     try:
         scm = make_scm(organization_id, repository_id, referrer="pull-request-files")
@@ -124,9 +148,10 @@ def _fetch_files(
         return _PullRequestFiles([], None)
 
     try:
-        if with_head_sha:
-            return _read_files_at_one_head(scm, pull_request_key)
-        return _PullRequestFiles(_read_files(scm, pull_request_key), None)
+        if head_sha_provider is not None:
+            return _read_files_at_one_head(scm, pull_request_key, head_sha_provider)
+        files, _ = _read_files(scm, pull_request_key)
+        return _PullRequestFiles(files, None)
     except ResourceNotFound:
         # The PR is gone on the provider.
         raise ResourceDoesNotExist
@@ -210,7 +235,12 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
         repository = matches[0]
 
-        fetched = _fetch_files(organization.id, repository.id, number, with_head_sha=True)
+        fetched = _fetch_files(
+            organization.id,
+            repository.id,
+            number,
+            head_sha_provider=repository.provider or "unknown",
+        )
         return Response(
             {
                 "files": [
