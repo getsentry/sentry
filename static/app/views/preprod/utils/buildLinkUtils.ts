@@ -1,4 +1,6 @@
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {SizeComparisonApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface BuildLinkParams {
   organizationSlug: string;
@@ -54,6 +56,17 @@ export function getCompareApiUrl(params: {
         headArtifactId,
         baseArtifactId,
       },
+    }
+  );
+}
+
+export function sizeComparisonApiOptions(params: Parameters<typeof getCompareApiUrl>[0]) {
+  const {organizationSlug, headArtifactId, baseArtifactId} = params;
+  return apiOptions.as<SizeComparisonApiResponse>()(
+    '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, headArtifactId, baseArtifactId},
+      staleTime: 0,
     }
   );
 }

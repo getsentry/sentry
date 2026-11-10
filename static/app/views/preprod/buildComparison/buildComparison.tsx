@@ -13,9 +13,11 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {SizeComparisonApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
-import {getCompareApiUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  getCompareApiUrl,
+  sizeComparisonApiOptions,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 import {BuildCompareHeaderContent} from './header/buildCompareHeaderContent';
@@ -43,17 +45,11 @@ export default function BuildComparison() {
     enabled: !!headArtifactId,
   });
 
-  const compareOptions = apiOptions.as<SizeComparisonApiResponse>()(
-    '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        headArtifactId: headArtifactId!,
-        baseArtifactId: baseArtifactId!,
-      },
-      staleTime: 0,
-    }
-  );
+  const compareOptions = sizeComparisonApiOptions({
+    organizationSlug: organization.slug,
+    headArtifactId: headArtifactId!,
+    baseArtifactId: baseArtifactId!,
+  });
 
   const queryClient = useQueryClient();
   const {mutate: rerunComparison, isPending: isRerunning} = useMutation<

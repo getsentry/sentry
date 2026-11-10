@@ -40,6 +40,7 @@ import {
 import {
   getCompareApiUrl,
   getCompareBuildPath,
+  sizeComparisonApiOptions,
 } from 'sentry/views/preprod/utils/buildLinkUtils';
 
 import {BuildComparisonMetricCards} from './buildComparisonMetricCards';
@@ -86,13 +87,11 @@ export function SizeCompareMainContent() {
   });
 
   const sizeComparisonQuery = useQuery({
-    ...apiOptions.as<SizeComparisonApiResponse>()(
-      '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
-      {
-        path: {organizationIdOrSlug: organization.slug, headArtifactId, baseArtifactId},
-        staleTime: 0,
-      }
-    ),
+    ...sizeComparisonApiOptions({
+      organizationSlug: organization.slug,
+      headArtifactId,
+      baseArtifactId,
+    }),
     enabled: !!headArtifactId && !!baseArtifactId,
     refetchInterval: query => {
       const mainComparison = getMainComparison(query.state.data?.json);
