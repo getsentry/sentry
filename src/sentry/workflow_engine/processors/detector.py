@@ -142,7 +142,7 @@ def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
     if group_type_id != MetricIssue.type_id:
         return False
 
-    organization = event_data.event.project.organization
+    organization = event_data.get_organization()
 
     disable_issue_stream_detector_for_metric_issues = features.has(
         "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications",
@@ -176,10 +176,10 @@ def get_detectors_for_event_data(
         metrics.incr("workflow_engine.detectors.error", tags={"detector_type": "issue_stream"})
         logger.exception(
             "Issue stream detector not found for event",
-            extra={"project_id": event_data.group.project_id, "group_id": event_data.group.id},
+            extra={"project_id": event_data.group.project_id, "group_id": event_data.group_id},
         )
 
-    organization_id = event_data.event.project.organization_id
+    organization_id = event_data.get_organization().id
     if in_rollout_group("workflow_engine.all_projects_detectors.rollout-rate", organization_id):
         all_projects_detector = get_all_projects_detector(organization_id)
         if all_projects_detector:
@@ -251,12 +251,8 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
             "Detector not found for event data",
             extra={
                 "type": type(event_data.event),
-                "id": (
-                    event_data.event.event_id
-                    if isinstance(event_data.event, GroupEvent)
-                    else event_data.event.id
-                ),
-                "group_id": event_data.group.id,
+                "id": event_data.event_id,
+                "group_id": event_data.group_id,
             },
         )
         raise

@@ -204,7 +204,7 @@ def evaluate_workflow_triggers(
                 logger.debug(
                     "workflow_engine.process_workflows.enqueue_workflow.activity",
                     extra={
-                        "event_id": event_data.event.id,
+                        "event_id": event_data.event_id,
                         "workflow_id": workflow.id,
                     },
                 )
@@ -339,7 +339,7 @@ def evaluate_workflows_action_filters(
                     logger.debug(
                         "workflow_engine.process_workflows.enqueue_workflow.activity",
                         extra={
-                            "event_id": event_data.event.id,
+                            "event_id": event_data.event_id,
                         },
                     )
             else:
@@ -394,7 +394,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
         except Environment.DoesNotExist:
             logger.info(
                 "workflow_engine.process_workflows.environment_not_found",
-                extra={"event_id": event_data.event.event_id},
+                extra={"event_id": event_data.event_id},
             )
             raise Environment.DoesNotExist("Environment does not exist for the event")
 

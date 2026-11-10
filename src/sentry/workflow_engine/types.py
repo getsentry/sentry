@@ -136,7 +136,6 @@ class WorkflowEventData:
     )
 
     def get_organization(self) -> Organization:
-        """Use explicit context, retaining compatibility with issue-event callers."""
         if self.organization is not None:
             if self.organization.id != self.event.project.organization_id:
                 raise ValueError(
