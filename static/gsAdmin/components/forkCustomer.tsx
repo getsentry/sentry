@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
@@ -27,31 +27,16 @@ export function ForkCustomerAction({organization, onConfirm, setConfirmCallback}
   const navigate = useNavigate();
   const [regionUrl, setRegionUrl] = useState('');
 
-  // The confirm callback is registered once on mount, so it reads the latest
-  // values through refs rather than closing over stale render values.
-  const regionUrlRef = useRef('');
-  const latestRef = useRef({organization, onConfirm, navigate});
-
-  useEffect(() => {
-    latestRef.current = {organization, onConfirm, navigate};
-  }, [organization, onConfirm, navigate]);
-
-  useEffect(() => {
-    const handleConfirm = async (params: AdminConfirmParams) => {
+  const handleConfirm = useCallback(
+    async (params: AdminConfirmParams) => {
       const api = new Client({headers: {Accept: 'application/json; charset=utf-8'}});
-      const {
-        organization: currentOrganization,
-        onConfirm: currentOnConfirm,
-        navigate: currentNavigate,
-      } = latestRef.current;
-      const currentRegionUrl = regionUrlRef.current;
       const localities = getLocalities();
-      const locality = localities.find(r => r.url === currentRegionUrl);
+      const locality = localities.find(r => r.url === regionUrl);
 
       try {
         const response = await api.requestPromise(
           getApiUrl('/organizations/$organizationIdOrSlug/fork/', {
-            path: {organizationIdOrSlug: currentOrganization.slug},
+            path: {organizationIdOrSlug: organization.slug},
           }),
           {
             method: 'POST',
@@ -59,20 +44,21 @@ export function ForkCustomerAction({organization, onConfirm, setConfirmCallback}
           }
         );
 
-        currentNavigate(`/_admin/relocations/${locality?.name}/${response.uuid}/`);
-        currentOnConfirm?.({regionUrl: currentRegionUrl, ...params});
+        navigate(`/_admin/relocations/${locality?.name}/${response.uuid}/`);
+        onConfirm?.({regionUrl, ...params});
       } catch (error: any) {
         if (error.responseJSON) {
-          currentOnConfirm?.({error});
+          onConfirm?.({error});
         }
       }
-    };
+    },
+    [organization, regionUrl, onConfirm, navigate]
+  );
 
+  // Register the confirm callback whenever it changes (regionUrl updates handleConfirm)
+  useEffect(() => {
     setConfirmCallback(handleConfirm);
-    // Only register the callback once on mount. setConfirmCallback is recreated
-    // on every parent render, so depending on it would re-register needlessly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setConfirmCallback, handleConfirm]);
 
   const currentRegionData = getLocalityDataFromOrganization(organization);
   const localityOptions = getLocalityUrlOptions(
@@ -89,10 +75,7 @@ export function ForkCustomerAction({organization, onConfirm, setConfirmCallback}
       stacked
       required
       value={regionUrl}
-      onChange={(val: any) => {
-        regionUrlRef.current = val;
-        setRegionUrl(val);
-      }}
+      onChange={(val: any) => setRegionUrl(val)}
     />
   );
 }
