@@ -53,7 +53,7 @@ export function OrganizationContextProvider({children}: Props) {
     ConfigStore,
     useShallow(state => ({lastOrganization: state.lastOrganization, user: state.user}))
   );
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const {organization, error} = useLegacyStore(OrganizationStore);
   const lastOrganizationSlug = lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
