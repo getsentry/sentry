@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 import {IconDownload} from '@sentry/icons/download';
 import {IconTimer} from '@sentry/icons/timer';
@@ -9,15 +10,17 @@ import moment from 'moment-timezone';
 import {useQueryState} from 'nuqs';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -28,7 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import type {InvoiceBase} from 'getsentry/types';
+import type {InvoiceBase, InvoiceUsage} from 'getsentry/types';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
@@ -144,6 +147,44 @@ function UsageCsvDownloads({
   );
 }
 
+function ReceiptUsageBreakdown({invoiceId}: {invoiceId: string}) {
+  const organization = useOrganization();
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<InvoiceUsage>()(
+      '/customers/$organizationIdOrSlug/invoices/$invoiceId/usage/',
+      {
+        path: {organizationIdOrSlug: organization.slug, invoiceId},
+        staleTime: Infinity,
+      }
+    )
+  );
+
+  if (isPending) {
+    return <LoadingIndicator mini />;
+  }
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  return (
+    <Grid columns="max-content max-content" gap="sm 3xl" padding="md xl">
+      <Text bold>{t('Category')}</Text>
+      <Text bold align="right">
+        {t('Accepted')}
+      </Text>
+      {data.categories.map(category => (
+        <Fragment key={category.name}>
+          <Text>{category.name}</Text>
+          <Text align="right" tabular>
+            {category.accepted.toLocaleString(undefined, {maximumFractionDigits: 2})}
+            {category.unit ? ` ${category.unit}` : null}
+          </Text>
+        </Fragment>
+      ))}
+    </Grid>
+  );
+}
+
 /**
  * Invoice/Payment list view.
  */
@@ -186,6 +227,7 @@ function PaymentHistory() {
 }
 
 const COLUMNS: TableColumnConfig[] = [
+  {key: 'expand', width: 'min-content'},
   {key: 'date', width: 'minmax(min-content, 1fr)'},
   {key: 'amount', width: 'minmax(max-content, 1fr)'},
   {
@@ -219,6 +261,7 @@ function ReceiptTable({
       scrollable
       header={
         <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell />
           <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell align="right">{t('Amount')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
@@ -233,56 +276,97 @@ function ReceiptTable({
         <SimpleTable.Loading />
       ) : payments?.length ? (
         payments.map(payment => (
-          <SimpleTable.Row key={payment.id}>
-            <SimpleTable.RowCell>
-              <Link to={`/settings/${organization.slug}/billing/receipts/${payment.id}/`}>
-                {moment(payment.dateCreated).format('MMM D, YYYY')}
-              </Link>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="end">
-              <Container>
-                <Text align="right">{formatCurrency(payment.amountBilled ?? 0)}</Text>
-                {!!payment.amountRefunded && (
-                  <Text size="sm" align="right">
-                    {tct('[amount] refunded', {
-                      amount: formatCurrency(payment.amountRefunded),
-                    })}
-                  </Text>
-                )}
-              </Container>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <ReceiptStatusTag payment={payment} />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <Text monospace ellipsis>
-                {payment.id}
-              </Text>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="end">
-              <Flex justify="end" gap="md" wrap="wrap">
-                {organization.features.includes('invoice-usage-downloads') &&
-                  payment.usageCsvLinks && (
-                    <UsageCsvDownloads
-                      links={payment.usageCsvLinks}
-                      iconOnly={isSmallContainer}
-                    />
-                  )}
-                <LinkButton
-                  aria-label={t('Download PDF')}
-                  icon={<IconDownload />}
-                  href={payment.receipt.url}
-                >
-                  {isSmallContainer ? undefined : t('Download PDF')}
-                </LinkButton>
-              </Flex>
-            </SimpleTable.RowCell>
-          </SimpleTable.Row>
+          <ReceiptRow
+            key={payment.id}
+            payment={payment}
+            organization={organization}
+            isSmallContainer={isSmallContainer}
+          />
         ))
       ) : (
         <SimpleTable.Empty>{t('No receipts found')}</SimpleTable.Empty>
       )}
     </SimpleTable>
+  );
+}
+
+function ReceiptRow({
+  isSmallContainer,
+  organization,
+  payment,
+}: {
+  isSmallContainer: boolean;
+  organization: Organization;
+  payment: InvoiceBase;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasUsage =
+    organization.features.includes('invoice-usage-downloads') && !!payment.usageCsvLinks;
+
+  return (
+    <Fragment>
+      <SimpleTable.Row>
+        <SimpleTable.RowCell paddingRight="0">
+          {hasUsage && (
+            <Button
+              size="xs"
+              variant="transparent"
+              icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+              aria-label={isExpanded ? t('Hide usage') : t('Show usage')}
+              aria-expanded={isExpanded}
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
+          )}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Link to={`/settings/${organization.slug}/billing/receipts/${payment.id}/`}>
+            {moment(payment.dateCreated).format('MMM D, YYYY')}
+          </Link>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
+          <Container>
+            <Text align="right">{formatCurrency(payment.amountBilled ?? 0)}</Text>
+            {!!payment.amountRefunded && (
+              <Text size="sm" align="right">
+                {tct('[amount] refunded', {
+                  amount: formatCurrency(payment.amountRefunded),
+                })}
+              </Text>
+            )}
+          </Container>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <ReceiptStatusTag payment={payment} />
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          <Text monospace ellipsis>
+            {payment.id}
+          </Text>
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
+          <Flex justify="end" gap="md" wrap="wrap">
+            {hasUsage && payment.usageCsvLinks && (
+              <UsageCsvDownloads
+                links={payment.usageCsvLinks}
+                iconOnly={isSmallContainer}
+              />
+            )}
+            <LinkButton
+              aria-label={t('Download PDF')}
+              icon={<IconDownload />}
+              href={payment.receipt.url}
+            >
+              {isSmallContainer ? undefined : t('Download PDF')}
+            </LinkButton>
+          </Flex>
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
+      {isExpanded && (
+        <SimpleTable.FullWidthRow>
+          <ReceiptUsageBreakdown invoiceId={payment.id} />
+        </SimpleTable.FullWidthRow>
+      )}
+    </Fragment>
   );
 }
 

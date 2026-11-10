@@ -163,12 +163,12 @@ describe('Subscription > PaymentHistory', () => {
       within(table)
         .getAllByRole('columnheader')
         .map(header => header.textContent)
-    ).toEqual(['Date', 'Amount', 'Status', 'Receipt ID', '']);
+    ).toEqual(['', 'Date', 'Amount', 'Status', 'Receipt ID', '']);
     expect(
       within(row)
         .getAllByRole('cell')
         .map(cell => cell.textContent)
-    ).toEqual(['Jun 25, 2018', '$120$20 refunded', 'Refunded', '1a2c3b4d5e6f', '']);
+    ).toEqual(['', 'Jun 25, 2018', '$120$20 refunded', 'Refunded', '1a2c3b4d5e6f', '']);
     expect(within(row).getByRole('link', {name: 'Jun 25, 2018'})).toHaveAttribute(
       'href',
       '/settings/dogz-rule/billing/receipts/1a2c3b4d5e6f/'
@@ -237,6 +237,52 @@ describe('Subscription > PaymentHistory', () => {
     expect(window.open).toHaveBeenCalledWith(`${csv}per-project/my-project/`, '_blank');
   });
 
+  it('shows accepted usage per category when a receipt row is expanded', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['invoice-usage-downloads'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const csv = 'https://sentry.io/organizations/dogz-rule/billing/contracts/1/export/';
+    const invoice = InvoiceFixture({
+      isClosed: true,
+      isPaid: true,
+      usageCsvLinks: {csv, csvPerProject: `${csv}per-project/`},
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [invoice],
+    });
+    const usageRequest = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/${invoice.id}/usage/`,
+      method: 'GET',
+      body: {
+        categories: [
+          {name: 'Errors', accepted: 1234567, unit: null},
+          {name: 'Logs', accepted: 2.5, unit: 'GB'},
+        ],
+      },
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Show usage'}));
+
+    expect(await screen.findByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Accepted')).toBeInTheDocument();
+    expect(screen.getByText('1,234,567')).toBeInTheDocument();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.getByText('2.5 GB')).toBeInTheDocument();
+    expect(usageRequest).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide usage'}));
+    expect(screen.queryByText('Errors')).not.toBeInTheDocument();
+  });
+
   it('does not render usage CSV downloads without the feature flag', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
@@ -287,5 +333,6 @@ describe('Subscription > PaymentHistory', () => {
     expect(
       screen.queryByRole('button', {name: 'Download Usage CSV'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Show usage'})).not.toBeInTheDocument();
   });
 });
