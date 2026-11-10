@@ -47,7 +47,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
   );
 
   const isOutOfCredits = isOutOfCreditsSection(section);
-  const outOfCreditsRetry = useOutOfCreditsRetry('autofix_solution', {
+  const outOfCreditsRetry = useOutOfCreditsRetry('solution', {
     enabled: isOutOfCredits,
   });
 

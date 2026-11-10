@@ -66,7 +66,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   );
 
   const isOutOfCredits = isOutOfCreditsSection(section);
-  const outOfCreditsRetry = useOutOfCreditsRetry('autofix_root_cause', {
+  const outOfCreditsRetry = useOutOfCreditsRetry('root_cause', {
     enabled: isOutOfCredits,
   });
 

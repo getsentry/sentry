@@ -17,7 +17,10 @@ import {
   type ExplorerAutofixState,
 } from './useExplorerAutofix';
 
-type AutofixAction = AutofixNextStep['action'];
+/**
+ * A billable autofix action: a step, opening a PR, or iterating on one.
+ */
+export type AutofixAction = AutofixNextStep['action'];
 
 const AUTOFIX_CREDIT_OPERATIONS: Record<AutofixAction, SeerCreditOperation> = {
   root_cause: 'autofix_root_cause',

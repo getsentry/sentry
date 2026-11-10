@@ -23,10 +23,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
-import {
-  AUTOFIX_STEP_CREDIT_OPERATION,
-  useOutOfCreditsRetry,
-} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
+import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -94,10 +91,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const stoppedStep = isLatestStepPrIteration ? 'pr_iteration' : 'code_changes';
-  const outOfCreditsRetry = useOutOfCreditsRetry(
-    AUTOFIX_STEP_CREDIT_OPERATION[stoppedStep],
-    {enabled: isOutOfCredits}
-  );
+  const outOfCreditsRetry = useOutOfCreditsRetry(stoppedStep, {
+    enabled: isOutOfCredits,
+  });
 
   // The blocks of the step that is running, or that stopped for credits.
   const currentStepBlocks = useMemo(() => {

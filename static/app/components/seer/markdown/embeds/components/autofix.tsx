@@ -51,10 +51,7 @@ import {
   OUT_OF_CREDITS_STEP_MESSAGE,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
-import {
-  AUTOFIX_STEP_CREDIT_OPERATION,
-  useOutOfCreditsRetry,
-} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
+import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -317,9 +314,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const outOfCreditsSection =
     section && isOutOfCreditsSection(section) ? section : undefined;
   const stepRetry = useOutOfCreditsRetry(
-    AUTOFIX_STEP_CREDIT_OPERATION[
-      outOfCreditsSection ? getStoppedStep(outOfCreditsSection, step) : step
-    ],
+    outOfCreditsSection ? getStoppedStep(outOfCreditsSection, step) : step,
     {enabled: defined(outOfCreditsSection)}
   );
   // Draft a pull request retries a create that failed for credits. The credit

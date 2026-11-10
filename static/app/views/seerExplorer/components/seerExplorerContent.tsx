@@ -941,7 +941,7 @@ export function SeerExplorerContent({
                   isQuestionPending ||
                   showReauth
                 }
-                outOfCredits={sessionData?.failure_reason === 'out_of_credits'}
+                outOfCredits={isRunOutOfCredits}
                 pendingInput={pendingInput}
                 readOnly={readOnly}
                 showThinking={showThinking}

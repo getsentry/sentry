@@ -261,7 +261,7 @@ function RetryPullRequestButton({
   variant,
 }: RetryPullRequestButtonProps) {
   const isOutOfCredits = isOutOfCreditsPRState(failedPullRequest);
-  const outOfCreditsRetry = useOutOfCreditsRetry('autofix_open_pr', {
+  const outOfCreditsRetry = useOutOfCreditsRetry('create_pr', {
     enabled: isOutOfCredits,
   });
 
