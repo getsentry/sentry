@@ -890,6 +890,11 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
   return (
     <DndContext
+      // dnd-kit renders its position: fixed live region inline by default. While the
+      // panel animates, its transform turns that region into an absolute element
+      // below the scrolled list. If the list overflows, the page grows a scrollbar
+      // and the main content shifts.
+      accessibility={{container: document.body}}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
