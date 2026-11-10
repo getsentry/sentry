@@ -149,7 +149,7 @@ def _bulk_get_project_settings(
     settings_by_project_id: dict[int, SeerProjectSettings] = {}
     for project in projects:
 
-        def _get_option(key: str):
+        def _get_option(key: str) -> Any:
             value = project_options[key].get(project.id)
             if value is None:
                 value = projectoptions.get_well_known_default(key, project=project)
@@ -214,7 +214,7 @@ def serialize_projects(
     return [_serialize(p, settings_by_project_id[p.id]) for p in projects]
 
 
-def _annotate_queryset(queryset, organization: Organization):
+def _annotate_queryset(queryset: Any, organization: Organization) -> Any:
     # ProjectOption.value is a LegacyTextJSONField — a text column storing JSON.
     # Use LegacyTextJSONField as output_field for project options. Coalesce fallback
     # values must also be JSON-encoded.
@@ -281,7 +281,7 @@ def _annotate_queryset(queryset, organization: Organization):
     )
 
 
-def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
+def _apply_search_filters(queryset: Any, filters: Sequence[QueryToken]) -> Any:
     for f in filters:
         if not isinstance(f, SearchFilter):
             continue
@@ -354,7 +354,7 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
+class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer[dict[str, Any]]):
     agent = serializers.ChoiceField(choices=[*AutomationCodingAgent], required=False)
     integration_id = serializers.IntegerField(required=False)
     stopping_point = serializers.ChoiceField(choices=[*AutofixStoppingPoint], required=False)
@@ -387,7 +387,7 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if "agent" in data and data["agent"] != "seer" and "integration_id" not in data:
             raise serializers.ValidationError(
                 {"integration_id": "Required when agent is an external coding agent."}
@@ -417,7 +417,7 @@ class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
         required=False,
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         data = super().validate(data)
 
         # Keep stopping point in sync with handoff auto_create_pr.

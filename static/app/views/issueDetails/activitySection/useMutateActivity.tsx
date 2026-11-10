@@ -7,8 +7,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+
+import {issueCommentsQueryOptions} from './issueCommentsQueryOptions';
 
 type ActivityMutation =
   | {method: 'POST'; note: NoteType}

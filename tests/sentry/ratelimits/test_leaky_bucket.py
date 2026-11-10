@@ -161,6 +161,15 @@ class LeakyBucketRateLimiterTest(TestCase):
                 assert not self.limiter.is_limited("foo")
                 assert "Could not determine leaky bucket limiter state" in caplog.text
 
+            fail_closed_limiter = LeakyBucketRateLimiter(
+                burst_limit=5,
+                drip_rate=2,
+                key="foo",
+                fail_open=False,
+            )
+            with pytest.raises(LeakyBucketRateLimiter.Unavailable):
+                fail_closed_limiter.is_limited()
+
         with mock.patch.object(self.limiter, "client") as redis_client:
             redis_client.side_effect = Exception("Boom")
 

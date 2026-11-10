@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.snuba.subscriptions import create_snuba_subscription
@@ -74,7 +74,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
-    def test_seer_error(self, mock_get_data):
+    def test_seer_error(self, mock_get_data: MagicMock) -> None:
         mock_get_data.return_value = None
 
         response = self.get_error_response(
@@ -89,7 +89,7 @@ class OrganizationDetectorAnomalyDataEndpointTest(BaseWorkflowTest, APITestCase)
     @patch(
         "sentry.workflow_engine.endpoints.organization_detector_anomaly_data.get_anomaly_threshold_data_from_seer"
     )
-    def test_successful_fetch(self, mock_get_data):
+    def test_successful_fetch(self, mock_get_data: MagicMock) -> None:
         mock_data = [
             {
                 "external_alert_id": 24,

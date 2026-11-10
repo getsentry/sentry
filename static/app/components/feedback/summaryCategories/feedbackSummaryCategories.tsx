@@ -6,11 +6,12 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {AiPrivacyTooltip} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
-import {FeedbackSummary} from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+
+import {FeedbackCategories} from './feedbackCategories';
+import {FeedbackSummary} from './feedbackSummary';
 
 function SummaryFeedbackButton({type}: {type: 'positive' | 'negative'}) {
   return (

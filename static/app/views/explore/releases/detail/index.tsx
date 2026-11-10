@@ -24,9 +24,7 @@ import type {
   ReleaseWithHealth,
 } from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
@@ -120,12 +118,11 @@ function ReleasesDetail({
     refetch: refetchSessions,
     isPending: isSessionsPending,
     error: sessionsError,
-  } = useApiQuery<SessionApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery(
+    apiOptions.as<SessionApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sessions/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           project: releaseQueryParams.project,
           environment: releaseQueryParams.environment,
@@ -134,9 +131,9 @@ function ReleasesDetail({
           statsPeriod: '90d',
           interval: '1d',
         },
-      },
-    ],
-    {staleTime: Infinity}
+        staleTime: Infinity,
+      }
+    )
   );
 
   const refetchData = useCallback(() => {
@@ -264,7 +261,7 @@ function ReleasesDetailContainer() {
     );
   }
 
-  if (isError && error.status === 404) {
+  if (isError && error instanceof RequestError && error.status === 404) {
     // This catches a 404 coming from the release endpoint and displays a custom error message.
     return (
       <Stack flex={1} padding="2xl 3xl">

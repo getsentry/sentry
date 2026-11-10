@@ -13,7 +13,8 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import {type ReleaseProject, ReleaseComparisonChartType} from 'sentry/types/release';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ReleaseComparisonChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart';
-import {ReleaseEventsChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart/releaseEventsChart';
+
+import {ReleaseEventsChart} from './releaseEventsChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const organization = OrganizationFixture();

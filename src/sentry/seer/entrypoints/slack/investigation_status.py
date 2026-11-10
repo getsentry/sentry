@@ -19,11 +19,14 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.investigations.services.action_requests import LIVE_STATES
+from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
     SeerInvestigationHypothesis,
+    SeerInvestigationNextStep,
     SeerInvestigationProgress,
     SeerInvestigationStatus,
 )
@@ -32,6 +35,7 @@ MAX_STATUS_HYPOTHESES = 10
 MAX_STATUS_TEXT_LENGTH = 300
 # Slack caps a section's text at 3,000 characters.
 MAX_SUMMARY_DESCRIPTION_LENGTH = 2_500
+MAX_NEXT_STEP_RATIONALE_LENGTH = 2_500
 
 VERIFYING_LABEL = "● Verifying"
 SUPPORTED_LABEL = "● Supported"
@@ -86,7 +90,8 @@ def _format_window(start: datetime, end: datetime) -> str:
 
 
 def get_status_title(source: Mapping[str, Any]) -> str:
-    return source["snapshot"]["monitor"]["name"]
+    name = source["snapshot"]["monitor"]["name"]
+    return name
 
 
 def _get_endpoint(query: str) -> str | None:
@@ -265,6 +270,22 @@ def build_investigation_status(
     return data, fingerprint
 
 
+def _build_next_step(run: InvestigationOrchestrationRun) -> SeerInvestigationNextStep | None:
+    """The step Seer suggests after the current report, if it still stands."""
+    request = NotebookActionRequest.objects.filter(
+        notebook_id=run.investigation_id,
+        producer_revision=_report_revision(run),
+        primary=True,
+        state__in=LIVE_STATES,
+    ).first()
+    if request is None:
+        return None
+    return SeerInvestigationNextStep(
+        title=request.title,
+        rationale=_truncate(request.rationale, MAX_NEXT_STEP_RATIONALE_LENGTH),
+    )
+
+
 def build_investigation_conclusion(
     run: InvestigationOrchestrationRun,
 ) -> SeerInvestigationConclusion | None:
@@ -279,5 +300,6 @@ def build_investigation_conclusion(
         summary_description=(
             _truncate(description, MAX_SUMMARY_DESCRIPTION_LENGTH) if description else None
         ),
+        next_step=_build_next_step(run),
         investigation_url=investigation.get_absolute_url(),
     )

@@ -40,7 +40,7 @@ class ProjectProfilingChunkAttachmentTest(APITestCase):
             stored_id=uuid4().hex,
         )
 
-    def get_url(self, attachment_id=None):
+    def get_url(self, attachment_id: int | None = None) -> str:
         return reverse(
             self.endpoint,
             args=(

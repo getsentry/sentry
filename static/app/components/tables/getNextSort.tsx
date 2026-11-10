@@ -1,5 +1,6 @@
-import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
 import type {Sort} from 'sentry/utils/discover/fields';
+
+import type {SortDirection} from './sortableHeaderCell';
 
 /**
  * The direction a column takes when it is clicked: the opposite of the one it

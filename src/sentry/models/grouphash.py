@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 # Django signals we can listen for (see end of file). We also don't have to override the model's
 # `update` method because our base model class already does that, with a method that calls the
 # queryset's `update`.
-class GroupHashQuerySet(BaseQuerySet):
+class GroupHashQuerySet(BaseQuerySet["GroupHash"]):
     def update(self, **kwargs: Any) -> int:
         if not options.get("grouping.use_ingest_grouphash_caching"):
             return super().update(**kwargs)

@@ -10,7 +10,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
@@ -43,6 +42,8 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {METRIC_DETECTOR_FORM_FIELDS} from './metricFormFields';
 
 const FUNCTION_GRID_COLUMNS = '24px 24px 3fr 2fr 6fr 40px';
 const EQUATION_GRID_COLUMNS = '24px 24px 5fr 6fr 40px';

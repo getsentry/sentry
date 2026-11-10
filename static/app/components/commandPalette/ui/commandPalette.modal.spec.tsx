@@ -29,12 +29,10 @@ import {
 } from '@sentry/scraps/modal';
 
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {
-  CMDKAction,
-  CommandPaletteProvider,
-} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette as CommandPaletteModal} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+
+import {CMDKAction, CommandPaletteProvider} from './cmdk';
+import {CommandPalette as CommandPaletteModal} from './commandPalette';
+import {CommandPaletteSlot} from './commandPaletteSlot';
 
 /**
  * Returns a minimal but valid ModalRenderProps with a jest.fn() as closeModal.

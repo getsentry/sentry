@@ -4,8 +4,8 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ReleasesDrawerTable} from 'sentry/views/explore/releases/drawer/releasesDrawerTable';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {ReleasesDrawerTable} from './releasesDrawerTable';
+import {ReleasesDrawerFields} from './utils';
 
 const PAGE_LINKS =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/releases/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/releases/?cursor=0:15:0>; rel="next"; results="true"; cursor="0:15:0"';

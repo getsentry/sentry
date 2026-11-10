@@ -19,8 +19,9 @@ import {
   getCommitsByRepository,
   getReposToRender,
 } from 'sentry/views/explore/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {useReleaseCommits} from 'sentry/views/explore/releases/utils/useReleaseCommits';
+
+import {ReleasesDrawerFields} from './utils';
 
 interface CommitsProps {
   projectSlug: Project['slug'];

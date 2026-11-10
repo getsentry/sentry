@@ -11,10 +11,11 @@ import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {useNavigationTour} from './navigationTour';
+import {usePrimaryNavigation} from './primaryNavigationContext';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 // TODO: Set to the settings navigation GA date. Users who join after it don't see the tour.
 const TOUR_SETTINGS_NAV_DATE_THRESHOLD = new Date(2027, 11, 1);

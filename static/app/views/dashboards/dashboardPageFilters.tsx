@@ -1,7 +1,8 @@
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DataCategory} from 'sentry/types/core';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+
+import {DEFAULT_STATS_PERIOD} from './data';
 
 const ALL_DASHBOARD_DATA_CATEGORIES = [
   DataCategory.SPANS,

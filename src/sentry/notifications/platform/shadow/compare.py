@@ -65,7 +65,8 @@ def _as_list(value: Any) -> list[Any]:
     if not value:
         return []
     if isinstance(value, (str, bytes)):
-        return orjson.loads(value)
+        parsed = orjson.loads(value)
+        return parsed
     return [item.to_dict() if isinstance(item, Block) else item for item in value]
 
 

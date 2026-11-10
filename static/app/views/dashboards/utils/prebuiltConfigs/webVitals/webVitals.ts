@@ -7,13 +7,11 @@ import {
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 export const ISSUE_TYPES = [
   'web_vitals',

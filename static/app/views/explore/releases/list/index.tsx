@@ -54,9 +54,6 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {ReleaseArchivedNotice} from 'sentry/views/explore/releases/detail/overview/releaseArchivedNotice';
-import {MobileBuilds} from 'sentry/views/explore/releases/list/mobileBuilds';
-import {ReleaseHealthCTA} from 'sentry/views/explore/releases/list/releaseHealthCTA';
-import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -67,6 +64,9 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
+import {MobileBuilds} from './mobileBuilds';
+import {ReleaseHealthCTA} from './releaseHealthCTA';
+import {ReleaseListInner} from './releaseListInner';
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
 import {ReleasesStatusOption, ReleasesStatusOptions} from './releasesStatusOptions';

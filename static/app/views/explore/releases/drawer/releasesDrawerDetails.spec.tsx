@@ -4,11 +4,12 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
-import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+
+import {ReleasesDrawerDetails} from './releasesDrawerDetails';
+import {ReleasesDrawerFields} from './utils';
 
 // Mock GroupList as it throws act warnings
 jest.mock('sentry/components/issues/groupList', () => ({
@@ -101,11 +102,19 @@ describe('ReleasesDrawerDetails', () => {
   it('renders content when projectId exists', async () => {
     render(<ReleasesDrawerDetails {...defaultProps} projectId="1" />, renderOptions);
 
-    // no start/end from url params, so can't link back to releases
-    const notLink = await screen.findByText('Releases');
-    expect(notLink).not.toHaveAttribute('href');
-
     expect(await screen.findByText('Details')).toBeInTheDocument();
+    // no start/end from url params, so there is no releases crumb to link back to
+    expect(screen.queryByRole('link', {name: 'Releases'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View Full Details'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/releases/test-release/?project=1')
+    );
+    // the full-details link is an action on the version crumb
+    expect(screen.getByRole('navigation', {name: 'Breadcrumbs'})).toContainElement(
+      screen.getByRole('button', {name: 'View Full Details'})
+    );
+    // single-project releases don't need a project switcher
+    expect(screen.queryByRole('button', {name: 'project-slug'})).not.toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
@@ -122,7 +131,7 @@ describe('ReleasesDrawerDetails', () => {
       renderOptions
     );
 
-    const link = await screen.findByText('Releases');
+    const link = await screen.findByRole('link', {name: 'Releases'});
     expect(link).toHaveAttribute(
       'href',
       expect.stringContaining(
@@ -155,7 +164,7 @@ describe('ReleasesDrawerDetails', () => {
       }
     );
 
-    const link = await screen.findByText('Releases');
+    const link = await screen.findByRole('link', {name: 'Releases'});
     const {pathname, searchParams} = new URL(link.getAttribute('href')!, 'http://x');
     expect(pathname).toBe('/releases/');
     expect(Object.fromEntries(searchParams)).toEqual({
@@ -197,19 +206,20 @@ describe('ReleasesDrawerDetails', () => {
         ],
       }),
     });
-    render(<ReleasesDrawerDetails {...defaultProps} projectId="2" />, renderOptions);
+    const {router} = render(
+      <ReleasesDrawerDetails {...defaultProps} projectId="2" />,
+      renderOptions
+    );
 
     expect(await screen.findByText('Details')).toBeInTheDocument();
     expect(screen.getByText('General')).toBeInTheDocument();
     expect(screen.getByText('Commits')).toBeInTheDocument();
     expect(screen.getByText('File Changes')).toBeInTheDocument();
 
-    // assert that the <Link> component goes to the correct url
-    const link = await screen.findByTestId('select-project-1');
-    expect(link).toHaveAttribute(
-      'href',
-      expect.stringContaining('/?rdReleaseProjectId=1')
-    );
+    // The trigger shows the selected project's slug, like the project page filter
+    await userEvent.click(await screen.findByRole('button', {name: 'test-project-2'}));
+    await userEvent.click(screen.getByRole('option', {name: 'test-project'}));
+    expect(router.location.query[ReleasesDrawerFields.RELEASE_PROJECT_ID]).toBe('1');
   });
 
   it('renders error state when release meta fails to load', async () => {
@@ -222,6 +232,41 @@ describe('ReleasesDrawerDetails', () => {
 
     render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
     expect(await screen.findByText('Release not found')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'View Full Details'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('reserves the project avatar slot while release meta loads', async () => {
+    render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
+
+    const navigation = screen.getByRole('navigation', {name: 'Breadcrumbs'});
+    expect(
+      within(navigation).getByTestId('release-project-placeholder')
+    ).toBeInTheDocument();
+
+    expect(await screen.findByText('Details')).toBeInTheDocument();
+    expect(
+      within(navigation).queryByTestId('release-project-placeholder')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not keep the avatar placeholder for multi-project releases', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/test-release/meta/',
+      method: 'GET',
+      body: ReleaseMetaFixture({
+        projects: [
+          ReleaseProjectFixture(),
+          ReleaseProjectFixture({id: 2, slug: 'project-slug2'}),
+        ],
+      }),
+    });
+
+    render(<ReleasesDrawerDetails {...defaultProps} />, renderOptions);
+
+    expect(await screen.findByText('Select a project')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-project-placeholder')).not.toBeInTheDocument();
   });
 
   it('renders project selection when multiple projects exist', async () => {

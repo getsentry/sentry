@@ -6,6 +6,7 @@ from typing import Any
 
 import jsonschema
 import orjson
+from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -415,6 +416,24 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
 
         can_run_size, size_skip_reason = should_run_size(head_artifact)
         if can_run_size:
+            preprocessing_succeeded = head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+            if preprocessing_succeeded:
+                # Launchpad will run size analysis when it receives this response,
+                # so mark the main metric as PROCESSING.
+                PreprodArtifactSizeMetrics.objects.filter(
+                    preprod_artifact=head_artifact,
+                    metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                    state__in=[
+                        PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+                        PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                        PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+                    ],
+                ).update(
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+                    error_code=None,
+                    error_message=None,
+                    date_updated=timezone.now(),
+                )
             requested_features.append(PreprodFeature.SIZE_ANALYSIS)
         else:
             # Update size metrics record to NOT_RAN with appropriate error code

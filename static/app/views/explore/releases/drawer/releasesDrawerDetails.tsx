@@ -1,25 +1,29 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconExpand} from '@sentry/icons/expand';
 import {createSerializer, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DrawerHeader} from '@sentry/scraps/drawer';
+import {Stack, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
   EventNavigator,
-  Header,
-  NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseMeta} from 'sentry/types/release';
@@ -29,16 +33,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {CommitsFilesSection} from 'sentry/views/explore/releases/drawer/commitsFilesSection';
-import {DeploysCard} from 'sentry/views/explore/releases/drawer/deploysCard';
-import {GeneralCard} from 'sentry/views/explore/releases/drawer/generalCard';
-import {NewIssues} from 'sentry/views/explore/releases/drawer/newIssues';
-import {
-  RELEASES_DRAWER_PARSERS,
-  ReleasesDrawerFields,
-} from 'sentry/views/explore/releases/drawer/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useReleaseMeta} from 'sentry/views/explore/releases/utils/useReleaseMeta';
+
+import {CommitsFilesSection} from './commitsFilesSection';
+import {DeploysCard} from './deploysCard';
+import {GeneralCard} from './generalCard';
+import {NewIssues} from './newIssues';
+import {RELEASES_DRAWER_PARSERS, ReleasesDrawerFields} from './utils';
 
 const serializeReleasesDrawerQuery = createSerializer(RELEASES_DRAWER_PARSERS);
 
@@ -52,6 +54,7 @@ interface ReleasesDrawerDetailsProps {
 interface ReleasesDrawerContentProps {
   isLoadingMeta: boolean;
   isMetaError: boolean;
+  onProjectSelect: (selectedProjectId: string) => void;
   project: Project;
   projectId: string | undefined;
   release: string;
@@ -65,71 +68,49 @@ function ReleasesDrawerContent({
   releaseMeta,
   isMetaError,
   isLoadingMeta,
+  onProjectSelect,
 }: ReleasesDrawerContentProps) {
-  const organization = useOrganization();
-  const location = useLocation();
+  const releaseProjects = releaseMeta?.projects ?? [];
+  const selectedProject = releaseProjects.find(
+    releaseProject => String(releaseProject.id) === projectId
+  );
 
   return (
     <Fragment>
-      <EventNavigator>
-        <ErrorBoundary mini>
-          <HeaderToolbar>
-            <Flex align="center" gap="md" minWidth={0} maxWidth="100%">
-              <ErrorBoundary mini>
-                <SelectableProjectBadges>
-                  {releaseMeta?.projects?.map(releaseProject => (
-                    <SelectableProjectBadge
-                      key={releaseProject.id}
-                      data-test-id={`select-project-${releaseProject.id}`}
-                      to={{
-                        pathname: location.pathname,
-                        search: serializeReleasesDrawerQuery(location.search, {
-                          [ReleasesDrawerFields.RELEASE_PROJECT_ID]: String(
-                            releaseProject.id
-                          ),
-                        }),
-                      }}
-                    >
-                      <ProjectBadge
-                        project={releaseProject}
-                        hideName
-                        avatarSize={16}
-                        disableLink
-                      />
-                    </SelectableProjectBadge>
-                  ))}
-                </SelectableProjectBadges>
-              </ErrorBoundary>
-              <Container minWidth={0} maxWidth="100%">
-                <Text size="xl" bold ellipsis>
-                  {formatVersion(release)}
-                </Text>
-              </Container>
-            </Flex>
-
-            <FullDetailsButton
-              to={normalizeUrl({
-                pathname: makeReleasesPathname({
-                  path: `/${encodeURIComponent(release)}/`,
-                  organization,
-                }),
-                query: {
-                  project: projectId,
-                },
-              })}
-              size="xs"
-              onClick={() => {
-                trackAnalytics('releases.drawer_view_full_details', {
-                  organization: organization.id,
-                  project_id: String(projectId),
-                });
-              }}
-            >
-              {t('View Full Details')}
-            </FullDetailsButton>
-          </HeaderToolbar>
-        </ErrorBoundary>
-      </EventNavigator>
+      {releaseProjects.length > 1 ? (
+        <EventNavigator
+          leadingItems={
+            <CompactSelect
+              size="sm"
+              value={projectId}
+              options={releaseProjects.map(releaseProject => ({
+                value: String(releaseProject.id),
+                label: releaseProject.slug,
+                leadingItems: <ProjectAvatar project={releaseProject} size={16} />,
+              }))}
+              onChange={option => onProjectSelect(option.value)}
+              trigger={triggerProps => (
+                // Matches the project page filter: platform icon and a bold
+                // project slug, without a prefix.
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    selectedProject ? (
+                      <ProjectAvatar project={selectedProject} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {selectedProject ? (
+                    <Text ellipsis>{selectedProject.slug}</Text>
+                  ) : (
+                    triggerProps.children
+                  )}
+                </OverlayTrigger.Button>
+              )}
+            />
+          }
+        />
+      ) : null}
 
       <EventDrawerBody>
         <div>
@@ -211,6 +192,7 @@ export function ReleasesDrawerDetails({
   projectId: projectIdProp,
   start,
 }: ReleasesDrawerDetailsProps) {
+  const organization = useOrganization();
   const location = useLocation();
   const [, setReleaseProjectId] = useQueryState(
     ReleasesDrawerFields.RELEASE_PROJECT_ID,
@@ -238,28 +220,24 @@ export function ReleasesDrawerDetails({
     project_id: projectId,
   });
 
-  const crumbs = [
-    {
-      label:
-        start && end ? (
-          <Link
-            to={{
+  const crumbs: BreadcrumbListProps['items'] =
+    start && end
+      ? [
+          {
+            type: 'link',
+            label: t('Releases'),
+            to: {
               search: serializeReleasesDrawerQuery(location.search, {
                 [ReleasesDrawerFields.RELEASE]: null,
                 [ReleasesDrawerFields.RELEASE_PROJECT_ID]: null,
                 [ReleasesDrawerFields.START]: start.toISOString(),
                 [ReleasesDrawerFields.END]: end.toISOString(),
               }),
-            }}
-          >
-            {t('Releases')}
-          </Link>
-        ) : (
-          t('Releases')
-        ),
-    },
-    {label: formatVersion(release)},
-  ];
+            },
+          },
+        ]
+      : [];
+  const displayVersion = formatVersion(release);
 
   const showContent =
     project &&
@@ -275,23 +253,72 @@ export function ReleasesDrawerDetails({
   // show project select if releaseMeta is loaded and there are multiple projects in the release
   const showProjectSelect = releaseMeta && hasMultipleProjects;
 
+  const contentProjectId = projectIdProp || projectId;
+
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
+      <DrawerHeader>
         <ErrorBoundary mini>
-          <NavigationCrumbs crumbs={crumbs} />
+          <DrawerBreadcrumbs
+            items={crumbs}
+            current={{
+              label: displayVersion,
+              labelTooltip: displayVersion === release ? undefined : release,
+              // Reserve the avatar's slot while the release's project resolves,
+              // so the version label doesn't shift when it appears.
+              leadingGraphic: project ? (
+                <ProjectAvatar project={project} size={16} />
+              ) : isLoadingMeta ? (
+                <Placeholder
+                  width="16px"
+                  height="16px"
+                  testId="release-project-placeholder"
+                />
+              ) : undefined,
+              trailingActions: showContent
+                ? {
+                    type: 'button',
+                    element: (
+                      <LinkButton
+                        size="zero"
+                        variant="transparent"
+                        icon={<IconExpand />}
+                        aria-label={t('View Full Details')}
+                        tooltipProps={{title: t('View Full Details')}}
+                        to={normalizeUrl({
+                          pathname: makeReleasesPathname({
+                            path: `/${encodeURIComponent(release)}/`,
+                            organization,
+                          }),
+                          query: {
+                            project: contentProjectId,
+                          },
+                        })}
+                        onClick={() => {
+                          trackAnalytics('releases.drawer_view_full_details', {
+                            organization: organization.id,
+                            project_id: String(contentProjectId),
+                          });
+                        }}
+                      />
+                    ),
+                  }
+                : undefined,
+            }}
+          />
         </ErrorBoundary>
-      </EventDrawerHeader>
+      </DrawerHeader>
 
       <ErrorBoundary>
         {showContent ? (
           <ReleasesDrawerContent
             release={release}
-            projectId={projectIdProp || projectId}
+            projectId={contentProjectId}
             project={project}
             releaseMeta={releaseMeta}
             isMetaError={isMetaError}
             isLoadingMeta={isLoadingMeta}
+            onProjectSelect={setReleaseProjectId}
           />
         ) : isLoadingMeta ? (
           <LoadingIndicator />
@@ -316,31 +343,4 @@ const Title = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-const SelectableProjectBadges = styled('div')`
-  display: flex;
-  & > :not(:first-child) {
-    margin-left: -${p => p.theme.space.xs};
-  }
-`;
-
-const SelectableProjectBadge = styled(Link)`
-  display: flex;
-  cursor: pointer;
-
-  & img {
-    cursor: pointer;
-  }
-`;
-
-const FullDetailsButton = styled(LinkButton)`
-  flex-shrink: 0;
-`;
-
-const HeaderToolbar = styled(Header)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
 `;

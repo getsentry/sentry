@@ -189,7 +189,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         # We manually sort the response output by guid and bucket. This is fine because the set
         # of keys is known (they're provided as a query parameter) and there is no pagination.
-        def sort_history_key(row):
+        def sort_history_key(row: tuple[int, int, object, int]) -> tuple[str, int]:
             ts, meid, _status, _count = row
             return monitor_map[monitor_environment_to_monitor_id[meid]], ts
 

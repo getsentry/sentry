@@ -4,10 +4,8 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {useEmitTimestampChanges} from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  useReplaySummary,
-  type UseReplaySummaryResult,
-} from 'sentry/views/explore/replays/detail/ai/useReplaySummary';
+
+import {useReplaySummary, type UseReplaySummaryResult} from './useReplaySummary';
 
 const ReplaySummaryContext = createContext<UseReplaySummaryResult>({
   summaryData: undefined,

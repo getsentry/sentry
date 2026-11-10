@@ -1,5 +1,6 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
@@ -20,7 +21,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         self.ten_mins_ago = before_now(minutes=10)
 
     @contextmanager
-    def mock_code_mapping(self):
+    def mock_code_mapping(self) -> Iterator[dict[str, MagicMock]]:
         with (
             patch(
                 "sentry.tasks.web_vitals_issue_detection.get_autofix_repos_from_project_code_mappings"
@@ -36,7 +37,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
             yield {"mock_repos": mock_repos}
 
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
-    def test_run_detection_dispatches_sub_tasks_when_enabled(self, mock_delay):
+    def test_run_detection_dispatches_sub_tasks_when_enabled(self, mock_delay: MagicMock) -> None:
         project = self.create_project()
 
         with (
@@ -54,7 +55,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         assert mock_delay.call_args[0][0] == project.id
 
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
-    def test_run_detection_skips_when_no_github_code_mappings(self, mock_delay):
+    def test_run_detection_skips_when_no_github_code_mappings(self, mock_delay: MagicMock) -> None:
         project = self.create_project()
 
         with (
@@ -70,7 +71,7 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
         assert not mock_delay.called
 
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
-    def test_run_detection_skips_when_not_allowlisted(self, mock_delay):
+    def test_run_detection_skips_when_not_allowlisted(self, mock_delay: MagicMock) -> None:
         with (
             self.mock_code_mapping(),
             self.options(
@@ -86,7 +87,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
 
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
-    def test_run_detection_produces_occurrences(self, mock_produce_occurrence_to_kafka):
+    def test_run_detection_produces_occurrences(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
 
         spans = []
@@ -218,7 +221,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
 
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
-    def test_run_detection_groups_rendering_vitals(self, mock_produce_occurrence_to_kafka):
+    def test_run_detection_groups_rendering_vitals(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
 
         spans = []
@@ -329,8 +334,8 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
     def test_run_detection_does_not_produce_occurrences_for_existing_issues(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
 
         spans = [
@@ -382,8 +387,8 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
     def test_run_detection_does_not_create_issue_on_insufficient_samples(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
 
         spans = [
@@ -424,8 +429,8 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
     def test_run_detection_selects_trace_closest_to_p75_web_vital_value(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
 
         spans = [
@@ -509,7 +514,9 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
 
     @pytest.mark.snuba
     @patch("sentry.web_vitals.issue_platform_adapter.produce_occurrence_to_kafka")
-    def test_run_detection_selects_trace_from_worst_score(self, mock_produce_occurrence_to_kafka):
+    def test_run_detection_selects_trace_from_worst_score(
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         project = self.create_project()
 
         spans = [
@@ -620,8 +627,10 @@ class WebVitalsIssueDetectionDataTest(TestCase, SnubaTestCase, SpanTestCase):
     @patch("sentry.tasks.web_vitals_issue_detection.detect_web_vitals_issues_for_project.delay")
     @patch("sentry.tasks.web_vitals_issue_detection.get_merged_settings")
     def test_run_detection_does_not_run_for_project_when_user_has_disabled(
-        self, mock_get_merged_settings, mock_detect_web_vitals_issues_for_project
-    ):
+        self,
+        mock_get_merged_settings: MagicMock,
+        mock_detect_web_vitals_issues_for_project: MagicMock,
+    ) -> None:
         mock_get_merged_settings.return_value = {
             "web_vitals_detection_enabled": False,
         }

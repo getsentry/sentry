@@ -30,7 +30,7 @@ MAX_THOUGHT_TEXT_CHARS = 1_500
 
 class RelaxedContractSerializer(serializers.Serializer[Any]):
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        validated = super().to_internal_value(data)
+        validated = cast("dict[str, Any]", super().to_internal_value(data))
         if not isinstance(data, dict):
             return validated
         passthrough = {key: value for key, value in data.items() if key not in self.fields}

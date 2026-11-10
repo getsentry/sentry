@@ -141,6 +141,15 @@ describe('artifactToMarkdown', () => {
         ['# Root Cause', '', 'Something broke'].join('\n')
       );
     });
+
+    it('includes the cause under the headline', () => {
+      const artifact = makeRootCauseArtifact({
+        data: {one_line_description: 'Something broke', cause: 'Why', five_whys: []},
+      });
+      expect(artifactToMarkdown(artifact)).toBe(
+        ['# Root Cause', '', 'Something broke', '', 'Why'].join('\n')
+      );
+    });
   });
 
   describe('solution artifact', () => {

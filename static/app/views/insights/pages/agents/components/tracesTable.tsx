@@ -38,14 +38,15 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getFieldDefinitionForDataset,
   getFilterToken,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {
+  DashboardFilterKeys,
   WidgetType,
   type DashboardFilters,
   type GlobalFilter,
@@ -453,11 +454,11 @@ function AgentTags({
 }) {
   const [showAll, setShowAll] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const [{agent: urlAgents}, setPageFilterQueryStates] = useQueryStates(
     {
       [FilterUrlParams.AGENT]: parseAsArrayOf(parseAsString),
       [TableUrlParams.CURSOR]: parseAsString,
+      [DashboardFilterKeys.GLOBAL_FILTER]: parseAsStringArray,
     },
     {history: 'replace'}
   );
@@ -564,14 +565,15 @@ function AgentTags({
       ];
     }
 
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        globalFilter: newFilters.map(filter => JSON.stringify(filter)),
+    setPageFilterQueryStates(
+      {
+        [DashboardFilterKeys.GLOBAL_FILTER]: newFilters.map(filter =>
+          JSON.stringify(filter)
+        ),
         [TableUrlParams.CURSOR]: null,
       },
-    });
+      {history: 'push'}
+    );
   };
 
   const handleShowAll = () => {

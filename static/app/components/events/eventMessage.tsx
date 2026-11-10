@@ -4,12 +4,13 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnsiText} from 'sentry/components/ansiText';
-import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import type {EventOrGroupType, Level} from 'sentry/types/event';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
+
+import {ErrorLevel} from './errorLevel';
 
 type Props = {
   message: React.ReactNode;

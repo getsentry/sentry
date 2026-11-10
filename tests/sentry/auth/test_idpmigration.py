@@ -7,6 +7,7 @@ from django.urls import reverse
 import sentry.auth.idpmigration as idpmigration
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -29,7 +30,11 @@ class IDPMigrationTests(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
         assert re.match(r"auth:one-time-key:\w{32}", link.verification_key)
 
@@ -44,7 +49,11 @@ class IDPMigrationTests(TestCase):
 
     def test_send_without_org_membership(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
 
         value = json.loads(cast(str, idpmigration._get_redis_client().get(link.verification_key)))
@@ -61,7 +70,11 @@ class IDPMigrationTests(TestCase):
         asserted = "other@example.com"
         with self.tasks():
             idpmigration.send_one_time_account_confirm_link(
-                self.user, self.org, self.provider, asserted, self.IDENTITY_ID
+                self.user,
+                serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+                self.provider,
+                asserted,
+                self.IDENTITY_ID,
             )
 
         verified = set(self.user.get_verified_emails().values_list("email", flat=True))
@@ -77,7 +90,11 @@ class IDPMigrationTests(TestCase):
         asserted = "other@example.com"
         with self.tasks():
             idpmigration.send_one_time_account_confirm_link(
-                self.user, self.org, self.provider, asserted, self.IDENTITY_ID
+                self.user,
+                serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+                self.provider,
+                asserted,
+                self.IDENTITY_ID,
             )
         assert len(mail.outbox) == 1
         (sent,) = mail.outbox
@@ -106,7 +123,11 @@ class IDPMigrationTests(TestCase):
 
     def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
         path = reverse(
             "sentry-idp-email-verification",
@@ -120,7 +141,11 @@ class IDPMigrationTests(TestCase):
 
     def test_verify_account_wrong_key(self) -> None:
         idpmigration.send_one_time_account_confirm_link(
-            self.user, self.org, self.provider, self.email, self.IDENTITY_ID
+            self.user,
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
+            self.provider,
+            self.email,
+            self.IDENTITY_ID,
         )
         path = reverse(
             "sentry-idp-email-verification",

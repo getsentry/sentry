@@ -1,12 +1,15 @@
 import uuid
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.save_event_feedback import save_event_feedback
 from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -14,7 +17,7 @@ from tests.sentry.feedback import mock_feedback_event
 
 
 @pytest.fixture
-def mock_create_feedback_issue():
+def mock_create_feedback_issue() -> Iterator[MagicMock]:
     with mock.patch(
         "sentry.feedback.usecases.ingest.save_event_feedback.create_feedback_issue"
     ) as m:
@@ -23,7 +26,7 @@ def mock_create_feedback_issue():
 
 @django_db_all
 def test_save_event_feedback_no_associated_event(
-    default_project, mock_create_feedback_issue
+    default_project: Project, mock_create_feedback_issue: MagicMock
 ) -> None:
     event_data = mock_feedback_event(default_project.id)
     mock_create_feedback_issue.return_value = None
@@ -42,8 +45,8 @@ def test_save_event_feedback_no_associated_event(
     ["number", "iso"],
 )
 def test_save_event_feedback_with_associated_event(
-    default_project, mock_create_feedback_issue, timestamp_format: str
-):
+    default_project: Project, mock_create_feedback_issue: MagicMock, timestamp_format: str
+) -> None:
     environment = Factories.create_environment(default_project, name="production")
     event_id = uuid.uuid4().hex
     assoc_event = Factories.store_event(
@@ -85,9 +88,9 @@ def test_save_event_feedback_with_associated_event(
 
 @django_db_all
 def test_save_event_feedback_with_unprocessed_associated_event(
-    default_project,
-    mock_create_feedback_issue,
-):
+    default_project: Project,
+    mock_create_feedback_issue: MagicMock,
+) -> None:
     environment = Factories.create_environment(default_project, name="production")
 
     event_data = mock_feedback_event(default_project.id)
@@ -118,7 +121,7 @@ def test_save_event_feedback_with_unprocessed_associated_event(
 
 @django_db_all
 def test_save_event_feedback_with_missing_fields(
-    default_project, mock_create_feedback_issue
+    default_project: Project, mock_create_feedback_issue: MagicMock
 ) -> None:
     environment = Factories.create_environment(default_project, name="production")
 
@@ -153,7 +156,7 @@ def test_save_event_feedback_with_missing_fields(
 
 @django_db_all
 def test_save_event_feedback_creates_missing_environment(
-    default_project, mock_create_feedback_issue
+    default_project: Project, mock_create_feedback_issue: MagicMock
 ) -> None:
     event_data = mock_feedback_event(default_project.id)
     event_data["contexts"]["feedback"]["associated_event_id"] = "abcd" * 8

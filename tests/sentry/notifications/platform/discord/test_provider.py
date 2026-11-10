@@ -28,6 +28,7 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
@@ -211,7 +212,12 @@ class DiscordNotificationProviderTest(TestCase):
 
     def test_is_available(self) -> None:
         assert DiscordNotificationProvider.is_available() is False
-        assert DiscordNotificationProvider.is_available(organization=self.organization) is False
+        assert (
+            DiscordNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is False
+        )
 
 
 class DiscordNotificationProviderSendTest(TestCase):

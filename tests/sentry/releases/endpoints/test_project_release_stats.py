@@ -5,6 +5,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.releases.endpoints.project_release_stats import upsert_missing_release
@@ -58,7 +59,7 @@ class ProjectReleaseStatsTest(APITestCase):
 
 
 class UpsertMissingReleaseTest(TestCase):
-    def upsert_with_health_data(self, project, version="1.0"):
+    def upsert_with_health_data(self, project: Project, version: str = "1.0") -> datetime | None:
         with patch(
             "sentry.releases.endpoints.project_release_stats.release_health"
         ) as mock_release_health:

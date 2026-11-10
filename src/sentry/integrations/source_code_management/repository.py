@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 from urllib.parse import quote as urlquote
 from urllib.parse import unquote, urlparse, urlunparse
 
@@ -18,7 +18,7 @@ from sentry.integrations.source_code_management.metrics import (
     get_current_scm_interaction_type,
     normalize_scm_provider_key,
 )
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
@@ -37,20 +37,6 @@ from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 
 CHECK_FILE_METRIC = "integrations.source_code_management.check_file"
-
-HaltReason = Literal[
-    "configuration_error",
-    "connection_reset",
-    "host_timeout",
-    "host_unreachable",
-    "identity_not_found",
-    "identity_not_valid",
-    "installation_suspended",
-    "rate_limited",
-    "too_many_redirects",
-    "unauthorized",
-    "unsupported_response",
-]
 
 
 class RepositoryInfo(TypedDict):

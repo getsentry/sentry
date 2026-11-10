@@ -4,8 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {DashboardsSecondaryNavigation} from './dashboardsSecondaryNavigation';
 
 describe('DashboardsSecondaryNavigation', () => {
   let organization: Organization;

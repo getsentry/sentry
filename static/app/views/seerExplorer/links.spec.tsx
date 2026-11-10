@@ -7,14 +7,15 @@ import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getReadableQueryParamsFromLocation as getSpansQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
+
 import {
   LINK_RULES,
   type LinkSubject,
   resolveLink,
   subjectFromCallRecord,
   subjectFromToolLink,
-} from 'sentry/views/seerExplorer/links';
-import type {CallRecord} from 'sentry/views/seerExplorer/types';
+} from './links';
+import type {CallRecord} from './types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const projects = [

@@ -29,11 +29,11 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         mapping: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
         def apply_update(orm_mapping: OrganizationMemberMapping) -> None:
-            adding_user = orm_mapping.user_id is None and mapping.user_id is not None
+            adding_user = not orm_mapping.user_id and mapping.user_id is not None
             orm_mapping.role = mapping.role
-            orm_mapping.user_id = mapping.user_id
+            setattr(orm_mapping, "user_id", mapping.user_id)
             orm_mapping.email = mapping.email
-            orm_mapping.inviter_id = mapping.inviter_id
+            setattr(orm_mapping, "inviter_id", mapping.inviter_id)
             orm_mapping.invite_status = mapping.invite_status
             orm_mapping.organizationmember_id = organizationmember_id
             orm_mapping.save()

@@ -13,19 +13,21 @@ MOCK_TARGET = "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_
 
 
 class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return reverse(
             "sentry-api-0-organization-preprod-snapshots-latest-base",
             args=[self.org.slug],
         )
 
-    def _create_base_artifact(self, app_id="com.example.app"):
+    def _create_base_artifact(
+        self, app_id: str = "com.example.app"
+    ) -> tuple[PreprodArtifact, str, bytes]:
         """Create a base snapshot (no commit_comparison) with a manifest."""
         artifact = PreprodArtifact.objects.create(
             project=self.project,
@@ -53,7 +55,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         )
         return artifact, manifest_key, manifest_json
 
-    def _create_mock_session(self, manifest_json):
+    def _create_mock_session(self, manifest_json: bytes) -> MagicMock:
         mock_result = MagicMock()
         mock_result.payload.read.return_value = manifest_json
         mock_session = MagicMock()
@@ -61,7 +63,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         return mock_session
 
     @patch(MOCK_TARGET)
-    def test_returns_canvas_theme(self, mock_get_session):
+    def test_returns_canvas_theme(self, mock_get_session: MagicMock) -> None:
         _, _, manifest_json = self._create_base_artifact()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
@@ -74,7 +76,9 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
 
     @patch("sentry.analytics.record")
     @patch(MOCK_TARGET)
-    def test_records_web_client_analytics(self, mock_get_session, mock_record):
+    def test_records_web_client_analytics(
+        self, mock_get_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         artifact, _, manifest_json = self._create_base_artifact()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
@@ -95,7 +99,9 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
 
     @patch("sentry.analytics.record")
     @patch(MOCK_TARGET)
-    def test_records_mcp_client_analytics(self, mock_get_session, mock_record):
+    def test_records_mcp_client_analytics(
+        self, mock_get_session: MagicMock, mock_record: MagicMock
+    ) -> None:
         artifact, _, manifest_json = self._create_base_artifact()
         mock_get_session.return_value = self._create_mock_session(manifest_json)
 
@@ -120,7 +126,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         )
 
     @patch(MOCK_TARGET)
-    def test_missing_manifest_returns_404(self, mock_get_session):
+    def test_missing_manifest_returns_404(self, mock_get_session: MagicMock) -> None:
         self._create_base_artifact()
         mock_session = MagicMock()
         mock_session.get.return_value = None
@@ -132,7 +138,7 @@ class OrganizationPreprodLatestBaseSnapshotTest(APITestCase):
         assert response.data["detail"] == "No snapshot found"
 
     @patch(MOCK_TARGET)
-    def test_objectstore_error_returns_500(self, mock_get_session):
+    def test_objectstore_error_returns_500(self, mock_get_session: MagicMock) -> None:
         self._create_base_artifact()
         mock_session = MagicMock()
         mock_session.get.side_effect = Exception("Storage error")

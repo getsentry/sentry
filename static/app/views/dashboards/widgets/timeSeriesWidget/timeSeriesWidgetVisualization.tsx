@@ -22,10 +22,8 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
+import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
@@ -42,8 +40,10 @@ import {escape} from 'sentry/utils';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
+import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -64,6 +64,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
+import {isLowConfidenceDataPoint} from './plottables/continuousTimeSeries';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -195,6 +196,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // TODO: It would be polite to also scan for gaps (i.e., the items don't all
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
+
+  const organization = useOrganization({allowNull: true});
+  const segmentBy: readonly TimeSeriesSegmentField[] = organization?.features.includes(
+    'data-browsing-time-series-confidence'
+  )
+    ? ['completeness', 'confidence']
+    : ['completeness'];
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
@@ -410,9 +418,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        return escape(
+        const formattedValue = escape(
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
+
+        if (isLowConfidenceDataPoint(valueFormatterParams.data)) {
+          return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
+        }
+
+        return formattedValue;
       },
       renderSeriesDetails: props.renderTooltipSeriesDetails,
       limit: props.tooltipLimit,
@@ -476,23 +490,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
   const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
 
-  const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
-    {
-      chartRef,
-      droppedData: props.droppedData,
-      bandOffset: releaseBandHeight,
-      utc,
-      yAxisIndex: yAxes.length,
-    }
-  );
-
-  if (droppedDataYAxis) {
-    yAxes.push(droppedDataYAxis);
-  }
+  const droppedDataBand = useDroppedDataBand({
+    chartRef,
+    droppedData: props.droppedData,
+    bandOffset: releaseBandHeight,
+    utc,
+  });
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
-  const chartYAxes = showYAxis ? yAxes : yAxes.map(() => HIDDEN_AXIS);
 
   const releaseSeries =
     props.releases && props.showReleaseAs !== 'none'
@@ -568,12 +574,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasCustomTicks = customTicks && customTicks.length > 0;
 
-  // Release bubbles and the dropped-data band each reserve space below the plot,
-  // so the axis line moves down by their combined height and the grid shrinks by
-  // the same amount.
-  const xAxisBandOffset = releaseBandHeight + droppedDataBandHeight;
-  const gridBandBottom = releaseGridBottom + droppedDataBandHeight;
-
   const xAxis = showXAxis
     ? {
         animation: false,
@@ -599,8 +599,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        axisLine: {onZero: xAxisBandOffset === 0},
-        offset: xAxisBandOffset,
+        axisLine: {onZero: releaseBandHeight === 0},
+        offset: releaseBandHeight,
       }
     : HIDDEN_AXIS;
 
@@ -646,6 +646,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      segmentBy,
       theme,
       maxOffset: thresholdMaxOffset,
     });
@@ -704,9 +705,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     {}
   );
 
-  const allSeries = [...seriesFromPlottables, releaseSeries, droppedDataSeries].filter(
-    defined
-  );
+  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
     batch: {dataIndex: number; seriesIndex?: number},
@@ -733,10 +732,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
-    if (event.seriesId === DROPPED_DATA_SERIES_ID) {
-      props.droppedData?.onClick?.();
-      return;
-    }
     runHandler(event, 'onClick');
   };
 
@@ -761,6 +756,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
+  const band = mergeDroppedDataBand(
+    {
+      grid: {
+        // NOTE: Adding a few pixels of left padding prevents ECharts from
+        // incorrectly truncating long labels. See
+        // https://github.com/apache/echarts/issues/15562
+        left: 2,
+        top: 10,
+        right: 8,
+        bottom: releaseGridBottom,
+        containLabel: true,
+      },
+      xAxis,
+      yAxes,
+      series: allSeries,
+      onClick: handleClick,
+    },
+    droppedDataBand,
+    props.droppedData?.onClick
+  );
+
   return (
     <Stack height="100%">
       {ActionMenu}
@@ -777,18 +793,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           ref={mergedChartRef}
           autoHeightResize
           renderer="canvas"
-          series={allSeries}
-          grid={{
-            // NOTE: Adding a few pixels of left padding prevents ECharts from
-            // incorrectly truncating long labels. See
-            // https://github.com/apache/echarts/issues/15562
-            left: 2,
-            top: 10,
-            right: 8,
-            bottom: gridBandBottom,
-            containLabel: true,
-            ...xAxisGrid,
-          }}
+          series={band.series}
+          grid={{...band.grid, ...xAxisGrid}}
           legend={
             showLegend
               ? {
@@ -806,8 +812,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             },
             formatter: formatTooltip,
           }}
-          xAxis={xAxis}
-          yAxes={chartYAxes}
+          xAxis={band.xAxis}
+          yAxes={showYAxis ? band.yAxes : band.yAxes.map(() => HIDDEN_AXIS)}
           {...chartZoomProps}
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
@@ -823,7 +829,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           utc={utc ?? undefined}
           onHighlight={handleHighlight}
           onDownplay={handleDownplay}
-          onClick={handleClick}
+          onClick={band.onClick}
         />
       </Container>
     </Stack>

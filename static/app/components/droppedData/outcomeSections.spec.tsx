@@ -4,7 +4,7 @@ import {
   droppedEventsToOutcomeGroups,
   droppedEventsToOutcomeSections,
   filterDroppedEventsByScope,
-} from 'sentry/components/droppedData/outcomeSections';
+} from './outcomeSections';
 
 describe('droppedEventsToOutcomeSections', () => {
   it('returns no sections for no dropped events', () => {

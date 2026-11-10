@@ -1,15 +1,68 @@
 import base64
+import uuid
+import zipfile
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import Protocol, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
-from sentry.models.artifactbundle import ReleaseArtifactBundle, SourceFileType
+from sentry.models.artifactbundle import (
+    ArtifactBundleArchive,
+    ReleaseArtifactBundle,
+    SourceFileType,
+)
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 INVALID_SOURCE_FILE_TYPE = 0
 
+type ArtifactBundleRow = tuple[int, uuid.UUID, int, datetime | None, datetime]
 
-class ArtifactBundlesSerializer(Serializer):
+
+class ArtifactBundleAssociationResponse(TypedDict):
+    release: str | None
+    dist: str | None
+
+
+class ArtifactBundlesSerializerResponse(TypedDict):
+    bundleId: str
+    associations: list[ArtifactBundleAssociationResponse]
+    fileCount: int
+    dateModified: str | None
+    date: str | None
+
+
+class ArtifactBundleFilesSerializerResponse(TypedDict):
+    id: str
+    fileType: int
+    filePath: str | None
+    fileSize: int | None
+    debugId: str | None
+    sourcemap: str | None
+
+
+class ArtifactBundleFile(Protocol):
+    file_path: str
+    info: Mapping[str, object]
+
+
+class ArtifactBundleFileAttrs(TypedDict):
+    file_type: SourceFileType | None
+    file_path: str
+    file_url: str | None
+    file_info: zipfile.ZipInfo | None
+    debug_id: str | None
+    sourcemap: str | None
+
+
+class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
     @staticmethod
-    def _compute_associations(item, grouped_bundles):
-        associations = []
+    def _compute_associations(
+        item: ArtifactBundleRow, grouped_bundles: dict[int, list[tuple[str, str]]]
+    ) -> list[ArtifactBundleAssociationResponse]:
+        associations: list[ArtifactBundleAssociationResponse] = []
 
         grouped_bundle = grouped_bundles.get(item[0], [])
         # We preserve the order of the list inside the grouped bundle.
@@ -19,10 +72,15 @@ class ArtifactBundlesSerializer(Serializer):
         return associations
 
     @staticmethod
-    def _format_date(date):
+    def _format_date(date: datetime | None) -> str | None:
         return None if date is None else date.isoformat()[:19] + "Z"
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[ArtifactBundleRow],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ArtifactBundleRow, dict[str, object]]:
         # We sort by id, since it's the best (already existing) field to define total order of
         # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -45,34 +103,45 @@ class ArtifactBundlesSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: ArtifactBundleRow,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ArtifactBundlesSerializerResponse:
         return {
             "bundleId": str(attrs["bundle_id"]),
-            "associations": attrs["associations"],
-            "fileCount": attrs["file_count"],
-            "dateModified": self._format_date(attrs["date_last_modified"]),
-            "date": self._format_date(attrs["date_uploaded"]),
+            "associations": cast("list[ArtifactBundleAssociationResponse]", attrs["associations"]),
+            "fileCount": cast(int, attrs["file_count"]),
+            "dateModified": self._format_date(cast("datetime | None", attrs["date_last_modified"])),
+            "date": self._format_date(cast("datetime | None", attrs["date_uploaded"])),
         }
 
 
-class ArtifactBundleFilesSerializer(Serializer):
-    def __init__(self, archive, *args, **kwargs):
+class ArtifactBundleFilesSerializer(Serializer[ArtifactBundleFilesSerializerResponse]):
+    def __init__(self, archive: ArtifactBundleArchive, *args: object, **kwargs: object) -> None:
         Serializer.__init__(self, *args, **kwargs)
         self.archive = archive
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[ArtifactBundleFile],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ArtifactBundleFile, ArtifactBundleFileAttrs]:
         return {item: self._compute_attrs(item) for item in item_list}
 
-    def _compute_attrs(self, item):
+    def _compute_attrs(self, item: ArtifactBundleFile) -> ArtifactBundleFileAttrs:
         file_path = item.file_path
         info = item.info
 
-        headers = self.archive.normalize_headers(info.get("headers", {}))
+        headers = self.archive.normalize_headers(cast("dict[str, object]", info.get("headers", {})))
         debug_id = self.archive.normalize_debug_id(headers.get("debug-id"))
-        sourcemap = headers.get("sourcemap")
+        sourcemap = cast("str | None", headers.get("sourcemap"))
 
         return {
-            "file_type": SourceFileType.from_lowercase_key(info.get("type")),
+            "file_type": SourceFileType.from_lowercase_key(cast("str | None", info.get("type"))),
             "file_path": file_path,
             "file_url": self.archive.get_file_url_by_file_path(file_path),
             "file_info": self.archive.get_file_info(file_path),
@@ -80,18 +149,27 @@ class ArtifactBundleFilesSerializer(Serializer):
             "sourcemap": sourcemap,
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: ArtifactBundleFile,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ArtifactBundleFilesSerializerResponse:
+        file_attrs = cast(ArtifactBundleFileAttrs, attrs)
         return {
-            "id": base64.urlsafe_b64encode(attrs["file_path"].encode()).decode(),
+            "id": base64.urlsafe_b64encode(file_attrs["file_path"].encode()).decode(),
             # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
             "fileType": (
-                attrs["file_type"].value
-                if attrs["file_type"] is not None
+                file_attrs["file_type"].value
+                if file_attrs["file_type"] is not None
                 else INVALID_SOURCE_FILE_TYPE
             ),
             # We decided to return the file url as file path for better searchability.
-            "filePath": attrs["file_url"],
-            "fileSize": attrs["file_info"].file_size if attrs["file_info"] is not None else None,
-            "debugId": attrs["debug_id"],
-            "sourcemap": attrs["sourcemap"],
+            "filePath": file_attrs["file_url"],
+            "fileSize": (
+                file_attrs["file_info"].file_size if file_attrs["file_info"] is not None else None
+            ),
+            "debugId": file_attrs["debug_id"],
+            "sourcemap": file_attrs["sourcemap"],
         }

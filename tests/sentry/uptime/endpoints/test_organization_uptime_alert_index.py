@@ -1,4 +1,7 @@
+from collections.abc import Sequence
+
 from django.db import connections, router
+from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -14,7 +17,9 @@ class OrganizationUptimeAlertIndexBaseEndpointTest(UptimeAlertBaseEndpointTest):
 class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseEndpointTest):
     method = "get"
 
-    def check_valid_response(self, response, expected_detectors):
+    def check_valid_response(
+        self, response: Response, expected_detectors: Sequence[Detector]
+    ) -> None:
         assert [
             serialize(uptime_alert, serializer=UptimeDetectorSerializer())
             for uptime_alert in expected_detectors

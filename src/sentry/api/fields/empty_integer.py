@@ -9,12 +9,7 @@ class EmptyIntegerField(serializers.IntegerField):
     cases, so this restores it.
     """
 
-    def to_internal_value(self, data):
-        if data == "":
-            return None
-        return super().to_internal_value(data)
-
-    def run_validation(self, data=empty):
+    def run_validation(self, data: object = empty) -> int | None:
         if data == "":
             return None
         return super().run_validation(data)

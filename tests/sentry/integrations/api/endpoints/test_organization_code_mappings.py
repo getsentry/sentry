@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
@@ -42,7 +43,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             args=[self.organization.slug],
         )
 
-    def make_post(self, data=None):
+    def make_post(self, data: dict[str, object] | None = None) -> Response:
         config_data = {
             "repositoryId": self.repo1.id,
             "projectId": self.project1.id,
@@ -53,7 +54,8 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
         if data:
             config_data.update(data)
-        return self.client.post(self.url, data=config_data, format="json")
+        response: Response = self.client.post(self.url, data=config_data, format="json")
+        return response
 
     def test_basic_get_with_integrationId(self) -> None:
         path_config1 = self.create_code_mapping(
@@ -290,6 +292,24 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert ProjectRepository.objects.filter(
             project=self.project1, repository=self.repo1
         ).exists()
+
+    def test_basic_post_with_snake_case_keys(self) -> None:
+        # The keys the published schema documents.
+        response = self.client.post(
+            self.url,
+            data={
+                "repository_id": self.repo1.id,
+                "project_id": self.project1.id,
+                "stack_root": "/stack/root",
+                "source_root": "/source/root",
+                "default_branch": "master",
+                "integration_id": self.integration.id,
+            },
+            format="json",
+        )
+        assert response.status_code == 201, response.content
+        assert response.data["projectId"] == str(self.project1.id)
+        assert response.data["integrationId"] == str(self.integration.id)
 
     def test_basic_post_from_member_permissions(self) -> None:
         self.login_as(user=self.user2)

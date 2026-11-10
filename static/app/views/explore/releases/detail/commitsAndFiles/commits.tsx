@@ -23,7 +23,6 @@ import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseContext} from 'sentry/views/explore/releases/detail';
-import {ReleaseCommit} from 'sentry/views/explore/releases/detail/commitsAndFiles/releaseCommit';
 import {
   getCommitsByRepository,
   getQuery,
@@ -32,6 +31,7 @@ import {
 import {useReleaseCommits} from 'sentry/views/explore/releases/utils/useReleaseCommits';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
+import {ReleaseCommit} from './releaseCommit';
 import {RepositorySwitcher} from './repositorySwitcher';
 
 interface CommitsProps {

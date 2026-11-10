@@ -10,7 +10,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {SlowestFunctionsWidget} from 'sentry/views/explore/profiling/landing/slowestFunctionsWidget';
+
+import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
 
 describe('SlowestFunctionsWidget', () => {
   beforeEach(() => {

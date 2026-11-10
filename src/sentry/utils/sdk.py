@@ -6,8 +6,7 @@ import logging
 import os
 import re
 import sys
-import typing
-from collections.abc import Generator, Mapping, Sequence, Sized
+from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 from urllib.parse import unquote
@@ -20,7 +19,6 @@ from rest_framework.request import Request
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
 from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope, traces
-from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -44,6 +42,7 @@ from sentry.viewer_context import set_viewer_context_organization
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.projectkey import ProjectKey
     from sentry.organizations.services.organization import RpcOrganization
 
 
@@ -123,7 +122,7 @@ def _current_stack_filenames() -> Generator[str]:
         f = f.f_back
 
 
-def is_current_event_safe():
+def is_current_event_safe() -> bool:
     """
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
@@ -146,7 +145,7 @@ def is_current_event_safe():
     return True
 
 
-def set_current_event_project(project_id):
+def set_current_event_project(project_id: int) -> None:
     """
     Set the current project on the SDK isolation scope for outgoing crash reports.
 
@@ -163,7 +162,7 @@ def set_current_event_project(project_id):
     scope.set_attribute("project", project_id)
 
 
-def get_project_key():
+def get_project_key() -> ProjectKey | None:
     from sentry.models.projectkey import ProjectKey
 
     if not settings.SENTRY_PROJECT:
@@ -199,7 +198,7 @@ def get_project_key():
     return key
 
 
-def traces_sampler(sampling_context):
+def traces_sampler(sampling_context: dict[str, Any]) -> float:
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
     if wsgi_path:
         if wsgi_path in SAMPLED_ROUTES:
@@ -226,60 +225,13 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-def profiles_sampler(sampling_context):
-    PROFILES_SAMPLING_RATE = {
-        "consumer.join": options.get("consumer.join.profiling.rate"),
-        "spans.process.process_message": options.get("spans.process-spans.profiling.rate"),
-    }
-    if "transaction_context" in sampling_context:
-        transaction_name = sampling_context["transaction_context"].get("name")
-
-        if transaction_name in PROFILES_SAMPLING_RATE:
-            return PROFILES_SAMPLING_RATE[transaction_name]
-
-    # Default to the sampling rate in settings
-    return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)
-
-
-def before_send_transaction(event: Event, _: Hint) -> Event | None:
-    # Discard generic redirects.
-    # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
-    if (
-        event.get("tags", {}).get("http.status_code") == "301"
-        and event.get("transaction_info", {}).get("source") == "url"
-    ):
-        return None
-
-    # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
-    if isinstance(event["spans"], AnnotatedValue):
-        # AnnotatedValue isn't generic so we check its inner value's type otherwise mypy will
-        # complain. The TypeError should be unreachable.
-        if isinstance(event["spans"].value, Sized):
-            num_of_spans = len(event["spans"].value)
-        else:
-            raise TypeError("Expected a list of spans.")
-    else:
-        num_of_spans = len(event["spans"])
-
-    event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
-
-    # Type safety: `event["contexts"]["trace"]["data"]` is a dictionary if it is set.
-    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/#trace-context.
-    data = typing.cast(
-        dict[str, object],
-        event.setdefault("contexts", {}).setdefault("trace", {}).setdefault("data", {}),
-    )
-    data["num_of_spans"] = num_of_spans
-
-    return event
-
-
 def before_send(event: Event, hint: Hint) -> Event | None:
-    if event.get("tags"):
+    if event.get("type") is None:
+        # error or message, which both support tags
         if settings.SILO_MODE:
-            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
+            event.setdefault("tags", {})["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_LOCAL_CELL:
-            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
+            event.setdefault("tags", {})["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
     event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
     if event_exc == asyncio.CancelledError:
@@ -326,7 +278,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["transport_queue_size"] = 2_000
     sdk_options["before_send"] = before_send
-    sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
@@ -374,7 +325,7 @@ def _set_resource_attributes() -> None:
         global_scope.set_attribute(key, value)
 
 
-def configure_sdk():
+def configure_sdk() -> None:
     """
     Setup and initialize the Sentry SDK.
     """
@@ -389,9 +340,6 @@ def configure_sdk():
             settings.SENTRY_PROFILES_SAMPLE_RATE or 0
         )
         sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
-    elif settings.SENTRY_PROFILING_ENABLED:
-        sdk_options["profiles_sampler"] = profiles_sampler
-        sdk_options["profiler_mode"] = settings.SENTRY_PROFILER_MODE
 
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration
@@ -410,9 +358,7 @@ def configure_sdk():
         # but none are captured as events (that's handled by the `internal`
         # logger defined in `server.py`, which ignores the levels set
         # in the integration and goes straight to the underlying handler class).
-        LoggingIntegration(
-            event_level=None, sentry_logs_level=logging.INFO, capture_sentry_logs=True
-        ),
+        LoggingIntegration(event_level=None, level=logging.INFO),
         RustInfoIntegration(),
         RedisIntegration(),
     ]
@@ -558,8 +504,11 @@ def check_current_scope_transaction(
 
 
 def capture_exception_with_scope_check(
-    error, scope: Scope | None = None, request: Request | None = None, **scope_args
-):
+    error: BaseException,
+    scope: Scope | None = None,
+    request: Request | None = None,
+    **scope_args: Any,
+) -> str | None:
     """
     A wrapper around `sentry_sdk.capture_exception` which checks scope `transaction` against the
     given Request object, to help debug scope bleed problems.
@@ -664,7 +613,7 @@ def bind_ambiguous_org_context(
     scope.set_attribute("organization.source", source or "unknown")
 
 
-def get_trace_id():
+def get_trace_id() -> str | None:
     span = traces.get_current_span()
     if isinstance(span, traces.StreamedSpan):
         return span.trace_id
@@ -751,7 +700,7 @@ class SentrySDKLogger:
 
     DEFAULT_MAX_DEPTH = 6
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.trace = functools.partial(self._log_to_sentry, "trace")
         self.debug = functools.partial(self._log_to_sentry, "debug")
         self.info = functools.partial(self._log_to_sentry, "info")
@@ -904,7 +853,6 @@ __all__ = (
     "Scope",
     "UNSAFE_FILES",
     "UNSAFE_TAG",
-    "before_send_transaction",
     "bind_ambiguous_org_context",
     "bind_organization_context",
     "capture_exception",

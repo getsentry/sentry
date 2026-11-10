@@ -39,8 +39,6 @@ import {
   ExploreBodySearch,
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
-import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
-import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -50,6 +48,8 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
+import {LandingAggregateFlamegraph} from './landingAggregateFlamegraph';
+import {Onboarding} from './onboarding';
 import type {DataState} from './useLandingAnalytics';
 import {useLandingAnalytics} from './useLandingAnalytics';
 

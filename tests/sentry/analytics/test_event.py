@@ -18,7 +18,7 @@ class DummyType:
 @eventclass("example")
 class ExampleEvent(Event):
     id: int
-    map: dict | DummyType
+    map: dict[str, object] | DummyType
     optional: bool | None = None
 
 

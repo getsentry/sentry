@@ -23,9 +23,11 @@ from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorSettings,
     DetectorType,
+    FeatureGate,
 )
 
 if TYPE_CHECKING:
@@ -374,6 +376,14 @@ class PreprodSizeAnalysisGroupType(GroupType):
 
 @detector_settings_registry.register(DetectorType.PREPROD_SIZE_ANALYSIS)
 class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
+    api_availability = {
+        **DetectorSettings.DEFAULT_API_AVAILABILITY,
+        DetectorAPIOperation.DISCOVER: (
+            True
+            if PreprodSizeAnalysisGroupType.released
+            else FeatureGate(PreprodSizeAnalysisGroupType.build_visible_feature_name()[0])
+        ),
+    }
     handler = PreprodSizeAnalysisDetectorHandler
     validator = PreprodSizeAnalysisDetectorValidator
     config_schema = {

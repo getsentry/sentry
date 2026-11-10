@@ -3,13 +3,14 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {
-  PREPROD_DETECTOR_FORM_FIELDS,
-  usePreprodDetectorFormField,
-} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
-import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
 } from 'sentry/views/settings/project/preprod/types';
+
+import {
+  PREPROD_DETECTOR_FORM_FIELDS,
+  usePreprodDetectorFormField,
+} from './mobileBuildFormData';
 
 export function MobileBuildPreviewSection({step}: {step: number}) {
   const measurement =

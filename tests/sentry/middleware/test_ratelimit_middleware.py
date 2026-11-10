@@ -1,5 +1,6 @@
 from functools import cached_property
 from time import sleep, time
+from typing import Any, cast
 from unittest.mock import MagicMock, patch, sentinel
 
 import orjson
@@ -11,6 +12,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_value
@@ -28,33 +30,34 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     middleware = RatelimitMiddleware(lambda request: sentinel.response)
 
     @cached_property
-    def factory(self):
+    def factory(self) -> RequestFactory:
         return RequestFactory()
 
     class TestEndpoint(Endpoint):
         enforce_rate_limit = True
 
-        def get(self):
+        def get(self) -> None:
             raise NotImplementedError
 
     class TestEndpointNoRateLimits(Endpoint):
         enforce_rate_limit = False
 
-        def get(self):
+        def get(self) -> None:
             raise NotImplementedError
 
     _test_endpoint = TestEndpoint.as_view()
     _test_endpoint_no_rate_limits = TestEndpointNoRateLimits.as_view()
 
-    def _populate_public_integration_request(self, request) -> None:
+    def _populate_public_integration_request(self, request: HttpRequest) -> None:
         install = self.create_sentry_app_installation(organization=self.organization)
         token = install.api_token
+        assert token is not None
 
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
-        request.auth = token
+        request.auth = cast("AuthenticatedToken", token)
 
-    def _populate_internal_integration_request(self, request) -> None:
+    def _populate_internal_integration_request(self, request: HttpRequest) -> None:
         internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
@@ -67,24 +70,24 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         )
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
-        request.auth = token
+        request.auth = cast("AuthenticatedToken", token)
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
     def test_fails_open(self, default_rate_limit_mock: MagicMock) -> None:
         """Test that if something goes wrong in the rate limit middleware,
         the request still goes through"""
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
 
     def test_process_response_fails_open(self) -> None:
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         bad_response = sentinel.response
         assert self.middleware.process_response(request, bad_response) is bad_response
 
         class BadRequest(HttpRequest):
-            def __getattr__(self, attr):
+            def __getattr__(self, attr: str) -> None:
                 raise Exception("nope")
 
         bad_request = BadRequest()
@@ -92,7 +95,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         with freeze_time("2000-01-01"):
             default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
@@ -110,7 +113,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_positive_rate_limit_response_headers(self, default_rate_limit_mock: MagicMock) -> None:
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
 
         with (
             freeze_time("2000-01-01"),
@@ -133,9 +136,9 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @patch("sentry.ratelimits.utils.ratelimiter.is_limited_with_value")
     @override_settings(ENFORCE_CONCURRENT_RATE_LIMITS=True)
     def test_positive_concurrent_rate_limit_response_headers(
-        self, is_limited_with_value, default_rate_limit_mock
-    ):
-        request = self.factory.get("/")
+        self, is_limited_with_value: MagicMock, default_rate_limit_mock: MagicMock
+    ) -> None:
+        request: Any = self.factory.get("/")
 
         with (
             freeze_time("2000-01-01"),
@@ -162,7 +165,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
@@ -180,7 +183,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @override_settings(SENTRY_SELF_HOSTED=True)
     def test_self_hosted_rate_limit_check(self, default_rate_limit_mock: MagicMock) -> None:
         """Check that for self hosted installs we don't rate limit"""
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
@@ -194,7 +197,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             assert not request.will_be_rate_limited
 
     def test_rate_limit_category(self) -> None:
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         request.META["REMOTE_ADDR"] = None
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert request.rate_limit_category is None
@@ -217,7 +220,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         assert request.rate_limit_category == RateLimitCategory.ORGANIZATION
 
     def test_enforce_rate_limit_is_false(self) -> None:
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
         assert request.will_be_rate_limited is False
         assert request.rate_limit_category is None
@@ -227,7 +230,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_enforces_rate_limits_when_disabled(self) -> None:
         """Test that rate limiting is enforced during impersonation even when endpoint has enforce_rate_limit=False"""
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         request.session = {}
         request.user = self.user
 
@@ -252,7 +255,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @override_settings(SENTRY_IMPERSONATION_RATE_LIMIT=1)
     def test_impersonation_without_actual_user_not_enforced(self) -> None:
         """Test that endpoints with enforce_rate_limit=False are not rate limited without impersonation"""
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         request.session = {}
         request.user = self.user
 
@@ -280,12 +283,12 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
                 }
             )
 
-            def get(self):
+            def get(self) -> None:
                 raise NotImplementedError
 
         high_limit_view = HighLimitEndpoint.as_view()
 
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         request.session = {}
         request.user = self.user
 
@@ -311,7 +314,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         impersonated_user = self.create_user(email="impersonated@example.com")
         impersonator_user = self.create_user(email="impersonator@example.com")
 
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         request.session = {}
         request.user = impersonated_user
         request.actual_user = impersonator_user
@@ -397,10 +400,10 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
                 }
             )
 
-            def get(self):
+            def get(self) -> None:
                 raise NotImplementedError
 
-        request = self.factory.get("/")
+        request: Any = self.factory.get("/")
         request.session = {}
         request.user = self.user
 
@@ -481,10 +484,10 @@ class RateLimitHeaderTestEndpoint(Endpoint):
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=100)}}
     )
 
-    def inject_call(self):
+    def inject_call(self) -> None:
         return
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         self.inject_call()
         return Response({"ok": True})
 
@@ -497,7 +500,7 @@ class RaceConditionEndpoint(Endpoint):
         limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=40, window=100)}}
     )
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         return Response({"ok": True})
 
 
@@ -519,7 +522,7 @@ class ConcurrentRateLimitedEndpoint(Endpoint):
         },
     )
 
-    def get(self, request):
+    def get(self, request: HttpRequest) -> Response:
         sleep(CONCURRENT_ENDPOINT_DURATION)
         return Response({"ok": True})
 
@@ -579,7 +582,7 @@ class TestRatelimitHeader(APITestCase):
     def test_header_race_condition(self) -> None:
         """Make sure concurrent requests don't affect each other's rate limit"""
 
-        def parallel_request(*args, **kwargs):
+        def parallel_request(*args: Any, **kwargs: Any) -> None:
             self.client.get(reverse("race-condition-endpoint"))
 
         with patch.object(

@@ -1,9 +1,10 @@
+import type {UseQueryResult} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
+
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface SourceMapDebugResponseFrame {
@@ -50,10 +51,7 @@ export interface SourceMapDebugResponse {
   min_debug_id_sdk_version?: string | null;
 }
 
-export type SourceMapDebugQueryResult = UseApiQueryResult<
-  SourceMapDebugResponse,
-  RequestError
->;
+export type SourceMapDebugQueryResult = UseQueryResult<SourceMapDebugResponse>;
 
 export function useSourceMapDebugQuery(
   projectSlug: string,
@@ -63,30 +61,26 @@ export function useSourceMapDebugQuery(
   const organization = useOrganization({allowNull: true});
   const isSdkThatShouldShowSourceMapsDebugger =
     sdkName?.startsWith('sentry.javascript.') ?? false;
-  return useApiQuery<SourceMapDebugResponse>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
-        {
-          path: {
-            organizationIdOrSlug: organization!.slug,
-            projectIdOrSlug: projectSlug,
-            eventId,
-          },
-        }
-      ),
-    ],
-    {
-      enabled:
-        isSdkThatShouldShowSourceMapsDebugger &&
-        !!organization &&
-        !!projectSlug &&
-        !!eventId,
-      staleTime: Infinity,
-      retry: false,
-      refetchOnWindowFocus: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<SourceMapDebugResponse>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
+      {
+        path: {
+          organizationIdOrSlug: organization!.slug,
+          projectIdOrSlug: projectSlug,
+          eventId,
+        },
+        staleTime: Infinity,
+      }
+    ),
+    enabled:
+      isSdkThatShouldShowSourceMapsDebugger &&
+      !!organization &&
+      !!projectSlug &&
+      !!eventId,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 }
 
 function getDebugIdProgress(

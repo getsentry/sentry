@@ -6,9 +6,9 @@ import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
+import type {IssueUpdateData} from './types';
 
 type GroupListBodyProps = {
   canSelect: boolean;

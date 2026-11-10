@@ -6,11 +6,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {RelocationOnboarding as Relocation} from 'sentry/views/relocation/relocation';
+import {toast} from '@sentry/scraps/toast';
 
-jest.mock('sentry/actionCreators/indicator');
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import {RelocationOnboarding as Relocation} from './relocation';
 
 const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';
@@ -40,6 +40,8 @@ describe('Relocation', () => {
   let fetchPublicKeys: jest.Mock;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
 
@@ -167,7 +169,7 @@ describe('Relocation', () => {
       await userEvent.type(screen.getByLabelText('promocode'), fakePromoCode);
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
       await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).not.toHaveBeenCalled();
+      expect(toast.error).not.toHaveBeenCalled();
     });
 
     it('should persist form data across reloads', async () => {
@@ -207,7 +209,7 @@ describe('Relocation', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
       await waitFor(() => expect(fetchPromoCode).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
       );
     });
@@ -485,7 +487,7 @@ describe('Relocation', () => {
           expect.objectContaining({host: fakeLocalities.Earth!.url, method: 'POST'})
         )
       );
-      expect(addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         "Your relocation has started - we'll email you with updates as soon as we have 'em!"
       );
 
@@ -512,7 +514,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'You already have an in-progress relocation job.'
       );
     });
@@ -537,7 +539,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'We have reached the daily limit of relocations - please try again tomorrow, or contact support.'
       );
     });
@@ -562,7 +564,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith('Your session has expired.');
+      expect(toast.error).toHaveBeenCalledWith('Your session has expired.');
     });
 
     it('throws error for 500 error', async () => {
@@ -585,7 +587,7 @@ describe('Relocation', () => {
       );
       await userEvent.click(await screen.findByText('Start Relocation'));
       await waitFor(() => expect(postRelocation).toHaveBeenCalledTimes(1));
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'An error has occurred while trying to start relocation job. Please contact support for further assistance.'
       );
     });

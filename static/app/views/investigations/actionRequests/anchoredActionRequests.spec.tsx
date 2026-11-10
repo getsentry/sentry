@@ -1,8 +1,9 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {AnchoredActionRequests} from 'sentry/views/investigations/actionRequests/anchoredActionRequests';
 import {InvestigationActionRequestFixture} from 'sentry/views/investigations/fixtures';
 import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
+
+import {AnchoredActionRequests} from './anchoredActionRequests';
 
 const aboutCause = {
   primary: false,

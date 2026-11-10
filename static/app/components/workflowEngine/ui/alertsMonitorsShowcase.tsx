@@ -7,10 +7,10 @@ import monitorsTourMonitorsImage from 'sentry-images/spot/monitors-tour-monitors
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FeatureShowcase} from 'sentry/components/featureShowcase';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

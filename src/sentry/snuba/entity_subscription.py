@@ -57,7 +57,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.EAPItems: "timestamp",
 }
 CRASH_RATE_ALERT_AGGREGATE_RE = (
-    r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
+    r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*,[ ]*(sessions|users)[ ]*\)"
 )
 ALERT_BLOCKED_FIELDS = {
     "start",

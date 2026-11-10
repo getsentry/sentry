@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.auth.authenticators.base import ActivationChallengeResult
+from sentry.auth.principal import require_user
 from sentry.users.models.authenticator import Authenticator
 
 
@@ -27,7 +28,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
         # Currently just expose u2f challenge, not sure if it's necessary to list all
         # authenticator interfaces that are enabled
         try:
-            interface = Authenticator.objects.get_interface(request.user, "u2f")
+            interface = Authenticator.objects.get_interface(require_user(request), "u2f")
             if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:

@@ -17,14 +17,15 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ReleaseCard} from 'sentry/views/explore/releases/list/releaseCard';
-import {ReleasesAdoptionChart} from 'sentry/views/explore/releases/list/releasesAdoptionChart';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import {ReleasesPromo} from 'sentry/views/explore/releases/list/releasesPromo';
-import ReleasesRequest from 'sentry/views/explore/releases/list/releasesRequest';
-import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
-import {useReleasesSdkVersions} from 'sentry/views/explore/releases/list/useReleasesSdkVersions';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
+
+import {ReleaseCard} from './releaseCard';
+import {ReleasesAdoptionChart} from './releasesAdoptionChart';
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {ReleasesPromo} from './releasesPromo';
+import ReleasesRequest from './releasesRequest';
+import {ReleasesStatusOption} from './releasesStatusOptions';
+import {useReleasesSdkVersions} from './useReleasesSdkVersions';
 
 interface Props {
   activeDisplay: ReleasesDisplayOption;

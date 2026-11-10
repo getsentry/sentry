@@ -7,16 +7,15 @@ from enum import Enum
 from typing import Any
 
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import features, quotas
+from sentry.auth.principal import RequestPrincipal
 from sentry.constants import DataCategory
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import artifact_matches_query
 from sentry.preprod.models import PreprodArtifact
-from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ DISTRIBUTION_ENABLED_KEY = "sentry:preprod_distribution_enabled_by_customer"
 DISTRIBUTION_ENABLED_QUERY_KEY = "sentry:preprod_distribution_enabled_query"
 
 
-def has_size_quota(organization: Organization, actor: User | AnonymousUser | None = None) -> bool:
+def has_size_quota(organization: Organization, actor: RequestPrincipal | None = None) -> bool:
     result = quotas.backend.has_usage_quota(organization.id, DataCategory.SIZE_ANALYSIS)
     logger.info(
         "has_size_quota",
@@ -55,7 +54,7 @@ def has_size_quota(organization: Organization, actor: User | AnonymousUser | Non
 
 
 def has_installable_quota(
-    organization: Organization, actor: User | AnonymousUser | None = None
+    organization: Organization, actor: RequestPrincipal | None = None
 ) -> bool:
     if not features.has(
         "organizations:preprod-enforce-distribution-quota", organization, actor=actor

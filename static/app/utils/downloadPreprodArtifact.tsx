@@ -1,6 +1,8 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
-import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+
+import {downloadFromHref} from './downloadFromHref';
 
 type ErrorDetail = {
   code?: string;
@@ -49,22 +51,22 @@ export async function downloadPreprodArtifact({
         if (onStaffPermissionError) {
           onStaffPermissionError(detail);
         } else {
-          addErrorMessage(t('Permission denied. Staff access may be required.'));
+          toast.error(t('Permission denied. Staff access may be required.'));
         }
       } else if (response.status === 404) {
-        addErrorMessage(t('Build file not found.'));
+        toast.error(t('Build file not found.'));
       } else if (response.status === 401) {
-        addErrorMessage(t('Unauthorized.'));
+        toast.error(t('Unauthorized.'));
       } else {
-        addErrorMessage(t('Download failed (status: %s)', response.status));
+        toast.error(t('Download failed (status: %s)', response.status));
       }
       return;
     }
 
     downloadFromHref(`preprod_artifact_${artifactId}.zip`, downloadUrl);
 
-    addSuccessMessage(t('Build download started'));
+    toast.success(t('Build download started'));
   } catch (error) {
-    addErrorMessage(t('Download failed: %s', String(error)));
+    toast.error(t('Download failed: %s', String(error)));
   }
 }

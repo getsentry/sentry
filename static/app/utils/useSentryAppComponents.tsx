@@ -6,8 +6,9 @@ import type {
   SentryAppSchemaElement,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {apiOptions} from './api/apiOptions';
+import {useOrganization} from './useOrganization';
 
 export function sentryAppComponentsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppComponent[]>()(

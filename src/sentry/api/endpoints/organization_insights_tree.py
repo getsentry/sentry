@@ -78,7 +78,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         parts = path.strip("/").split("/")
         return parts if parts != [""] else []
 
-    def _separate_span_description_info(self, response):
+    def _separate_span_description_info(self, response: Response) -> Response:
         for line in response.data["data"]:
             component_type = None
             path_components: list[str] = []

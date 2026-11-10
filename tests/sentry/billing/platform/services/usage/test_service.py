@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -55,7 +56,7 @@ class TestUsageService:
             service.get_usage("not a protobuf")  # type: ignore[arg-type]
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_get_usage_emits_metrics(self, mock_metrics):
+    def test_get_usage_emits_metrics(self, mock_metrics: MagicMock) -> None:
         service = UsageService()
         request = GetUsageRequest(organization_id=1)
         service.get_usage(request)

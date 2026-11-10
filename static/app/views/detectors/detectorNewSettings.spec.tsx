@@ -21,9 +21,10 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
+
+import {getDatasetConfig} from './datasetConfig/getDatasetConfig';
+import {DetectorDataset} from './datasetConfig/types';
+import DetectorNewSettings from './detectorNewSettings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({

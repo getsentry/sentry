@@ -210,7 +210,7 @@ class ClientConfigViewTest(TestCase):
         assert data["features"] == ["organizations:create"]
         assert data["customerDomain"] is None
 
-    def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool):
+    def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool) -> None:
         user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
         self.create_organization(owner=user)
         self.login_as(user, superuser=is_superuser, staff=is_staff)
@@ -895,7 +895,7 @@ class AgentDiscoveryMiddlewareTest(TestCase):
 
         inner_response = HttpResponse("ok", content_type="text/html")
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> HttpResponse:
             return inner_response
 
         middleware = AgentDiscoveryMiddleware(get_response)

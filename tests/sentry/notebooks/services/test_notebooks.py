@@ -2,16 +2,26 @@ from __future__ import annotations
 
 import pytest
 
+from sentry.api.helpers.creator import CreatorReference
 from sentry.notebooks.models import Notebook, NotebookProject, NotebookSourceType
 from sentry.notebooks.services.notebooks import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     create_manual_investigation,
+    create_notebook,
     default_investigation_title,
     lock_investigation,
     update_investigation,
 )
 from sentry.testutils.cases import TestCase
+
+
+def user_creator(user_id: int) -> CreatorReference:
+    return {
+        "created_by_id": user_id,
+        "created_by_service_account_id": None,
+        "created_by_org_auth_token_id": None,
+    }
 
 
 class ProjectLinkScopingTest(TestCase):
@@ -22,7 +32,7 @@ class ProjectLinkScopingTest(TestCase):
         with pytest.raises(InvestigationValidationError) as excinfo:
             create_manual_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=user_creator(self.user.id),
                 title="Investigation",
                 project_ids=[foreign_project.id],
                 filters={},
@@ -31,10 +41,31 @@ class ProjectLinkScopingTest(TestCase):
         assert "projectIds" in excinfo.value.errors
         assert not NotebookProject.objects.filter(project_id=foreign_project.id).exists()
 
+    def test_create_notebook_rejected_projects_leave_no_notebook(self) -> None:
+        other_organization = self.create_organization(name="other")
+        foreign_project = self.create_project(organization=other_organization)
+
+        with pytest.raises(InvestigationValidationError):
+            create_notebook(
+                organization=self.organization,
+                created_by_id=self.user.id,
+                created_by_service_account_id=None,
+                title="Notebook",
+                source_type=NotebookSourceType.MANUAL,
+                source_key=None,
+                source={},
+                source_revision=None,
+                filters={},
+                project_ids=[self.project.id, foreign_project.id],
+            )
+
+        assert not Notebook.objects.filter(organization=self.organization).exists()
+        assert not NotebookProject.objects.exists()
+
     def test_create_accepts_projects_in_the_organization(self) -> None:
         investigation = create_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=user_creator(self.user.id),
             title="Investigation",
             project_ids=[self.project.id],
             filters={},
@@ -51,7 +82,7 @@ class ProjectLinkScopingTest(TestCase):
         foreign_project = self.create_project(organization=other_organization)
         investigation = create_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=user_creator(self.user.id),
             title="Investigation",
             project_ids=[self.project.id],
             filters={},
@@ -81,7 +112,7 @@ class ConcurrentModificationTest(TestCase):
         """A concurrent delete should not surface as an unhandled 500."""
         investigation = create_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=user_creator(self.user.id),
             title="Gone",
             project_ids=[],
             filters={},
@@ -98,7 +129,7 @@ class UpdateFieldAllowlistTest(TestCase):
         other_organization = self.create_organization(name="other")
         investigation = create_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=user_creator(self.user.id),
             title="Investigation",
             project_ids=[],
             filters={},
@@ -118,7 +149,7 @@ class UpdateFieldAllowlistTest(TestCase):
     def test_accepts_the_allowlisted_fields(self) -> None:
         investigation = create_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=user_creator(self.user.id),
             title="Investigation",
             project_ids=[],
             filters={},

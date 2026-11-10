@@ -1,8 +1,9 @@
+import {useQueryStates} from 'nuqs';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/constants';
@@ -16,6 +17,21 @@ type Options = {
 };
 
 const DEFAULT_LIMIT = 5;
+
+const segmentSpansParsers = {
+  [SpanFields.SPAN_CATEGORY]: parseAsScalar,
+  showTransactions: parseAsScalar,
+  [SEGMENT_SPANS_CURSOR_NAME]: parseAsScalar,
+};
+
+function useSegmentSpansQueryParams() {
+  const [params] = useQueryStates(segmentSpansParsers);
+  return {
+    spanCategoryUrlParam: params[SpanFields.SPAN_CATEGORY],
+    selectedOption: params.showTransactions,
+    cursor: params[SEGMENT_SPANS_CURSOR_NAME] ?? undefined,
+  };
+}
 
 const FIELDS: SpanProperty[] = [
   'span_id',
@@ -35,9 +51,7 @@ const FIELDS: SpanProperty[] = [
 ];
 
 export function useSegmentSpansQuery({query, sort, p95, limit = DEFAULT_LIMIT}: Options) {
-  const location = useLocation();
-  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
-  const selectedOption = decodeScalar(location.query?.showTransactions);
+  const {spanCategoryUrlParam, selectedOption} = useSegmentSpansQueryParams();
 
   const isSingleQueryEnabled =
     selectedOption === TransactionFilterOptions.RECENT || !spanCategoryUrlParam;
@@ -103,9 +117,7 @@ type UseSingleQueryOptions = {
 
 // Hook for executing the default query to fetch table data for spans when no category is selected
 function useSingleQuery(options: UseSingleQueryOptions) {
-  const location = useLocation();
-  const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR_NAME]);
-  const selectedOption = decodeScalar(location.query?.showTransactions);
+  const {cursor, selectedOption} = useSegmentSpansQueryParams();
   const {selection} = usePageFilters();
   const {query, sort, p95, enabled, limit} = options;
   const newQuery = new MutableSearch(query);
@@ -150,11 +162,8 @@ type UseMultipleQueriesOptions = {
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
   const {query, sort, p95, enabled, limit} = options;
-  const location = useLocation();
-  const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR_NAME]);
-  const selectedOption = decodeScalar(location.query?.showTransactions);
+  const {cursor, selectedOption, spanCategoryUrlParam} = useSegmentSpansQueryParams();
   const {selection} = usePageFilters();
-  const spanCategoryUrlParam = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const categorizedSpansQuery = new MutableSearch(query);
   categorizedSpansQuery.addFilterValue('span.category', spanCategoryUrlParam ?? '');

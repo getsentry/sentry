@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import asdict, replace
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -21,6 +21,7 @@ from sentry.integrations.slack.message_builder.routing import decode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
@@ -212,9 +213,11 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
 
     @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
     @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
-    @with_feature("organizations:notification-platform.internal-testing")
     def _send_platform_alert_and_get_blocks(self, invocation: ActionInvocation) -> list[Any]:
-        with patch("sentry.integrations.slack.integration.SlackSdkClient") as mock_client:
+        with (
+            with_feature("organizations:notification-platform.internal-testing"),
+            patch("sentry.integrations.slack.integration.SlackSdkClient") as mock_client,
+        ):
             mock_client.return_value.chat_postMessage.return_value = SlackResponse(
                 client=mock_client.return_value,
                 http_verb="POST",
@@ -290,7 +293,15 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         assert [block["type"] for block in blocks] == ["section", "context"]
 
 
+_UnpackedSendAlert = tuple[
+    NotificationContext, AlertContext, MetricIssueContext, OpenPeriodContext, Organization, str
+]
+
+
 class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
+    def unpack_kwargs(self, mock_send_alert: mock.MagicMock) -> _UnpackedSendAlert:
+        return cast(_UnpackedSendAlert, super().unpack_kwargs(mock_send_alert))
+
     """Tests for invoke_legacy_registry — verifies context extraction from GroupEvent and Activity."""
 
     def setUp(self) -> None:

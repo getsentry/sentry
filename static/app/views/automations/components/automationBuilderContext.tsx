@@ -20,8 +20,9 @@ import {
   type DataCondition,
   type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+
+import {actionNodesMap} from './actionNodes';
+import {dataConditionNodesMap} from './dataConditionNodes';
 
 export function useAutomationBuilderReducer(initialState?: AutomationBuilderState) {
   const reducer: Reducer<AutomationBuilderState, AutomationBuilderAction> = useCallback(

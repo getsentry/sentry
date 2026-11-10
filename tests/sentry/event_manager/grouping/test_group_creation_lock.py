@@ -1,11 +1,19 @@
 import contextlib
+import copy
 import time
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from threading import Thread
 from unittest.mock import patch
 
 import pytest
 
-from sentry.event_manager import GroupInfo, assign_event_to_group
+from sentry import options
+from sentry.buffer.redis import RedisBuffer
+from sentry.event_manager import GroupInfo, assign_event_to_group, create_group_with_grouphashes
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -15,7 +23,7 @@ CONCURRENCY = 2
 class FakeTransactionModule:
     @staticmethod
     @contextlib.contextmanager
-    def atomic(*args, **kwds):
+    def atomic(*args: object, **kwds: object) -> Iterator[None]:
         yield
 
 
@@ -55,7 +63,7 @@ def save_event(project_id: int, return_values: list[GroupInfo]) -> None:
     ],
     ids=(" lock_disabled: True ", " lock_disabled: False "),
 )
-def test_group_creation_race(default_project, lock_disabled) -> None:
+def test_group_creation_race(default_project: Project, lock_disabled: bool) -> None:
     with contextlib.ExitStack() as ctx:
         if lock_disabled:
             # Disable transaction isolation just within event manager, but not in
@@ -99,3 +107,71 @@ def test_group_creation_race(default_project, lock_disabled) -> None:
             # assert multiple new groups were created
             assert 1 < len({group_info.group.id for group_info in return_values}) <= CONCURRENCY
             assert 1 < sum(group_info.is_new for group_info in return_values) <= CONCURRENCY
+
+
+@django_db_all
+def test_lost_group_creation_race_updates_group_outside_transaction(
+    default_project: Project,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> None:
+    """
+    Make the second event lose the group creation race without threads: link the grouphashes to a
+    group first, then call `create_group_with_grouphashes` with them. The second event must go to
+    the existing group, and its Redis buffer increment must run after the grouphash transaction
+    ends. The buffer uses a Redis client that has the transaction check, so a Redis call inside the
+    transaction makes this test fail.
+    """
+    # Use a client that has the Redis-in-transaction check. An `rb` client does not have it.
+    redis_clusters = copy.deepcopy(options.get("redis.clusters"))
+    redis_clusters["default"]["is_redis_cluster"] = True
+
+    with (
+        set_sentry_option("redis.clusters", redis_clusters),
+        patch(
+            "sentry.grouping.ingest.hashing._calculate_event_grouping",
+            return_value=(["pound_sign", "octothorpe"], {}),
+        ),
+        patch(
+            "sentry.event_manager._get_group_processing_kwargs",
+            return_value={"level": 10, "culprit": "", "data": {}},
+        ),
+        patch("sentry.event_manager._materialize_metadata_many"),
+    ):
+        redis_buffer = RedisBuffer()
+        assert redis_buffer.is_redis_cluster
+
+        with patch("sentry.buffer.backend", redis_buffer):
+            # The first event creates the group and links the grouphashes to it
+            return_values: list[GroupInfo] = []
+            save_event(default_project.id, return_values)
+            [first_group_info] = return_values
+            assert first_group_info.is_new
+            group = first_group_info.group
+
+            grouphashes = list(
+                GroupHash.objects.filter(
+                    project=default_project, hash__in=["pound_sign", "octothorpe"]
+                )
+            )
+            assert len(grouphashes) == 2
+            assert all(grouphash.group_id == group.id for grouphash in grouphashes)
+            assert redis_buffer.get(Group, ["times_seen"], {"id": group.id}) == {"times_seen": 0}
+
+            # The second event gets to group creation, but finds the group under the row lock
+            event = Event(
+                default_project.id,
+                "21212012123120120415201309082013",
+                data={"timestamp": time.time()},
+            )
+            group_info = create_group_with_grouphashes(
+                {"event_metadata": {}, "release": "dogpark", "event": event, "data": {}},
+                grouphashes,
+            )
+
+            assert group_info is not None
+            assert group_info.group.id == group.id
+            assert group_info.is_new is False
+            assert group_info.is_regression is False
+
+            # The `times_seen` increment went through `RedisBuffer.incr`
+            assert redis_buffer.get(Group, ["times_seen"], {"id": group.id}) == {"times_seen": 1}

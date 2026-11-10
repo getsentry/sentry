@@ -1,4 +1,4 @@
-import {downloadRows} from 'sentry/components/exports/downloadRows';
+import {downloadRows} from './downloadRows';
 
 const mockDownloadRowsAsCsv = jest.fn();
 

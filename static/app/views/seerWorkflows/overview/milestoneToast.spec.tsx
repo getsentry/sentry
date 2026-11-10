@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {MilestoneToast, useMilestoneAdvanceToasts} from './milestoneToast';
@@ -135,15 +136,15 @@ describe('useMilestoneAdvanceToasts', () => {
   }
 
   it('does not toast on the first payload', () => {
-    const addSuccessMessage = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
 
     render(<Harness data={response({autofix_root_cause: [run()]})} />, {organization});
 
-    expect(addSuccessMessage).not.toHaveBeenCalled();
+    expect(successSpy).not.toHaveBeenCalled();
   });
 
   it('toasts once and records analytics when a run advances', () => {
-    const addSuccessMessage = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
 
     const {rerender} = render(
       <Harness data={response({autofix_root_cause: [run()]})} />,
@@ -151,7 +152,7 @@ describe('useMilestoneAdvanceToasts', () => {
     );
     rerender(<Harness data={response({autofix_code_changes: [run()]})} />);
 
-    expect(addSuccessMessage).toHaveBeenCalledTimes(1);
+    expect(successSpy).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'autofix.overview.milestone_advanced',
       expect.objectContaining({
@@ -165,7 +166,7 @@ describe('useMilestoneAdvanceToasts', () => {
   });
 
   it('stays quiet for advances that happened while unmounted', () => {
-    const addSuccessMessage = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
 
     const {rerender} = render(
       <Harness data={response({autofix_root_cause: [run()]})} dataSettled={false} />,
@@ -173,15 +174,15 @@ describe('useMilestoneAdvanceToasts', () => {
     );
     rerender(<Harness data={response({autofix_code_changes: [run()]})} />);
 
-    expect(addSuccessMessage).not.toHaveBeenCalled();
+    expect(successSpy).not.toHaveBeenCalled();
 
     rerender(<Harness data={response({has_pull_request: [run()]})} />);
 
-    expect(addSuccessMessage).toHaveBeenCalledTimes(1);
+    expect(successSpy).toHaveBeenCalledTimes(1);
   });
 
   it('does not toast when only the status changes', () => {
-    const addSuccessMessage = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
 
     const {rerender} = render(
       <Harness data={response({autofix_root_cause: [run({status: 'processing'})]})} />,
@@ -191,6 +192,6 @@ describe('useMilestoneAdvanceToasts', () => {
       <Harness data={response({autofix_root_cause: [run({status: 'completed'})]})} />
     );
 
-    expect(addSuccessMessage).not.toHaveBeenCalled();
+    expect(successSpy).not.toHaveBeenCalled();
   });
 });

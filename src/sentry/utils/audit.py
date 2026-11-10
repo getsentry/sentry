@@ -163,7 +163,7 @@ def create_audit_entry_from_user(
     if logger:
         # Only use the api_name for the logger message when the entry
         # is a real AuditLogEntry record
-        if entry.event is not None:
+        if entry.event:
             logger.info(audit_log.get(entry.event).api_name, extra=extra)
         else:
             logger.info(entry, extra=extra)
@@ -201,6 +201,7 @@ def _create_project_delete_log(
 ) -> None:
     delete_log = DeletedProject()
 
+    assert entry.target_object is not None
     project = Project.objects.get(id=entry.target_object)
     delete_log.name = project.name
     delete_log.slug = project.slug
@@ -219,6 +220,7 @@ def _create_project_delete_log(
 def _create_team_delete_log(entry: AuditLogEntry, audit_log_actor: RpcAuditLogEntryActor) -> None:
     delete_log = DeletedTeam()
 
+    assert entry.target_object is not None
     team = Team.objects.get(id=entry.target_object)
     delete_log.name = team.name
     delete_log.slug = team.slug
@@ -278,7 +280,7 @@ def create_system_audit_entry(
     if logger:
         # Only use the api_name for the logger message when the entry
         # is a real AuditLogEntry record
-        if entry.event is not None:
+        if entry.event:
             logger.info(audit_log.get(entry.event).api_name, extra=extra)
         else:
             logger.info(entry, extra=extra)

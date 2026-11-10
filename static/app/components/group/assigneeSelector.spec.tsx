@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
+import {AssigneeSelector} from './assigneeSelector';
 
 describe('AssigneeSelector', () => {
   it('uses the assigned owner source as fallback tooltip details', async () => {

@@ -1,6 +1,7 @@
 import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
-import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+
+import type {SuggestionSection} from './types';
 
 const DURATION_UNIT_SUGGESTIONS = ['ms', 's', 'm', 'h'] as const;
 

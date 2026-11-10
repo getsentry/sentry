@@ -30,12 +30,10 @@ import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggre
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  FlamegraphProvider,
-  useFlamegraph,
-} from 'sentry/views/explore/profiling/flamegraphProvider';
-import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
-import type {DataState} from 'sentry/views/explore/profiling/useLandingAnalytics';
+
+import {FlamegraphProvider, useFlamegraph} from './flamegraphProvider';
+import {ProfileGroupProvider} from './profileGroupProvider';
+import type {DataState} from './useLandingAnalytics';
 
 const PROFILE_TYPE = 'landing aggregate flamegraph';
 

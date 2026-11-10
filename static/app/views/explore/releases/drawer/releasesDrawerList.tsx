@@ -3,20 +3,19 @@ import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 import {useQueryStates} from 'nuqs';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
+
 import {
   ChartWidgetLoader,
   type ChartId,
 } from 'sentry/components/charts/chartWidgetLoader';
 import {
+  DrawerBreadcrumbs,
   EventDrawerBody,
   EventDrawerContainer,
-  EventDrawerHeader,
-  EventNavigator,
-  Header,
-  NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -25,16 +24,12 @@ import type {
 } from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useParams} from 'sentry/utils/useParams';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/explore/releases/drawer/releasesDrawerFeatureFlagsTable';
-import {
-  RELEASES_DRAWER_PARSERS,
-  ReleasesDrawerFields,
-} from 'sentry/views/explore/releases/drawer/utils';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
 
+import {ReleasesDrawerFeatureFlagsTable} from './releasesDrawerFeatureFlagsTable';
 import {ReleasesDrawerTable} from './releasesDrawerTable';
+import {RELEASES_DRAWER_PARSERS, ReleasesDrawerFields} from './utils';
 
 interface ReleasesDrawerListProps {
   pageFilters: PageFilters;
@@ -112,7 +107,6 @@ export function ReleasesDrawerList({
   eventId,
 }: ReleasesDrawerListProps) {
   const {groupId} = useParams();
-  const {releases} = useReleaseStats(pageFilters);
   const [, setDrawerQuery] = useQueryStates({
     [ReleasesDrawerFields.START]: RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.START],
     [ReleasesDrawerFields.END]: RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.END],
@@ -166,14 +160,6 @@ export function ReleasesDrawerList({
     );
   }, []);
 
-  const title = tn('%s Release', '%s Releases', releases?.length ?? 0);
-
-  const crumbs = [
-    {
-      label: t('Releases'),
-    },
-  ];
-
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
       let {startValue, endValue} = (evt as any).batch[0] as {
@@ -204,12 +190,9 @@ export function ReleasesDrawerList({
 
   return (
     <EventDrawerContainer>
-      <EventDrawerHeader>
-        <NavigationCrumbs crumbs={crumbs} />
-      </EventDrawerHeader>
-      <EventNavigator>
-        <Header>{title}</Header>
-      </EventNavigator>
+      <DrawerHeader>
+        <DrawerBreadcrumbs current={{label: t('Releases')}} />
+      </DrawerHeader>
       <EventDrawerBody>
         {chart ? (
           <div style={{height: chartHeight}}>

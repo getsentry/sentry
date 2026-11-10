@@ -2,13 +2,14 @@ import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
+
+import {NumberField} from './forms/fields/numberField';
+import {SelectField} from './forms/fields/selectField';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';

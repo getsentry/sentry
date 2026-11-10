@@ -5,8 +5,9 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {makeStatsPathname} from './pathname';
 
 type Props = {
   activeTab: 'stats' | 'issues' | 'health';

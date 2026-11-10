@@ -5,15 +5,6 @@ import {render, waitFor, type RouterConfig} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
-  MonitorCreateRedirect,
-  UptimeMonitorCreateRedirect,
-  withAutomationDetailsRedirect,
-  withDetectorDetailsRedirect,
-  withDetectorEditRedirect,
-  withMetricIssueRedirect,
-  withOpenPeriodRedirect,
-} from 'sentry/views/alerts/workflowEngineRedirects';
-import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
@@ -23,6 +14,16 @@ import {
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
+
+import {
+  MonitorCreateRedirect,
+  UptimeMonitorCreateRedirect,
+  withAutomationDetailsRedirect,
+  withDetectorDetailsRedirect,
+  withDetectorEditRedirect,
+  withMetricIssueRedirect,
+  withOpenPeriodRedirect,
+} from './workflowEngineRedirects';
 
 function TestComponent() {
   return <div>Wrapped content</div>;

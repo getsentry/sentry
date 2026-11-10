@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -8,10 +10,12 @@ from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
+from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
@@ -28,7 +32,7 @@ pytestmark = [requires_snuba]
 
 class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = GitHubCreateTicketAction
-    repo = "foo/bar"
+    repo_name = "foo/bar"
     assignee = "sentry_user"
     labels = ["bug", "invalid"]
     issue_num = 1
@@ -60,11 +64,11 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def trigger(self, event, rule_object):
+    def trigger(self, event: GroupEvent, rule_object: Rule) -> Any:
         action = rule_object.data.get("actions", ())[0]
         context = create_notification_action_context(rule_object)
         action_inst = self.get_rule(data=action, context=context)
@@ -74,10 +78,10 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event: GroupEvent):
-        return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
-            "key", flat=True
-        )[0]
+    def get_key(self, event: GroupEvent) -> Any:
+        return ExternalIssue.objects.get_linked_issues(
+            event, serialize_integration(self.integration)
+        ).values_list("key", flat=True)[0]
 
     @responses.activate()
     def test_ticket_rules(self) -> None:
@@ -87,7 +91,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
-                name=self.repo,
+                name=self.repo_name,
                 provider="integrations:github",
                 organization_id=self.organization.id,
                 integration_id=self.integration.id,
@@ -127,7 +131,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                     "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
                     "integration": self.integration.id,
                     "dynamic_form_fields": [{"random": "garbage"}],
-                    "repo": self.repo,
+                    "repo": self.repo_name,
                     "assignee": self.assignee,
                     "labels": self.labels,
                 }
@@ -153,7 +157,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert ticket created in DB
         key = self.get_key(event)
-        assert key == f"{self.repo}#{self.issue_num}"
+        assert key == f"{self.repo_name}#{self.issue_num}"
         external_issue = ExternalIssue.objects.get(key=key)
         external_issue_count = len(ExternalIssue.objects.filter(key=key))
         assert external_issue_count == 1
@@ -173,7 +177,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert ticket created in GitHub
         data = self.installation.get_issue(
-            key, data={"repo": self.repo, "externalIssue": self.issue_num}
+            key, data={"repo": self.repo_name, "externalIssue": self.issue_num}
         )
         assert sample_description in data["description"]
 

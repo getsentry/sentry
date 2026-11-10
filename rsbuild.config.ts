@@ -1019,11 +1019,14 @@ if (IS_PRODUCTION) {
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'filesystem',
+    type: 'persistent',
     // Keep clear of the old persistent cache's `app-production` directory,
     // the new cache fails to open when both share a location
     name: `app-${WEBPACK_MODE}-new`,
-    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    storage: {
+      type: 'filesystem',
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    },
     // Read entries from disk instead of holding the whole cache in memory
     maxMemoryGenerations: 0,
     // Only master deploys write the cache, preview deploys restore it from

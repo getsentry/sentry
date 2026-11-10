@@ -1,16 +1,17 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {AutofixAgent} from 'sentry/components/seer/projectDetails/autofixAgent';
-import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {AutofixAgent} from './autofixAgent';
+import {AutofixRepositoriesList} from './autofixRepositoriesList';
 
 export function SeerProjectDetails({project}: {project: DetailedProject}) {
   const organization = useOrganization();
@@ -20,17 +21,18 @@ export function SeerProjectDetails({project}: {project: DetailedProject}) {
   return (
     <AnalyticsArea name="project-details">
       <SentryDocumentTitle title={t('Seer for %s', project.slug)} />
-      <SettingsPageHeader
-        title={t('Seer')}
-        subtitle={tct(
-          'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
-          {
-            docs: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-            ),
-          }
-        )}
-      />
+      <Stack paddingBottom="xl">
+        <Text as="div" variant="muted">
+          {tct(
+            'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+              ),
+            }
+          )}
+        </Text>
+      </Stack>
       {canWrite ? null : (
         <Stack paddingBottom="xl">
           <Alert variant="warning">
