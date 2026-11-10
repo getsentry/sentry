@@ -701,7 +701,7 @@ function replaceTokensWithText(
     };
   }
 
-  const cursorPosition = before.length + text.length; // TODO: Ensure this is sorted
+  const cursorPosition = removeExcessWhitespaceFromParts(before, text).length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQuery(newQuery);
 
   const focusedToken = newParsedQuery?.find(
