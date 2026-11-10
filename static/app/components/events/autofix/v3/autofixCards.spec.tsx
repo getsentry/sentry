@@ -47,15 +47,6 @@ jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   ),
 }));
 
-const prIterationOrganization = OrganizationFixture({
-  features: ['autofix-pr-iteration'],
-});
-
-// For the feedback form and its reset behavior, which are manual-only.
-const manualPrIterationOrganization = OrganizationFixture({
-  features: ['autofix-pr-iteration-manual'],
-});
-
 function makeSection(
   step: string,
   status: AutofixSection['status'],
@@ -954,8 +945,7 @@ describe('ArtifactCard', () => {
               makeAssistantBlock('The failed check is unrelated to this PR.'),
             ]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(
@@ -1089,8 +1079,7 @@ describe('ArtifactCard', () => {
             [],
             [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
-        />,
-        {organization: manualPrIterationOrganization}
+        />
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
@@ -1141,8 +1130,7 @@ describe('ArtifactCard', () => {
             [],
             [makeAssistantBlock('The relevant files are not in the connected repo.')]
           )}
-        />,
-        {organization: manualPrIterationOrganization}
+        />
       );
 
       expect(screen.getByRole('button', {name: 'Add context & retry'})).toBeDisabled();
@@ -1152,7 +1140,7 @@ describe('ArtifactCard', () => {
     });
 
     it('ignores a requested context prompt when reset is ineligible', () => {
-      const autofixWithPR: ReturnType<typeof useExplorerAutofix> = {
+      const pausedAutofixWithPR: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofixWithRunState,
         runState: {
           run_id: 123,
@@ -1160,13 +1148,14 @@ describe('ArtifactCard', () => {
           status: 'completed',
           updated_at: '2026-01-01T00:00:00Z',
           repo_pr_states: {'org/repo': makePR()},
+          pr_iteration_paused: true,
         },
       };
 
       render(
         <CodeChangesCard
           groupId="1"
-          autofix={autofixWithPR}
+          autofix={pausedAutofixWithPR}
           section={makeSection(
             'code_changes',
             'completed',
@@ -1175,7 +1164,6 @@ describe('ArtifactCard', () => {
           )}
         />,
         {
-          organization: prIterationOrganization,
           initialRouterConfig: {
             location: {
               pathname: '/',
@@ -1185,8 +1173,8 @@ describe('ArtifactCard', () => {
         }
       );
 
-      // Reset is ineligible once a PR exists without the manual flag, so neither
-      // the PR iteration form nor the free-text reset prompt opens.
+      // Reset is ineligible while iteration is paused, so neither the PR
+      // iteration form nor the free-text reset prompt opens.
       expect(
         screen.queryByText('Anything else you want to see on your PR?')
       ).not.toBeInTheDocument();
@@ -1219,7 +1207,7 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('silently ignores pr_iteration blocks with an unrecognized source type', () => {
+    it('renders feedback with an unrecognized source type as generic feedback', () => {
       const block: AutofixSection['blocks'][number] = {
         id: 'block-unknown',
         timestamp: '2026-01-01T00:00:00Z',
@@ -1249,7 +1237,8 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
+      expect(screen.getByText('Feedback')).toBeInTheDocument();
+      expect(screen.getByText('ignored')).toBeInTheDocument();
     });
 
     it('renders feedback from pr_iteration blocks', () => {
@@ -1263,8 +1252,7 @@ describe('ArtifactCard', () => {
             [[makePatch('org/repo', 'src/app.py')]],
             [makePrIterationBlock(1, {text: 'Add a test for this'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('Feedback')).toBeInTheDocument();
@@ -1296,8 +1284,7 @@ describe('ArtifactCard', () => {
               makePrIterationBlock(1, {text: 'second pass'}),
             ]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       const items = screen.getAllByText(/first pass|second pass|newest queued/);
@@ -1330,8 +1317,7 @@ describe('ArtifactCard', () => {
             [[makePatch('org/repo', 'src/app.py')]],
             [makePrIterationBlock(0, {text: 'first pass'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
@@ -1358,8 +1344,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('Feedback')).toBeInTheDocument();
@@ -1385,8 +1370,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       // The source is shown in the avatar tooltip, not prefixed on the comment.
@@ -1421,8 +1405,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       // The comment text is plain; a trailing "Open in GitHub" arrow links out.
@@ -1462,8 +1445,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(
@@ -1493,8 +1475,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       // Twice over: the summary's clipped preview, plus the still-mounted body.
@@ -1532,8 +1513,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       const comment = screen.getByText('Make the button blue');
@@ -1594,8 +1574,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       // The review state renders as a single header badge…
@@ -1644,8 +1623,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('Approved')).toBeInTheDocument();
@@ -1690,8 +1668,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('Looks good to me.')).toBeInTheDocument();
@@ -1735,8 +1712,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('One quick nit.')).toBeInTheDocument();
@@ -1778,8 +1754,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('CI failure detected')).toBeInTheDocument();
@@ -1817,8 +1792,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       // The label is plain text; a trailing "Open in GitHub" arrow links to the run.
@@ -1857,25 +1831,6 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
     });
 
-    it('does not render iteration feedback without the feature flag', () => {
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={mockAutofix}
-          section={makeSection(
-            'code_changes',
-            'completed',
-            [[makePatch('org/repo', 'src/app.py')]],
-            [makePrIterationBlock(1, {text: 'Add a test for this'})]
-          )}
-        />
-      );
-
-      expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
-      expect(screen.queryByText('Add a test for this')).not.toBeInTheDocument();
-      expect(screen.queryByText(/- Latest/)).not.toBeInTheDocument();
-    });
-
     it('renders a one-based version tag for the latest iteration', () => {
       render(
         <CodeChangesCard
@@ -1890,8 +1845,7 @@ describe('ArtifactCard', () => {
               makePrIterationBlock(1, {text: 'second pass'}),
             ]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       // iteration_index is zero-based; the latest (1) renders as v2.
@@ -1923,8 +1877,7 @@ describe('ArtifactCard', () => {
             [],
             [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
@@ -1942,8 +1895,7 @@ describe('ArtifactCard', () => {
             [[makePatch('org/repo', 'src/app.py')]],
             [makePrIterationBlock(0, {text: 'first pass'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
@@ -1961,8 +1913,7 @@ describe('ArtifactCard', () => {
             [],
             [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
@@ -1992,8 +1943,7 @@ describe('ArtifactCard', () => {
             [[makePatch('org/repo', 'src/app.py')]],
             [makePrIterationBlock(0, {text: 'first pass'})]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
@@ -2018,8 +1968,7 @@ describe('ArtifactCard', () => {
               },
             ]
           )}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getAllByText('fix the CI failure')).toHaveLength(1);
@@ -2045,41 +1994,12 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByText('Make the button blue')).toBeInTheDocument();
       expect(screen.getByText('Queued')).toBeInTheDocument();
       expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
-    });
-
-    it('disables reset once PRs exist when only automated CI iteration is enabled', () => {
-      const autofix: ReturnType<typeof useExplorerAutofix> = {
-        ...mockAutofix,
-        runState: {
-          run_id: 123,
-          blocks: [],
-          status: 'processing',
-          updated_at: '2026-01-01T00:00:00Z',
-          repo_pr_states: {'org/repo': makePR()},
-        },
-      };
-
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={autofix}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
-        />,
-        {organization: prIterationOrganization}
-      );
-
-      // Reset opens the manual feedback form, so the automated flag must not
-      // unlock it once a PR exists.
-      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
     });
 
     it('disables reset when PR iteration is paused', async () => {
@@ -2102,8 +2022,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: manualPrIterationOrganization}
+        />
       );
 
       const resetButton = screen.getByRole('button', {name: 'Re-run step'});
@@ -2115,85 +2034,7 @@ describe('ArtifactCard', () => {
       ).toBeInTheDocument();
     });
 
-    it('keeps reset enabled with the feature flag even when PRs exist', () => {
-      const autofix: ReturnType<typeof useExplorerAutofix> = {
-        ...mockAutofix,
-        runState: {
-          run_id: 123,
-          blocks: [],
-          status: 'completed',
-          updated_at: '2026-01-01T00:00:00Z',
-          repo_pr_states: {'org/repo': makePR()},
-        },
-      };
-
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={autofix}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
-        />,
-        {organization: manualPrIterationOrganization}
-      );
-
-      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
-    });
-
-    it('disables reset with the feature flag while processing before any PR exists', () => {
-      const autofix: ReturnType<typeof useExplorerAutofix> = {
-        ...mockAutofix,
-        runState: {
-          run_id: 123,
-          blocks: [],
-          status: 'processing',
-          updated_at: '2026-01-01T00:00:00Z',
-          repo_pr_states: {},
-        },
-      };
-
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={autofix}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
-        />,
-        {organization: prIterationOrganization}
-      );
-
-      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
-    });
-
-    it('keeps reset enabled with the feature flag while processing once a PR exists', () => {
-      const autofix: ReturnType<typeof useExplorerAutofix> = {
-        ...mockAutofix,
-        runState: {
-          run_id: 123,
-          blocks: [],
-          status: 'processing',
-          updated_at: '2026-01-01T00:00:00Z',
-          repo_pr_states: {'org/repo': makePR()},
-        },
-      };
-
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={autofix}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
-        />,
-        {organization: manualPrIterationOrganization}
-      );
-
-      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
-    });
-
-    it('disables reset without the feature flag when PRs exist', () => {
+    it('keeps reset enabled when PRs exist', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
@@ -2215,7 +2056,57 @@ describe('ArtifactCard', () => {
         />
       );
 
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+    });
+
+    it('disables reset while processing before any PR exists', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />
+      );
+
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
+    });
+
+    it('keeps reset enabled while processing once a PR exists', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'processing',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Re-run step'})).toBeEnabled();
     });
 
     it('disables reset while a coding agent is active', () => {
@@ -2237,8 +2128,7 @@ describe('ArtifactCard', () => {
           section={makeSection('code_changes', 'completed', [
             [makePatch('org/repo', 'src/app.py')],
           ])}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
@@ -2266,8 +2156,7 @@ describe('ArtifactCard', () => {
             [],
             [makePrIterationBlock(0, {text: 'fix the CI failure'})]
           )}
-        />,
-        {organization: manualPrIterationOrganization}
+        />
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));

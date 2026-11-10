@@ -1147,10 +1147,6 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('PullRequestNextStep', () => {
-    const prIterationOrganization = OrganizationFixture({
-      features: ['autofix-pr-iteration-manual'],
-    });
-
     function makePrIterationAutofix(
       overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
     ) {
@@ -1191,21 +1187,6 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('code_changes'), makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
-      );
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('returns null when the run is not valid for PR iteration', () => {
-      const autofix = makeAutofix({
-        runState: {run_id: 1, blocks: []} as any,
-      });
-      const {container} = render(
-        <SeerDrawerNextStep
-          group={GroupFixture()}
-          sections={[makeSection('pull_request')]}
-          autofix={autofix}
         />
       );
       expect(container).toBeEmptyDOMElement();
@@ -1217,8 +1198,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={makePrIterationAutofix({isPolling: true})}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
       expect(
         screen.getByText('Anything else you want to see on your PR?')
@@ -1232,8 +1212,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={makePrIterationAutofix()}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
       expect(
         screen.getByText('Anything else you want to see on your PR?')
@@ -1249,8 +1228,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture({id: '123'})}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       await userEvent.type(screen.getByRole('textbox'), 'Add a test for this');
@@ -1273,8 +1251,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       const textbox = screen.getByRole('textbox');
@@ -1295,8 +1272,7 @@ describe('SeerDrawerNextStep', () => {
           group={GroupFixture()}
           sections={[makeSection('pull_request')]}
           autofix={autofix}
-        />,
-        {organization: prIterationOrganization}
+        />
       );
 
       await userEvent.type(screen.getByRole('textbox'), '{Enter}');
