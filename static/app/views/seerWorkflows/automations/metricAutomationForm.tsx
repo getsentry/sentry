@@ -87,6 +87,10 @@ export function MetricAutomationForm(props: Props) {
     configId: props.mode === 'edit' ? props.config.id : '',
   });
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
+  const initialName =
+    props.mode === 'create'
+      ? t('Breached Metric Investigation')
+      : (props.config.name ?? t('Breached metrics'));
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
       enabled: value.enabled,
@@ -111,7 +115,9 @@ export function MetricAutomationForm(props: Props) {
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
-    const config = await updateConfig.mutateAsync(fields);
+    const config = await updateConfig.mutateAsync(
+      value.name === initialName ? fields : {...fields, name: value.name}
+    );
     toast.success(t('Automation saved.'));
     return config;
   };
@@ -119,10 +125,7 @@ export function MetricAutomationForm(props: Props) {
     ...defaultFormOptions,
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
-      name:
-        props.mode === 'create'
-          ? t('Breached Metric Investigation')
-          : (props.config.name ?? t('Breached metrics')),
+      name: initialName,
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
@@ -197,20 +200,18 @@ export function MetricAutomationForm(props: Props) {
             </Alert>
           )}
           <form.FieldGroup title={t('Description')}>
-            {props.mode === 'create' && (
-              <form.AppField name="name">
-                {field => (
-                  <field.Layout.Stack label={t('Name')} required>
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder={t('e.g. Investigate checkout errors')}
-                      maxLength={64}
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-            )}
+            <form.AppField name="name">
+              {field => (
+                <field.Layout.Stack label={t('Name')} required>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('e.g. Investigate checkout errors')}
+                    maxLength={64}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
             <Container padding="lg xl">
               <Text variant="muted">
                 {t(
