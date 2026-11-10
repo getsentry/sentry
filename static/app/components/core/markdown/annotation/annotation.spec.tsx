@@ -40,8 +40,36 @@ describe('annotations', () => {
     expect(splitAnnotations(cutInText)).toEqual(['[email] today']);
   });
 
+  it('keeps the annotations after the marks of one that was cut', () => {
+    const annotation = {text: '[email]', data: '{"rule":"@email:replace"}'};
+    // A closing mark left before an annotation.
+    const closeLeft = text.slice(text.indexOf('[email]'));
+    // An opening mark and part of its data before an annotation.
+    const openLeft = text.slice(0, text.indexOf('[email]') - 3);
+
+    expect(splitAnnotations(`${closeLeft} ${text}`)).toEqual([
+      '[email] today Mail ',
+      annotation,
+      ' today',
+    ]);
+    expect(splitAnnotations(`${openLeft}${text}`)).toEqual([
+      'Mail Mail ',
+      annotation,
+      ' today',
+    ]);
+  });
+
+  it('drops the marks of an annotation that was cut in markdown', () => {
+    const openLeft = text.slice(0, text.indexOf('[email]') - 3);
+    const closeLeft = text.slice(text.indexOf('[email]'));
+    const {container} = render(<Markdown raw={`${openLeft} and ${closeLeft}`} />);
+
+    expect(container).toHaveTextContent('Mail and [email] today');
+    expect(container).not.toHaveTextContent(/[\uFDD0-\uFDD2\uE100-\uE17F]/);
+  });
+
   it('leaves private use characters, like icon font glyphs, alone', () => {
-    const icons = 'build  ok  done';
+    const icons = 'build \uE000 ok \uE002 done';
 
     expect(hasAnnotations(icons)).toBe(false);
     expect(stripAnnotations(icons)).toBe(icons);
