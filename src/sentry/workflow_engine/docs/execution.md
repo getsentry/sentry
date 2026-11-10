@@ -22,9 +22,7 @@ organization context and an optional issue group. It returns passing action grou
 delayed items, and evaluation artifacts. Workflow selection and action dispatch remain
 the caller's responsibility; `process_workflows()` handles these for issue events.
 
-Conditions must opt in to evaluation without an issue with `supports_group_less = True`.
-Otherwise, the entire condition group is rejected. Issue-only consumers use
-`require_group()` to enforce that requirement.
+See [Conditions](conditions.md#workflows) for group-less condition requirements.
 
 ## Detection Pipeline
 
