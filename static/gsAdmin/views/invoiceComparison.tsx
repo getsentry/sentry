@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
 
@@ -221,18 +221,49 @@ export function InvoiceComparison() {
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
+  // Without a window in the URL (first visit, or a link that only carries
+  // pagination params) query the last 24h so the tables load without waiting
+  // on Run. Frozen at mount so paginating doesn't shift the window.
+  const [defaultWindow] = useState(() => ({
+    start: localInputToUtcIso(hoursAgoLocal(24)),
+    end: localInputToUtcIso(nowLocal()),
+  }));
+  // A single bound is not a range. Filling the other side from "now" makes
+  // the endpoint reject `end < start`, or loads every invoice since an old
+  // start (`compare_invoices` materializes the whole window).
+  const hasPartialWindow = Boolean(queryStart) !== Boolean(queryEnd);
+  const windowStart = queryStart && queryEnd ? queryStart : defaultWindow.start;
+  const windowEnd = queryStart && queryEnd ? queryEnd : defaultWindow.end;
+
   const [startInput, setStartInput] = useState(() =>
-    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
+    utcIsoToDatetimeLocalValue(queryStart || windowStart)
   );
   const [endInput, setEndInput] = useState(() =>
-    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
+    utcIsoToDatetimeLocalValue(queryEnd || windowEnd)
   );
 
-  // Keep the date inputs in sync with the URL on back/forward and in-app
-  // navigation that changes start/end (e.g. opening a shared link). When the
-  // URL has no window yet we leave the inputs alone so the user's in-progress
-  // typing isn't clobbered.
+  const prevQueryStart = useRef(queryStart);
+  const prevQueryEnd = useRef(queryEnd);
+  // Shared links and back/forward carry an explicit window; reflect that in
+  // the inputs. Pagination records the implicit last-24h window into an empty
+  // URL — the inputs already show it, and overwriting them would drop dates
+  // typed but not yet run.
   useEffect(() => {
+    const prevStart = prevQueryStart.current;
+    const prevEnd = prevQueryEnd.current;
+    prevQueryStart.current = queryStart;
+    prevQueryEnd.current = queryEnd;
+    if (prevStart === queryStart && prevEnd === queryEnd) {
+      return;
+    }
+    const pinnedImplicitWindow =
+      !prevStart &&
+      !prevEnd &&
+      queryStart === defaultWindow.start &&
+      queryEnd === defaultWindow.end;
+    if (pinnedImplicitWindow) {
+      return;
+    }
     if (queryStart) {
       // oxlint-disable-next-line react/set-state-in-effect
       setStartInput(utcIsoToDatetimeLocalValue(queryStart));
@@ -240,23 +271,20 @@ export function InvoiceComparison() {
     if (queryEnd) {
       setEndInput(utcIsoToDatetimeLocalValue(queryEnd));
     }
-  }, [queryStart, queryEnd]);
+  }, [queryStart, queryEnd, defaultWindow.start, defaultWindow.end]);
 
-  const enabled = Boolean(queryStart && queryEnd && cell);
-  const {data, isPending, isError, error, isPlaceholderData} = useQuery({
+  const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
-      path: enabled && cell ? {region: cell.name} : skipToken,
+      path: cell && !hasPartialWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
-      query: enabled
-        ? {
-            start: queryStart,
-            end: queryEnd,
-            rows_page: rowsPage,
-            unmatched_page: unmatchedPage,
-            rows_page_size: pageSize,
-            unmatched_page_size: pageSize,
-          }
-        : undefined,
+      query: {
+        start: windowStart,
+        end: windowEnd,
+        rows_page: rowsPage,
+        unmatched_page: unmatchedPage,
+        rows_page_size: pageSize,
+        unmatched_page_size: pageSize,
+      },
       staleTime: 0,
     }),
     // Keep the previously-rendered page visible while paginating or
@@ -271,17 +299,39 @@ export function InvoiceComparison() {
   // intended view. Done eagerly (not gated on `data`) since the validity
   // check is purely client-side.
   const rawPageSize = firstQueryValue(location.query.page_size);
+  // Persist the window actually queried so a rewritten page still refreshes
+  // to the same result. A one-sided URL is not that window — filling the
+  // missing bound would discard the one the user still has to submit.
+  const withPinnedWindow = useCallback(
+    (query: typeof location.query) => {
+      if (queryStart && queryEnd) {
+        return {...query, start: queryStart, end: queryEnd};
+      }
+      if (queryStart || queryEnd) {
+        return query;
+      }
+      return {...query, start: defaultWindow.start, end: defaultWindow.end};
+    },
+    [queryStart, queryEnd, defaultWindow.start, defaultWindow.end]
+  );
   useEffect(() => {
     if (rawPageSize !== undefined && rawPageSize !== String(pageSize)) {
       navigate(
         {
           pathname: location.pathname,
-          query: {...location.query, page_size: String(pageSize)},
+          query: {...withPinnedWindow(location.query), page_size: String(pageSize)},
         },
         {replace: true}
       );
     }
-  }, [rawPageSize, pageSize, navigate, location.pathname, location.query]);
+  }, [
+    rawPageSize,
+    pageSize,
+    navigate,
+    location.pathname,
+    location.query,
+    withPinnedWindow,
+  ]);
 
   // If the backend clamped our requested page (e.g. user landed on
   // ?rows_page=99 against a 2-page result), rewrite the URL to the
@@ -304,7 +354,10 @@ export function InvoiceComparison() {
     }
     if (Object.keys(fixes).length > 0) {
       navigate(
-        {pathname: location.pathname, query: {...location.query, ...fixes}},
+        {
+          pathname: location.pathname,
+          query: {...withPinnedWindow(location.query), ...fixes},
+        },
         {replace: true}
       );
     }
@@ -316,6 +369,7 @@ export function InvoiceComparison() {
     navigate,
     location.pathname,
     location.query,
+    withPinnedWindow,
   ]);
 
   // The endpoint returns rows pre-sorted by |delta_pct| desc; this component
@@ -326,7 +380,7 @@ export function InvoiceComparison() {
   const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, [key]: String(page)},
+      query: {...withPinnedWindow(location.query), [key]: String(page)},
     });
   };
 
@@ -337,7 +391,7 @@ export function InvoiceComparison() {
     navigate({
       pathname: location.pathname,
       query: {
-        ...location.query,
+        ...withPinnedWindow(location.query),
         page_size: String(size),
         rows_page: '1',
         unmatched_page: '1',
@@ -439,7 +493,9 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {/* isPending stays true while the query is disabled (no cell, or only
+          one bound), which would spin forever. */}
+      {isLoading && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>
