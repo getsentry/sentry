@@ -6,7 +6,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.helpers.environments import environment_visibility_filter_options
+from sentry.api.helpers.environments import (
+    EnvironmentVisibilitySerializer,
+    environment_visibility_filter_options,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.environment import (
     EnvironmentProjectSerializer,
@@ -20,7 +23,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
-from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
@@ -47,7 +50,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
-            EnvironmentParams.VISIBILITY,
+            EnvironmentVisibilitySerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -87,8 +90,8 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
             .order_by("environment__name")
         )
 
-        visibility = request.GET.get("visibility", "visible")
-        if visibility not in environment_visibility_filter_options:
+        serializer = EnvironmentVisibilitySerializer(data=request.GET)
+        if not serializer.is_valid():
             return Response(
                 {
                     "detail": f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
@@ -96,6 +99,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
                 status=400,
             )
 
+        visibility = serializer.validated_data["visibility"]
         add_visibility_filters = environment_visibility_filter_options[visibility]
         visible_queryset = add_visibility_filters(queryset)
 

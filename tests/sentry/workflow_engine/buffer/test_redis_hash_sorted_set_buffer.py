@@ -5,7 +5,6 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-import rb
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 from sentry import options
@@ -39,7 +38,7 @@ class TestRedisHashSortedSetBuffer:
         """Provide controllable time for deterministic tests."""
         return MockTimeProvider()
 
-    @pytest.fixture(params=["cluster", "standalone", "blaster"])
+    @pytest.fixture(params=["cluster", "standalone", "non-cluster"])
     def buffer(
         self, set_sentry_option: Any, request: Any, mock_time_provider: MockTimeProvider
     ) -> Generator[RedisHashSortedSetBuffer]:
@@ -61,9 +60,9 @@ class TestRedisHashSortedSetBuffer:
                     info = buf.cluster.info("server")
                     assert info["redis_mode"] == "standalone"
                     yield buf
-                case "blaster":
+                case "non-cluster":
                     buf = RedisHashSortedSetBuffer(now_fn=mock_time_provider)
-                    assert isinstance(buf.cluster, rb.Cluster)
+                    assert not buf.is_redis_cluster
                     yield buf
 
     @pytest.fixture(autouse=True)
@@ -173,7 +172,7 @@ class TestRedisHashSortedSetBuffer:
 
     def test_conditional_delete_from_sorted_sets_works_with_all_backends(self) -> None:
         """Test that conditional_delete_from_sorted_sets works with all Redis backends."""
-        # Should work with all backends (cluster, standalone, and rb.Cluster)
+        # Should work with all backends (cluster, standalone, and non-cluster)
         result = self.buf.conditional_delete_from_sorted_sets(["key1"], [(123, 1.0)])
         assert result == {"key1": []}  # Empty result since key doesn't exist
 
@@ -291,23 +290,23 @@ class TestRedisHashSortedSetBuffer:
         remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
         assert len(remaining) == 0
 
-    def test_conditional_delete_from_sorted_sets_rb_fallback(self) -> None:
-        """Test that rb.Cluster fallback works atomically using Lua scripts."""
+    def test_conditional_delete_from_sorted_sets_non_cluster(self) -> None:
+        """Test that the non-cluster path works atomically using a Lua script."""
         if self.buf.is_redis_cluster:
-            pytest.skip("This test is specifically for rb.Cluster fallback")
+            pytest.skip("This test is specifically for the non-cluster path")
 
         # Add some test data
-        key = "rb_fallback_test"
+        key = "non_cluster_test"
         self.buf.push_to_sorted_set(key, [100, 200])
 
         # Advance time to get a timestamp after the data was added
         self.mock_time.advance(10.0)
         later = self.mock_time.current_time
 
-        # Test conditional delete using rb.Cluster fallback
+        # Test conditional delete using the non-cluster path
         result = self.buf.conditional_delete_from_sorted_sets([key], [(100, later), (200, later)])
 
-        # Should have removed both members using the fallback path
+        # Should have removed both members using the non-cluster path
         assert set(result[key]) == {100, 200}
 
         # Verify key is empty
@@ -455,13 +454,12 @@ class TestRedisHashSortedSetBuffer:
             remaining = self.buf.get_sorted_set(key, 0, time.time() + 10)
             assert len(remaining) == 0
 
-    def test_conditional_delete_rb_host_batching(self) -> None:
-        """Test that rb.Cluster groups keys by host for efficient batching."""
+    def test_conditional_delete_non_cluster_multiple_keys(self) -> None:
+        """Test that the non-cluster path deletes from many keys in one call."""
         if self.buf.is_redis_cluster:
-            pytest.skip("This test is specifically for rb.Cluster host batching")
+            pytest.skip("This test is specifically for the non-cluster path")
 
-        # Test with multiple keys that should be batched by host
-        keys = [f"rb_host_test_{i}" for i in range(5)]
+        keys = [f"non_cluster_test_{i}" for i in range(5)]
 
         # Add data to all keys
         for key in keys:
@@ -469,7 +467,6 @@ class TestRedisHashSortedSetBuffer:
 
         later = time.time() + 1
 
-        # This should group keys by host and execute fewer script calls
         result = self.buf.conditional_delete_from_sorted_sets(keys, [(100, later), (200, later)])
 
         # Verify all keys had their members removed

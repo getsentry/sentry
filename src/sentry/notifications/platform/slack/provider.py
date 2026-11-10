@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from urllib.parse import parse_qs, urlsplit
 
 from slack_sdk.models.blocks import (
     ActionsBlock,
@@ -159,9 +160,10 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
     ) -> set[SlackAction]:
         """
         Adds the notification to the action ID of each button that calls back into Sentry, in the
-        message's blocks and its attachments' blocks. Link buttons are skipped, since page loads
-        count their clicks, as are buttons whose action ID names no organization, since their
-        clicks can't be attributed. Returns the Slack actions of the buttons marked. Never raises.
+        message's blocks and its attachments' blocks. Link buttons to tracked Sentry links are
+        skipped, since page loads count their clicks, as are buttons whose action ID names no
+        organization, since their clicks can't be attributed. Returns the Slack actions of the
+        buttons marked. Never raises.
         """
         from sentry.integrations.slack.message_builder.routing import (
             SlackActionTracking,
@@ -189,12 +191,24 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 action=routing_data.action,
                 organization_id=routing_data.organization_id,
                 project_id=routing_data.project_id,
+                suffix=routing_data.suffix,
                 tracking=tracking,
             )
             if tracked_action_id == action_id:
                 return None
             tracked.add(SlackAction(routing_data.action))
             return tracked_action_id
+
+        def is_counted_by_page_load(url: str | None) -> bool:
+            """
+            Whether the button opens a link decorated with this notification, whose clicks the
+            click middleware records when the page loads. Marking such a button too would count
+            each click twice.
+            """
+            if not url:
+                return False
+            query = parse_qs(urlsplit(url).query)
+            return context.notification_uuid in query.get("notification_uuid", [])
 
         try:
             attachment_blocks = [
@@ -207,7 +221,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                     for element in block.elements:
                         if (
                             isinstance(element, ButtonElement)
-                            and element.url is None
+                            and not is_counted_by_page_load(element.url)
                             and (tracked_action_id := track(element.action_id))
                         ):
                             element.action_id = tracked_action_id
@@ -215,7 +229,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                     for element in block.get("elements", []):
                         if (
                             element.get("type") == "button"
-                            and not element.get("url")
+                            and not is_counted_by_page_load(element.get("url"))
                             and (tracked_action_id := track(element.get("action_id")))
                         ):
                             element["action_id"] = tracked_action_id

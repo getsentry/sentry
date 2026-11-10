@@ -5,6 +5,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -95,6 +96,34 @@ describe('ConfigureIntegration settings tab', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('pushes the new tab and drops the cursor when switching tabs', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    const {router} = render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
+          query: {cursor: '0:100:0', other: 'kept'},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Code Mappings'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'codeMappings', other: 'kept'})
+    );
+    expect(router.historyAction).toBe('PUSH');
+  });
+
   it('links the configurations crumb to the provider configurations tab', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
@@ -168,6 +197,57 @@ describe('ConfigureIntegration settings tab', () => {
 
     expect(await screen.findByText('Slack')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
+  });
+
+  it('reconnects Linear through app authorization instead of editing credentials', async () => {
+    const provider = IntegrationProviderFixture({
+      key: 'linear',
+      slug: 'linear',
+      name: 'Linear for Seer',
+      features: ['seer-context'],
+      canAdd: false,
+    });
+    mockRequests(
+      OrganizationIntegrationsFixture({
+        name: 'Linear (Example)',
+        domainName: null,
+        provider: {...provider, aspects: {}},
+        configOrganization: [],
+        configData: {},
+      }),
+      provider
+    );
+    const initialize = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      body: {
+        step: 'oauth_login',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'linear',
+        data: {oauthUrl: 'https://linear.app/oauth/authorize?actor=app'},
+      },
+    });
+    renderGlobalModal({organization: org});
+    render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/linear/${integrationId}/`,
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Reconnect Linear'}));
+
+    expect(await screen.findByRole('button', {name: 'Authorize Linear'})).toBeEnabled();
+    expect(initialize).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      expect.objectContaining({data: {action: 'initialize', provider: 'linear'}})
+    );
+    expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
   });
 
   it('hides the tabs when Code Mappings is the only tab', async () => {

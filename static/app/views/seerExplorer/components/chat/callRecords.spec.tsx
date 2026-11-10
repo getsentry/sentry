@@ -519,6 +519,14 @@ describe('fallbackCallLabel', () => {
     expect(
       fallbackCallLabel({id: 1, kind: 'lib', name: 'gcp.api.list_logs', provider: 'gcp'})
     ).toBe('GCP operation');
+    expect(
+      fallbackCallLabel({
+        id: 1,
+        kind: 'lib',
+        name: 'linear.api.list_issues',
+        provider: 'linear',
+      })
+    ).toBe('Linear operation');
   });
 
   it('names a provider it has never seen', () => {

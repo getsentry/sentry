@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {AutoSaveForm, DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -18,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 
 import {KeyRateLimitsForm} from './keyRateLimitsForm';
@@ -49,8 +49,6 @@ export function KeySettings({
   data,
   updateData,
 }: Props) {
-  const api = useApi();
-
   const {keyId, projectId} = params;
   const apiEndpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
@@ -75,22 +73,19 @@ export function KeySettings({
     },
   };
 
+  const {mutateAsync: removeKey} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: apiEndpoint,
+        method: 'DELETE',
+      }),
+  });
+
   const handleRemove = async () => {
     toast.loading(t('Revoking key\u2026'));
 
     try {
-      await api.requestPromise(
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
-            keyId,
-          },
-        }),
-        {
-          method: 'DELETE',
-        }
-      );
+      await removeKey();
 
       onRemove();
       toast.success(t('Revoked key'));

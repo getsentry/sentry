@@ -2,8 +2,9 @@
 Ratchet that keeps every field in the public API's success responses described and typed.
 
 `make build-api-docs` writes `tests/apidocs/openapi-spectacular.json`. There, each TypedDict
-field carries its Python source in `FIELD_SOURCE`, and a recursive TypedDict cut short
-carries `CYCLE`; the deref step strips both from the published schema.
+field carries its Python source in `FIELD_SOURCE`, a recursive TypedDict cut short
+carries `CYCLE`, and a `JsonValue` field carries `JSON_VALUE`; the deref step strips all
+three from the published schema.
 `tests/apidocs/test_response_coverage.py` compares what `find_violations` reports with the
 committed baseline. See "Response fields" in `src/sentry/apidocs/README.md`.
 
@@ -23,6 +24,7 @@ from typing import Any
 
 FIELD_SOURCE = "x-sentry-source"
 CYCLE = "x-sentry-cycle"
+JSON_VALUE = "x-sentry-json-value"
 
 MISSING_DESCRIPTION = "missing-description"
 UNTYPED = "untyped"
@@ -59,10 +61,13 @@ def _is_untyped(schema: Mapping[str, Any]) -> bool:
     """`Any` (`{}`), `dict[str, Any]`, and an object without properties are untyped.
 
     A recursive TypedDict leaves its fields out where it repeats, so that object is typed.
+    So is an object with `maxProperties: 0`, which a TypedDict without fields produces:
+    it can only be `{}`. A `JsonValue` is typed too: it is any JSON value on purpose.
     """
     schema = _unwrap(schema)
     if (
         schema.get(CYCLE)
+        or schema.get(JSON_VALUE)
         or _ref_name(schema)
         or "enum" in schema
         or any(k in schema for k in _COMBINATORS)
@@ -72,6 +77,8 @@ def _is_untyped(schema: Mapping[str, Any]) -> bool:
     if kind is None:
         return True
     if kind == "object":
+        if schema.get("maxProperties") == 0:
+            return False
         values = schema.get("additionalProperties")
         return not schema.get("properties") and not (isinstance(values, dict) and values)
     return False
@@ -96,6 +103,9 @@ class _Walker:
         if _is_untyped(schema):
             self.violations.add(f"{UNTYPED} {key}")
         schema = _unwrap(schema)
+        if schema.get(JSON_VALUE):
+            # Its branches accept any object or array, which isn't a missing type.
+            return
         name = _ref_name(schema)
         if name is not None:
             if name not in self._seen:

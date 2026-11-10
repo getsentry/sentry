@@ -3,6 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {createSerializer, parseAsInteger, parseAsString, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
@@ -57,7 +59,6 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -421,7 +422,10 @@ export function Onboarding({organization, project}: OnboardingProps) {
   const theme = useTheme();
   const api = useApi();
   const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const noPerformanceSupport = doesNotSupportPerformance(project);
 

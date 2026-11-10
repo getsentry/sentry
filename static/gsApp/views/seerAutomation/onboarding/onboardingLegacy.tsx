@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSearch} from '@sentry/icons/search';
-import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
+import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -37,11 +37,11 @@ import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -454,10 +454,29 @@ function AutoTriggerFixesButton({
   selectedThreshold: string;
 }) {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
+
+  const {mutateAsync: updateProject} = useMutation({
+    mutationFn: ({
+      projectSlug,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      projectSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+          },
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
 
   const handleEnableAutoTriggerFixes = async () => {
     if (projectsWithRepos.length === 0) {
@@ -477,21 +496,13 @@ function AutoTriggerFixesButton({
         const batch = projectsWithRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: {
-                  autofixAutomationTuning: selectedThreshold,
-                  seerScannerAutomation: true,
-                },
-              }
-            )
+            updateProject({
+              projectSlug: project.slug,
+              data: {
+                autofixAutomationTuning: selectedThreshold,
+                seerScannerAutomation: true,
+              },
+            })
           )
         );
       }
@@ -543,10 +554,29 @@ function EnableIssueScansButton({
   projectsWithoutRepos: Project[];
 }) {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const {setCurrentStep, getStepNumber} = useGuidedStepsContext();
   const [isLoading, setIsLoading] = useState(false);
+
+  const {mutateAsync: updateProject} = useMutation({
+    mutationFn: ({
+      projectSlug,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      projectSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+          },
+        }),
+        method: 'PUT',
+        data,
+      }),
+  });
 
   const handleEnableIssueScans = async () => {
     if (projectsWithoutRepos.length === 0) {
@@ -564,18 +594,10 @@ function EnableIssueScansButton({
         const batch = projectsWithoutRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(
-              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              {
-                method: 'PUT',
-                data: {seerScannerAutomation: true},
-              }
-            )
+            updateProject({
+              projectSlug: project.slug,
+              data: {seerScannerAutomation: true},
+            })
           )
         );
       }

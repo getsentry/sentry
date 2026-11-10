@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -24,7 +25,6 @@ import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {Banner} from 'sentry/components/banner';
-import {Confirm} from 'sentry/components/confirm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -49,8 +49,7 @@ import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -64,7 +63,6 @@ import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {generateQueryWithTag, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -1061,6 +1059,13 @@ function TagsTable({
   );
 }
 
+export function makeDiscoverHomepageOptions(organization: Organization) {
+  return apiOptions.as<SavedQuery>()(
+    '/organizations/$organizationIdOrSlug/discover/homepage/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+  );
+}
+
 function DiscoverContextMenu({
   organization,
   eventView,
@@ -1080,19 +1085,13 @@ function DiscoverContextMenu({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const homepageQueryKey = useMemo(
-    (): ApiQueryKey => [
-      getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    [organization.slug]
-  );
+  const homepageOptions = makeDiscoverHomepageOptions(organization);
+  const homepageQueryKey = homepageOptions.queryKey;
 
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
 
-  const {data: homepageQuery} = useApiQuery<SavedQuery | undefined>(homepageQueryKey, {
-    staleTime: 0,
+  const {data: homepageQuery} = useQuery({
+    ...homepageOptions,
     enabled: hasDiscoverQueryFeature,
   });
 
@@ -1126,9 +1125,8 @@ function DiscoverContextMenu({
             organization,
             source: analyticsEventSource,
           });
-          setApiQueryData(queryClient, homepageQueryKey, undefined);
+          await queryClient.resetQueries({queryKey: homepageQueryKey, exact: true});
           if (isHomepage) {
-            setSavedQuery(undefined);
             const nextEventView = EventView.fromNewQueryWithLocation(
               DEFAULT_EVENT_VIEW,
               location
@@ -1155,7 +1153,11 @@ function DiscoverContextMenu({
             source: analyticsEventSource,
           });
           if (updatedHomepageQuery) {
-            setApiQueryData(queryClient, homepageQueryKey, updatedHomepageQuery);
+            queryClient.setQueryData(homepageQueryKey, previous => ({
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: updatedHomepageQuery,
+            }));
             if (isHomepage) {
               setSavedQuery(updatedHomepageQuery);
             }
@@ -1490,28 +1492,33 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   const {organization, location} = props;
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const queryKey = useMemo(
-    (): ApiQueryKey => [
-      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          queryId: decodeScalar(location.query.id)!,
-        },
-      }),
-    ],
+  const savedQueryOptions = useMemo(
+    () =>
+      apiOptions.as<SavedQuery>()(
+        '/organizations/$organizationIdOrSlug/discover/saved/$queryId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            queryId: decodeScalar(location.query.id)!,
+          },
+          staleTime: 0,
+        }
+      ),
     [organization, location.query.id]
   );
-  const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
-    queryKey,
-    {
-      enabled: Boolean(location.query.id),
-      staleTime: 0,
-    }
-  );
+  const queryKey = savedQueryOptions.queryKey;
+  const {data, isError, isFetching, refetch} = useQuery({
+    ...savedQueryOptions,
+    enabled: Boolean(location.query.id),
+  });
 
   const setSavedQuery = useCallback(
     (newQuery?: SavedQuery) => {
-      setApiQueryData(queryClient, queryKey, newQuery);
+      queryClient.setQueryData(queryKey, previous =>
+        newQuery === undefined
+          ? previous
+          : {...previous, headers: previous?.headers ?? {}, json: newQuery}
+      );
       queryClient.refetchQueries({queryKey});
     },
     [queryClient, queryKey]
