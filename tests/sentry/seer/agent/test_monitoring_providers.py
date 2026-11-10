@@ -908,3 +908,28 @@ class TestAwsMonitoringProviderConnections(TestCase):
         for flag in ["integrations-aws", "seer-infra-telemetry"]:
             with self.subTest(flag=flag), self.feature({f"organizations:{flag}": False}):
                 assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_is_verified_requires_recorded_connected_status(self) -> None:
+        from sentry.integrations.aws.integration import AwsOrgMonitoringProvider
+
+        provider = AwsOrgMonitoringProvider()
+        assert provider.is_verified(self.organization) is False
+
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config},
+        )
+        # No recorded verification status (e.g. settings were changed and not re-verified).
+        assert provider.is_verified(self.organization) is False
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=integration.id, organization_id=self.organization.id
+            )
+        for status, verified in [("unverified", False), ("error", False), ("connected", True)]:
+            with self.subTest(status=status):
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    org_integration.update(config={**self.config, "connection_status": status})
+                assert provider.is_verified(self.organization) is verified

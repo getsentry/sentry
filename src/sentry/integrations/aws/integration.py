@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict
 
 from django.http.request import HttpRequest
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField, ChoiceField
 from rest_framework.serializers import ValidationError
@@ -15,12 +16,15 @@ from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.aws.client import (
     AWS_MCP_REGIONS,
+    AWS_NOT_CONFIGURED_MESSAGE,
     AWS_ROLE_ARN_MESSAGE,
+    AWS_STATUS_CONNECTED,
+    AWS_STATUS_ERROR,
+    AWS_STATUS_UNVERIFIED,
     build_cloudformation_template,
     get_mcp_url,
     get_sentry_principal_arn,
     parse_role_arn,
-    validate_aws_connection,
 )
 from sentry.integrations.base import (
     FeatureDescription,
@@ -30,9 +34,11 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.aws_seer import aws_seer_service
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.locks import locks
@@ -68,6 +74,14 @@ metadata = IntegrationMetadata(
 )
 
 
+def get_cell_principal_arn(organization_id: int) -> str:
+    """The Seer workload role in the organization's cell, which customer roles must trust."""
+    principal_arn = aws_seer_service.get_principal_arn(organization_id=organization_id)
+    if principal_arn is None:
+        raise IntegrationConfigurationError(AWS_NOT_CONFIGURED_MESSAGE)
+    return principal_arn
+
+
 class AwsRoleInput(TypedDict):
     role_arn: str
     region: str
@@ -89,9 +103,9 @@ class AwsRoleApiStep:
     step_name = "aws_role"
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
-        principal_arn = get_sentry_principal_arn()
         assert pipeline.organization is not None
         organization = pipeline.organization
+        principal_arn = get_cell_principal_arn(organization.id)
         # Setup state expires. Persist the trust identifier before returning a template,
         # and serialize first-time setup across users and concurrent pipelines.
         with locks.get(
@@ -126,13 +140,74 @@ class AwsRoleApiStep:
         external_id = pipeline.fetch_state("aws_external_id")
         if not external_id:
             return PipelineStepResult.error("Restart setup to generate a Sentry external ID.")
-        try:
-            validate_aws_connection(
-                validated_data["role_arn"], external_id, validated_data["region"]
-            )
-        except IntegrationConfigurationError as error:
-            return PipelineStepResult.error(str(error))
         pipeline.bind_state("config", dict(validated_data))
+        return PipelineStepResult.advance()
+
+
+class AwsVerification(TypedDict):
+    connection_status: str
+    error_detail: str | None
+
+
+class AwsVerificationInputSerializer(CamelSnakeSerializer["AwsVerificationInput"]):
+    """The outcome the frontend obtained from the cell-silo verify-connection endpoint.
+
+    The control silo cannot reach the organization's Seer, so the pipeline records a
+    result rather than verifying; it only cross-checks that the result describes the
+    configured role.
+    """
+
+    connection_status = ChoiceField(
+        choices=[(status, status) for status in (AWS_STATUS_CONNECTED, AWS_STATUS_ERROR)],
+        required=True,
+    )
+    error_detail = CharField(
+        required=False, allow_null=True, allow_blank=True, default=None, max_length=512
+    )
+    role_arn = CharField(required=True, max_length=2048)
+    region = ChoiceField(choices=[(region, region) for region in AWS_MCP_REGIONS], required=True)
+
+
+class AwsVerificationInput(TypedDict):
+    connection_status: str
+    error_detail: str | None
+    role_arn: str
+    region: str
+
+
+class AwsVerificationApiStep:
+    step_name = "aws_verification"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        config: dict[str, Any] = pipeline.fetch_state("config") or {}
+        return {
+            "roleArn": config.get("role_arn", ""),
+            "region": config.get("region", ""),
+            "externalId": pipeline.fetch_state("aws_external_id") or "",
+        }
+
+    def get_serializer_cls(self) -> type:
+        return AwsVerificationInputSerializer
+
+    def handle_post(
+        self,
+        validated_data: AwsVerificationInput,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        config: dict[str, Any] = pipeline.fetch_state("config") or {}
+        if validated_data["role_arn"] != config.get("role_arn") or validated_data[
+            "region"
+        ] != config.get("region"):
+            return PipelineStepResult.error(
+                "Verification results do not match the configured AWS role. "
+                "Please re-run verification."
+            )
+        verification: AwsVerification = {
+            "connection_status": validated_data["connection_status"],
+            "error_detail": validated_data.get("error_detail") or None,
+        }
+        pipeline.bind_state("verification", verification)
         return PipelineStepResult.advance()
 
 
@@ -169,6 +244,22 @@ class AwsIntegration(IntegrationInstallation):
             },
         ]
 
+    def get_config_data(self) -> Mapping[str, Any]:
+        try:
+            config = self.org_integration.config
+        except OrganizationIntegrationNotFound:
+            return {}
+        if not config:
+            return {}
+        return {
+            "role_arn": config.get("role_arn", ""),
+            "region": config.get("region", ""),
+            "external_id": config.get("external_id", ""),
+            "connection_status": config.get("connection_status", AWS_STATUS_UNVERIFIED),
+            "error_detail": config.get("error_detail"),
+            "last_verified_at": config.get("last_verified_at"),
+        }
+
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         config = self.org_integration.config
         external_id = config.get("external_id")
@@ -182,10 +273,21 @@ class AwsIntegration(IntegrationInstallation):
         )
         serializer.is_valid(raise_exception=True)
         validated = serializer.validated_data
-        validate_aws_connection(validated["role_arn"], external_id, validated["region"])
+        if validated["role_arn"] == config.get("role_arn") and validated["region"] == config.get(
+            "region"
+        ):
+            return
+        # Saving does not verify: the settings UI re-verifies through the cell-silo
+        # verify-connection endpoint, which records the new status.
         org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
-            config={**validated, "external_id": external_id},
+            config={
+                **validated,
+                "external_id": external_id,
+                "connection_status": AWS_STATUS_UNVERIFIED,
+                "error_detail": None,
+                "last_verified_at": None,
+            },
         )
         if org_integration is not None:
             self.org_integration = org_integration
@@ -201,7 +303,7 @@ class AwsIntegrationProvider(IntegrationProvider):
     allow_multiple = False
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
-        return [AwsRoleApiStep()]
+        return [AwsRoleApiStep(), AwsVerificationApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config")
@@ -220,7 +322,8 @@ class AwsIntegrationProvider(IntegrationProvider):
                     "role_arn": role_arn,
                     "region": config["region"],
                     "external_id": external_id,
-                }
+                },
+                "verification": state.get("verification"),
             },
         }
 
@@ -234,12 +337,38 @@ class AwsIntegrationProvider(IntegrationProvider):
         org_integration = OrganizationIntegration.objects.get(
             organization_id=organization.id, integration_id=integration.id
         )
-        org_integration.update(config=extra["config"])
+        verification: AwsVerification | None = extra.get("verification")
+        last_verified_at = timezone.now().isoformat() if verification is not None else None
+        if verification is None:
+            logger.error(
+                "aws.post_install_missing_verification",
+                extra={"organization_id": organization.id, "integration_id": integration.id},
+            )
+            verification = {
+                "connection_status": AWS_STATUS_ERROR,
+                "error_detail": "Verification failed to run during setup.",
+            }
+        org_integration.update(
+            config={
+                **extra["config"],
+                "connection_status": verification["connection_status"],
+                "error_detail": verification.get("error_detail"),
+                "last_verified_at": last_verified_at,
+            }
+        )
 
 
 @org_monitoring_provider_registry.register(IntegrationProviderSlug.AWS.value)
 class AwsOrgMonitoringProvider(OrgMonitoringProvider):
     provider_key = IntegrationProviderSlug.AWS.value
+
+    def is_verified(self, organization: Organization) -> bool:
+        org_integration = integration_service.organization_context(
+            organization_id=organization.id, provider=self.provider_key
+        ).organization_integration
+        if org_integration is None:
+            return False
+        return org_integration.config.get("connection_status") == AWS_STATUS_CONNECTED
 
     def build_connection(
         self, organization: Organization

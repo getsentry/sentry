@@ -14,6 +14,27 @@ Then deploy the Sentry backend and the setup UI in separate PRs. Keep
 `organizations:integrations-aws` disabled until runtime configuration and live
 verification are complete.
 
+## Silos
+
+Setup and settings run in the control silo, but each cell runs its own Seer, so
+verification mirrors the GCP integration: the browser calls the org-scoped,
+cell-silo endpoint
+`/organizations/{org}/monitoring-providers/aws/verify-connection/`, which Synapse
+routes to the organization's cell. That endpoint calls the cell's Seer directly
+(it holds the request for up to `AWS_VERIFY_CONNECTION_TIMEOUT`, 90s, without
+retries), records the outcome on the org integration config (with a staleness
+guard against settings that have since changed), and returns it. The control-silo
+setup pipeline never verifies; its verification step only accepts the outcome the
+frontend obtained from the cell endpoint, cross-checked against the configured
+role, and persists it at install time. Saving settings resets the stored status to
+`unverified` until the settings UI re-verifies through the cell endpoint.
+
+The only cross-silo call is the small `aws_seer.get_principal_arn` cell RPC
+(`sentry/integrations/services/aws_seer`), which supplies the cell's Seer workload
+ARN for the CloudFormation template. Seer-facing code in `client.py` runs only in
+cells, and investigations build connections there too. As a result,
+`aws-seer.principal-arn` is read only in cells and may differ per cell.
+
 ## Workload Identity
 
 Configure Seer's AWS SDK credential chain to resolve a Sentry-owned IAM workload
@@ -43,11 +64,12 @@ chaining. Changing the customer's role policy cannot widen Seer's session beyond
 that ceiling. Keep the template actions aligned with Seer's runtime policy when
 adding a supported telemetry operation.
 
-Setup and settings changes ask Seer to assume the role, test rejection of missing
-and incorrect external IDs, and perform CloudWatch, CloudWatch Logs, and X-Ray
-reads through the same signed MCP transport used by investigations. A failed or
-unavailable verification prevents saving. Empty telemetry accounts are valid;
-successful MCP initialization or tool discovery alone is not verification.
+Verification asks Seer to assume the role, tests rejection of missing and
+incorrect external IDs, and performs CloudWatch, CloudWatch Logs, and X-Ray reads
+through the same signed MCP transport used by investigations. The recorded
+`connection_status` must be `connected` before Seer treats the integration as
+verified (`AwsOrgMonitoringProvider.is_verified`). Empty telemetry accounts are
+valid; successful MCP initialization or tool discovery alone is not verification.
 
 The AWS namespace also requires Seer's `codemode-runtime-mcp-providers` feature
 and Sentry's `organizations:seer-infra-telemetry` feature. AWS exposes a generic
@@ -56,7 +78,6 @@ HTTP request with service `aws-mcp` in the endpoint region, refreshes the
 15-minute customer sessions before expiry, and refuses alternate credential
 destinations and redirects.
 
-Local tests use botocore's validated STS stub responses and an in-process MCP
-server. Before rollout, verify a sandbox AWS account end-to-end, including
-credential expiry, telemetry reads, and IAM rejection of writes despite a broader
-customer role policy. No live AWS verification is implied by the local tests.
+Sentry's tests mock Seer's verification response. Before rollout, verify a sandbox
+AWS account end-to-end, including credential expiry, telemetry reads, and IAM
+rejection of writes despite a broader customer role policy.

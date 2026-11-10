@@ -14,11 +14,13 @@ from urllib3.response import HTTPResponse
 from sentry.integrations.aws.client import (
     AWS_EXTERNAL_ID_MESSAGE,
     AWS_ROLE_ACCESS_MESSAGE,
+    AWS_STATUS_CONNECTED,
+    AWS_STATUS_ERROR,
     AWS_VERIFICATION_MESSAGE,
     build_cloudformation_template,
     get_mcp_url,
     parse_role_arn,
-    validate_aws_connection,
+    verify_aws_connection,
 )
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import (
@@ -27,6 +29,7 @@ from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiTimeoutError,
     IntegrationConfigurationError,
+    IntegrationError,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils.helpers.options import override_options
@@ -529,8 +532,10 @@ def test_aws_mcp_url_rejects_unsupported_regions(region: str) -> None:
 def test_aws_connection_requires_correct_external_id() -> None:
     with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
         verify.return_value = mock.Mock(status=200, data=b'{"connection_status":"connected"}')
-        validate_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+        result = verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+    assert result == {"connection_status": AWS_STATUS_CONNECTED, "error_detail": None}
     assert verify.call_args.args[1] == "/v1/monitoring-providers/aws/verify-connection"
+    assert verify.call_args.kwargs["retries"] == 0
     assert orjson.loads(verify.call_args.kwargs["body"]) == {
         "role_arn": AWS_TEST_ROLE_ARN,
         "external_id": AWS_TEST_EXTERNAL_ID,
@@ -540,41 +545,51 @@ def test_aws_connection_requires_correct_external_id() -> None:
 
 
 @pytest.mark.parametrize(
-    "error_code,message",
+    "payload,message",
     [
-        ("external_id_not_enforced", AWS_EXTERNAL_ID_MESSAGE),
-        ("role_access_denied", AWS_ROLE_ACCESS_MESSAGE),
-        ("telemetry_access_denied", AWS_VERIFICATION_MESSAGE),
-        ("private diagnostic", AWS_VERIFICATION_MESSAGE),
+        (
+            {"connection_status": "error", "error_code": "external_id_not_enforced"},
+            AWS_EXTERNAL_ID_MESSAGE,
+        ),
+        (
+            {"connection_status": "error", "error_code": "role_access_denied"},
+            AWS_ROLE_ACCESS_MESSAGE,
+        ),
+        (
+            {"connection_status": "error", "error_code": "telemetry_access_denied"},
+            AWS_VERIFICATION_MESSAGE,
+        ),
+        (
+            {"connection_status": "error", "error_code": "private diagnostic"},
+            AWS_VERIFICATION_MESSAGE,
+        ),
+        # A reachable Seer answering nonsense is a failed verification with the
+        # generic fixed message; Seer's text never reaches the result.
+        ({}, AWS_VERIFICATION_MESSAGE),
     ],
 )
 @override_options({"aws-seer.principal-arn": AWS_TEST_PRINCIPAL_ARN})
-def test_aws_connection_rejects_failed_verification(error_code: str, message: str) -> None:
+def test_aws_connection_reports_failed_verification(payload: dict[str, str], message: str) -> None:
     with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
-        verify.return_value = mock.Mock(
-            status=200,
-            data=orjson.dumps({"connection_status": "error", "error_code": error_code}),
-        )
-        with pytest.raises(IntegrationConfigurationError, match=message):
-            validate_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+        verify.return_value = mock.Mock(status=200, data=orjson.dumps(payload))
+        result = verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+    assert result == {"connection_status": AWS_STATUS_ERROR, "error_detail": message}
 
 
-@pytest.mark.parametrize(
-    "status,data", [(404, b""), (503, b""), (200, b"not json"), (200, b"[]"), (200, b"{}")]
-)
+@pytest.mark.parametrize("status,data", [(404, b""), (503, b""), (200, b"not json"), (200, b"[]")])
 @override_options({"aws-seer.principal-arn": AWS_TEST_PRINCIPAL_ARN})
 def test_aws_connection_fails_closed_for_unavailable_seer(status: int, data: bytes) -> None:
     with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
         verify.return_value = mock.Mock(status=status, data=data)
-        with pytest.raises(IntegrationConfigurationError, match=AWS_VERIFICATION_MESSAGE):
-            validate_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+        with pytest.raises(IntegrationError, match=AWS_VERIFICATION_MESSAGE):
+            verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
 
 
 @override_options({"aws-seer.principal-arn": ""})
 def test_aws_connection_requires_sentry_workload_configuration() -> None:
     with mock.patch("sentry.integrations.aws.client.make_signed_seer_api_request") as verify:
         with pytest.raises(IntegrationConfigurationError, match="not configured"):
-            validate_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
+            verify_aws_connection(AWS_TEST_ROLE_ARN, AWS_TEST_EXTERNAL_ID, "us-east-1")
         verify.assert_not_called()
 
 

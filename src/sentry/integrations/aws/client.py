@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import re
-from typing import Any
+from typing import Any, TypedDict
 
 import orjson
 from urllib3.exceptions import HTTPError
@@ -11,7 +12,9 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     seer_autofix_default_connection_pool,
 )
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+
+logger = logging.getLogger(__name__)
 
 # Regions hosting the managed AWS MCP server, not the regions it can query.
 AWS_MCP_REGIONS = (
@@ -38,6 +41,15 @@ AWS_EXTERNAL_ID_MESSAGE = (
 AWS_VERIFICATION_MESSAGE = (
     "Could not verify AWS telemetry access. Check the role permissions and try again."
 )
+AWS_NOT_CONFIGURED_MESSAGE = "AWS for Seer is not configured. Contact support to enable it."
+# The browser holds this request open against the cell-silo verify-connection
+# endpoint; verification never runs inside an inter-silo RPC (see README).
+AWS_VERIFY_CONNECTION_TIMEOUT = 90
+
+# Verification statuses stored in the org integration config.
+AWS_STATUS_UNVERIFIED = "unverified"
+AWS_STATUS_CONNECTED = "connected"
+AWS_STATUS_ERROR = "error"
 
 # Keep in sync with Seer's fixed runtime session policy in mcp/aws_credentials.py.
 SEER_TELEMETRY_ACTIONS = [
@@ -78,9 +90,7 @@ def parse_role_arn(value: Any) -> str:
 def get_sentry_principal_arn() -> str:
     principal_arn = options.get("aws-seer.principal-arn")
     if not principal_arn:
-        raise IntegrationConfigurationError(
-            "AWS for Seer is not configured. Contact support to enable it."
-        )
+        raise IntegrationConfigurationError(AWS_NOT_CONFIGURED_MESSAGE)
     return parse_role_arn(principal_arn)
 
 
@@ -133,8 +143,25 @@ def build_cloudformation_template(principal_arn: str, external_id: str) -> dict[
     }
 
 
-def validate_aws_connection(role_arn: str, external_id: str, region: str) -> None:
-    """Verify trust and telemetry through Seer's runtime identity and signed MCP transport."""
+class AwsVerifyConnectionResult(TypedDict):
+    connection_status: str  # AWS_STATUS_CONNECTED or AWS_STATUS_ERROR
+    # A fixed, user-facing message from this module; never Seer's text.
+    error_detail: str | None
+
+
+def verify_aws_connection(
+    role_arn: str, external_id: str, region: str
+) -> AwsVerifyConnectionResult:
+    """Verify trust and telemetry through Seer's runtime identity and signed MCP transport.
+
+    Cell silo only: it calls this cell's Seer, and `aws-seer.principal-arn` holds this
+    cell's value. The control silo never verifies; the setup pipeline records the
+    result the frontend obtained from the cell-silo verify-connection endpoint.
+
+    Raises `IntegrationConfigurationError` when this cell's workload identity is not
+    configured and `IntegrationError` when Seer cannot be reached; a reachable Seer
+    produces a result, which may carry a fixed user-facing error.
+    """
     role_arn = parse_role_arn(role_arn)
     get_mcp_url(region)
     principal_arn = get_sentry_principal_arn()
@@ -150,22 +177,28 @@ def validate_aws_connection(role_arn: str, external_id: str, region: str) -> Non
                     "principal_arn": principal_arn,
                 }
             ),
-            timeout=90,
+            timeout=AWS_VERIFY_CONNECTION_TIMEOUT,
+            # Verification is slow and not idempotent on Seer's side; never retry it.
             retries=0,
         )
     except HTTPError:
-        raise IntegrationConfigurationError(AWS_VERIFICATION_MESSAGE) from None
+        logger.exception("aws.verify_connection_request_error")
+        raise IntegrationError(AWS_VERIFICATION_MESSAGE) from None
     if response.status != 200:
-        raise IntegrationConfigurationError(AWS_VERIFICATION_MESSAGE)
+        logger.error("aws.verify_connection_failed", extra={"status_code": response.status})
+        raise IntegrationError(AWS_VERIFICATION_MESSAGE)
     try:
         result = orjson.loads(response.data)
     except orjson.JSONDecodeError:
-        raise IntegrationConfigurationError(AWS_VERIFICATION_MESSAGE) from None
+        logger.error("aws.verify_connection_invalid_response")
+        raise IntegrationError(AWS_VERIFICATION_MESSAGE) from None
     if not isinstance(result, dict):
-        raise IntegrationConfigurationError(AWS_VERIFICATION_MESSAGE)
-    if result.get("connection_status") != "connected":
-        message = {
-            "external_id_not_enforced": AWS_EXTERNAL_ID_MESSAGE,
-            "role_access_denied": AWS_ROLE_ACCESS_MESSAGE,
-        }.get(str(result.get("error_code")), AWS_VERIFICATION_MESSAGE)
-        raise IntegrationConfigurationError(message)
+        logger.error("aws.verify_connection_invalid_response")
+        raise IntegrationError(AWS_VERIFICATION_MESSAGE)
+    if result.get("connection_status") == AWS_STATUS_CONNECTED:
+        return {"connection_status": AWS_STATUS_CONNECTED, "error_detail": None}
+    error_detail = {
+        "external_id_not_enforced": AWS_EXTERNAL_ID_MESSAGE,
+        "role_access_denied": AWS_ROLE_ACCESS_MESSAGE,
+    }.get(str(result.get("error_code")), AWS_VERIFICATION_MESSAGE)
+    return {"connection_status": AWS_STATUS_ERROR, "error_detail": error_detail}

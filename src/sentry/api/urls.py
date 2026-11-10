@@ -30,6 +30,9 @@ from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
+from sentry.api.endpoints.organization_monitoring_provider_aws_verify_connection import (
+    OrganizationMonitoringProviderAwsVerifyConnectionEndpoint,
+)
 from sentry.api.endpoints.organization_monitoring_provider_details import (
     OrganizationMonitoringProviderDetailsEndpoint,
 )
@@ -2014,6 +2017,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/$",
         OrganizationMonitoringProviderIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitoring-providers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/aws/verify-connection/$",
+        OrganizationMonitoringProviderAwsVerifyConnectionEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-provider-aws-verify-connection",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/gcp/verify-connection/$",
