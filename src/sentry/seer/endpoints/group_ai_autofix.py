@@ -82,6 +82,8 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
 from sentry.seer.endpoints.utils import (
+    SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+    SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL,
     SEER_OUT_OF_CREDITS_CODE,
     SEER_OUT_OF_QUOTA_CODE,
     SEER_PERMISSION_DENIED,
@@ -464,7 +466,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 except SeerOutOfCreditsException:
                     return Response(
                         {
-                            "detail": "Your organization does not have enough credits to continue your Autofix run.",
+                            "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
                             "code": SEER_OUT_OF_CREDITS_CODE,
                         },
                         status=status.HTTP_402_PAYMENT_REQUIRED,
@@ -604,9 +606,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     return Response(
                         {
                             "detail": (
-                                "Your organization does not have enough credits to start an Autofix run."
+                                SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL
                                 if resolved_run_id is None
-                                else "Your organization does not have enough credits to continue your Autofix run."
+                                else SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL
                             ),
                             "code": SEER_OUT_OF_CREDITS_CODE,
                         },

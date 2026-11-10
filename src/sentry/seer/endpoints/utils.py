@@ -21,6 +21,16 @@ SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 SEER_OUT_OF_CREDITS_CODE = "seer_out_of_credits"
 SEER_OUT_OF_QUOTA_CODE = "seer_out_of_quota"
 
+SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits to start an Autofix run."
+)
+SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits to continue your Autofix run."
+)
+SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
+    "Your organization does not have enough credits left for you to message Seer."
+)
+
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {

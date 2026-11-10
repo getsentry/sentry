@@ -40,7 +40,12 @@ from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
-from sentry.seer.endpoints.utils import SEER_OUT_OF_CREDITS_CODE, ResolvedSeerRun, resolve_seer_run
+from sentry.seer.endpoints.utils import (
+    SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
+    SEER_OUT_OF_CREDITS_CODE,
+    ResolvedSeerRun,
+    resolve_seer_run,
+)
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -53,10 +58,6 @@ logger = logging.getLogger(__name__)
 _CODE_MODE_VALUES = frozenset({"off", "only"})
 
 _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
-
-_OUT_OF_CREDITS_DETAIL = (
-    "Your organization does not have enough credits left for you to message Seer."
-)
 
 
 class SeerAgentChatStateResponse(BaseModel):
@@ -275,7 +276,8 @@ def _maybe_reply_to_single_run(
         )
     except SeerOutOfCreditsException:
         return Response(
-            {"detail": _OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE}, status=402
+            {"detail": SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE},
+            status=402,
         )
     except SeerApiError as e:
         if e.status == 404:
@@ -451,7 +453,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
         ):
             return Response(
-                {"detail": _OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE}, status=402
+                {"detail": SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE},
+                status=402,
             )
 
         try:

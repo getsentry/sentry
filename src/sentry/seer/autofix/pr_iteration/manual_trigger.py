@@ -26,7 +26,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTrigge
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
 from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
-from sentry.seer.endpoints.utils import SEER_OUT_OF_CREDITS_CODE, SEER_PERMISSION_DENIED
+from sentry.seer.endpoints.utils import (
+    SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+    SEER_OUT_OF_CREDITS_CODE,
+    SEER_PERMISSION_DENIED,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.users.services.user.service import user_service
@@ -88,7 +92,7 @@ def handle_ui_feedback(
     ):
         return Response(
             {
-                "detail": "Your organization does not have enough credits to continue your Autofix run.",
+                "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
                 "code": SEER_OUT_OF_CREDITS_CODE,
             },
             status=status.HTTP_402_PAYMENT_REQUIRED,
