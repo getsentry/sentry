@@ -1889,7 +1889,7 @@ describe('SeerExplorerContent', () => {
         )
       );
       expect(sendMessage).not.toHaveBeenCalled();
-      expect(await getSeerExplorerInput()).toBeEmptyDOMElement();
+      expect(await getSeerExplorerInput()).toHaveTextContent(/^$/);
     });
 
     it('takes a question typed after picking the command from the menu', async () => {

@@ -3,7 +3,7 @@ import {IconGroup} from '@sentry/icons/group';
 import {queryOptions} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {
   Composer,
