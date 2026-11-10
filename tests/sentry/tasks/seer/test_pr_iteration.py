@@ -60,6 +60,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
+    pop_queued_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
@@ -1667,6 +1668,56 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             timestamp="2024-01-01T00:00:00Z",
         )
         assert queued_texts(self._state(blocks=[block])) == []
+
+    def _hold_check_suite_in_flight(self, updated_at: str) -> None:
+        enqueue_autofix_feedback(
+            log_ctx=PrIterationLogContext.for_run(
+                MagicMock(),
+                self._state(),
+                self.organization.id,
+                None,
+                iteration=LogCtxIteration.TRIGGERED,
+            ),
+            run_id=67890,
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=self._check_suite_feedback(updated_at=updated_at),
+            referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+            run_state=self._state(),
+        )
+        pop_queued_autofix_feedback(67890)
+
+    def _check_suite_block(self, updated_at: str) -> MemoryBlock:
+        feedback = self._check_suite_feedback(updated_at=updated_at)
+        return MemoryBlock(
+            id="iter0",
+            message=Message(
+                role="assistant", metadata={"feedback": serialize_feedback([feedback])}
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
+    def _queued_suite_updated_ats(self, state: SeerRunState) -> list[str]:
+        fields = get_pr_iteration_state_fields(self.organization, state, None)
+        return [
+            item["source"]["event"]["check_suite"]["updated_at"]
+            for item in fields["queued_feedback"]
+        ]
+
+    def test_a_check_suite_rerun_stays_visible_while_seer_has_the_earlier_attempt(
+        self,
+    ) -> None:
+        # A re-run keeps the suite id and bumps updated_at.
+        self._hold_check_suite_in_flight("2024-01-02T00:00:00Z")
+        state = self._state(blocks=[self._check_suite_block("2024-01-01T00:00:00Z")])
+
+        assert self._queued_suite_updated_ats(state) == ["2024-01-02T00:00:00Z"]
+
+    def test_a_check_suite_attempt_seer_has_is_not_shown_again(self) -> None:
+        self._hold_check_suite_in_flight("2024-01-01T00:00:00Z")
+        state = self._state(blocks=[self._check_suite_block("2024-01-01T00:00:00Z")])
+
+        assert self._queued_suite_updated_ats(state) == []
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

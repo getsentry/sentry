@@ -15,6 +15,9 @@ from typing import Any
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, blocks_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CheckSuiteFeedbackSource,
+)
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     get_blocked_pr_iteration_permissions,
 )
@@ -31,7 +34,12 @@ from sentry.seer.models.run import SeerRun
 
 def _feedback_key(feedback: Feedback) -> tuple[str, str]:
     # Paired with the type because ids from different sources can collide.
-    return (feedback.source.type, feedback.feedback_id)
+    source = feedback.source
+    if isinstance(source, CheckSuiteFeedbackSource):
+        # A re-run keeps the suite id, so an earlier attempt in a block must not
+        # hide it. Same attempt key as the consume dedupe.
+        return (source.type, str(source.check_suite_attempt_key()))
+    return (source.type, feedback.feedback_id)
 
 
 def _in_flight_items(
