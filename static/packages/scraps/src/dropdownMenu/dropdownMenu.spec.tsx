@@ -121,6 +121,50 @@ describe('DropdownMenu', () => {
     }
   });
 
+  it('closes only the open submenu when a trailing action in the parent menu is pressed', async () => {
+    const onTrailingClick = jest.fn();
+
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              onAction: onTrailingClick,
+            },
+          },
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: true,
+            children: [{key: 'other-project', label: 'Other Project'}],
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Other Project'})
+    ).toBeInTheDocument();
+
+    // The trailing action sits outside its item's hover area, so reaching it
+    // does not close the submenu first.
+    await userEvent.click(screen.getByRole('button', {name: 'Bookmark'}));
+
+    expect(onTrailingClick).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Other Project'})
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps keyboard activation of a trailing action from selecting its menu item', async () => {
     const onAction = jest.fn();
     const onTrailingClick = jest.fn();
