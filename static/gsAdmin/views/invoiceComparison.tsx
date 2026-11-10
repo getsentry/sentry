@@ -24,6 +24,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
+type LastInvoice = {
+  amount: number;
+  date_added: string;
+  guid: string;
+};
+
 type Row = {
   delta_cents: number;
   delta_pct: number | null;
@@ -38,6 +44,10 @@ type Row = {
   platform_invoice_count: number;
   platform_invoice_guid: string | null;
   status: RowStatus;
+  // The latest invoice from any date on the side a one-sided row is missing,
+  // null when that side never invoiced. Optional so a response from a backend
+  // that predates the field renders as before.
+  missing_side_last_invoice?: LastInvoice | null;
 };
 
 type Summary = {
@@ -109,6 +119,34 @@ function InvoiceAmount({
     return amount;
   }
   return <Link to={`/_admin/invoices/${region}/${guid}/`}>{amount}</Link>;
+}
+
+// Under the empty side of a one-sided row, show that side's latest invoice
+// from any date, so a renewal that only fell outside the window stands out
+// from a side that never invoiced.
+function MissingSideLastInvoice({
+  last,
+  region,
+}: {
+  last: LastInvoice | null | undefined;
+  region: string | undefined;
+}) {
+  if (last === undefined) {
+    return null;
+  }
+  if (last === null) {
+    return (
+      <Text as="div" size="xs" variant="muted">
+        never invoiced
+      </Text>
+    );
+  }
+  return (
+    <Text as="div" size="xs" variant="muted">
+      last <InvoiceAmount cents={last.amount} guid={last.guid} region={region} /> on{' '}
+      {utcDay(Date.parse(last.date_added))}
+    </Text>
+  );
 }
 
 function formatPercent(pct: number | null) {
@@ -554,6 +592,12 @@ export function InvoiceComparison() {
                         <Text size="sm" variant="muted">
                           ({row.legacy_invoice_count})
                         </Text>
+                        {row.status === 'platform_only' && (
+                          <MissingSideLastInvoice
+                            last={row.missing_side_last_invoice}
+                            region={cell?.name}
+                          />
+                        )}
                       </RightCell>
                       <RightCell>
                         <InvoiceAmount
@@ -564,6 +608,12 @@ export function InvoiceComparison() {
                         <Text size="sm" variant="muted">
                           ({row.platform_invoice_count})
                         </Text>
+                        {row.status === 'legacy_only' && (
+                          <MissingSideLastInvoice
+                            last={row.missing_side_last_invoice}
+                            region={cell?.name}
+                          />
+                        )}
                       </RightCell>
                       <RightCell>{formatPercent(row.delta_pct)}</RightCell>
                       <RightCell>{formatDollars(row.delta_cents)}</RightCell>

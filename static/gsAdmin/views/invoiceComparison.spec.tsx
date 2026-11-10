@@ -267,6 +267,47 @@ describe('InvoiceComparison', () => {
     expect(router.location.query.end).toEqual(expect.any(String));
   });
 
+  it('shows the latest invoice from the missing side of one-sided rows', async () => {
+    const base = comparisonBody();
+    const body = {
+      ...base,
+      rows: [
+        {
+          ...base.rows[0]!,
+          organization_id: 2,
+          organization_slug: 'platform-only-org',
+          legacy_amount: null,
+          legacy_invoice_count: 0,
+          status: 'platform_only',
+          missing_side_last_invoice: {
+            amount: 8900,
+            date_added: '2026-11-08T00:46:46+00:00',
+            guid: 'legacy-guid',
+          },
+        },
+        {
+          ...base.rows[0]!,
+          organization_id: 3,
+          organization_slug: 'never-invoiced-org',
+          platform_amount: null,
+          platform_invoice_count: 0,
+          status: 'legacy_only',
+          missing_side_last_invoice: null,
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({url: COMPARISON_URL, body});
+
+    renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+    expect(await screen.findByRole('link', {name: '$89.00'})).toHaveAttribute(
+      'href',
+      '/_admin/invoices/us/legacy-guid/'
+    );
+    expect(screen.getByText(/on 2026-11-08/)).toBeInTheDocument();
+    expect(screen.getByText('never invoiced')).toBeInTheDocument();
+  });
+
   describe('region', () => {
     const start = '2026-01-01';
     const end = '2026-01-01';
