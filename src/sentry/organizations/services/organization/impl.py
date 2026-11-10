@@ -52,6 +52,8 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
+from sentry.onboarding.agentic_progress.model import OnboardingRunTerminal, RunStatus
+from sentry.onboarding.agentic_progress.service import RunNotFound, get_onboarding_progress_service
 from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
@@ -70,6 +72,7 @@ from sentry.organizations.services.organization import (
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
+    RpcOnboardingReportingCode,
     RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
@@ -99,6 +102,23 @@ from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def has_active_onboarding_run(self, *, organization_id: int, user_id: int, run_id: str) -> bool:
+        run = get_onboarding_progress_service().get(
+            organization_id=organization_id, user_id=user_id, run_id=run_id
+        )
+        return run is not None and run.run_status is RunStatus.ACTIVE
+
+    def issue_onboarding_reporting_code(
+        self, *, organization_id: int, user_id: int, run_id: str
+    ) -> RpcOnboardingReportingCode | None:
+        try:
+            code = get_onboarding_progress_service().issue_reporting_code(
+                organization_id=organization_id, user_id=user_id, run_id=run_id
+            )
+        except (RunNotFound, OnboardingRunTerminal, ValueError):
+            return None
+        return RpcOnboardingReportingCode(code=code)
+
     def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
         return list(
             Project.objects.filter(

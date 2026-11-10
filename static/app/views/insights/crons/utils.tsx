@@ -3,29 +3,28 @@ import type {SelectValue} from '@sentry/scraps/select';
 import type {TickStyle} from 'sentry/components/checkInTimeline/types';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-import {CheckInStatus} from './types';
+import {CheckInStatus, type Monitor} from './types';
 
-export function makeMonitorDetailsQueryKey(
+export function monitorDetailsApiOptions(
   organization: Organization,
   projectId: string,
   monitorSlug: string,
-  query?: Record<string, any>
+  query?: Record<string, unknown>
 ) {
-  return [
-    getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectId,
-          monitorIdOrSlug: monitorSlug,
-        },
-      }
-    ),
-    {query},
-  ] as const;
+  return apiOptions.as<Monitor>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/monitors/$monitorIdOrSlug/',
+    {
+      staleTime: 0,
+      query,
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        monitorIdOrSlug: monitorSlug,
+      },
+    }
+  );
 }
 
 // Orders the status in terms of ascending precedence for showing to the user
