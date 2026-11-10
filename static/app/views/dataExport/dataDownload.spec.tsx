@@ -9,7 +9,8 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
-import DataDownload, {DownloadStatus} from 'sentry/views/dataExport/dataDownload';
+
+import DataDownload, {DownloadStatus} from './dataDownload';
 
 describe('DataDownload', () => {
   beforeEach(MockApiClient.clearMockResponses);

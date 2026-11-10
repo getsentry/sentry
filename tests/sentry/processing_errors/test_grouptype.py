@@ -52,7 +52,7 @@ class TestSourcemapDetectorHandler(TestCase):
 
     def make_packet(
         self,
-        errors: list | None = None,
+        errors: list[dict[str, Any]] | None = None,
         event_id: str = "abc123",
         platform: str = "javascript",
     ) -> DataPacket[ProcessingErrorPacketValue]:

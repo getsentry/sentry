@@ -6,21 +6,22 @@ import random
 import re
 import time
 import uuid
-from collections.abc import Callable, Generator, Mapping, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Generator, Iterable, Iterator, Mapping, Sequence
+from contextlib import AbstractContextManager, contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
-from typing import Any, Literal, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, Union, cast
 from unittest import TestLoader, mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
 from zlib import compress
 
+import click
 import pytest
 import requests
 import responses
-from click.testing import CliRunner
+from click.testing import CliRunner, Result
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
@@ -28,7 +29,9 @@ from django.core import signing
 from django.core.cache import cache
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
-from django.http import HttpRequest
+from django.db.migrations.state import ProjectState
+from django.db.models import QuerySet
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
@@ -115,9 +118,8 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.models.rule import RuleSource
+from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
-from sentry.new_migrations.monkey.state import SentryProjectState
 from sentry.notifications.models.notificationsettingoption import (
     NotificationSettingOption,
 )
@@ -129,6 +131,7 @@ from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.rules.actions.base import EventAction
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -186,6 +189,25 @@ from .helpers import Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
+if TYPE_CHECKING:
+    from django.db.migrations.state import StateApps
+    from pytest_django.fixtures import DjangoCaptureOnCommitCallbacks
+
+    from sentry.integrations.base import IntegrationProvider
+    from sentry.issue_detection.performance_problem import PerformanceProblem
+    from sentry.issues.grouptype import GroupType
+    from sentry.mail.adapter import MailAdapter
+    from sentry.models.commitfilechange import CommitFileChange
+    from sentry.models.dashboard_widget import DashboardWidgetQuery
+    from sentry.models.deletedproject import DeletedProject
+    from sentry.models.deletedteam import DeletedTeam
+    from sentry.models.group import Group
+    from sentry.models.releaseheadcommit import ReleaseHeadCommit
+    from sentry.models.team import Team
+    from sentry.replays.lib.event_linking import EventLinkKafkaMessage
+    from sentry.testutils.pytest.stale_database_reads import StaleDatabaseReads
+    from sentry.users.services.user import RpcUser
+
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -225,18 +247,28 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
+class _ElevatedRequest(Protocol):
+    staff: Staff
+    superuser: Superuser
+    successful_authenticator: object | None
+
+
 class BaseTestCase(Fixtures):
+    client: Any
+
     @pytest.fixture(autouse=True)
-    def setup_dummy_auth_provider(self):
+    def setup_dummy_auth_provider(self) -> Generator[None]:
         auth.register(DummyProvider)
         yield
         auth.unregister(DummyProvider)
 
-    def tasks(self):
+    def tasks(self) -> AbstractContextManager[None]:
         return TaskRunner()
 
     @pytest.fixture(autouse=True)
-    def polyfill_capture_on_commit_callbacks(self, django_capture_on_commit_callbacks):
+    def polyfill_capture_on_commit_callbacks(
+        self, django_capture_on_commit_callbacks: DjangoCaptureOnCommitCallbacks
+    ) -> None:
         """
         https://pytest-django.readthedocs.io/en/latest/helpers.html#django_capture_on_commit_callbacks
 
@@ -246,18 +278,21 @@ class BaseTestCase(Fixtures):
         self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
 
     @pytest.fixture(autouse=True)
-    def expose_stale_database_reads(self, stale_database_reads):
+    def expose_stale_database_reads(self, stale_database_reads: StaleDatabaseReads) -> None:
         self.stale_database_reads = stale_database_reads
 
-    def feature(self, names):
+    def feature(
+        self, names: str | Iterable[str] | dict[str, bool | list[str]]
+    ) -> AbstractContextManager[None]:
         """
         >>> with self.feature({'feature:name': True})
         >>>     # ...
         """
         return Feature(names)
 
-    def save_session(self):
+    def save_session(self) -> None:
         self.session.save()
+        assert self.session.session_key is not None
         self.save_cookie(
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
@@ -268,24 +303,26 @@ class BaseTestCase(Fixtures):
             expires=None,
         )
 
-    def save_cookie(self, name, value, **params):
+    def save_cookie(self, name: str, value: str, **params: Any) -> None:
         self.client.cookies[name] = value
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
     def make_request(
         self,
-        user=None,
-        auth=None,
-        method="get",
-        is_superuser=False,
-        is_staff=False,
-        path="/",
-        secure_scheme=False,
-        subdomain=None,
+        user: User | RpcUser | AnonymousUser | None = None,
+        auth: Any = None,
+        method: str = "get",
+        is_superuser: bool | None = False,
+        is_staff: bool | None = False,
+        path: str = "/",
+        secure_scheme: bool = False,
+        subdomain: str | None = None,
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
+        request = cast(
+            "HttpRequest", getattr(RequestFactory(), method.lower())(path, query_params=GET)
+        )
         if subdomain:
             setattr(request, "subdomain", subdomain)
         request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -300,56 +337,56 @@ class BaseTestCase(Fixtures):
         request.session = self.session
         set_request_principal(request, user or AnonymousUser(), auth)
         # must happen after request.user/request.session is populated
-        request.superuser = Superuser(request)
-        request.staff = Staff(request)
+        elevated_request = cast("_ElevatedRequest", request)
+        elevated_request.superuser = Superuser(request)
+        elevated_request.staff = Staff(request)
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
-            request.superuser.set_logged_in(user)
+            elevated_request.superuser.set_logged_in(cast("User", user))
 
         if is_staff:
-            request.staff.set_logged_in(user)
-        request.successful_authenticator = None
+            elevated_request.staff.set_logged_in(cast("User", user))
+        elevated_request.successful_authenticator = None
         return request
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
     # a lot of tests changing
     def login_as(
         self,
-        user,
-        organization_id=None,
-        organization_ids=None,
-        superuser=False,
-        staff=False,
-        staff_sso=True,
-        superuser_sso=True,
-    ):
+        user: User | OrganizationMember,
+        organization_id: int | None = None,
+        organization_ids: Iterable[int] | None = None,
+        superuser: bool = False,
+        staff: bool = False,
+        staff_sso: bool = True,
+        superuser_sso: bool = True,
+    ) -> None:
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
+                assert user.user_id is not None
                 user = User.objects.get(id=user.user_id)
 
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
+        elevated_request = cast(_ElevatedRequest, request)
         with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
         set_request_principal(request, user, request.auth)
 
-        if organization_ids is None:
-            organization_ids = set()
-        else:
-            organization_ids = set(organization_ids)
+        org_ids: set[int] = set(organization_ids) if organization_ids is not None else set()
         if superuser and superuser_sso is not False:
             if SUPERUSER_ORG_ID:
-                organization_ids.add(SUPERUSER_ORG_ID)
+                org_ids.add(SUPERUSER_ORG_ID)
         if staff and staff_sso is not False:
             if STAFF_ORG_ID:
-                organization_ids.add(SUPERUSER_ORG_ID)
+                org_ids.add(cast(int, SUPERUSER_ORG_ID))
         if organization_id:
-            organization_ids.add(organization_id)
+            org_ids.add(organization_id)
 
         # TODO(dcramer): ideally this would get abstracted
-        if organization_ids:
-            for o in organization_ids:
+        if org_ids:
+            for o in org_ids:
                 sso_session = SsoSession.create(o)
                 self.session[sso_session.session_key] = sso_session.to_dict()
 
@@ -358,15 +395,17 @@ class BaseTestCase(Fixtures):
         # superuser-only code
         if not superuser:
             # XXX(dcramer): we're calling the internal method to avoid logging
-            request.superuser._set_logged_out()
+            elevated_request.superuser._set_logged_out()
         elif request.user.is_superuser and superuser:
-            request.superuser.set_logged_in(request.user)
+            elevated_request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate
             # the Superuser object are successful
             self.save_cookie(
                 name=SU_COOKIE_NAME,
                 value=signing.get_cookie_signer(salt=SU_COOKIE_NAME + SU_COOKIE_SALT).sign(
-                    request.superuser.token
+                    elevated_request.superuser.token
+                    if elevated_request.superuser.token is not None
+                    else ""
                 ),
                 max_age=None,
                 path=SU_COOKIE_PATH,
@@ -376,13 +415,14 @@ class BaseTestCase(Fixtures):
             )
         # XXX(schew2381): Same as above, but for staff
         if not staff:
-            request.staff._set_logged_out()
+            elevated_request.staff._set_logged_out()
         elif request.user.is_staff and staff:
-            request.staff.set_logged_in(request.user)
+            elevated_request.staff.set_logged_in(request.user)
+            assert elevated_request.staff.token is not None
             self.save_cookie(
                 name=STAFF_COOKIE_NAME,
                 value=signing.get_cookie_signer(salt=STAFF_COOKIE_NAME + STAFF_COOKIE_SALT).sign(
-                    request.staff.token
+                    elevated_request.staff.token
                 ),
                 max_age=None,
                 path=STAFF_COOKIE_PATH,
@@ -393,29 +433,37 @@ class BaseTestCase(Fixtures):
         # Save the session values.
         self.save_session()
 
-    def load_fixture(self, filepath):
+    def load_fixture(self, filepath: str) -> bytes:
         with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
     @classmethod
-    def _pre_setup(cls):
-        super()._pre_setup()
+    def _pre_setup(cls) -> None:
+        parent_pre_setup = getattr(super(), "_pre_setup", None)
+        if parent_pre_setup is not None:
+            parent_pre_setup()
 
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
 
-    def _post_teardown(self):
-        super()._post_teardown()
+    def _post_teardown(self) -> None:
+        parent_post_teardown = getattr(super(), "_post_teardown", None)
+        if parent_post_teardown is not None:
+            parent_post_teardown()
 
-    def options(self, options):
+    def options(self, options: Mapping[str, object]) -> AbstractContextManager[None]:
         """
         A context manager that temporarily sets a global option and reverts
         back to the original value when exiting the context.
         """
         return override_options(options)
 
-    def assert_valid_deleted_log(self, deleted_log, original_object):
+    def assert_valid_deleted_log(
+        self,
+        deleted_log: DeletedOrganization | DeletedProject | DeletedTeam,
+        original_object: Organization | Project | Team,
+    ) -> None:
         assert deleted_log is not None
         assert original_object.name == deleted_log.name
 
@@ -423,14 +471,17 @@ class BaseTestCase(Fixtures):
         assert deleted_log.slug == original_object.slug
 
         if not isinstance(deleted_log, DeletedOrganization):
+            assert not isinstance(original_object, Organization)
             assert deleted_log.organization_id == original_object.organization.id
             assert deleted_log.organization_name == original_object.organization.name
             assert deleted_log.organization_slug == original_object.organization.slug
 
+        assert deleted_log.date_created is not None
+        assert deleted_log.date_deleted is not None
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def get_mock_uuid(self, hex_value="abc123"):
+    def get_mock_uuid(self, hex_value: str = "abc123") -> type[object]:
         class uuid:
             hex = hex_value
             bytes = b"\x00\x01\x02"
@@ -443,7 +494,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
     databases: set[str] | str = "__all__"
 
     @contextmanager
-    def auto_select_silo_mode_on_redirects(self):
+    def auto_select_silo_mode_on_redirects(self) -> Iterator[None]:
         """
         Tests that utilize follow=True may follow redirects between silo modes.  This isn't ideal but convenient for
         testing certain work flows.  Using this context manager, the silo mode in the test will swap automatically
@@ -488,17 +539,17 @@ class PerformanceIssueTestCase(BaseTestCase):
 
     def create_performance_issue(
         self,
-        tags=None,
-        contexts=None,
-        fingerprint=None,
-        transaction=None,
-        event_data=None,
-        issue_type=None,
-        noise_limit=0,
-        project_id=None,
-        detector_option="performance.issues.n_plus_one_db.problem-creation",
-        user_data=None,
-    ):
+        tags: dict[str, Any] | None = None,
+        contexts: dict[str, Any] | None = None,
+        fingerprint: str | None = None,
+        transaction: str | None = None,
+        event_data: dict[str, Any] | None = None,
+        issue_type: type[GroupType] | None = None,
+        noise_limit: int = 0,
+        project_id: int | None = None,
+        detector_option: str = "performance.issues.n_plus_one_db.problem-creation",
+        user_data: dict[str, Any] | None = None,
+    ) -> Event | GroupEvent:
         if issue_type is None:
             issue_type = PerformanceNPlusOneGroupType
         if event_data is None:
@@ -506,6 +557,7 @@ class PerformanceIssueTestCase(BaseTestCase):
                 "transaction-n-plus-one",
                 timestamp=before_now(minutes=10),
             )
+            assert event_data is not None
         if tags is not None:
             event_data["tags"] = tags
         if contexts is not None:
@@ -521,8 +573,10 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
 
         def detect_performance_problems_interceptor(
-            data: Event, project: Project, standalone: bool = False
-        ):
+            data: dict[str, Any],
+            project: Project,
+            standalone: bool = False,
+        ) -> list[PerformanceProblem]:
             perf_problems = detect_performance_problems(data, project, standalone=standalone)
             if fingerprint:
                 for perf_problem in perf_problems:
@@ -547,14 +601,18 @@ class PerformanceIssueTestCase(BaseTestCase):
                 {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
             ),
         ):
-            event = perf_event_manager.save(project_id)
+            stored_event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
-                event = event.for_group(mock_eventstream.call_args[0][2].group)
-                event.occurrence = mock_eventstream.call_args[0][1]
-            return event
+                group_event = stored_event.for_group(mock_eventstream.call_args[0][2].group)
+                group_event.occurrence = mock_eventstream.call_args[0][1]
+                return group_event
+            return stored_event
 
 
 class APITestCaseMixin:
+    client: Any
+    method: str
+
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -566,10 +624,10 @@ class APITestCaseMixin:
     """
 
     @property
-    def endpoint(self):
+    def endpoint(self) -> str:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: Any, **params: Any) -> Response:
         """
         Simulate an API call to the test case's URI and method.
 
@@ -603,9 +661,10 @@ class APITestCaseMixin:
         data = raw_data or params
         method = params.pop("method", self.method).lower()
 
-        return getattr(self.client, method)(url, format=format, data=data, **headers)
+        response: Response = getattr(self.client, method)(url, format=format, data=data, **headers)
+        return response
 
-    def get_success_response(self, *args, **params):
+    def get_success_response(self, *args: Any, **params: Any) -> Response:
         """
         Call `get_response` (see above) and assert the response's status code.
 
@@ -640,7 +699,7 @@ class APITestCaseMixin:
 
         return response
 
-    def get_error_response(self, *args, **params):
+    def get_error_response(self, *args: Any, **params: Any) -> Response:
         """
         Call `get_response` (see above) and assert that the response's status
         code is an error code. Basically it's syntactic sugar.
@@ -664,16 +723,18 @@ class APITestCaseMixin:
 
         return response
 
-    def get_cursor_headers(self, response):
+    def get_cursor_headers(self, response: Response) -> list[str]:
+        link_header = response.get("link")
+        assert link_header is not None
         return [
             link["cursor"]
             for link in requests.utils.parse_header_links(
-                response.get("link").rstrip(">").replace(">,<", ",<")
+                link_header.rstrip(">").replace(">,<", ",<")
             )
         ]
 
     @contextmanager
-    def api_gateway_proxy_stubbed(self):
+    def api_gateway_proxy_stubbed(self) -> Iterator[None]:
         """Mocks a fake api gateway proxy that redirects via Client objects"""
 
         def proxy_raw_request(
@@ -729,36 +790,44 @@ class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCa
 
 class TwoFactorAPITestCase(APITestCase):
     @cached_property
-    def path_2fa(self):
+    def path_2fa(self) -> str:
         return reverse("sentry-account-settings-security")
 
-    def enable_org_2fa(self, organization):
+    def enable_org_2fa(self, organization: Organization) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             organization.flags.require_2fa = True
             organization.save()
 
-    def api_enable_org_2fa(self, organization, user):
+    def api_enable_org_2fa(self, organization: Organization, user: User) -> Response:
         self.login_as(user)
         url = reverse(
             "sentry-api-0-organization-details",
             kwargs={"organization_id_or_slug": organization.slug},
         )
-        return self.client.put(url, data={"require2FA": True})
+        response: Response = self.client.put(url, data={"require2FA": True})
+        return response
 
-    def api_disable_org_2fa(self, organization, user):
+    def api_disable_org_2fa(self, organization: Organization, user: User) -> Response:
         url = reverse(
             "sentry-api-0-organization-details",
             kwargs={"organization_id_or_slug": organization.slug},
         )
-        return self.client.put(url, data={"require2FA": False})
+        response: Response = self.client.put(url, data={"require2FA": False})
+        return response
 
-    def assert_can_enable_org_2fa(self, organization, user, status_code=200):
+    def assert_can_enable_org_2fa(
+        self, organization: Organization, user: User, status_code: int = 200
+    ) -> None:
         self.__helper_enable_organization_2fa(organization, user, status_code)
 
-    def assert_cannot_enable_org_2fa(self, organization, user, status_code, err_msg=None):
+    def assert_cannot_enable_org_2fa(
+        self, organization: Organization, user: User, status_code: int, err_msg: str | None = None
+    ) -> None:
         self.__helper_enable_organization_2fa(organization, user, status_code, err_msg)
 
-    def __helper_enable_organization_2fa(self, organization, user, status_code, err_msg=None):
+    def __helper_enable_organization_2fa(
+        self, organization: Organization, user: User, status_code: int, err_msg: str | None = None
+    ) -> None:
         response = self.api_enable_org_2fa(organization, user)
         assert response.status_code == status_code
         if err_msg:
@@ -770,7 +839,9 @@ class TwoFactorAPITestCase(APITestCase):
         else:
             assert not organization.flags.require_2fa
 
-    def add_2fa_users_to_org(self, organization, num_of_users=10, num_with_2fa=5):
+    def add_2fa_users_to_org(
+        self, organization: Organization, num_of_users: int = 10, num_with_2fa: int = 5
+    ) -> list[str]:
         non_compliant_members = []
         for num in range(0, num_of_users):
             user = self.create_user("foo_%s@example.com" % num)
@@ -786,7 +857,7 @@ class TwoFactorAPITestCase(APITestCase):
 class AuthProviderTestCase(TestCase):
     provider: type[Provider] = DummyProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # TestCase automatically sets up dummy provider
         if self.provider != DummyProvider:
@@ -796,30 +867,32 @@ class AuthProviderTestCase(TestCase):
 
 class RuleTestCase(TestCase):
     @property
-    def rule_cls(self):
+    def rule_cls(self) -> type[EventAction]:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    def get_event(self):
+    def get_event(self) -> Event:
         return self.event
 
-    def get_group_event(self):
-        return GroupEvent.from_event(self.event, self.event.group)
+    def get_group_event(self) -> GroupEvent:
+        group = self.event.group
+        assert group is not None
+        return GroupEvent.from_event(self.event, group)
 
-    def get_rule(self, **kwargs):
+    def get_rule(self, **kwargs: Any) -> EventAction:
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("data", {})
         return self.rule_cls(**kwargs)
 
 
 class DRFPermissionTestCase(TestCase):
-    def make_request(self, *arg, **kwargs) -> Request:
+    def make_request(self, *arg: Any, **kwargs: Any) -> Request:
         """
         Override the return type of make_request b/c DRF permission classes
         expect a DRF request (go figure)
         """
         return super().make_request(*arg, **kwargs)  # type: ignore[return-value]
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True, is_staff=False)
         self.staff_user = self.create_user(is_staff=True, is_superuser=False)
         self.superuser_request = self.make_request(user=self.superuser, is_superuser=True)
@@ -827,7 +900,7 @@ class DRFPermissionTestCase(TestCase):
 
 
 class PermissionTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(is_superuser=False)
         self.organization = self.create_organization(
@@ -836,45 +909,49 @@ class PermissionTestCase(TestCase):
         )
         self.team = self.create_team(organization=self.organization)
 
-    def assert_can_access(self, user, path, method="GET", **kwargs):
+    def assert_can_access(
+        self, user: User, path: str, method: str = "GET", **kwargs: Any
+    ) -> Response:
         self.login_as(user, superuser=user.is_superuser)
-        resp = getattr(self.client, method.lower())(path, **kwargs)
+        resp: Response = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
         return resp
 
-    def assert_cannot_access(self, user, path, method="GET", **kwargs):
+    def assert_cannot_access(
+        self, user: User, path: str, method: str = "GET", **kwargs: Any
+    ) -> None:
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 300
 
-    def assert_member_can_access(self, path, **kwargs):
+    def assert_member_can_access(self, path: str, **kwargs: Any) -> Response:
         return self.assert_role_can_access(path, "member", **kwargs)
 
-    def assert_manager_can_access(self, path, **kwargs):
+    def assert_manager_can_access(self, path: str, **kwargs: Any) -> Response:
         return self.assert_role_can_access(path, "manager", **kwargs)
 
-    def assert_member_cannot_access(self, path, **kwargs):
+    def assert_member_cannot_access(self, path: str, **kwargs: Any) -> None:
         return self.assert_role_cannot_access(path, "member", **kwargs)
 
-    def assert_team_admin_cannot_access(self, path, **kwargs):
+    def assert_team_admin_cannot_access(self, path: str, **kwargs: Any) -> None:
         return self.assert_role_cannot_access(path, "admin", **kwargs)
 
-    def assert_teamless_admin_cannot_access(self, path, **kwargs):
+    def assert_teamless_admin_cannot_access(self, path: str, **kwargs: Any) -> None:
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="admin", teams=[])
 
         self.assert_cannot_access(user, path, **kwargs)
 
-    def assert_owner_can_access(self, path, **kwargs):
+    def assert_owner_can_access(self, path: str, **kwargs: Any) -> Response:
         return self.assert_role_can_access(path, "owner", **kwargs)
 
-    def assert_role_can_access(self, path, role, **kwargs):
+    def assert_role_can_access(self, path: str, role: str, **kwargs: Any) -> Response:
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
         return self.assert_can_access(user, path, **kwargs)
 
-    def assert_role_cannot_access(self, path, role, **kwargs):
+    def assert_role_cannot_access(self, path: str, role: str, **kwargs: Any) -> None:
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
@@ -884,10 +961,10 @@ class PermissionTestCase(TestCase):
 @requires_snuba
 class PluginTestCase(TestCase):
     @property
-    def plugin(self):
+    def plugin(self) -> object:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
 
@@ -897,12 +974,12 @@ class CliTestCase(TestCase):
         return CliRunner()
 
     @property
-    def command(self):
+    def command(self) -> click.Command:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     default_args: list[str] = []
 
-    def invoke(self, *args, **kwargs):
+    def invoke(self, *args: Any, **kwargs: Any) -> Result:
         args += tuple(self.default_args)
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
@@ -915,37 +992,39 @@ class AcceptanceTestCase(TransactionTestCase):
     browser: Browser
 
     @pytest.fixture(autouse=True)
-    def _setup_today(self):
+    def _setup_today(self) -> Iterator[None]:
         with mock.patch(
             "django.utils.timezone.now",
             return_value=(datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=UTC)),
         ):
             yield
 
-    def wait_for_loading(self):
+    def wait_for_loading(self) -> None:
         # NOTE: [data-test-id="loading-placeholder"] is not used here as
         # some dashboards have placeholders that never complete.
         self.browser.wait_until_not('[data-test-id="events-request-loading"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not(".loading")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Avoid tests finishing before their API calls have finished.
         # NOTE: This is not fool-proof, it requires loading indicators to be
         # used when API requests are made.
         self.wait_for_loading()
         super().tearDown()
 
-    def save_cookie(self, name, value, **params):
+    def save_cookie(self, name: str, value: str, **params: Any) -> None:
         self.browser.save_cookie(name=name, value=value, **params)
 
-    def save_session(self):
+    def save_session(self) -> None:
         self.session.save()
-        self.save_cookie(name=settings.SESSION_COOKIE_NAME, value=self.session.session_key)
+        assert self.session.session_key is not None
+        session_key = self.session.session_key
+        self.save_cookie(name=settings.SESSION_COOKIE_NAME, value=session_key)
         # Forward session cookie to django client.
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session_key
 
-    def dismiss_assistant(self, which=None):
+    def dismiss_assistant(self, which: str | Iterable[str] | None = None) -> None:
         if which is None:
             which = ("issue", "issue_stream")
         if isinstance(which, str):
@@ -962,10 +1041,10 @@ class AcceptanceTestCase(TransactionTestCase):
 
 class IntegrationTestCase(TestCase):
     @property
-    def provider(self):
+    def provider(self) -> type[IntegrationProvider]:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    def setUp(self):
+    def setUp(self) -> None:
         from sentry.integrations.pipeline import IntegrationPipeline
 
         super().setUp()
@@ -991,8 +1070,8 @@ class IntegrationTestCase(TestCase):
         self.pipeline.initialize()
         self.save_session()
 
-    def assertDialogSuccess(self, resp):
-        assert b'window.opener.postMessage({"success":true' in resp.content
+    def assertDialogSuccess(self, resp: HttpResponseBase) -> None:
+        assert b'window.opener.postMessage({"success":true' in cast(HttpResponse, resp).content
 
 
 @pytest.mark.snuba
@@ -1008,28 +1087,32 @@ class SnubaTestCase(BaseTestCase):
     databases: set[str] | str = "__all__"
     reset_snuba_data: bool = True
 
-    def setUp(self):
-        super().setUp()
+    def setUp(self) -> None:
+        parent_setup = getattr(super(), "setUp", None)
+        if parent_setup is not None:
+            parent_setup()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
-    def initialize(self, request, call_snuba):
+    def initialize(
+        self, request: pytest.FixtureRequest, call_snuba: Callable[[str], requests.Response]
+    ) -> None:
         if self.reset_snuba_data:
             request.getfixturevalue("reset_snuba")
         self.call_snuba = call_snuba
 
-    def create_project(self, **kwargs) -> Project:
+    def create_project(self, **kwargs: Any) -> Project:
         if "flags" not in kwargs:
             # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
             # application knows that events have been sent
             kwargs["flags"] = Project.flags.has_transactions
         return super().create_project(**kwargs)
 
-    def init_snuba(self):
+    def init_snuba(self) -> None:
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
 
-    def store_event(self, *args, **kwargs):
+    def store_event(self, *args: Any, **kwargs: Any) -> Event:
         """
         Simulates storing an event for testing.
 
@@ -1053,7 +1136,7 @@ class SnubaTestCase(BaseTestCase):
                     self.store_group(group)
             return stored_event
 
-    def wait_for_event_count(self, project_id, total, attempts=2):
+    def wait_for_event_count(self, project_id: int, total: int, attempts: int = 2) -> None:
         """
         Wait until the event count reaches the provided value or until attempts is reached.
 
@@ -1080,7 +1163,7 @@ class SnubaTestCase(BaseTestCase):
                 f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
             )
 
-    def build_session(self, **kwargs):
+    def build_session(self, **kwargs: Any) -> dict[str, Any]:
         session = {
             "session_id": str(uuid4()),
             "distinct_id": str(uuid4()),
@@ -1107,7 +1190,7 @@ class SnubaTestCase(BaseTestCase):
         session.update(kwargs)
         return session
 
-    def store_group(self, group):
+    def store_group(self, group: Group) -> None:
         data = [self.__wrap_group(group)]
         assert (
             _snuba_pool.urlopen(
@@ -1119,10 +1202,10 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_span(self, span):
+    def store_span(self, span: dict[str, Any]) -> None:
         self.store_spans([span])
 
-    def store_spans(self, spans):
+    def store_spans(self, spans: Sequence[dict[str, Any]]) -> None:
         files = {}
         for i, span in enumerate(spans):
             trace_item = span_to_trace_item(span)
@@ -1210,7 +1293,7 @@ class SnubaTestCase(BaseTestCase):
         for item in items:
             item.item_id = item.item_id[::-1]
 
-    def store_issues(self, issues):
+    def store_issues(self, issues: Sequence[Mapping[str, Any]]) -> None:
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
@@ -1220,11 +1303,13 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def to_snuba_time_format(self, datetime_value):
+    def to_snuba_time_format(self, datetime_value: datetime | None) -> str | None:
+        if datetime_value is None:
+            return None
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
 
-    def __wrap_group(self, group):
+    def __wrap_group(self, group: Group) -> dict[str, Any]:
         return {
             "event": "change",
             "kind": "insert",
@@ -1273,16 +1358,22 @@ class SnubaTestCase(BaseTestCase):
             ],
         }
 
-    def snuba_insert(self, events):
+    def snuba_insert(
+        self,
+        events: (
+            Mapping[str, Any]
+            | Sequence[Mapping[str, Any]]
+            | tuple[int, str, Mapping[str, Any], Mapping[str, Any]]
+        ),
+    ) -> None:
         "Write a (wrapped) event (or events) to Snuba."
 
-        if not isinstance(events, list):
-            events = [events]
+        events_to_insert = [events] if not isinstance(events, list) else events
 
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/events/insert",
-                data=json.dumps(events),
+                data=json.dumps(events_to_insert),
                 timeout=30,
             ).status_code
             == 200
@@ -1290,7 +1381,7 @@ class SnubaTestCase(BaseTestCase):
 
 
 class BaseSpansTestCase(SnubaTestCase):
-    def _random_span_id(self):
+    def _random_span_id(self) -> str:
         random_number = random.randint(0, 100000000)
         return hex(random_number)[2:]
 
@@ -1314,7 +1405,7 @@ class BaseSpansTestCase(SnubaTestCase):
         status: str | None = None,
         environment: str | None = None,
         organization_id: int = 1,
-    ):
+    ) -> None:
         if span_id is None:
             span_id = self._random_span_id()
         if timestamp is None:
@@ -1389,7 +1480,7 @@ class BaseSpansTestCase(SnubaTestCase):
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
-    ):
+    ) -> None:
         if span_id is None:
             span_id = self._random_span_id()
         if timestamp is None:
@@ -1452,7 +1543,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
-    def store_session(self, session):
+    def store_session(self, session: dict[str, Any]) -> None:
         """Mimic relays behavior of always emitting a metric for a started session,
         and emitting an additional one if the session is fatal
         https://github.com/getsentry/relay/blob/e3c064e213281c36bde5d2b6f3032c6d36e22520/relay-server/src/actors/envelopes.rs#L357
@@ -1471,7 +1562,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
-        def push(mri: str, tags, value):
+        def push(mri: str, tags: Mapping[str, str], value: Any) -> None:
             self.store_metric(
                 org_id,
                 project_id,
@@ -1513,7 +1604,7 @@ class BaseMetricsTestCase(SnubaTestCase):
                     session["duration"],
                 )
 
-    def bulk_store_sessions(self, sessions):
+    def bulk_store_sessions(self, sessions: Sequence[dict[str, Any]]) -> None:
         for session in sessions:
             self.store_session(session)
 
@@ -1530,6 +1621,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         sampling_weight: int | None = None,
     ) -> None:
         parsed = parse_mri(mri)
+        assert parsed is not None
         metric_type = parsed.entity
         use_case_id = UseCaseID(parsed.namespace)
         if use_case_id is not UseCaseID.SESSIONS:
@@ -1537,7 +1629,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         mapping_meta = {}
 
-        def metric_id(key: str):
+        def metric_id(key: str) -> int:
             assert isinstance(key, str)
             res = indexer.record(
                 use_case_id=use_case_id,
@@ -1548,7 +1640,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             mapping_meta[str(res)] = key
             return res
 
-        def tag_key(name):
+        def tag_key(name: str) -> str:
             assert isinstance(name, str)
             res = indexer.record(
                 use_case_id=use_case_id,
@@ -1559,7 +1651,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             mapping_meta[str(res)] = name
             return str(res)
 
-        def tag_value(name):
+        def tag_value(name: str) -> int:
             assert isinstance(name, str)
 
             res = indexer.record(
@@ -1619,7 +1711,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls.__send_buckets([msg], entity)
 
     @classmethod
-    def __send_buckets(cls, buckets, entity):
+    def __send_buckets(cls, buckets: Sequence[dict[str, Any]], entity: str) -> None:
         # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
@@ -1652,7 +1744,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     )
 
     @property
-    def now(self):
+    def now(self) -> datetime:
         """
         Returns the current time instance that will be used throughout the tests of the metrics layer.
 
@@ -1673,7 +1765,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
         aggregation_option: AggregationOption | None = None,
-    ):
+    ) -> None:
         # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
         # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
         #
@@ -1747,7 +1839,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
         aggregation_option: AggregationOption | None = None,
-    ):
+    ) -> None:
         self._store_metric(
             mri=name,
             tags=tags,
@@ -1773,7 +1865,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
-    ):
+    ) -> None:
         self._store_metric(
             mri=name,
             tags=tags,
@@ -1799,7 +1891,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
         aggregation_option: AggregationOption | None = None,
-    ):
+    ) -> None:
         self._store_metric(
             mri=name,
             tags=tags,
@@ -1827,7 +1919,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         include_series: bool = True,
         before_now: str | None = None,
         granularity: str | None = None,
-    ):
+    ) -> DeprecatingMetricsQuery:
         # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(
             {"statsPeriod": before_now, "interval": granularity}
@@ -1852,6 +1944,9 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
 
 class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
+    features: dict[str, bool] = {}
+    url: str = ""
+
     TYPE_MAP = {
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
@@ -1912,7 +2007,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     METRIC_STRINGS: list[str] = []
     DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
@@ -1928,7 +2023,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             assert is_drf_response(ret)
             return ret
 
-    def _index_metric_strings(self):
+    def _index_metric_strings(self) -> None:
         strings = [
             "transaction",
             "environment",
@@ -1972,9 +2067,11 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        if not isinstance(value, list):
-            value = [value]
-        for subvalue in value:
+        values = cast(
+            list[int | dict[str, int]],
+            value if isinstance(value, list) else [value],
+        )
+        for subvalue in values:
             self.store_metric(
                 org_id,
                 project,
@@ -2010,7 +2107,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             metric=self.ON_DEMAND_KEY_MAP[metric_type],
             internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
             entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
-            tags=tags,
+            tags=cast(dict[str, str], tags),
             timestamp=timestamp,
         )
 
@@ -2024,7 +2121,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         timestamp: datetime | None = None,
         project: int | None = None,
         use_case_id: UseCaseID = UseCaseID.SPANS,
-    ):
+    ) -> None:
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         org_id = self.organization.id
 
@@ -2039,9 +2136,11 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        if not isinstance(value, list):
-            value = [value]
-        for subvalue in value:
+        values = cast(
+            list[int | dict[str, int]],
+            value if isinstance(value, list) else [value],
+        )
+        for subvalue in values:
             self.store_metric(
                 org_id,
                 project,
@@ -2053,12 +2152,12 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def wait_for_metric_count(
         self,
-        project,
-        total,
-        metric="transaction.count_per_root_project",
-        mri=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-        attempts=2,
-    ):
+        project: Project,
+        total: int,
+        metric: str = "transaction.count_per_root_project",
+        mri: str = TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+        attempts: int = 2,
+    ) -> None:
         attempt = 0
         metrics_query = self.build_metrics_query(
             before_now="1d",
@@ -2090,12 +2189,17 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
 
 class BaseIncidentsTest(SnubaTestCase):
-    def create_event(self, timestamp, fingerprint=None, user=None):
+    def create_event(
+        self,
+        timestamp: datetime,
+        fingerprint: str | None = None,
+        user: dict[str, Any] | None = None,
+    ) -> Event:
         event_id = uuid4().hex
         if fingerprint is None:
             fingerprint = event_id
 
-        data = {
+        data: dict[str, Any] = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
             "timestamp": timestamp.isoformat(),
@@ -2109,21 +2213,21 @@ class BaseIncidentsTest(SnubaTestCase):
         return self.store_event(data=data, project_id=self.project.id)
 
     @cached_property
-    def now(self):
+    def now(self) -> datetime:
         return timezone.now().replace(minute=0, second=0, microsecond=0)
 
 
 @pytest.mark.snuba
 @requires_snuba
 class OutcomesSnubaTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         assert (
             requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop", timeout=30).status_code
             == 200
         )
 
-    def store_outcomes(self, outcome, num_times=1):
+    def store_outcomes(self, outcome: dict[str, Any], num_times: int = 1) -> None:
         outcomes = []
         for _ in range(num_times):
             outcome_copy = outcome.copy()
@@ -2149,14 +2253,15 @@ class ProfilesSnubaTestCase(
 ):
     def store_functions(
         self,
-        functions,
-        project,
-        transaction=None,
-        extras=None,
-        timestamp=None,
-    ):
+        functions: Sequence[dict[str, Any]],
+        project: Project,
+        transaction: dict[str, Any] | None = None,
+        extras: dict[str, Any] | None = None,
+        timestamp: datetime | None = None,
+    ) -> dict[str, Any]:
         if transaction is None:
             transaction = load_data("transaction", timestamp=timestamp or before_now(minutes=10))
+        assert transaction is not None
 
         profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
         if profile_context.get("profile_id") is None:
@@ -2165,7 +2270,7 @@ class ProfilesSnubaTestCase(
 
         self.store_event(transaction, project_id=project.id)
 
-        timestamp = transaction["timestamp"]
+        receipt_timestamp = transaction["timestamp"]
         functions = [
             {
                 **function,
@@ -2184,7 +2289,7 @@ class ProfilesSnubaTestCase(
             "project_id": project.id,
             "received": int(timezone.now().timestamp()),
             "retention_days": 90,
-            "timestamp": int(timestamp),
+            "timestamp": int(receipt_timestamp),
             "transaction_name": transaction["transaction"],
             "materialization_version": 1,
         }
@@ -2206,12 +2311,12 @@ class ProfilesSnubaTestCase(
 
     def store_functions_chunk(
         self,
-        functions,
-        project,
-        profiler_id=None,
-        extras=None,
-        timestamp=None,
-    ):
+        functions: Sequence[dict[str, Any]],
+        project: Project,
+        profiler_id: str | None = None,
+        extras: dict[str, Any] | None = None,
+        timestamp: datetime | None = None,
+    ) -> dict[str, Any]:
         if profiler_id is None:
             profiler_id = uuid4().hex
 
@@ -2227,14 +2332,14 @@ class ProfilesSnubaTestCase(
             for function in functions
         ]
 
-        timestamp = (timestamp or timezone.now()).timestamp()
+        timestamp_ts = (timestamp or timezone.now()).timestamp()
 
         max_duration = max(
             duration for function in functions for duration in function["self_times_ns"]
         )
 
-        start = timestamp
-        end = timestamp + max_duration / 1e9
+        start = timestamp_ts
+        end = timestamp_ts + max_duration / 1e9
 
         functions_payload = {
             "functions": functions,
@@ -2242,9 +2347,9 @@ class ProfilesSnubaTestCase(
             "transaction_name": "",
             "profile_id": profiler_id,
             "project_id": project.id,
-            "received": int(timestamp),
+            "received": int(timestamp_ts),
             "retention_days": 90,
-            "timestamp": int(timestamp),
+            "timestamp": int(timestamp_ts),
             "start_timestamp": start,
             "end_timestamp": end,
             "profiling_type": "continuous",
@@ -2266,7 +2371,7 @@ class ProfilesSnubaTestCase(
             "functions": functions,
         }
 
-    def function_fingerprint(self, function):
+    def function_fingerprint(self, function: dict[str, Any]) -> int:
         # this is a different hashing algorithm than is used by vroom
         # but it's not a big deal
         hasher = hashlib.md5()
@@ -2278,10 +2383,10 @@ class ProfilesSnubaTestCase(
         hasher.update(function["function"].encode())
         return int(hasher.hexdigest()[:8], 16)
 
-    def store_span(self, span):
+    def store_span(self, span: dict[str, Any]) -> None:
         self.store_spans([span])
 
-    def store_spans(self, spans):
+    def store_spans(self, spans: Sequence[dict[str, Any]]) -> None:
         files = {}
         for i, span in enumerate(spans):
             trace_item = span_to_trace_item(span)
@@ -2297,20 +2402,22 @@ class ProfilesSnubaTestCase(
 @pytest.mark.snuba
 @requires_snuba
 class ReplaysSnubaTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         assert (
             requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop", timeout=30).status_code
             == 200
         )
 
-    def store_replays(self, replay):
+    def store_replays(self, replay: dict[str, Any]) -> None:
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay], timeout=30
         )
         assert response.status_code == 200
 
-    def mock_event_links(self, timestamp, project_id, level, replay_id, event_id):
+    def mock_event_links(
+        self, timestamp: datetime, project_id: int, level: str, replay_id: str, event_id: str
+    ) -> EventLinkKafkaMessage:
         event = self.store_event(
             data={
                 "timestamp": int(timestamp.timestamp()),
@@ -2328,7 +2435,7 @@ class ReplaysSnubaTestCase(TestCase):
 @requires_snuba
 @pytest.mark.usefixtures("reset_snuba")
 class UptimeCheckSnubaTestCase(TestCase):
-    def store_uptime_check(self, uptime_check):
+    def store_uptime_check(self, uptime_check: dict[str, Any]) -> None:
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert",
             json=[uptime_check],
@@ -2350,7 +2457,7 @@ class UptimeCheckSnubaTestCase(TestCase):
         region: str = "default",
         environment: str = "production",
         trace_id: UUID | None = None,
-    ):
+    ) -> None:
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now() - timedelta(minutes=5)
         if incident_status is None:
@@ -2399,7 +2506,7 @@ class UptimeCheckSnubaTestCase(TestCase):
 
 # AcceptanceTestCase and TestCase are mutually exclusive base classses
 class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.now = datetime.now(UTC)
         super().setUp()
         self.drop_replays()
@@ -2407,13 +2514,13 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def drop_replays(self):
+    def drop_replays(self) -> None:
         assert (
             requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop", timeout=30).status_code
             == 200
         )
 
-    def store_replays(self, replays):
+    def store_replays(self, replays: Sequence[dict[str, Any]]) -> None:
         assert len(replays) >= 2, (
             "You need to store at least 2 replay events for the replay to be considered valid"
         )
@@ -2427,7 +2534,7 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         replay_id: str,
         project_id: int,
         segment_id: int,
-        segment,
+        segment: dict[str, Any],
     ) -> None:
         f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
         f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
@@ -2440,26 +2547,28 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
 
 
 class IntegrationRepositoryTestCase(APITestCase):
-    def setUp(self):
+    provider_name: str = ""
+
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @pytest.fixture(autouse=True)
-    def responses_context(self):
+    def responses_context(self) -> Iterator[None]:
         with responses.mock:
             yield
 
-    def add_create_repository_responses(self, repository_config):
+    def add_create_repository_responses(self, repository_config: Mapping[str, Any]) -> None:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     @assume_test_silo_mode(SiloMode.CELL)
     def create_repository(
         self,
-        repository_config,
-        integration_id,
-        organization_slug=None,
-        add_responses=True,
-    ):
+        repository_config: Mapping[str, Any],
+        integration_id: int | None,
+        organization_slug: str | None = None,
+        add_responses: bool = True,
+    ) -> Response:
         if add_responses:
             self.add_create_repository_responses(repository_config)
         if not integration_id:
@@ -2474,7 +2583,7 @@ class IntegrationRepositoryTestCase(APITestCase):
                 "identifier": repository_config["id"],
             }
 
-        response = self.client.post(
+        response: Response = self.client.post(
             path=reverse(
                 "sentry-api-0-organization-repositories",
                 args=[organization_slug or self.organization.slug],
@@ -2483,13 +2592,13 @@ class IntegrationRepositoryTestCase(APITestCase):
         )
         return response
 
-    def assert_error_message(self, response, error_type, error_message):
+    def assert_error_message(self, response: Response, error_type: str, error_message: str) -> None:
         assert response.data["error_type"] == error_type
         assert error_message in response.data["errors"]["__all__"]
 
 
 class ReleaseCommitPatchTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
         self.org.save()
@@ -2501,24 +2610,28 @@ class ReleaseCommitPatchTest(APITestCase):
         self.login_as(user=user)
 
     @cached_property
-    def url(self):
+    def url(self) -> str:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    def assert_commit(self, commit, repo_id, key, author_id, message):
+    def assert_commit(
+        self, commit: Commit, repo_id: int, key: str, author_id: int, message: str
+    ) -> None:
         assert commit.organization_id == self.org.id
         assert commit.repository_id == repo_id
         assert commit.key == key
         assert commit.author_id == author_id
         assert commit.message == message
 
-    def assert_file_change(self, file_change, type, filename, commit_id):
+    def assert_file_change(
+        self, file_change: CommitFileChange, type: str, filename: str, commit_id: int
+    ) -> None:
         assert file_change.type == type
         assert file_change.filename == filename
         assert file_change.commit_id == commit_id
 
 
 class SetRefsTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
@@ -2531,7 +2644,13 @@ class SetRefsTestCase(APITestCase):
         self.group = self.create_group(project=self.project)
         self.repo = Repository.objects.create(organization_id=self.org.id, name="test/repo")
 
-    def assert_fetch_commits(self, mock_fetch_commit, prev_release_id, release_id, refs):
+    def assert_fetch_commits(
+        self,
+        mock_fetch_commit: mock.Mock,
+        prev_release_id: int | None,
+        release_id: int,
+        refs: Sequence[dict[str, Any]],
+    ) -> None:
         assert len(mock_fetch_commit.method_calls) == 1
         kwargs = mock_fetch_commit.method_calls[0][2]["kwargs"]
         assert kwargs == {
@@ -2541,7 +2660,9 @@ class SetRefsTestCase(APITestCase):
             "user_id": self.user.id,
         }
 
-    def assert_head_commit(self, head_commit, commit_key, release_id=None):
+    def assert_head_commit(
+        self, head_commit: ReleaseHeadCommit, commit_key: str, release_id: int | None = None
+    ) -> None:
         assert self.org.id == head_commit.organization_id
         assert self.repo.id == head_commit.repository_id
         if release_id:
@@ -2550,7 +2671,7 @@ class SetRefsTestCase(APITestCase):
             assert self.release.id == head_commit.release_id
         self.assert_commit(head_commit.commit, commit_key)
 
-    def assert_commit(self, commit, key):
+    def assert_commit(self, commit: Commit, key: str) -> None:
         assert self.org.id == commit.organization_id
         assert self.repo.id == commit.repository_id
         assert commit.key == key
@@ -2566,7 +2687,7 @@ class _QueryDict(TypedDict):
 
 
 class OrganizationDashboardWidgetTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
@@ -2599,11 +2720,14 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "conditions": "has:geo.country_code",
         }
 
-    def do_request(self, method, url, data=None):
+    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         func = getattr(self.client, method)
-        return func(url, data=data)
+        response: Response = func(url, data=data)
+        return response
 
-    def assert_serialized_widget_query(self, data, widget_data_source):
+    def assert_serialized_widget_query(
+        self, data: dict[str, Any], widget_data_source: DashboardWidgetQuery
+    ) -> None:
         if "id" in data:
             assert data["id"] == str(widget_data_source.id)
         if "name" in data:
@@ -2623,10 +2747,12 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         if "selectedAggregate" in data:
             assert data["selectedAggregate"] == widget_data_source.selected_aggregate
 
-    def get_widgets(self, dashboard_id):
+    def get_widgets(self, dashboard_id: int) -> QuerySet[DashboardWidget]:
         return DashboardWidget.objects.filter(dashboard_id=dashboard_id).order_by("order", "id")
 
-    def assert_serialized_widget(self, data, expected_widget):
+    def assert_serialized_widget(
+        self, data: dict[str, Any], expected_widget: DashboardWidget
+    ) -> None:
         if "id" in data:
             assert data["id"] == str(expected_widget.id)
         if "title" in data:
@@ -2644,7 +2770,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         if "datasetSource" in data:
             assert data["datasetSource"] == DATASET_SOURCES[expected_widget.dataset_source]
 
-    def create_user_member_role(self):
+    def create_user_member_role(self) -> None:
         self.user = self.create_user(is_superuser=False)
         self.create_member(
             user=self.user,
@@ -2669,7 +2795,7 @@ class TestMigrations(TransactionTestCase):
     # share one run.
     allow_multiple_tests = False
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         tests = TestLoader().getTestCaseNames(cls)
         if len(tests) > 1 and not cls.allow_multiple_tests:
@@ -2681,24 +2807,25 @@ class TestMigrations(TransactionTestCase):
             )
 
     @property
-    def migrate_from(self):
+    def migrate_from(self) -> str:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     @property
-    def migrate_to(self):
+    def migrate_to(self) -> str:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    _project_state_cache: SentryProjectState | None = None
+    current_migration: list[tuple[str, str]] = []
+    _project_state_cache: ProjectState | None = None
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         super().setUpClass()
         conn = connections[cls.connection]
         executor = MigrationExecutor(conn)
         matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == cls.app]
         cls.current_migration = [max(matching_migrations)]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         migrate_from = [(self.app, self.migrate_from)]
@@ -2729,7 +2856,7 @@ class TestMigrations(TransactionTestCase):
 
         self.apps = self._project_state_cache.apps
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDownClass()
         executor = MigrationExecutor(connections[self.connection])
         self._project_state_cache = executor.migrate(
@@ -2737,7 +2864,7 @@ class TestMigrations(TransactionTestCase):
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         super().tearDownClass()
         cls._project_state_cache = None
 
@@ -2749,7 +2876,7 @@ class TestMigrations(TransactionTestCase):
         # database operations are required.
         pass
 
-    def setup_before_migration(self, apps) -> None:
+    def setup_before_migration(self, apps: StateApps) -> None:
         # Add code here to run after we have rolled the database back to the `migrate_from`
         # migration. This code must use `apps` to create any database models, and not directly
         # access Django models.
@@ -2760,7 +2887,7 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     provider = "dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.auth_provider_inst = AuthProviderModel(
@@ -2784,8 +2911,13 @@ class SCIMAzureTestCase(SCIMTestCase):
 
 
 class ActivityTestCase(TestCase):
+    org: Organization
+    project2: Project
+
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def another_user(self, email_string, team=None, alt_email_string=None):
+    def another_user(
+        self, email_string: str, team: Team | None = None, alt_email_string: str | None = None
+    ) -> User:
         user = self.create_user(email_string)
         if alt_email_string:
             UserEmail.objects.create(email=alt_email_string, user=user)
@@ -2800,7 +2932,14 @@ class ActivityTestCase(TestCase):
 
         return user
 
-    def another_commit(self, order, name, user, repository, alt_email_string=None):
+    def another_commit(
+        self,
+        order: int,
+        name: str,
+        user: User,
+        repository: Repository,
+        alt_email_string: str | None = None,
+    ) -> Commit:
         commit = Commit.objects.create(
             key=name * 40,
             repository_id=repository.id,
@@ -2820,7 +2959,7 @@ class ActivityTestCase(TestCase):
 
         return commit
 
-    def another_release(self, name):
+    def another_release(self, name: str) -> tuple[Release, Deploy]:
         release = Release.objects.create(
             version=name * 40,
             organization_id=self.project.organization_id,
@@ -2845,10 +2984,10 @@ class ActivityTestCase(TestCase):
 
 class SlackActivityNotificationTest(ActivityTestCase):
     @cached_property
-    def adapter(self):
+    def adapter(self) -> MailAdapter:
         return mail_adapter
 
-    def setUp(self):
+    def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             base_params = {
                 "user_id": self.user.id,
@@ -2877,12 +3016,12 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.short_id = self.group.qualified_short_id
 
     @pytest.fixture(autouse=True)
-    def responses_context(self):
+    def responses_context(self) -> Iterator[None]:
         with responses.mock:
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Iterator[None]:
         with mock.patch(
             "slack_sdk.web.client.WebClient.chat_postMessage",
             return_value=SlackResponse(
@@ -2899,14 +3038,14 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
     def assert_performance_issue_blocks_with_culprit_blocks(
         self,
-        blocks,
+        blocks: Sequence[dict[str, Any]],
         org: Organization,
         project_slug: str,
-        group,
-        referrer,
+        group: Group,
+        referrer: str,
         alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
-        issue_link_extra_params=None,
-    ):
+        issue_link_extra_params: str | None = None,
+    ) -> None:
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
 
         issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
@@ -2930,15 +3069,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
     def assert_generic_issue_blocks(
         self,
-        blocks,
+        blocks: Sequence[dict[str, Any]],
         org: Organization,
         project_slug: str,
-        group,
-        referrer,
-        alert_type="workflow",
-        issue_link_extra_params=None,
-        with_culprit=False,
-    ):
+        group: Group,
+        referrer: str,
+        alert_type: FineTuningAPIKey | str = "workflow",
+        issue_link_extra_params: str | None = None,
+        with_culprit: bool = False,
+    ) -> None:
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
@@ -2967,7 +3106,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
 
 
 class MSTeamsActivityNotificationTest(ActivityTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             base_params = {
                 "user_id": self.user.id,
@@ -3019,8 +3158,8 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         # We perform also here the same - 1 seconds transformation as in the _store_metric() method.
         kwargs["started"] = self.adjust_timestamp(
             self.now
@@ -3036,7 +3175,7 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
 
 
 class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         now = int(time.time())
@@ -3084,7 +3223,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
 
 
 class MonitorTestCase(APITestCase):
-    def _create_monitor(self, **kwargs):
+    def _create_monitor(self, **kwargs: Any) -> Monitor:
         if "owner_user_id" not in kwargs:
             kwargs["owner_user_id"] = self.user.id
 
@@ -3100,7 +3239,9 @@ class MonitorTestCase(APITestCase):
             **kwargs,
         )
 
-    def _create_monitor_environment(self, monitor, name="production", **kwargs):
+    def _create_monitor_environment(
+        self, monitor: Monitor, name: str = "production", **kwargs: Any
+    ) -> MonitorEnvironment:
         environment = Environment.get_or_create(project=self.project, name=name)
 
         monitorenvironment_defaults = {
@@ -3114,7 +3255,7 @@ class MonitorTestCase(APITestCase):
             **monitorenvironment_defaults,
         )
 
-    def _create_issue_alert_rule(self, monitor):
+    def _create_issue_alert_rule(self, monitor: Monitor) -> Rule:
         conditions = [
             {
                 "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
@@ -3166,10 +3307,10 @@ class MonitorIngestTestCase(MonitorTestCase):
     """
 
     @property
-    def token_auth_headers(self):
+    def token_auth_headers(self) -> dict[str, str]:
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # DSN based auth
         self.project_key = self.create_project_key()
@@ -3186,8 +3327,12 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCaseMixin:
-    def setUp(self):
-        super().setUp()
+    addCleanup: Callable[..., None]
+
+    def setUp(self) -> None:
+        parent_setup = getattr(super(), "setUp", None)
+        if parent_setup is not None:
+            parent_setup()
         patcher = mock.patch(
             "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
         )
@@ -3219,10 +3364,7 @@ class UptimeTestCaseMixin:
             guid = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
-        optional_fields: _OptionalCheckResult = {}
-        if uptime_region is not None:
-            optional_fields["region"] = uptime_region
-        return {
+        result: CheckResult = {
             "guid": guid,
             "subscription_id": subscription_id,
             "status": status,
@@ -3237,12 +3379,10 @@ class UptimeTestCaseMixin:
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
             "assertion_failure_data": MOCK_ASSERTION_FAILURE_DATA,
-            **optional_fields,
         }
-
-
-class _OptionalCheckResult(TypedDict, total=False):
-    region: str
+        if uptime_region is not None:
+            result["region"] = uptime_region
+        return result
 
 
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):
@@ -3255,6 +3395,8 @@ class IntegratedApiTestCase(BaseTestCase):
 
 
 class SpanTestCase(BaseTestCase):
+    ten_mins_ago: datetime
+
     # Some base data for create_span
     base_span: dict[str, Any] = {
         "is_segment": False,
@@ -3270,7 +3412,7 @@ class SpanTestCase(BaseTestCase):
         timestamp: datetime | None = None,
         duration: timedelta | None = None,
         **kwargs: Any,
-    ) -> dict[str | int, Any]:
+    ) -> dict[str, Any]:
         if timestamp is None:
             timestamp = self.ten_mins_ago
 
@@ -3290,7 +3432,9 @@ class SpanTestCase(BaseTestCase):
                 microseconds=start_timestamp.microsecond % 1000
             )
 
-        return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
+        data = load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
+        assert data is not None
+        return data
 
     def create_span(
         self,
@@ -3377,7 +3521,7 @@ def scalar_to_any_value(value: Any) -> AnyValue:
     raise Exception(f"cannot convert {value} of type {type(value)} to AnyValue")
 
 
-def span_to_trace_item(span) -> TraceItem:
+def span_to_trace_item(span: dict[str, Any]) -> TraceItem:
     client_sample_rate = 1.0
     server_sample_rate = 1.0
     attributes = {}
@@ -3761,7 +3905,11 @@ class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
 
 
 class TraceTestCase(SpanTestCase):
-    def setUp(self):
+    FEATURES: list[str] = []
+    gen1_project: Project
+    store_spans: Callable[[Sequence[dict[str, Any]]], None]
+
+    def setUp(self) -> None:
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.trace_id = uuid4().hex
@@ -3797,6 +3945,7 @@ class TraceTestCase(SpanTestCase):
             timestamp=end,
             start_timestamp=start,
         )
+        assert data is not None
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         data["contexts"]["profile"] = {"profile_id": uuid4().hex}
@@ -3920,6 +4069,7 @@ class TraceTestCase(SpanTestCase):
             "javascript",
             timestamp=start,
         )
+        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": self.trace_id,
@@ -3969,16 +4119,16 @@ class ReplayEAPTestCase(BaseTestCase):
     def create_eap_replay_breadcrumb(
         self,
         *,
-        project,
-        replay_id,
-        segment_id,
-        breadcrumb_type,
-        timestamp=None,
-        organization=None,
-        trace_id=None,
-        retention_days=30,
-        **attributes,
-    ):
+        project: Project,
+        replay_id: str,
+        segment_id: int,
+        breadcrumb_type: ReplayBreadcrumbType,
+        timestamp: datetime | None = None,
+        organization: Organization | None = None,
+        trace_id: str | None = None,
+        retention_days: int = 30,
+        **attributes: Any,
+    ) -> TraceItem:
         """Create single EAP replay breadcrumb TraceItem."""
         from datetime import datetime
         from uuid import uuid4
@@ -4058,16 +4208,16 @@ class ReplayEAPTestCase(BaseTestCase):
     def create_replay_breadcrumb(
         self,
         *,
-        project,
-        replay_id,
-        segment_id,
-        breadcrumb_type,
-        timestamp=None,
-        organization=None,
-        trace_id=None,
-        retention_days=30,
-        **attributes,
-    ):
+        project: Project,
+        replay_id: str,
+        segment_id: int,
+        breadcrumb_type: ReplayBreadcrumbType,
+        timestamp: datetime | None = None,
+        organization: Organization | None = None,
+        trace_id: str | None = None,
+        retention_days: int = 30,
+        **attributes: Any,
+    ) -> TraceItem:
         """create_eap_replay_breadcrumb is wrong so making another create event that's tested against what we see in
         production. can also check `src/sentry/replays/usecases/ingest/event_parser.py` for these names too"""
 
@@ -4146,36 +4296,36 @@ class UptimeResultEAPTestCase(BaseTestCase):
     def create_eap_uptime_result(
         self,
         *,
-        organization=None,
-        project=None,
-        scheduled_check_time=None,
-        trace_id=None,
-        guid=None,
-        subscription_id=None,
-        check_id=None,
-        check_status="success",
-        incident_status=None,
-        region="default",
-        http_status_code=200,
-        request_type="GET",
-        request_url="https://example.com",
-        original_url=None,
-        request_sequence=0,
-        check_duration_us=150000,
-        request_duration_us=125000,
-        dns_lookup_duration_us=None,
-        tcp_connection_duration_us=None,
-        tls_handshake_duration_us=None,
-        time_to_first_byte_duration_us=None,
-        send_request_duration_us=None,
-        receive_response_duration_us=None,
-        request_body_size_bytes=None,
-        assertion_failure_data=None,
-        response_body_size_bytes=None,
-        status_reason_type=None,
-        status_reason_description=None,
-        span_id=None,
-    ):
+        organization: Organization | None = None,
+        project: Project | None = None,
+        scheduled_check_time: datetime | None = None,
+        trace_id: str | None = None,
+        guid: str | None = None,
+        subscription_id: str | None = None,
+        check_id: str | None = None,
+        check_status: str = "success",
+        incident_status: IncidentStatus | None = None,
+        region: str = "default",
+        http_status_code: int = 200,
+        request_type: str = "GET",
+        request_url: str = "https://example.com",
+        original_url: str | None = None,
+        request_sequence: int = 0,
+        check_duration_us: int | None = 150000,
+        request_duration_us: int | None = 125000,
+        dns_lookup_duration_us: int | None = None,
+        tcp_connection_duration_us: int | None = None,
+        tls_handshake_duration_us: int | None = None,
+        time_to_first_byte_duration_us: int | None = None,
+        send_request_duration_us: int | None = None,
+        receive_response_duration_us: int | None = None,
+        request_body_size_bytes: int | None = None,
+        assertion_failure_data: dict[str, Any] | None = None,
+        response_body_size_bytes: int | None = None,
+        status_reason_type: str | None = None,
+        status_reason_description: str | None = None,
+        span_id: str | None = None,
+    ) -> TraceItem:
         if organization is None:
             organization = self.organization
         if project is None:
@@ -4271,19 +4421,19 @@ class ProcessingErrorTestCase(BaseTestCase):
     def create_processing_error(
         self,
         *,
-        organization=None,
-        project=None,
-        timestamp=None,
-        trace_id=None,
-        event_id=None,
-        error_type="js_no_source",
-        symbolicator_type=None,
-        release=None,
-        environment=None,
-        platform="javascript",
-        sdk_name=None,
-        sdk_version=None,
-    ):
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+        event_id: str | None = None,
+        error_type: str = "js_no_source",
+        symbolicator_type: str | None = None,
+        release: str | None = None,
+        environment: str | None = None,
+        platform: str = "javascript",
+        sdk_name: str | None = None,
+        sdk_version: str | None = None,
+    ) -> TraceItem:
         if organization is None:
             organization = self.organization
         if project is None:

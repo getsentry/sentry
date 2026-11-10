@@ -1,7 +1,8 @@
 import functools
 import os
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from sentry.utils.safe import get_path
 
@@ -57,14 +58,14 @@ def find_translation(message: str) -> tuple[str, str | None] | tuple[None, None]
     return (None, None)
 
 
-def format_message(message, data):
+def format_message(message: str, data: str) -> str:
     return message.replace("%s", data)
 
 
 message_type_regexp = re.compile("^(?P<type>[a-zA-Z]*Error): (?P<message>.*)")
 
 
-def translate_message(original_message):
+def translate_message(original_message: object) -> object:
     if not isinstance(original_message, str):
         return original_message
 
@@ -95,7 +96,7 @@ def translate_message(original_message):
             return format_message(translated_message, format_string_data)
 
 
-def translate_exception(data):
+def translate_exception(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     message = get_path(data, "logentry", "message")
     if message:
         data["logentry"]["message"] = translate_message(message)

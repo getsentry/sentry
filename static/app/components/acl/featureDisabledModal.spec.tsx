@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
+import {FeatureDisabledModal} from './featureDisabledModal';
 
 describe('FeatureTourModal', () => {
   const onCloseModal = jest.fn();

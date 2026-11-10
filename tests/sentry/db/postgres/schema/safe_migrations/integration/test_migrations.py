@@ -34,11 +34,11 @@ class BaseSafeMigrationTest(TestCase):
     migrate_from: str
     migrate_to: str
 
-    def run_migration(self):
+    def run_migration(self) -> None:
         self._run_migration(self.app, self.migrate_from)
         self._run_migration(self.app, self.migrate_to)
 
-    def _run_migration(self, app, migration_name):
+    def _run_migration(self, app: str, migration_name: str) -> None:
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
@@ -49,7 +49,7 @@ class BaseSafeMigrationTest(TestCase):
             executor.loader.project_state(target).apps
             executor.migrate(target)
 
-    def sql_migrate(self, app, migration_name):
+    def sql_migrate(self, app: str, migration_name: str) -> str:
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
@@ -469,7 +469,7 @@ class DropNotNullWithLeftoverCheckTest(BaseSafeMigrationTest):
 class ColExistsMixin:
     app = ""
 
-    def col_exists(self, col_name):
+    def col_exists(self, col_name: str) -> bool:
         with connection.cursor() as cursor:
             table_name = f"{self.app}_testtable"
             columns = connection.introspection.get_table_description(cursor, table_name)

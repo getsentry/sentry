@@ -566,7 +566,7 @@ class EnqueueSeerRunSanitizeTest(TestCase):
 class FetchRunStatusesTest(TestCase):
     _PATCH = "sentry.seer.agent.client_utils.make_signed_seer_api_request"
 
-    def _response(self, status: int, payload: dict) -> mock.Mock:
+    def _response(self, status: int, payload: dict[str, Any]) -> mock.Mock:
         response = mock.Mock(status=status)
         response.json.return_value = payload
         return response

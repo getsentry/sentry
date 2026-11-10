@@ -37,7 +37,7 @@ def test_basic(kafka_slice_id: int | None) -> None:
 
         commits = []
 
-        def add_commit(offsets, force=False):
+        def add_commit(offsets: object, force: bool = False) -> None:
             commits.append(offsets)
 
         step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
@@ -142,7 +142,7 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
 
         commits = []
 
-        def add_commit(offsets, force=False):
+        def add_commit(offsets: object, force: bool = False) -> None:
             commits.append(offsets)
 
         step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
@@ -222,7 +222,7 @@ def test_flusher_processes_limit() -> None:
 
         commits = []
 
-        def add_commit(offsets, force=False):
+        def add_commit(offsets: object, force: bool = False) -> None:
             commits.append(offsets)
 
         # Create with 4 partitions/shards to test process sharing
@@ -276,7 +276,7 @@ def test_produce_to_kafka_exception(kafka_slice_id: int | None) -> None:
 
         commits = []
 
-        def add_commit(offsets, force=False):
+        def add_commit(offsets: object, force: bool = False) -> None:
             commits.append(offsets)
 
         step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})

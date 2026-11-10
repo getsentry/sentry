@@ -14,6 +14,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleArchive
+from sentry.models.project import Project
 from sentry.releases.endpoints.project_release_file_details import ClosesDependentFiles
 
 
@@ -56,7 +57,9 @@ class ProjectArtifactBundleFileDetailsEndpoint(
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project, bundle_id, file_id) -> HttpResponseBase:
+    def get(
+        self, request: Request, project: Project, bundle_id: str, file_id: str
+    ) -> HttpResponseBase:
         """
         Retrieve the file of an artifact bundle
         `````````````````````````````````

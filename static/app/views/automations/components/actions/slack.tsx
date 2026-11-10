@@ -12,12 +12,10 @@ import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {TagsField} from 'sentry/views/automations/components/actions/tagsField';
-import {
-  TargetDisplayField,
-  TargetIdentifierField,
-} from 'sentry/views/automations/components/actions/targetDisplayField';
+
+import {IntegrationField} from './integrationField';
+import {TagsField} from './tagsField';
+import {TargetDisplayField, TargetIdentifierField} from './targetDisplayField';
 
 export function SlackDetails({
   action,

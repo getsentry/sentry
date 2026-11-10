@@ -56,7 +56,10 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
     def _issue(self) -> str:
         response = self._post()
         assert response.status_code == 200
-        return response.data["viewerContext"]
+        viewer_context = response.data["viewerContext"]
+        if not isinstance(viewer_context, str):
+            raise TypeError("Service account endpoint returned no viewer context")
+        return viewer_context
 
     def _get_project(self, viewer_context: str, project: Project) -> Any:
         # Environments needs only project access; details also serializes per-person fields.

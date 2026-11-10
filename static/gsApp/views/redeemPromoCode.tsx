@@ -3,8 +3,8 @@ import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -55,7 +55,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         markStartedTrial: true,
       });
       fetchOrganizationDetails(new Client(), organization.slug);
-      addSuccessMessage(msg);
+      toast.success(msg);
     },
     onError: error => {
       if (error instanceof RequestError) {
@@ -65,11 +65,11 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         const nonFieldErrors =
           error.responseJSON?.non_field_errors || error.responseJSON?.nonFieldErrors;
 
-        if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
-          addErrorMessage(nonFieldErrors[0], {duration: 10000});
+        if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === 'string') {
+          toast.error(nonFieldErrors[0], {duration: 10000});
         }
       } else {
-        addErrorMessage(t('Unable to redeem promo code'));
+        toast.error(t('Unable to redeem promo code'));
       }
     },
   });

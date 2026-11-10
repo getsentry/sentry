@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

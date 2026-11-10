@@ -1,4 +1,4 @@
-import {getBuildsExportHref} from 'sentry/views/preprod/utils/buildsExportHref';
+import {getBuildsExportHref} from './buildsExportHref';
 
 describe('getBuildsExportHref', () => {
   it('targets the org-scoped export endpoint', () => {

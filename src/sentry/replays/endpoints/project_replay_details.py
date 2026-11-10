@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -46,6 +47,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PRIVATE,
     }
+    idempotent_methods = frozenset()
 
     permission_classes = (ReplayDetailsPermission,)
 
@@ -94,7 +96,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
             )
 
         replay_data = process_raw_response(
-            snuba_response,
+            cast("list[dict[str, Any]]", snuba_response),
             fields=fields,
         )
 

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -17,7 +18,7 @@ expected_data = [
 
 
 @pytest.mark.parametrize("email,expected_name", expected_data)
-def test_get_name_from_email(email, expected_name) -> None:
+def test_get_name_from_email(email: str, expected_name: str) -> None:
     assert _get_name_from_email(email) == expected_name
 
 
@@ -35,12 +36,12 @@ class FetchUserTest(TestCase):
     def _run(
         self,
         *,
-        user: dict,
-        emails: list[dict] | None = None,
+        user: dict[str, Any],
+        emails: list[dict[str, Any]] | None = None,
         emails_error: Exception | None = None,
         returning_user: bool = False,
         returning_user_active: bool = True,
-    ) -> dict:
+    ) -> dict[str, Any]:
         if returning_user:
             identity_user = (
                 self.user if returning_user_active else self.create_user(is_active=False)

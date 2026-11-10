@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 from django.utils import timezone
 
@@ -37,11 +38,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
             workflow_condition_group=self.create_data_condition_group(
                 organization=self.organization
             ),
-            config={
-                "detection_type": AlertRuleDetectionType.STATIC,
-                "comparison_delta": None,
-                **config,
-            },
+            config={"detection_type": AlertRuleDetectionType.STATIC, **config},
         )
         query = self.create_snuba_query(query="level:error")
         subscription = self.create_snuba_query_subscription(snuba_query_id=query.id)
@@ -63,7 +60,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
         condition = self.create_data_condition(
             condition_group=detector.workflow_condition_group,
             type=Condition.GREATER,
-            comparison=threshold,
+            comparison=cast("str | int | Mapping[str, object]", threshold),
             condition_result=priority,
         )
         action_group = self.create_data_condition_group(organization=self.organization)

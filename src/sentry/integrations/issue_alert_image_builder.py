@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from typing import cast
 
 import sentry_sdk
 from django.conf import settings
@@ -37,7 +38,7 @@ class IssueAlertImageBuilder:
         self.group = group
         self.provider = provider
         self.cache_key = f"chartcuterie-image:{self.group.id}"
-        self.tags = {
+        self.tags: dict[str, str | int] = {
             "provider": self.provider,
             "issue_category": self.group.issue_category,
         }
@@ -105,7 +106,9 @@ class IssueAlertImageBuilder:
             )
             return None
         transaction_name = utils.escape_transaction(event.transaction)
-        period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
+        period = get_relative_time(
+            anchor=cast(int, get_approx_start_time(self.group)), relative_days=14
+        )
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=None,
@@ -140,7 +143,9 @@ class IssueAlertImageBuilder:
             )
             return None
 
-        period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
+        period = get_relative_time(
+            anchor=cast(int, get_approx_start_time(self.group)), relative_days=14
+        )
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=None,

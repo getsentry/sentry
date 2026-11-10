@@ -22,10 +22,6 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import type {
-  MetricDetectorFormData,
-  PrioritizeLevelFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -34,6 +30,8 @@ import {
   percentThresholdAbsoluteToDelta,
   percentThresholdDeltaToAbsolute,
 } from 'sentry/views/detectors/utils/percentThreshold';
+
+import type {MetricDetectorFormData, PrioritizeLevelFormData} from './metricFormFields';
 
 /**
  * Snuba query types that correspond to the backend SnubaQuery.Type enum.

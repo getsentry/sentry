@@ -1,10 +1,14 @@
 import zlib
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 from unittest import mock
 
 import msgpack
 import pytest
 from google.api_core.exceptions import BadGateway, InternalServerError
+
+_InternalServerError = cast("Callable[[str], InternalServerError]", InternalServerError)
+_BadGateway = cast("Callable[[str], BadGateway]", BadGateway)
 
 from sentry.replays.consumers.recording import (
     DropSilently,
@@ -525,7 +529,7 @@ def test_process_message_no_headers() -> None:
     assert process_message(kafka_message) is None
 
 
-@pytest.mark.parametrize("error", [InternalServerError("500"), BadGateway("502")])
+@pytest.mark.parametrize("error", [_InternalServerError("500"), _BadGateway("502")])
 def test_commit_message_reraises_transient_server_errors(error: Exception) -> None:
     """A 500/502 that outlasts the upload retries fails the task so it can be retried."""
     with (

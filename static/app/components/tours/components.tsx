@@ -14,6 +14,11 @@ import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
 import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   useTourReducer,
   type TourContextType,
@@ -21,12 +26,8 @@ import {
   type TourState,
   type TourStep,
   type TourVariant,
-} from 'sentry/components/tours/tourContext';
-import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
-import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './tourContext';
+import {useMutateAssistant} from './useAssistant';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -370,6 +371,8 @@ export function TourElementContent<T extends TourEnumType>({
       isOpen={isOpen}
       position={position}
       handleDismiss={dismiss}
+      // Spotlight tours blur the page, so only subtle tours can be clicked away.
+      onClickOutside={variant === 'subtle' ? dismiss : undefined}
       onKeyDown={
         variant === 'subtle'
           ? event => {
@@ -418,6 +421,10 @@ interface TourGuideProps extends Omit<
   margin?: number;
   offset?: UseOverlayProps['offset'];
   /**
+   * Called after a click outside the guide. The click still goes through.
+   */
+  onClickOutside?: () => void;
+  /**
    * Handles keys pressed while focus is inside the guide. The guide can then be
    * focused, and returns focus to the page when it closes.
    */
@@ -459,6 +466,7 @@ export function TourGuide({
   stepTotal,
   offset,
   margin,
+  onClickOutside,
   onKeyDown,
   focusHandoffRef,
   returnFocusRef,
@@ -478,7 +486,25 @@ export function TourGuide({
     offset,
     strategy: 'fixed',
     preventOverflowOptions: keepGuideInViewport,
+    // react-aria swallows the click that dismisses an overlay. Guides that handle
+    // outside clicks let the click through instead.
+    isDismissable: !onClickOutside,
   });
+
+  useEffect(() => {
+    if (!isOpen || !onClickOutside) {
+      return;
+    }
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && !overlayRef.current?.contains(target)) {
+        onClickOutside();
+      }
+    };
+    // Runs after the page handles the click, so the click still goes through.
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, onClickOutside, overlayRef]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
   // a nested scroll container (e.g. the issue details sidebar, which stacks below
@@ -561,7 +587,7 @@ export function TourGuide({
               <ThemeProvider theme={invertedTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
-                    <TourOverlay
+                    <Overlay
                       animated
                       arrowProps={{
                         ...arrowProps,
@@ -623,7 +649,7 @@ export function TourGuide({
                           </Flex>
                         )}
                       </Stack>
-                    </TourOverlay>
+                    </Overlay>
                   )}
                 </ClassNames>
               </ThemeProvider>
@@ -637,11 +663,6 @@ export function TourGuide({
 
 // useOverlay keeps 16px between the guide and each edge of the viewport.
 const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
-
-// Replaces the Overlay's own shadow, which no layout primitive can override.
-const TourOverlay = styled(Overlay)`
-  box-shadow: ${p => p.theme.shadow.high};
-`;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="primary" size="sm" />;

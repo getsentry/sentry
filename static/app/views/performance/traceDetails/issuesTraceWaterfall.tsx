@@ -15,18 +15,18 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
-import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
-import {useDividerResizeSync} from 'sentry/views/performance/traceDetails/useDividerResizeSync';
-import {useTraceSpaceListeners} from 'sentry/views/performance/traceDetails/useTraceSpaceListeners';
 
+import {IssuesTraceTree} from './traceModels/issuesTraceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {IssueTraceWaterfallOverlay} from './issuesTraceWaterfallOverlay';
 import {Trace} from './trace';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
+import {useDividerResizeSync} from './useDividerResizeSync';
 import {useTraceIssuesOnLoad} from './useTraceOnLoad';
+import {useTraceSpaceListeners} from './useTraceSpaceListeners';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 

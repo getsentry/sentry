@@ -1,5 +1,6 @@
 import type {RequestMessage} from 'sentry/serviceWorker/types';
-import {showNotification} from 'sentry/serviceWorker/worker/showNotification';
+
+import {showNotification} from './showNotification';
 
 export function handleInboundRequest(
   sw: ServiceWorkerGlobalScope,

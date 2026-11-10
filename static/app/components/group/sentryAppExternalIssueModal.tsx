@@ -1,11 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -13,6 +12,8 @@ import type {SentryAppComponent} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
+
+import {SentryAppExternalIssueForm} from './sentryAppExternalIssueForm';
 
 interface OpenSentryAppIssueModalProps extends Omit<
   Props,

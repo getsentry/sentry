@@ -82,6 +82,7 @@ export function DropdownAddTeam({
   return (
     <CompactSelect
       size="xs"
+      strategy="fixed"
       value=""
       menuWidth={300}
       options={dropdownItems}

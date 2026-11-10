@@ -6,7 +6,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import FrontendOverviewPage from 'sentry/views/insights/pages/frontend/frontendOverviewPage';
+
+import FrontendOverviewPage from './frontendOverviewPage';
 
 const organization = OrganizationFixture({features: ['performance-view']});
 const pageFilterSelection = PageFiltersFixture({

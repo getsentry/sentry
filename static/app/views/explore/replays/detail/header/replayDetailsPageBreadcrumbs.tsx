@@ -16,9 +16,10 @@ import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayP
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useReplayMenuItems} from 'sentry/views/explore/replays/detail/header/useReplayMenuItems';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useReplayMenuItems} from './useReplayMenuItems';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;

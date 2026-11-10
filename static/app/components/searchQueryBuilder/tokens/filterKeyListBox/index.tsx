@@ -23,17 +23,18 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
-import type {Section} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
-import {
-  createRecentFilterOptionKey,
-  LOGIC_CATEGORY_VALUE,
-  RECENT_SEARCH_CATEGORY_VALUE,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {KeyDescription} from './keyDescription';
+import type {Section} from './types';
+import {
+  createRecentFilterOptionKey,
+  LOGIC_CATEGORY_VALUE,
+  RECENT_SEARCH_CATEGORY_VALUE,
+} from './utils';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;

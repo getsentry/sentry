@@ -13,17 +13,15 @@ import {FieldKind} from 'sentry/utils/fields';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import type {FormulaDataset} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {
-  BuilderSection,
-  FIELD_MAX_WIDTH,
-} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {BuilderSection, FIELD_MAX_WIDTH} from './builderSection';
 import {
   MAX_REFERENCES,
   newReference,
   type DraftParam,
   type DraftReference,
-} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+} from './draft';
 
 export const TRACE_ITEM_DATASET_MAP: Record<FormulaDataset, TraceItemDataset> = {
   spans: TraceItemDataset.SPANS,

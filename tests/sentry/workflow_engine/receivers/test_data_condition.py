@@ -66,7 +66,6 @@ class TestPostSaveActionFilterCacheInvalidation(ActionFilterTestCase):
         cache_keys = self.populate_action_filter_cache({workflow.id: condition_groups})
 
         # create a second set of filters and trigger the receiver
-        new_condition.name = "Test Model Change"
         new_condition.save()
 
         assert self.get_data_from_cache(cache_keys)[workflow.id] is None

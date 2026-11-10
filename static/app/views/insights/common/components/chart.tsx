@@ -39,7 +39,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
+
+import {ChartType} from './chartTypes';
 
 export {ChartType, isChartType} from 'sentry/views/insights/common/components/chartTypes';
 

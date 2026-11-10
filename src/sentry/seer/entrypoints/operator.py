@@ -47,6 +47,7 @@ from sentry.seer.entrypoints.types import (
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
     SeerInvestigationEntrypoint,
+    SeerOperatorCacheResult,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
@@ -209,6 +210,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -226,7 +228,9 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
             try:
-                existing_state = get_autofix_agent_state(group.organization, group.id)
+                existing_state = get_autofix_agent_state(
+                    group.organization, group.id, sources=(AUTOFIX_FEATURE_ID,)
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -320,6 +324,7 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             # Let the entrypoint signal to the external service that the run started
@@ -411,10 +416,12 @@ class SeerAutofixOperator[CachePayloadT]:
             lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
             try:
                 with lock.acquire():
-                    non_failed = [a for a in coding_agents if a.status != CodingAgentStatus.FAILED]
+                    non_failed = [
+                        a for a in coding_agents if a.status != CodingAgentStatus.FAILED.value
+                    ]
                     if non_failed:
                         has_complete_stage = any(
-                            a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                            a.status == CodingAgentStatus.COMPLETED.value for a in non_failed
                         )
                         lifecycle.add_extra("active_agents", str(len(non_failed)))
                         with SeerOperatorEventLifecycleMetric(
@@ -542,9 +549,7 @@ class SeerAgentOperator[CachePayloadT]:
 
             enable_code_mode_tools = "off"
             has_create_pr = False
-            if category_key == "slack_thread" and features.has(
-                "organizations:seer-slack-code-mode", organization
-            ):
+            if category_key == "slack_thread":
                 enable_code_mode_tools = "only"
                 # Same gate as Ask Seer; Seer only exposes write_pull_request with coding and bash on.
                 has_create_pr = features.has(
@@ -564,7 +569,6 @@ class SeerAgentOperator[CachePayloadT]:
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
                     enable_coding=enable_coding,
-                    # The client still requires seer-explorer-allow-bash-mode.
                     enable_bash_mode=enable_coding,
                     enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
@@ -586,7 +590,7 @@ class SeerAgentOperator[CachePayloadT]:
                 # Discovery uses the local run mirror; continue/start stays remote.
                 existing_run = client.latest_run(only_current_user=False)
 
-                if existing_run is not None:
+                if existing_run is not None and existing_run.run.seer_run_state_id is not None:
                     run_id = client.continue_run(
                         run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
@@ -608,6 +612,7 @@ class SeerAgentOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return None
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             with SeerOperatorEventLifecycleMetric(
@@ -874,7 +879,10 @@ def process_autofix_updates(
             lifecycle.record_failure(failure_reason="missing_identifiers")
             return
 
-        if event_type not in SEER_EVENT_TO_ACTIVITY_TYPE:
+        if (
+            event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
+            and event_type != SentryAppEventType.SEER_ERRORED
+        ):
             lifecycle.record_halt(halt_reason="skipped")
             return
 
@@ -910,7 +918,7 @@ def process_autofix_updates(
                 logger.warning("seer.operator.no_access_entrypoint_key", extra=logging_ctx)
                 continue
 
-            cache_result = SeerOperatorAutofixCache.get(
+            cache_result: SeerOperatorCacheResult[object] | None = SeerOperatorAutofixCache.get(
                 entrypoint_key=entrypoint_key, group_id=group_id, run_id=run_id
             )
             if not cache_result:

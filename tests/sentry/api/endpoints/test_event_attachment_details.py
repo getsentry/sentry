@@ -45,6 +45,7 @@ class CreateAttachmentMixin(TestCase):
         )
         file = EventAttachment.putfile(self.project.id, attachment)
 
+        assert attachment.name is not None
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,

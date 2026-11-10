@@ -187,13 +187,14 @@ class SentryAppsTest(APITestCase):
         method: str = "get",
         data: Mapping[str, Any] | None = None,
     ) -> Response:
-        return getattr(self.client, method)(
+        response: Response[Any] = getattr(self.client, method)(
             reverse(endpoint),
             format="json",
             **(data or {}),
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
             headers={"Content-Type": "application/json"},
         )
+        return response
 
 
 @control_silo_test
@@ -577,6 +578,18 @@ class PostSentryAppsTest(SentryAppsTest):
             "detail": "Please provide a valid value for the 'organization' field.",
         }
 
+    def test_cannot_create_app_with_non_object_body(self) -> None:
+        for body in ('"project:read"', "123", "[1, 2]", "null"):
+            with self.subTest(body=body):
+                response = self.client.post(
+                    reverse(self.endpoint), data=body, content_type="application/json"
+                )
+
+                assert response.status_code == 400
+                assert orjson.loads(response.content) == {
+                    "detail": "Request body must be a JSON object."
+                }
+
     def test_cannot_create_app_in_alien_organization(self) -> None:
         other_organization = self.create_organization()
         self.create_project(organization=other_organization)
@@ -856,6 +869,7 @@ class PostSentryAppsTest(SentryAppsTest):
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         assert sentry_app.webhook_headers == ["X-Trailing: value", "Authorization: Bearer token"]
         for header in sentry_app.webhook_headers:
+            assert header is not None
             assert "\n" not in header
             assert "\r" not in header
 

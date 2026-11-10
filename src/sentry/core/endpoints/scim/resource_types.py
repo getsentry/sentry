@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -25,17 +26,26 @@ from .utils import SCIMApiError, SCIMDiscoveryEndpoint, SCIMListBaseResponse, SC
 
 
 class SCIMResourceTypeResponse(TypedDict):
-    schemas: list[str]
-    id: str
-    name: str
-    description: str
-    endpoint: str
-    schema: str
-    meta: SCIMMetaResponse
+    schemas: Annotated[
+        list[str],
+        ApiDescription("SCIM schema URIs of the resource type, always the ResourceType schema"),
+    ]
+    id: Annotated[str, ApiDescription("ID of the resource type: User or Group")]
+    name: Annotated[str, ApiDescription("Name of the resource type: User or Group")]
+    description: Annotated[str, ApiDescription("What the resource type maps to in Sentry")]
+    endpoint: Annotated[
+        str, ApiDescription("Path of the resource type's endpoint, relative to the SCIM base URL")
+    ]
+    schema: Annotated[str, ApiDescription("URI of the resource type's core schema")]
+    meta: Annotated[
+        SCIMMetaResponse, ApiDescription("Resource type and location of the resource type")
+    ]
 
 
 class SCIMListResourceTypesResponse(SCIMListBaseResponse):
-    Resources: list[SCIMResourceTypeResponse]
+    Resources: Annotated[
+        list[SCIMResourceTypeResponse], ApiDescription("SCIM resource types Sentry supports")
+    ]
 
 
 def build_resource_types(organization: Organization) -> list[SCIMResourceTypeResponse]:

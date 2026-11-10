@@ -11,11 +11,12 @@ from rest_framework.response import Response
 
 from sentry.api.base import BaseEndpointMixin, StatsMixin
 from sentry.api.helpers.environments import get_environments
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.models.project import Project
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.utils import get_monitor_environment_ids
 
 
-def normalize_to_epoch(timestamp: datetime, seconds: int):
+def normalize_to_epoch(timestamp: datetime, seconds: int) -> int:
     """
     Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
 
@@ -40,7 +41,7 @@ def validate_bucket_count(start: int, end: int, rollup: int) -> None:
 
 
 class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
-    def get_monitor_stats(self, request: Request, project, monitor) -> Response:
+    def get_monitor_stats(self, request: Request, project: Project, monitor: Monitor) -> Response:
         args = self._parse_args(request)
 
         start = normalize_to_epoch(args["start"], args["rollup"])

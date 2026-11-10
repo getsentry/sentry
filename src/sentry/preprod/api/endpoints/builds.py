@@ -1,6 +1,8 @@
 import logging
+from collections.abc import Callable
 from typing import Any
 
+from django.db.models import QuerySet
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -40,7 +42,7 @@ class BuildsEndpoint(OrganizationEndpoint):
                     )
             return results
 
-        paginate = lambda queryset: self.paginate(
+        paginate: Callable[[QuerySet[PreprodArtifact]], Response] = lambda queryset: self.paginate(
             order_by="-date_added",
             request=request,
             queryset=queryset,

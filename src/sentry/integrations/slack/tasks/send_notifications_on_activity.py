@@ -24,7 +24,7 @@ _TASK_QUEUED_METRIC = (
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
-def send_activity_notifications_to_slack_threads(activity_id) -> None:
+def send_activity_notifications_to_slack_threads(activity_id: int) -> None:
     log_params = {"activity_id": activity_id}
 
     try:
@@ -55,7 +55,7 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
         )
 
 
-def activity_created_receiver(instance, created, **kwargs) -> None:
+def activity_created_receiver(instance: Activity, created: bool, **kwargs: object) -> None:
     """
     If an activity is created for an issue, this will trigger, and we can kick off an async process
     """

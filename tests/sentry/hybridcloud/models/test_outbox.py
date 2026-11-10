@@ -778,9 +778,10 @@ class CellOutboxTest(TestCase):
                 # drain outboxes
                 pass
 
+        outbox_category = OutboxCategory(Organization(id=10).outbox_for_update().category)
         assert (
             str(e.value)
-            == f"Failed to process Outbox, {Organization(id=10).outbox_for_update().category.name} due to database error"
+            == f"Failed to process Outbox, {outbox_category.name} due to database error"
         )
 
         assert CellOutbox.objects.count() == 1

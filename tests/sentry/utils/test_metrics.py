@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -34,7 +35,7 @@ def test_timer_failure() -> None:
 
 def test_wraps() -> None:
     @metrics.wraps("key", tags={"foo": True})
-    def thing(a):
+    def thing(a: Any) -> Any:
         return a
 
     with mock.patch("sentry.utils.metrics.timing") as timing:

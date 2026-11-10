@@ -11,18 +11,21 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
+import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+
+import {ALL_EVENTS_EXCLUDED_TAGS} from './hooks/useEventQuery';
+import {useIssueDetailsEventView} from './hooks/useIssueDetailsDiscoverQuery';
+import {useEventColumns} from './allEventsTable';
 import {
+  CURSOR_PARSERS,
   EventListTable,
   Header,
   HeaderItem,
   PaginationButton,
   PaginationText,
   Title,
-} from 'sentry/views/issueDetails/eventListTable';
-import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+} from './eventListTable';
 
 interface EventListProps {
   group: Group;
@@ -133,13 +136,9 @@ export function EventList({group}: EventListProps) {
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links.previous?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links.previous?.cursor ?? null,
+                    })}
                     disabled={isPending || previousDisabled}
                   />
                   <PaginationButton
@@ -147,13 +146,9 @@ export function EventList({group}: EventListProps) {
                     variant="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
-                    to={{
-                      ...location,
-                      query: {
-                        ...location.query,
-                        cursor: links.next?.cursor,
-                      },
-                    }}
+                    to={applyQueryParamsUpdates(CURSOR_PARSERS, location, {
+                      cursor: links.next?.cursor ?? null,
+                    })}
                     disabled={isPending || nextDisabled}
                   />
                 </Grid>

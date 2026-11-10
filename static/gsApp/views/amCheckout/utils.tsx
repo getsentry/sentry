@@ -9,10 +9,11 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
@@ -23,6 +24,7 @@ import type {
   BillingDetails,
   CheckoutAddOns,
   EventBucket,
+  Invoice,
   InvoiceItemType,
   OnDemandBudgets,
   Plan,
@@ -475,7 +477,6 @@ export function useSubmitCheckout({
   previewData?: PreviewData;
   referrer?: string;
 }) {
-  const api = useApi({});
   const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
@@ -484,13 +485,18 @@ export function useSubmitCheckout({
 
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
-      return api.requestPromise(
-        `/customers/${organization.slug}/subscription/?expand=invoice`,
-        {
-          method: 'PUT',
-          data,
-        }
-      );
+      return fetchMutation<{
+        invoice?: Invoice;
+        invoiceGuid?: string;
+        paymentRequiresAction?: boolean;
+      }>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'PUT',
+        data,
+        options: {query: {expand: 'invoice'}},
+      });
     },
     onSuccess: (response, _variables) => {
       recordAnalytics(
@@ -508,8 +514,6 @@ export function useSubmitCheckout({
         (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;
 
       // refresh org and subscription state
-      // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
-      // request doesn't get cancelled
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 

@@ -1,6 +1,7 @@
 import base64
 import io
 import zipfile
+from typing import Any
 from uuid import uuid4
 
 import orjson
@@ -15,8 +16,10 @@ from sentry.testutils.helpers.response import close_streaming_response
 
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     @staticmethod
-    def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):
-        def remove_and_return(dictionary, key):
+    def get_compressed_zip_file(
+        artifact_name: str, files: dict[str, Any], type: str = "artifact.bundle"
+    ) -> File:
+        def remove_and_return(dictionary: dict[str, Any], key: str) -> dict[str, Any]:
             dictionary.pop(key)
             return dictionary
 

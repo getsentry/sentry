@@ -38,6 +38,11 @@
       "count": 1
     }
   },
+  "components/customers/customerStatsFilters.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 2
+    }
+  },
   "components/customerStatus.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -121,6 +126,11 @@
       "count": 8
     }
   },
+  "views/customerDetails.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 1
+    }
+  },
   "views/debuggingTools.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -151,6 +161,9 @@
     }
   },
   "views/invoiceComparison.tsx": {
+    "@sentry/prefer-nuqs": {
+      "count": 5
+    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
@@ -197,6 +210,11 @@
   },
   "views/privateAPIs.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "views/projectDetails.tsx": {
+    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },

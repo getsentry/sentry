@@ -10,7 +10,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 export type AttributeBreakdownsComparison = {
   cohort1Total: number;

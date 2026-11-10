@@ -52,8 +52,8 @@ PER_MONITOR_MAX_CARDINALITY = 2000
 
 def get_project_monitor_quota(
     project: Project,
-    cache_bust=False,
-) -> tuple[int | None, int | None]:
+    cache_bust: bool = False,
+) -> tuple[int, int]:
     """
     Determines the rate-limit for monitor check-ins across a particular
     project.
@@ -78,7 +78,7 @@ def get_project_monitor_quota(
     return (ALLOWED_MINIMUM + limit, QUOTA_WINDOW)
 
 
-def update_monitor_quota(monitor_env: MonitorEnvironment):
+def update_monitor_quota(monitor_env: MonitorEnvironment) -> None:
     """
     When new monitor environments are created we recompute the per-project
     monitor check-in rate limit QuotaConfig in relay.

@@ -11,9 +11,9 @@ import {Input} from '@sentry/scraps/input';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
 import {List} from 'sentry/components/list';
@@ -43,23 +43,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import type {
-  AlertRuleOptions,
-  RequestDataFragment,
-} from 'sentry/views/projectInstall/issueAlertOptions';
-import {
-  getRequestDataFragment,
-  IssueAlertOptions,
-  RuleAction,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {useCreateNotificationAction} from './issueAlertNotificationOptions';
+import type {AlertRuleOptions, RequestDataFragment} from './issueAlertOptions';
+import {getRequestDataFragment, IssueAlertOptions, RuleAction} from './issueAlertOptions';
 import {
   MultipleCheckboxOptions,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
-import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+} from './messagingIntegrationTypes';
+import {useProjectCreationPageOrigin} from './projectCreationOrigin';
+import {validateChannelQueryOptions} from './useValidateChannel';
 
 type FormData = {
   projectName: string;
@@ -342,7 +336,7 @@ export function CreateProject() {
           variant: 'legacy',
         });
 
-        addSuccessMessage(
+        toast.success(
           team
             ? t('Created project %s', project.slug)
             : t('Created %s under new team %s', project.slug, `#${project.team.slug}`)
@@ -368,7 +362,7 @@ export function CreateProject() {
           query: {projectCreationVariant: 'legacy'},
         });
       } catch (error: any) {
-        addErrorMessage(t('Failed to create project %s', projectName));
+        toast.error(t('Failed to create project %s', projectName));
 
         // Unfiltered, unlike captureProjectCreationFailure below: both variants
         // count every caught failure, so filtering here would skew the rate.

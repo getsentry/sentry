@@ -3,13 +3,14 @@ import {useMutation} from '@tanstack/react-query';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   useInvalidateSavedFormulas,
   type FormulaDataset,
   type FormulaParam,
   type FormulaReference,
   type SavedFormula,
-} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+} from './useGetSavedFormulas';
 
 export type SavedFormulaRequest = {
   dataset: FormulaDataset;

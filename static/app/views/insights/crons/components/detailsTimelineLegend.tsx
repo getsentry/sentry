@@ -7,8 +7,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tct, tn} from 'sentry/locale';
 import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
-import {MonitorIndicator} from 'sentry/views/insights/crons/components/monitorIndicator';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
+
+import {MonitorIndicator} from './monitorIndicator';
 
 interface Props {
   checkInMargin: number | null;

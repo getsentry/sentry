@@ -13,6 +13,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 
@@ -44,7 +45,7 @@ class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
     def get(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[list[CommitSerializerResponseWithReleases]]:
         """
         Retrieve a list of commits for a given release.

@@ -13,8 +13,9 @@ import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegrap
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+import {FlamegraphRendererWebGL} from './flamegraphRendererWebGL';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 const originalDpr = window.devicePixelRatio;

@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
 import type {PageFilterDatetime} from 'sentry/types/core';
-import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
+
+import {partitionDateTimeIntoHeatMapWindows} from './partitionHeatMapWindows';
 
 const HOUR = 60 * 60 * 1000;
 

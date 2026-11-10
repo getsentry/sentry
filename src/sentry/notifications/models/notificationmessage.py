@@ -36,7 +36,7 @@ class NotificationMessage(Model):
     error_code = IntegerField(null=True, db_index=True)
 
     # Resulting identifier from the vendor that can be leveraged for future interaction with the notification.
-    message_identifier = CharField(null=True)
+    message_identifier = CharField[str | None, str | None](null=True)
     # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
     parent_notification_message = FlexibleForeignKey("self", null=True)
 

@@ -1,4 +1,4 @@
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOrganization} from './useOrganization';
 
 export function useNewIssuePriorityAndAssigneeUI() {
   const organization = useOrganization();

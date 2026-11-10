@@ -400,23 +400,11 @@ class Referrer(StrEnum):
     API_INSIGHTS_BROWSER_RESOURCES_PAGE_SELECTOR = "api.insights.browser.resources.page-selector"
 
     # AI Agents
-    API_INSIGHTS_AGENTS_MODELS_TABLE = "api.insights.agent-monitoring.models-table"
-    API_INSIGHTS_AGENTS_TOOLS_TABLE = "api.insights.agent-monitoring.tools-table"
     API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
     API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
         "api.insights.agent-monitoring.trace-drawer-tool-usage"
     )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
-    API_INSIGHTS_AGENTS_TOKEN_USAGE_WIDGET = "api.insights.agent-monitoring.token-usage-widget"
-    API_INSIGHTS_AGENTS_TOKEN_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
-    API_INSIGHTS_AGENTS_TOKEN_TYPES_WIDGET = "api.insights.agent-monitoring.token-types-widget"
-    API_INSIGHTS_AGENTS_TOOL_CALLS_WIDGET = "api.insights.agent-monitoring.tool-calls-widget"
-    API_INSIGHTS_AGENTS_TOOL_ERRORS_WIDGET = "api.insights.agent-monitoring.tool-errors-widget"
-    API_INSIGHTS_AGENTS_LLM_CALLS_WIDGET = "api.insights.agent-monitoring.llm-calls-widget"
-    API_INSIGHTS_AGENTS_AGENT_RUNS_WIDGET = "api.insights.agent-monitoring.agent-runs-widget"
-    API_INSIGHTS_AGENTS_AGENT_DURATION_WIDGET = (
-        "api.insights.agent-monitoring.agent-duration-widget"
-    )
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
     # MCP (Model Context Protocol)
@@ -646,7 +634,6 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_transaction_volumes"
     )
-    DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -673,7 +660,6 @@ class Referrer(StrEnum):
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
     ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
-    ISSUES_LLM_CACHE_DETECTION = "issues.llm_cache_detection"
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
     ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -18,6 +18,7 @@ import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
 import {getReleaseParams} from 'sentry/views/explore/releases/utils';
@@ -55,6 +56,11 @@ interface Props {
 const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefault(
   IssuesType.NEW
 );
+
+const releasePeriodParsers = {
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
 
 function getIssuesEndpoint(
   version: string,
@@ -250,8 +256,11 @@ export function ReleaseIssues({
     }, []);
 
   const renderEmptyMessage = useCallback(() => {
-    const isEntireReleasePeriod =
-      !location.query.pageStatsPeriod && !location.query.pageStart;
+    const {pageStart, pageStatsPeriod} = loadQueryParamsFromLocation(
+      releasePeriodParsers,
+      location
+    );
+    const isEntireReleasePeriod = !pageStatsPeriod && !pageStart;
 
     const {statsPeriod} = getReleaseParams({
       location,

@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {createSerializer, parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -8,8 +9,8 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConversationDetailPanel,
@@ -25,10 +26,13 @@ import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
 
+const serializeTab = createSerializer({
+  tab: parseAsString,
+});
+
 function useAiSpanSelection(nodes: AITraceSpanNode[]) {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, setNode] = useQueryState('node', parseAsStringArray);
 
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(() => {
     const path = getScrollToPath()?.path;
@@ -55,18 +59,9 @@ function useAiSpanSelection(nodes: AITraceSpanNode[]) {
       });
 
       const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            node: nodeIdentifier,
-          },
-        },
-        {replace: true}
-      );
+      setNode([nodeIdentifier]);
     },
-    [location, navigate, organization]
+    [organization, setNode]
   );
 
   return {selectedNode, handleSelectNode};
@@ -124,13 +119,9 @@ export function TraceAiSpans({
         <LinkButton
           size="xs"
           onClick={handleViewFullTraceClick}
-          to={{
-            ...location,
-            query: {
-              ...location.query,
-              tab: TraceLayoutTabKeys.WATERFALL,
-            },
-          }}
+          to={serializeTab(`${location.pathname}${location.search}${location.hash}`, {
+            tab: TraceLayoutTabKeys.WATERFALL,
+          })}
         >
           {t('View in Full Trace')}
         </LinkButton>

@@ -10,7 +10,7 @@ class MinHashSignatureBuilder:
         self.columns = columns
         self.rows = rows
 
-    def __call__(self, features: Iterable[str]) -> list[int]:
+    def __call__(self, features: Iterable[str | bytes]) -> list[int]:
         return [
             min(mmh3.hash(feature, column) % self.rows for feature in features)
             for column in range(self.columns)

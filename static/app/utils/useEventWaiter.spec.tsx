@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useEventWaiter} from 'sentry/utils/useEventWaiter';
+
+import {useEventWaiter} from './useEventWaiter';
 
 describe('useEventWaiter', () => {
   beforeEach(() => {

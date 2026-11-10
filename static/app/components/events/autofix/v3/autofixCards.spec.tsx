@@ -10,17 +10,18 @@ import type {
   SolutionArtifact,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
-import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
-import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
-import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
-import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+import {CodeChangesCard} from './codeChangesCard';
+import {CodingAgentsCard} from './codingAgentsCard';
+import {PullRequestsCard} from './pullRequestsCard';
+import {RootCauseCard} from './rootCauseCard';
+import {SolutionCard} from './solutionCard';
 
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
   const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
@@ -317,6 +318,52 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Root Cause')).toBeInTheDocument();
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
+    });
+
+    it('starts a new single run from Re-run', async () => {
+      const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
+      render(
+        <RootCauseCard
+          autofix={{
+            ...mockAutofix,
+            startStep: startStepMock,
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'completed',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [],
+            },
+          }}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+    });
+
+    it('renders the cause under the headline', () => {
+      const artifact = makeRootCauseArtifact({
+        one_line_description: 'Divides by an empty weight',
+        cause: 'total_weight is 0 for projects with no tasks.',
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText('Divides by an empty weight')).toBeInTheDocument();
+      expect(
+        screen.getByText('total_weight is 0 for projects with no tasks.')
+      ).toBeInTheDocument();
     });
 
     it('renders unclosed embed syntax in the description as literal text', () => {
@@ -890,6 +937,35 @@ describe('ArtifactCard', () => {
         screen.queryByText(
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows only the agent reply when a PR iteration makes no code change', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makePrIterationBlock(0, {text: 'Fix the failing check'}),
+              makeAssistantBlock('The failed check is unrelated to this PR.'),
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(
+        screen.getByText('The failed check is unrelated to this PR.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Seer proposed a fix but couldn't apply it automatically")
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Add context & retry'})
       ).not.toBeInTheDocument();
     });
 
@@ -1891,6 +1967,62 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
       expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    });
+
+    it('keeps the latest iteration feedback in progress while its changes are pushed', () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR({pr_creation_status: 'creating'})},
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'})]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+    });
+
+    it('shows a retried iteration feedback once, in progress during the retry', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              makePrIterationBlock(0, {text: 'fix the CI failure'}),
+              makeAssistantBlock('Edited the handler.'),
+              {
+                ...makePrIterationBlock(0, {text: 'fix the CI failure'}),
+                id: 'block-pr-0-retry',
+              },
+            ]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getAllByText('fix the CI failure')).toHaveLength(1);
       expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
     });
 

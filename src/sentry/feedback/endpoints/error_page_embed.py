@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 from urllib.parse import urlparse
 
 from django import forms
@@ -62,7 +62,13 @@ DEFAULT_OPTIONS: dict[str, Any] = {
 }
 
 
-class UserReportForm(forms.ModelForm):
+if TYPE_CHECKING:
+    _UserReportModelFormBase = forms.ModelForm[UserReport]
+else:
+    _UserReportModelFormBase = forms.ModelForm
+
+
+class UserReportForm(_UserReportModelFormBase):
     name = forms.CharField(
         max_length=UserReport._meta.get_field("name").max_length,
         widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")}),
@@ -128,23 +134,28 @@ class ErrorPageEmbedView(View):
     View for the crash report modal.
     """
 
-    def _get_project_key(self, request: HttpRequest):
+    def _get_project_key(self, request: HttpRequest) -> ProjectKey | None:
         try:
             dsn = request.GET["dsn"]
         except KeyError:
-            return
+            return None
 
         try:
             key = ProjectKey.from_dsn(dsn)
         except ProjectKey.DoesNotExist:
-            return
+            return None
 
         return key
 
-    def _get_origin(self, request: HttpRequest):
+    def _get_origin(self, request: HttpRequest) -> str | None:
         return origin_from_request(request)
 
-    def _smart_response(self, request: HttpRequest, context=None, status=200):
+    def _smart_response(
+        self,
+        request: HttpRequest,
+        context: dict[str, object] | None = None,
+        status: int = 200,
+    ) -> HttpResponse:
         json_context = json.dumps(context or {})
         accept = request.META.get("HTTP_ACCEPT") or ""
         if "text/javascript" in accept:

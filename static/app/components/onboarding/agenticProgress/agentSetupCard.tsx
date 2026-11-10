@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import {IconBot} from '@sentry/icons/bot';
 
 import {Tag} from '@sentry/scraps/badge';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';

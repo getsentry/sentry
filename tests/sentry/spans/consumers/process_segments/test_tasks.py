@@ -1,3 +1,4 @@
+from typing import cast
 from unittest import mock
 
 from arroyo.types import Topic as ArroyoTopic
@@ -8,6 +9,7 @@ from sentry.spans.consumers.process_segments.tasks import (
     _check_span_duplicates,
     process_segment_task,
 )
+from sentry.spans.consumers.process_segments.types import CompatibleSpan
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from tests.sentry.spans.consumers.process import build_mock_span
@@ -19,7 +21,7 @@ from tests.sentry.spans.consumers.process import build_mock_span
     side_effect=lambda x, **kwargs: x,
 )
 def test_process_segment_task_produces_trace_item(mock_process_segment: mock.MagicMock) -> None:
-    span_data = build_mock_span(project_id=1, is_segment=True)
+    span_data = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True))
     segment_bytes = json.dumps({"spans": [span_data]}).encode("utf-8")
 
     with mock.patch(
@@ -54,8 +56,8 @@ def test_process_segment_task_filters_duplicate_spans(
     mock_process_segment: mock.MagicMock,
 ) -> None:
     """The task must run spans through dedupe before producing them."""
-    span1 = build_mock_span(project_id=1, is_segment=True, span_id="a" * 16)
-    span2 = build_mock_span(project_id=1, is_segment=False, span_id="b" * 16)
+    span1 = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True, span_id="a" * 16))
+    span2 = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=False, span_id="b" * 16))
     segment_bytes = json.dumps({"spans": [span1, span2]}).encode("utf-8")
 
     with (
@@ -85,7 +87,7 @@ def test_process_segment_task_filters_duplicate_spans(
     side_effect=lambda x, **kwargs: x,
 )
 def test_process_segment_task_honors_skip_enrichment(mock_process_segment: mock.MagicMock) -> None:
-    span_data = build_mock_span(project_id=1, is_segment=True)
+    span_data = cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True))
     segment_bytes = json.dumps({"spans": [span_data], "skip_enrichment": True}).encode("utf-8")
 
     with mock.patch("sentry.spans.consumers.process_segments.tasks._snuba_items_producer"):
@@ -97,7 +99,7 @@ def test_process_segment_task_honors_skip_enrichment(mock_process_segment: mock.
 class TestCheckSpanDuplicates:
     @override_options({"spans.process-segments.dedupe-ttl": 0})
     def test_disabled_when_ttl_is_zero(self) -> None:
-        spans = [build_mock_span(project_id=1, is_segment=True)]
+        spans = [cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True))]
         with mock.patch("sentry.spans.consumers.process_segments.tasks.redis") as mock_redis:
             result = _check_span_duplicates(spans)
             assert result == spans
@@ -111,8 +113,8 @@ class TestCheckSpanDuplicates:
     )
     def test_emits_metric_on_duplicate(self) -> None:
         spans = [
-            build_mock_span(project_id=1, is_segment=True, span_id="span1"),
-            build_mock_span(project_id=1, is_segment=False, span_id="span2"),
+            cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True, span_id="span1")),
+            cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=False, span_id="span2")),
         ]
         with (
             mock.patch("sentry.spans.consumers.process_segments.tasks.redis") as mock_redis,
@@ -141,8 +143,8 @@ class TestCheckSpanDuplicates:
     )
     def test_filters_duplicates_when_enabled(self) -> None:
         spans = [
-            build_mock_span(project_id=1, is_segment=True, span_id="span1"),
-            build_mock_span(project_id=1, is_segment=False, span_id="span2"),
+            cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True, span_id="span1")),
+            cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=False, span_id="span2")),
         ]
         with (
             mock.patch("sentry.spans.consumers.process_segments.tasks.redis") as mock_redis,
@@ -171,7 +173,9 @@ class TestCheckSpanDuplicates:
         }
     )
     def test_returns_all_spans_on_redis_error(self) -> None:
-        spans = [build_mock_span(project_id=1, is_segment=True, span_id="span1")]
+        spans = [
+            cast(CompatibleSpan, build_mock_span(project_id=1, is_segment=True, span_id="span1"))
+        ]
         with mock.patch("sentry.spans.consumers.process_segments.tasks.redis") as mock_redis:
             mock_redis.redis_clusters.get_binary.side_effect = Exception("redis is down")
 

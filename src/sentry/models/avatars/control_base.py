@@ -25,5 +25,5 @@ class ControlAvatarBase(AvatarBase):
         """Prefer controlfile as user/sentryapp avatars are stored in control silo"""
         return "control_file_id"
 
-    def get_file_id(self) -> int:
+    def get_file_id(self) -> int | None:
         return self.control_file_id

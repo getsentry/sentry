@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.analytics.events.project_issue_searched import ProjectIssueSearchEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import (
@@ -30,6 +30,7 @@ from sentry.apidocs.parameters import (
     IssueParams,
     VisibilityParams,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -49,6 +50,7 @@ logger = logging.getLogger(__name__)
 @cell_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -221,7 +223,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             try:
                 analytics.record(
                     ProjectIssueSearchEvent(
-                        user_id=request.user.id,
+                        user_id=acting_user_id(request.user),
                         organization_id=project.organization_id,
                         project_id=project.id,
                         query=query,

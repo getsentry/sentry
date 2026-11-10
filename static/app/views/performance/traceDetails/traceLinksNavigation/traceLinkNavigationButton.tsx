@@ -4,8 +4,9 @@ import type {
   TraceItemResponseAttribute,
   TraceItemResponseLink,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
-import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
-import {useAdjacentTraceNavigation} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useAdjacentTraceNavigation';
+
+import type {ConnectedTraceConnection} from './types';
+import {useAdjacentTraceNavigation} from './useAdjacentTraceNavigation';
 
 type TraceLinkNavigationButtonProps = {
   attributes: TraceItemResponseAttribute[];

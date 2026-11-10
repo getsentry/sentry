@@ -7,14 +7,14 @@ class OriginField(serializers.CharField):
     # Special case origins that don't fit the normal regex pattern, but are valid
     WHITELIST_ORIGINS = "*"
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: str) -> str:
         rv = super().to_internal_value(data)
         if not rv:
-            return
+            return None  # type: ignore[return-value]  # removed in #129428
         self.validate_origin(rv)
         return rv
 
-    def validate_origin(self, value):
+    def validate_origin(self, value: str) -> None:
         if value in self.WHITELIST_ORIGINS:
             return
 

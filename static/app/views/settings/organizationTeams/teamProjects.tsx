@@ -3,15 +3,16 @@ import styled from '@emotion/styled';
 import {IconFlag} from '@sentry/icons/flag';
 import {IconSubtract} from '@sentry/icons/subtract';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -27,15 +28,15 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {ProjectItem as ProjectListItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
+
+import {useTeamDetailsOutlet} from './teamDetails';
 
 export default function TeamProjects() {
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
   const organization = useOrganization();
   const [query, setQuery] = useState('');
   const {team} = useTeamDetailsOutlet();
@@ -49,7 +50,7 @@ export default function TeamProjects() {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         query: `team:${team.slug}`,
-        cursor: location.query.cursor,
+        cursor: cursor ?? undefined,
         collapse: ['latestDeploys', 'unusedFeatures'],
       },
       staleTime: 0,
@@ -91,14 +92,14 @@ export default function TeamProjects() {
       refetchLinkedProjects();
       refetchUnlinkedProjects();
       ProjectsStore.onUpdateSuccess(resp);
-      addSuccessMessage(
+      toast.success(
         action === 'add'
           ? t('Successfully added project to team.')
           : t('Successfully removed project from team')
       );
     },
     onError: () => {
-      addErrorMessage(t("Wasn't able to change project association."));
+      toast.error(t("Wasn't able to change project association."));
     },
   });
 

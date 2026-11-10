@@ -23,7 +23,7 @@ _MULTI_FLAGGED_WIDGET = {
 
 
 class GetEmbedWidgetsTest(TestCase):
-    def test_no_flags_returns_all_widgets(self):
+    def test_no_flags_returns_all_widgets(self) -> None:
         with patch(
             "sentry.seer.agent.embed_widgets._WIDGETS",
             [_UNFLAGGED_WIDGET],
@@ -32,7 +32,7 @@ class GetEmbedWidgetsTest(TestCase):
 
         assert widgets == [_UNFLAGGED_WIDGET]
 
-    def test_flagged_widget_excluded_without_flag(self):
+    def test_flagged_widget_excluded_without_flag(self) -> None:
         with patch(
             "sentry.seer.agent.embed_widgets._WIDGETS",
             [_UNFLAGGED_WIDGET, _FLAGGED_WIDGET],
@@ -43,7 +43,7 @@ class GetEmbedWidgetsTest(TestCase):
         assert names == {"timestamp"}
 
     @with_feature(_FLAG)
-    def test_flagged_widget_included_with_flag(self):
+    def test_flagged_widget_included_with_flag(self) -> None:
         with patch(
             "sentry.seer.agent.embed_widgets._WIDGETS",
             [_UNFLAGGED_WIDGET, _FLAGGED_WIDGET],
@@ -54,7 +54,7 @@ class GetEmbedWidgetsTest(TestCase):
         assert names == {"timestamp", "flagged"}
 
     @with_feature(_FLAG)
-    def test_flagged_widget_excluded_without_organization(self):
+    def test_flagged_widget_excluded_without_organization(self) -> None:
         # A widget's flag can't be evaluated without an org, so it is dropped even
         # when the flag would otherwise be enabled.
         with patch(
@@ -66,7 +66,7 @@ class GetEmbedWidgetsTest(TestCase):
         names = {w["name"] for w in widgets}
         assert names == {"timestamp"}
 
-    def test_multi_flagged_widget_excluded_without_any_flag(self):
+    def test_multi_flagged_widget_excluded_without_any_flag(self) -> None:
         with patch(
             "sentry.seer.agent.embed_widgets._WIDGETS",
             [_UNFLAGGED_WIDGET, _MULTI_FLAGGED_WIDGET],
@@ -77,7 +77,7 @@ class GetEmbedWidgetsTest(TestCase):
         assert names == {"timestamp"}
 
     @with_feature(_OTHER_FLAG)
-    def test_multi_flagged_widget_included_with_one_flag(self):
+    def test_multi_flagged_widget_included_with_one_flag(self) -> None:
         # Any one flag in the list is enough: an org holds whichever flag its
         # plan grants, never the whole list.
         with patch(

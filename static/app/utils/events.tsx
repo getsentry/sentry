@@ -19,16 +19,14 @@ import type {
   SimpleGroup,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
-import {uniq} from 'sentry/utils/array/uniq';
-import {defined} from 'sentry/utils/defined';
-import {
-  getExceptionGroupHeight,
-  getExceptionGroupWidth,
-} from 'sentry/utils/eventExceptionGroup';
-import {getDaysSinceDate, getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
-import {isMobilePlatform} from 'sentry/utils/platform';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+
+import type {BaseEventAnalyticsParams} from './analytics/workflowAnalyticsEvents';
+import {uniq} from './array/uniq';
+import {getReplayIdFromEvent} from './replays/getReplayIdFromEvent';
+import {defined} from './defined';
+import {getExceptionGroupHeight, getExceptionGroupWidth} from './eventExceptionGroup';
+import {getDaysSinceDate, getDaysSinceDatePrecise} from './getDaysSinceDate';
+import {isMobilePlatform} from './platform';
 
 const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
   EventOrGroupType.ERROR,

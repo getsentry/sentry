@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {groupVisualizes} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartType, DisplayType> = {
@@ -93,14 +94,17 @@ export function useAddToDashboard() {
       newEventView.dataset = dataset;
       newEventView.display =
         CHART_TYPE_TO_DISPLAY_TYPE[visualizes[visualizeIndex]!.chartType];
-      return newEventView;
+      return {
+        eventView: newEventView,
+        transformations: visualizesToWidgetTransformations(chartVisualizes),
+      };
     },
     [visualizes, mode, groupBys, query, dataset, selection, sortBys]
   );
 
   const addToDashboard = useCallback(
     (visualizeIndex: number, options?: AddToDashboardOptions) => {
-      const eventView = getEventView(visualizeIndex, options);
+      const {eventView, transformations} = getEventView(visualizeIndex, options);
 
       handleAddQueryToDashboard({
         organization,
@@ -109,6 +113,7 @@ export function useAddToDashboard() {
         yAxis: eventView.yAxis,
         widgetType: WidgetType.SPANS,
         source: DashboardWidgetSource.TRACE_EXPLORER,
+        transformations,
       });
     },
     [organization, location, getEventView]

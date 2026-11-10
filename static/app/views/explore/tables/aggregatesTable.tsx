@@ -38,12 +38,13 @@ import {
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {SPANS_AGGREGATE_CURSOR} from 'sentry/views/explore/spans/spansQueryParams';
-import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
-import {addValidatedFieldTypesToMeta} from 'sentry/views/explore/tables/spansTable';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import {FieldRenderer} from './fieldRenderer';
+import {addValidatedFieldTypesToMeta} from './spansTable';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
