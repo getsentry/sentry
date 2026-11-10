@@ -40,7 +40,11 @@ export function SeerConnectGitHubBanner() {
             <ImageContainer />
             <Stack gap="lg" padding="2xl">
               <Heading as="h3">{t('Connect to GitHub')}</Heading>
-              <Text>{t('Enable Seer AI Code Reviews in your GitHub repositories.')}</Text>
+              <Text>
+                {t(
+                  'Connect your GitHub repositories so Seer can find root causes and propose fixes.'
+                )}
+              </Text>
 
               <Flex paddingTop="lg">
                 <SeerOnboardingProvider>
