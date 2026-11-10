@@ -357,6 +357,24 @@ class SeerWorkflowUpdateConfigTest(TestCase):
         assert config.extras == {"name": "Triage", "updated_by": "bot"}
         assert config.version == 2
 
+    def test_set_name_keeps_other_extras(self) -> None:
+        with self.workflow.update_config() as update:
+            update.set_extras(SeerWorkflowConfigExtras(name="Triage", updated_by="bot"))
+        with self.workflow.update_config() as update:
+            update.set_name("Nightly triage")
+
+        config = self.workflow.get_config()
+        assert config.extras == {"name": "Nightly triage", "updated_by": "bot"}
+        assert config.version == 3
+
+        with self.workflow.update_config() as update:
+            update.set_name("Nightly triage")
+        assert self.workflow.get_config().version == 3
+
+        with self.workflow.update_config() as update:
+            update.set_name(None)
+        assert self.workflow.get_config().extras == {"updated_by": "bot"}
+
     def test_unchanged_extras_does_not_save(self) -> None:
         with self.workflow.update_config() as update:
             update.set_extras(SeerWorkflowConfigExtras.parse_obj(self.config.extras))

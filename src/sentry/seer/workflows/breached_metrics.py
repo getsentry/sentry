@@ -445,17 +445,19 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
 @dataclass
 class BreachedMetricConfigUpdate(ConfigUpdate):
-    def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
+    def set_name(self, name: str | None) -> None:
+        """Rename the automation and its active backing workflow."""
         config = self.config
-        renamed = SeerWorkflowConfigExtras.parse_obj(config.extras).name != extras.name
-        super().set_extras(extras)
-        if not renamed or config.backing_workflow_id is None:
+        if SeerWorkflowConfigExtras.parse_obj(config.extras).name == name:
+            return
+        super().set_name(name)
+        if config.backing_workflow_id is None:
             return
         workflow = Workflow.objects.filter(
             id=config.backing_workflow_id, organization_id=config.organization_id
         ).first()
         if workflow is not None:
-            workflow.update(name=_backing_workflow_name(config))
+            workflow.update(name=_backing_workflow_name(name))
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""
@@ -555,8 +557,8 @@ def _replace_monitor_connections(
     )
 
 
-def _backing_workflow_name(config: SeerWorkflowConfig) -> str:
-    return SeerWorkflowConfigExtras.parse_obj(config.extras).name or "Seer automation"
+def _backing_workflow_name(automation_name: str | None) -> str:
+    return automation_name or "Seer automation"
 
 
 def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -> Workflow:
@@ -572,7 +574,7 @@ def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name=_backing_workflow_name(config),
+        name=_backing_workflow_name(SeerWorkflowConfigExtras.parse_obj(config.extras).name),
         enabled=True,
         config={"frequency": 0},
         when_condition_group=triggers,

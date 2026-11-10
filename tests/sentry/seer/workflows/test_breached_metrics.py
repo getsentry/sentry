@@ -916,12 +916,12 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         )
 
         with workflow.update_config() as update:
-            update.set_extras(SeerWorkflowConfigExtras(name="Checkout latency"))
+            update.set_name("Checkout latency")
         backing.refresh_from_db()
         assert backing.name == "Checkout latency"
 
         with workflow.update_config() as update:
-            update.set_extras(SeerWorkflowConfigExtras(name=None))
+            update.set_name(None)
         backing.refresh_from_db()
         assert backing.name == "Seer automation"
 
