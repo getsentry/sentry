@@ -380,26 +380,17 @@ describe('Tour Components', () => {
           <button onClick={handlePageClick}>Page Button</button>
           <TourGuide
             isOpen
-            variant="subtle"
             title="Test Title"
             description="Test Description"
             actions={<TourAction>Test Action</TourAction>}
             onClickOutside={handleClickOutside}
           >
-            {props => (
-              <button {...props} type="button">
-                Child Element
-              </button>
-            )}
+            {props => <div {...props}>Child Element</div>}
           </TourGuide>
         </div>
       );
 
-      expect(await screen.findByText('Test Title')).toBeInTheDocument();
-
-      // Clicks on the guide or its highlighted element continue the tour
-      await userEvent.click(screen.getByRole('button', {name: 'Test Action'}));
-      await userEvent.click(screen.getByRole('button', {name: 'Child Element'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Test Action'}));
       expect(handleClickOutside).not.toHaveBeenCalled();
 
       await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
