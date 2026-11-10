@@ -55,6 +55,11 @@ clear_schedule(
 - `clear_schedule` removes the trigger.
 - `get_schedules(organization_id=..., trigger_type=..., target_ids=[...])` returns each
   target's schedule, next scheduled time and next fire time, in one query.
+- `count_schedules(organization_id=..., trigger_type=...)` counts all registered schedules
+  of that type in the organization without loading each schedule.
+- `clear_schedules(organization_id=..., trigger_type=...)` removes all schedules of that type
+  in the organization and returns the number removed. Already handed-off firings may still
+  be processed afterward.
 
 Only keep triggers for targets that actually want them: clear the schedule when the target is
 disabled or deleted, rather than leaving it to fire and do nothing.

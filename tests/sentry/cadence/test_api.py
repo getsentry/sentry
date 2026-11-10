@@ -7,6 +7,8 @@ from sentry.cadence.api import (
     ScheduledTriggerInfo,
     ScheduledTriggerType,
     clear_schedule,
+    clear_schedules,
+    count_schedules,
     cron,
     every,
     get_schedules,
@@ -338,3 +340,58 @@ class ClearScheduleTest(CadenceApiTestCase):
             organization_id=other_org.id, trigger_type=SEER_WORKFLOW, target_id=7
         )
         assert self.get(7) is not None
+
+
+class OrganizationSchedulesTest(CadenceApiTestCase):
+    def test_count_and_clear_are_scoped_to_organization_and_type(self) -> None:
+        self.set(1, every(timedelta(hours=1)))
+        self.set(7, every(timedelta(hours=1)))
+        set_schedule(
+            organization_id=self.organization.id,
+            trigger_type=ScheduledTriggerType.LOG,
+            target_id=1,
+            schedule=every(timedelta(hours=1)),
+        )
+        other_org = self.create_organization()
+        other = set_schedule(
+            organization_id=other_org.id,
+            trigger_type=SEER_WORKFLOW,
+            target_id=7,
+            schedule=every(timedelta(hours=1)),
+        )
+
+        assert (
+            count_schedules(organization_id=self.organization.id, trigger_type=SEER_WORKFLOW) == 2
+        )
+        assert (
+            count_schedules(
+                organization_id=self.organization.id, trigger_type=ScheduledTriggerType.LOG
+            )
+            == 1
+        )
+        assert (
+            clear_schedules(organization_id=self.organization.id, trigger_type=SEER_WORKFLOW) == 2
+        )
+        assert (
+            count_schedules(organization_id=self.organization.id, trigger_type=SEER_WORKFLOW) == 0
+        )
+        assert (
+            count_schedules(
+                organization_id=self.organization.id, trigger_type=ScheduledTriggerType.LOG
+            )
+            == 1
+        )
+        assert get_schedules(
+            organization_id=other_org.id, trigger_type=SEER_WORKFLOW, target_ids=[7]
+        ) == {7: other}
+        assert (
+            clear_schedules(organization_id=self.organization.id, trigger_type=SEER_WORKFLOW) == 0
+        )
+
+    def test_empty(self) -> None:
+        assert (
+            count_schedules(organization_id=self.organization.id, trigger_type=SEER_WORKFLOW) == 0
+        )
+        assert (
+            clear_schedules(organization_id=self.organization.id, trigger_type=SEER_WORKFLOW) == 0
+        )

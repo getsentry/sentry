@@ -48,6 +48,8 @@ __all__ = (
     "TriggerAction",
     "TriggerFiring",
     "clear_schedule",
+    "clear_schedules",
+    "count_schedules",
     "cron",
     "every",
     "get_schedules",
@@ -184,3 +186,21 @@ def get_schedules(
         organization_id=organization_id, trigger_type=trigger_type, target_id__in=list(target_ids)
     )
     return {trigger.target_id: _to_info(trigger) for trigger in triggers}
+
+
+def count_schedules(*, organization_id: int, trigger_type: ScheduledTriggerType) -> int:
+    """Count all registered schedules of this type in this organization."""
+    return ScheduledTrigger.objects.filter(
+        organization_id=organization_id, trigger_type=trigger_type
+    ).count()
+
+
+def clear_schedules(*, organization_id: int, trigger_type: ScheduledTriggerType) -> int:
+    """Remove all schedules of this type in this organization, returning the number removed.
+
+    Already handed-off firings may still be processed after this returns.
+    """
+    _, counts = ScheduledTrigger.objects.filter(
+        organization_id=organization_id, trigger_type=trigger_type
+    ).delete()
+    return counts.get(ScheduledTrigger._meta.label, 0)
