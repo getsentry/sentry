@@ -366,8 +366,9 @@ export function initializeSdk(config: Config) {
 
     // Allow configuration to settle before capturing it.
     setTimeout(() => {
-      // Ignore failures in experimental telemetry.
-      void reportSdkConfig(sentryClient).catch(() => {});
+      void reportSdkConfig(sentryClient).catch((error: unknown) => {
+        Sentry.logger.warn('Failed to report SDK configuration', {error});
+      });
     }, 5000);
   }
 }
