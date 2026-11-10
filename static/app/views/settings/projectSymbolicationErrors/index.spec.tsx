@@ -132,6 +132,20 @@ describe('ProjectSymbolicationErrors', () => {
       'href',
       `/organizations/${organization.slug}/issues/1/events/abc123/`
     );
+
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+    await userEvent.click(
+      within(drawer).getByRole('button', {name: 'Copy Prompt for AI Agent'})
+    );
+
+    const prompt = writeText.mock.calls[0][0];
+    expect(prompt).toContain('Cause: Missing debug file (`native_missing_dsym`)');
+    expect(prompt).toContain('Affected releases: app@1.2.3 (80 events)');
+    expect(prompt).toContain('Sample event ID: abc123');
+    expect(prompt).toContain(
+      `sentry-cli debug-files upload --org ${organization.slug} --project ${project.slug}`
+    );
   });
 
   it('shows the empty state when no errors exist', async () => {
