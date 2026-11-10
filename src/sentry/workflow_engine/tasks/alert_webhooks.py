@@ -41,7 +41,8 @@ def enqueue_alert_triggered_webhooks(
         return
 
     try:
-        organization = event_data.group.project.organization
+        # Same lookup process_workflows already made, so the project and org are cached.
+        organization = event_data.event.project.organization
         if not features.has(FEATURE_FLAG, organization):
             return
 
