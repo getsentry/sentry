@@ -108,7 +108,9 @@ class OrganizationSlackLinkTeamEndpoint(OrganizationEndpoint):
         team = next(
             (t for t in get_member_linkable_teams(request, organization) if t.id == team_id), None
         )
-        if team is None:
+        # The Django page only accepted sessions. Tokens reach this endpoint
+        # with membership-level scopes, so require write access to the team.
+        if team is None or not request.access.has_team_scope(team, "team:write"):
             return Response({"detail": "You do not have permission to link this team."}, status=403)
 
         try:
@@ -116,8 +118,13 @@ class OrganizationSlackLinkTeamEndpoint(OrganizationEndpoint):
                 team=team, channel=channel, slack_user_id=params.slack_user_id
             )
         except (IdentityProviderNotFound, IdentityNotFound):
+            # The identity checked belongs to the Slack user who ran the
+            # command, not the user who opened the link, as in the Django page.
             return Response(
-                {"detail": "Link your Slack identity to Sentry with `/sentry link` first."},
+                {
+                    "detail": "The Slack account that ran this command isn't linked to Sentry. "
+                    "Run /sentry link, then try again."
+                },
                 status=403,
             )
 

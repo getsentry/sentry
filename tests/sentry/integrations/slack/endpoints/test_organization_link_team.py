@@ -178,6 +178,39 @@ class OrganizationSlackLinkTeamTest(APITestCase):
             status_code=403,
         )
 
+    def test_rejects_a_token_without_team_write(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+            self.client.logout()
+
+        self.get_error_response(
+            self.organization.slug,
+            self.signed_params,
+            method="post",
+            team=self.team.id,
+            status_code=403,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert self.linked_channels() == []
+
+    def test_checks_the_identity_of_the_slack_user_who_ran_the_command(self) -> None:
+        other_owner = self.create_user()
+        self.create_member(
+            user=other_owner, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(other_owner)
+
+        self.get_success_response(
+            self.organization.slug,
+            self.signed_params,
+            method="post",
+            team=self.team.id,
+            status_code=201,
+        )
+
+        assert self.linked_channels() == [(CHANNEL_ID, CHANNEL_NAME)]
+
     def test_requires_a_linked_slack_identity(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             Identity.objects.filter(user=self.user).delete()
