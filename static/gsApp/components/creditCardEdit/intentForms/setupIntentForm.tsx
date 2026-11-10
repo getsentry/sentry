@@ -11,6 +11,7 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import {setupIntentOptions} from 'getsentry/hooks/useIntentData';
 import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
 export function SetupIntentForm(props: IntentFormProps) {
@@ -20,7 +21,9 @@ export function SetupIntentForm(props: IntentFormProps) {
     onSuccess,
     onSuccessWithSubscription,
   } = props;
-  const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
+  const {url: setupIntentUrl} = parseQueryKey(
+    setupIntentOptions(organization.slug).queryKey
+  );
   const {mutateAsync: savePaymentMethod, isPending} = useMutation({
     mutationFn: async ({
       stripe,

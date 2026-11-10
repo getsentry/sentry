@@ -2,8 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-
 import {FTCConsentLocation} from 'getsentry/types';
 
 import {InnerIntentForm} from './innerIntentForm';
@@ -19,10 +17,6 @@ describe('InnerIntentForm', () => {
     location: 0,
     isSubmitting: false,
     cardMode: 'setup' as const,
-    intentDataQueryKey: apiOptions.as<unknown>()(
-      '/organizations/$organizationIdOrSlug/payments/setup/',
-      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-    ).queryKey,
   };
 
   beforeEach(() => {

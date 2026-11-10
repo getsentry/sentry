@@ -3,13 +3,23 @@ import {useQuery} from '@tanstack/react-query';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-import type {PaymentCreateResponse} from 'getsentry/types';
+import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 
 interface HookResult {
   error: string | undefined;
   intentData: PaymentCreateResponse | undefined;
   isError: boolean;
   isLoading: boolean;
+}
+
+export function setupIntentOptions(organizationSlug: string) {
+  return apiOptions.as<PaymentSetupCreateResponse>()(
+    '/organizations/$organizationIdOrSlug/payments/setup/',
+    {
+      path: {organizationIdOrSlug: organizationSlug},
+      staleTime: 0,
+    }
+  );
 }
 
 /**

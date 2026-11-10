@@ -16,6 +16,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import {paymentIntentOptions} from 'getsentry/hooks/useIntentData';
 import type {PaymentCreateResponse} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
@@ -46,7 +47,6 @@ export function AuthenticateIntentForm({
   invoiceGuid,
   onCancel,
   onSuccess,
-  intentDataQueryKey,
   onError,
   errorMessage,
 }: Props) {
@@ -94,7 +94,9 @@ export function AuthenticateIntentForm({
         t('That verification did not go through. Please try again or use another card.')
     );
     setIsSubmitting(false);
-    await queryClient.invalidateQueries({queryKey: intentDataQueryKey});
+    await queryClient.invalidateQueries({
+      queryKey: paymentIntentOptions(organization.slug, invoiceGuid ?? '').queryKey,
+    });
   };
 
   const handleAuthenticate = async () => {

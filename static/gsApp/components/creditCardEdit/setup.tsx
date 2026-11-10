@@ -4,15 +4,10 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
-import type {
-  FTCConsentLocation,
-  PaymentSetupCreateResponse,
-  Subscription,
-} from 'getsentry/types';
+import type {FTCConsentLocation, Subscription} from 'getsentry/types';
 import {
   trackGetsentryAnalytics,
   type GetsentryEventKey,
@@ -57,15 +52,6 @@ export function CreditCardSetup({
         buttonText={buttonText ?? t('Save Changes')}
         referrer={referrer}
         cardMode="setup"
-        intentDataQueryKey={
-          apiOptions.as<PaymentSetupCreateResponse>()(
-            '/organizations/$organizationIdOrSlug/payments/setup/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              staleTime: 0,
-            }
-          ).queryKey
-        }
         onCancel={onCancel ?? (() => {})}
         onSuccess={() => {
           onSuccess?.();
