@@ -655,6 +655,11 @@ def send_seer_webhook(
             extra={"event_type": event_type},
         )
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
+    # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
+    # reach Sentry Apps until its payload is settled.
+    if sentry_app_event_type == SentryAppEventType.SEER_ERRORED:
+        logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
+        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 
     # Handle organization lookup safely
     try:
@@ -855,6 +860,35 @@ def get_monitoring_provider_connections(
     )
 
 
+def refresh_org_monitoring_provider_token(
+    *, organization_id: int, integration_id: int
+) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
+    """Replace an org integration's rejected MCP token without a user identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+    integrations = integration_service.get_integrations(
+        integration_ids=[integration_id],
+        organization_id=organization_id,
+        providers=[IntegrationProviderSlug.LINEAR.value],
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    if not integrations:
+        return RefreshMonitoringProviderTokenErrorResponse(error="integration_not_found")
+    token = integration_service.get_access_token(
+        organization_id=organization_id, integration_id=integration_id, force_refresh=True
+    )
+    if token is None:
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
+    encrypted_header = encrypt_access_token_for_seer(f"Bearer {token.token}")
+    if not encrypted_header:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+    return RefreshMonitoringProviderTokenSuccessResponse(
+        encrypted_auth_headers={"Authorization": encrypted_header},
+        expires=int(token.expires_at.timestamp()) if token.expires_at else None,
+    )
+
+
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
@@ -1017,6 +1051,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
+    "refresh_org_monitoring_provider_token": seer_rpc(refresh_org_monitoring_provider_token),
 }
 
 

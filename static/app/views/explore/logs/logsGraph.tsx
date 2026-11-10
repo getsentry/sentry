@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
@@ -12,7 +11,6 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
@@ -41,12 +39,15 @@ import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottab
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {
   AddTransformationButton,
   VisualizeTransformationRows,
@@ -54,7 +55,6 @@ import {
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -87,6 +87,8 @@ import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visu
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
@@ -248,6 +250,7 @@ function Graph({
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -354,6 +357,8 @@ function Graph({
               key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={droppedData.band}
+              plottables={plottables}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           )
         }
@@ -369,16 +374,22 @@ function Graph({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    chartInfo={chartInfo}
-                    isLoading={chartInfo.timeseriesResult.isPending}
-                    rawLogCounts={rawLogCounts}
-                    hasUserQuery={!!userQuery}
-                    disabled={
-                      !hasValidConditionalFilter ||
-                      (tableIsPending ? false : tableIsEmpty)
-                    }
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={chartInfo.timeseriesResult.isPending}
+                      rawLogCounts={rawLogCounts}
+                      hasUserQuery={!!userQuery}
+                      disabled={
+                        !hasValidConditionalFilter ||
+                        (tableIsPending ? false : tableIsEmpty)
+                      }
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}
@@ -427,6 +438,14 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: search.formatString(),
+      yAxes: [visualize.yAxis],
+      groupBys,
+      mode,
+    });
 
   const items = useMemo(() => {
     const project =
@@ -434,47 +453,37 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-
     return [
-      getSaveAsAlertMenuItem({
-        disabled: hasTransformations,
-        to: getAlertsUrl({
-          project,
-          query: search.formatString(),
-          pageFilters: pageFilters.selection,
-          aggregate: visualize.yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-          eventTypes: [EventTypes.TRACE_ITEM_LOG],
-        }),
-        onAction: () => {
-          trackAnalytics('logs.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+      {
+        ...getSaveAsAlertMenuItem({
+          disabled: hasTransformations,
+          to: getAlertsUrl({
+            project,
+            query: search.formatString(),
+            pageFilters: pageFilters.selection,
+            aggregate: visualize.yAxis,
             organization,
-          });
-          return;
-        },
-      }),
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+            eventTypes: [EventTypes.TRACE_ITEM_LOG],
+          }),
+          onAction: () => {
+            trackAnalytics('logs.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return;
+          },
+        }),
+        details: alertCaseDetails,
+      },
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),
-        label: (
-          <Feature
-            overrideName="feature-disabled:dashboards-edit"
-            features="organizations:dashboards-edit"
-            renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-          >
-            {t('Add to Dashboard')}
-          </Feature>
-        ),
-        disabled: disableAddToDashboard,
+        details: dashboardCaseDetails,
+        label: t('Add to Dashboard'),
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
           trackAnalytics('logs.save_as', {
             save_type: 'dashboard',
             ui_source: 'chart',
@@ -527,6 +536,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   }, [
     aggregateFields,
     aggregateSortBys,
+    alertCaseDetails,
+    dashboardCaseDetails,
     interval,
     location,
     mode,
@@ -558,7 +569,3 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

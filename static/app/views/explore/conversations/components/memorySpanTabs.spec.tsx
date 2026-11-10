@@ -1,13 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  MemoryInputTab,
-  MemoryOutputTab,
-} from 'sentry/views/explore/conversations/components/memorySpanTabs';
-import {
   type Memory,
   MemoryOperation,
 } from 'sentry/views/insights/pages/agents/utils/memory';
+
+import {MemoryInputTab, MemoryOutputTab} from './memorySpanTabs';
 
 function memoryFixture(overrides: Partial<Memory> = {}): Memory {
   return {

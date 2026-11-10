@@ -1,4 +1,4 @@
-import {PlatformizedWebVitalsPageOverview} from 'sentry/views/insights/browser/webVitals/views/platformizedPageOverview';
+import {PlatformizedWebVitalsPageOverview} from './platformizedPageOverview';
 
 function PageWithProviders() {
   return <PlatformizedWebVitalsPageOverview />;

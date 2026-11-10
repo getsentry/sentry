@@ -1,9 +1,10 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 import type {SelectValue, createFilter} from '@sentry/scraps/select';
 
-import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
-import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
+
+import type {ChoiceMapperProps} from './fields/choiceMapperField';
+import type {FormModel} from './model';
 
 type FieldType =
   | 'array'

@@ -4,13 +4,14 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+
+import {organizationIntegrationsCodingAgents} from './useAutofix';
 
 export function GithubCopilotIntegrationCta() {
   const organization = useOrganization();

@@ -58,11 +58,15 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
+from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
+from sentry.seer.autofix.single_run import is_single_run, is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
@@ -118,7 +122,6 @@ class GroupAutofixPermission(GroupAiPermission):
 # Sentry: pushing a branch, opening or iterating on a pull request, or handing the run to
 # an external coding agent.
 PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
-PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
 
 
 # If an autofix can be handed off we want to use these stopping points to require user approval
@@ -348,7 +351,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        _require_publish_scope(request, group, step, {stopping_point})
+        stopping_points = {stopping_point}
+        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
+        if (
+            stopping_point is None
+            and is_new_run
+            and should_use_single_run(group, step)
+            and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
+        ):
+            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
+        _require_publish_scope(request, group, step, stopping_points)
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
@@ -386,6 +398,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         run_id: int | None
         sentry_run_id: str | None
 
+        feature_id = AUTOFIX_FEATURE_ID
         match step:
             case "coding_agent_handoff":
                 integration_id = data.get("integration_id")
@@ -578,6 +591,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 run_id = run.seer_run_state_id
+                if is_single_run_record(run):
+                    feature_id = SINGLE_RUN_FEATURE_ID
 
                 if is_autofix_kickoff:
                     sentry_run_id = str(run.uuid)
@@ -587,6 +602,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         kickoff_body = {
             "run_id": run_id,
             "sentry_run_id": sentry_run_id,
+            "feature_id": feature_id,
         }
         return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
 
@@ -662,6 +678,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
+                    "feature_id": SINGLE_RUN_FEATURE_ID
+                    if is_single_run(state)
+                    else AUTOFIX_FEATURE_ID,
                     "status": state.status,
                     "failure_reason": state.failure_reason,
                     "blocks": blocks,

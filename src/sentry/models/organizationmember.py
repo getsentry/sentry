@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -106,7 +106,9 @@ class InviteStatus(Enum):
         )
 
 
-invite_status_names = {
+InviteStatusName = Literal["approved", "requested_to_be_invited", "requested_to_join"]
+
+invite_status_names: dict[int, InviteStatusName] = {
     InviteStatus.APPROVED.value: "approved",
     InviteStatus.REQUESTED_TO_BE_INVITED.value: "requested_to_be_invited",
     InviteStatus.REQUESTED_TO_JOIN.value: "requested_to_join",
@@ -320,7 +322,7 @@ class OrganizationMember(ReplicatedCellModel):
         self.invite_status = InviteStatus.APPROVED.value
         self.regenerate_token()
 
-    def get_invite_status_name(self) -> str | None:
+    def get_invite_status_name(self) -> InviteStatusName | None:
         if self.invite_status is None:
             return None
         return invite_status_names[self.invite_status]

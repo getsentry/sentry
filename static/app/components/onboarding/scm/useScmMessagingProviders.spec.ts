@@ -9,8 +9,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+
+import {useScmMessagingProviders} from './useScmMessagingProviders';
 
 const organization = OrganizationFixture();
 

@@ -9,13 +9,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import {closeModal} from '@sentry/scraps/modal';
+
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
 import * as intercom from 'sentry/utils/intercom';
-import {
-  PrimaryNavigationHelpMenu,
-  useWhatsNewHelpMenuItem,
-} from 'sentry/views/navigation/primary/helpMenu';
+
+import {PrimaryNavigationHelpMenu, useWhatsNewHelpMenuItem} from './helpMenu';
 
 function HelpMenuWithWhatsNew() {
   const whatsNewOptions = useWhatsNewHelpMenuItem();
@@ -30,7 +29,7 @@ jest.mock('sentry/utils/analytics');
 describe('PrimaryNavigationHelpMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    ModalStore.reset();
+    closeModal();
     ConfigStore.set('supportEmail', 'support@sentry.io');
     setWindowLocation('https://example.test');
   });

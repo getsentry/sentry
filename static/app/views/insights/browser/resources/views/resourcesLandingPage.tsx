@@ -1,4 +1,4 @@
-import {PlatformizedAssetsOverview} from 'sentry/views/insights/browser/resources/views/platformizedOverview';
+import {PlatformizedAssetsOverview} from './platformizedOverview';
 
 function PageWithProviders() {
   return <PlatformizedAssetsOverview />;

@@ -1,4 +1,4 @@
-import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
+import {splitIntoColumns} from './splitIntoColumns';
 
 describe('splitIntoColumns', () => {
   it('returns no columns when there are no items', () => {

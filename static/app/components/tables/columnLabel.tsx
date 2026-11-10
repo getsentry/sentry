@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  COLUMN_ALIGN_JUSTIFY,
-  type ColumnAlign,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {COLUMN_ALIGN_JUSTIFY, type ColumnAlign} from './sortableHeaderCell';
 
 interface ColumnLabelProps {
   column: {name: ReactNode; tooltip?: ReactNode};

@@ -15,8 +15,9 @@ import * as PageFilterPersistence from 'sentry/components/pageFilters/persistenc
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
-import Results from 'sentry/views/discover/results';
-import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
+
+import {DEFAULT_EVENT_VIEW, getAllViews} from './results/data';
+import Results from './results';
 
 const FIELDS = [
   {
@@ -1334,7 +1335,7 @@ describe('Results', () => {
       expect(mockHomepageGet).not.toHaveBeenCalled();
     });
 
-    it('Changes the Use as Discover button to a reset button for saved query', async () => {
+    it('removes a saved query as the default', async () => {
       renderMockRequests();
 
       MockApiClient.addMockResponse({
@@ -1388,6 +1389,31 @@ describe('Results', () => {
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('menuitemradio', {name: 'Set as Default'})
+      ).not.toBeInTheDocument();
+
+      const homepageUrl = `/organizations/${organization.slug}/discover/homepage/`;
+      const removeDefault = MockApiClient.addMockResponse({
+        url: homepageUrl,
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      const emptyHomepage = MockApiClient.addMockResponse({
+        url: homepageUrl,
+        method: 'GET',
+        statusCode: 204,
+      });
+
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove Default'}));
+      await waitFor(() => expect(removeDefault).toHaveBeenCalled());
+      await waitFor(() => expect(emptyHomepage).toHaveBeenCalled());
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Remove Default'})
       ).not.toBeInTheDocument();
     });
 
@@ -1790,7 +1816,7 @@ describe('Results', () => {
   describe('Save as', () => {
     it('groups saving, monitors and dashboards in one dropdown', async () => {
       const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query', 'dashboards-edit'],
+        features: ['discover-basic', 'discover-query'],
       });
 
       renderMockRequests();

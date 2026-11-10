@@ -1,4 +1,4 @@
-import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {downloadFromHref} from './downloadFromHref';
 
 export function downloadObjectAsJson(exportObj: unknown, exportName: string) {
   downloadFromHref(

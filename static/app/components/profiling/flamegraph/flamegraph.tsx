@@ -10,17 +10,8 @@ import {
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
-import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
-import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
-import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import type {FlamegraphViewSelectMenuProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
-import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
-import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -73,11 +64,21 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {FlamegraphOptionsMenu} from './flamegraphToolbar/flamegraphOptionsMenu';
+import {FlamegraphSearch} from './flamegraphToolbar/flamegraphSearch';
+import type {FlamegraphThreadSelectorProps} from './flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphThreadSelector} from './flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphToolbar} from './flamegraphToolbar/flamegraphToolbar';
+import type {FlamegraphViewSelectMenuProps} from './flamegraphToolbar/flamegraphViewSelectMenu';
+import {FlamegraphViewSelectMenu} from './flamegraphToolbar/flamegraphViewSelectMenu';
 import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
 import {FlamegraphChart} from './flamegraphChart';
+import {FlamegraphContextMenu} from './flamegraphContextMenu';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
+import {FlamegraphZoomView} from './flamegraphZoomView';
+import {FlamegraphZoomViewMinimap} from './flamegraphZoomViewMinimap';
 
 const PROFILE_TYPE = 'transaction profile' as const;
 
@@ -1230,7 +1231,7 @@ function Flamegraph(): ReactElement {
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 

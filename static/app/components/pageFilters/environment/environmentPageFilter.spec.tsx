@@ -5,10 +5,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
-import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {EnvironmentPageFilter} from './environmentPageFilter';
 
 const organization = OrganizationFixture({features: ['open-membership']});
 const projects = [

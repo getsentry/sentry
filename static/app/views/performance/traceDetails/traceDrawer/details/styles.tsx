@@ -46,7 +46,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import {tryParseJsonRecursive} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -67,6 +66,7 @@ import {
   makeDurationComparisonStatusColors,
   MIN_PCT_DURATION_DIFFERENCE,
 } from './durationComparison';
+import {tryParseJsonRecursive} from './utils';
 
 function BodyContainer({children}: PropsWithChildren) {
   return (

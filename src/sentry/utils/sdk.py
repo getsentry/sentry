@@ -226,11 +226,12 @@ def traces_sampler(sampling_context: dict[str, Any]) -> float:
 
 
 def before_send(event: Event, hint: Hint) -> Event | None:
-    if event.get("tags"):
+    if event.get("type") is None:
+        # error or message, which both support tags
         if settings.SILO_MODE:
-            event["tags"]["silo_mode"] = str(settings.SILO_MODE)
+            event.setdefault("tags", {})["silo_mode"] = str(settings.SILO_MODE)
         if settings.SENTRY_LOCAL_CELL:
-            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
+            event.setdefault("tags", {})["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
     event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
     if event_exc == asyncio.CancelledError:
@@ -357,9 +358,7 @@ def configure_sdk() -> None:
         # but none are captured as events (that's handled by the `internal`
         # logger defined in `server.py`, which ignores the levels set
         # in the integration and goes straight to the underlying handler class).
-        LoggingIntegration(
-            event_level=None, sentry_logs_level=logging.INFO, capture_sentry_logs=True
-        ),
+        LoggingIntegration(event_level=None, level=logging.INFO),
         RustInfoIntegration(),
         RedisIntegration(),
     ]

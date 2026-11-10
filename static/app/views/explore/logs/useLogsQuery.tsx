@@ -9,38 +9,36 @@ import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
+import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
 import {
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
+} from './constants';
 import {
   getInitialLogPageParam,
   getLogPageParam,
   getParamBasedQuery,
   isAnchoredPageParam,
   type LogPageParam,
-} from 'sentry/views/explore/logs/logsInfinitePageParams';
+} from './logsInfinitePageParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
   type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {useAutoFetchWindow} from 'sentry/views/explore/logs/useAutoFetchWindow';
-import {useLogAnchor} from 'sentry/views/explore/logs/useLogAnchor';
+} from './types';
+import {useAutoFetchWindow} from './useAutoFetchWindow';
+import {useLogAnchor} from './useLogAnchor';
 import {
   useLogsApiOptionsWithInfinite,
   type LogsInfiniteQueryKey,
-} from 'sentry/views/explore/logs/useLogsApiOptions';
-import {
-  isRowVisibleInVirtualStream,
-  useVirtualStreaming,
-} from 'sentry/views/explore/logs/useVirtualStreaming';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
-import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
-import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+} from './useLogsApiOptions';
+import {isRowVisibleInVirtualStream, useVirtualStreaming} from './useVirtualStreaming';
+import {getTimeBasedSortBy} from './utils';
 
 /**
  * `maxPages` is evaluated before `useInfiniteQuery` returns `data`, so we base it on the

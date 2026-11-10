@@ -16,7 +16,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import {List} from './list';
@@ -43,7 +43,7 @@ export function SimilarStackTrace({project}: Props) {
     parseAsBooleanLiteral
   );
   const organization = useOrganization();
-  const params = useParams<{groupId: string; orgId: string}>();
+  const groupId = useGroupId();
   const navigate = useNavigate();
 
   const [checkedIds, setCheckedIds] = useState(new Set<string>());
@@ -72,7 +72,7 @@ export function SimilarStackTrace({project}: Props) {
         : '/organizations/$organizationIdOrSlug/issues/$issueId/similar/',
       {
         path: canFetch
-          ? {organizationIdOrSlug: organization.slug, issueId: params.groupId}
+          ? {organizationIdOrSlug: organization.slug, issueId: groupId}
           : skipToken,
         query: hasEmbeddings ? {k: 10, threshold: 0.01} : {...location.query, limit: 50},
         staleTime: 0,
@@ -103,10 +103,10 @@ export function SimilarStackTrace({project}: Props) {
       mergeGroups(api, {
         orgId: organization.slug,
         projectId: projectSlug,
-        itemIds: [...ids, params.groupId],
+        itemIds: [...ids, groupId],
       }),
     onSuccess: data => {
-      if (data?.merge?.parent && data.merge.parent !== params.groupId) {
+      if (data?.merge?.parent && data.merge.parent !== groupId) {
         navigate(
           `/organizations/${organization.slug}/issues/${data.merge.parent}/similar/`
         );
@@ -153,7 +153,7 @@ export function SimilarStackTrace({project}: Props) {
   }, [checkedIds, similar, filtered, mergeMutate]);
 
   const {data: event, isPending: isEventPending} = useGroupEvent({
-    groupId: params.groupId,
+    groupId,
     eventId: 'latest',
   });
   const platformSupportsLongStacktraces = LONG_STACKTRACE_PLATFORMS.includes(
@@ -186,7 +186,7 @@ export function SimilarStackTrace({project}: Props) {
         checkedIds={checkedIds}
         busyIds={busyIds}
         project={project}
-        groupId={params.groupId}
+        groupId={groupId}
         pageLinks={pageLinks}
         hasSimilarityEmbeddingsFeature={hasEmbeddings}
       />

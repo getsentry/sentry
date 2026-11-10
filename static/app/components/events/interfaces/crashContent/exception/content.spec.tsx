@@ -15,10 +15,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
+
+import {Content} from './content';
 
 describe('Exception Content', () => {
   const organization = OrganizationFixture();

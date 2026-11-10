@@ -5,9 +5,9 @@ import {IconOpen} from '@sentry/icons/open';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

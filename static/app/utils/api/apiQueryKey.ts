@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {getApiUrl} from './getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
@@ -36,9 +36,7 @@ export type CanonicalApiQueryKey = readonly [
   {infinite: false},
 ];
 
-// Loose input forms accepted at the useApiQuery / setApiQueryData / getApiQueryData
-// boundary for backward compatibility. Normalized to the canonical 3-slot form via
-// `normalizeQueryKey` before the key reaches the cache.
+// Legacy input forms accepted by query-key parsing and normalized to three slots.
 type LooseApiQueryKey = readonly [ApiUrl] | readonly [ApiUrl, QueryKeyEndpointOptions];
 
 export type ApiQueryKey = LooseApiQueryKey | CanonicalApiQueryKey;

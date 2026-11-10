@@ -9,8 +9,6 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorListTable} from 'sentry/views/detectors/components/detectorListTable';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
-import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   LLM_CONTEXT_MAX_ROWS,
@@ -21,6 +19,9 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {DETECTOR_LIST_PAGE_LIMIT} from './constants';
+import {useDetectorListSort} from './useDetectorListSort';
 
 interface DetectorListContentProps {
   data: ApiResponse<Detector[]> | undefined;

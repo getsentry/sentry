@@ -296,3 +296,182 @@ class SearchAgentStartEndpointTest(APITestCase):
 
         assert response.status_code == status.HTTP_200_OK
         assert mock_send_request.call_args.kwargs["referrer"] == SearchAgentReferrer.MCP
+
+
+@with_feature("organizations:seer-explorer")
+@override_settings(SENTRY_SELF_HOSTED=False, SEER_AUTOFIX_URL="https://seer.example.com")
+class SearchAgentTransformationCapabilitiesTest(APITestCase):
+    route = "start"
+    seer_request = "sentry.receivers.outbox.cell.make_search_agent_start_request"
+    access_check = "sentry.seer.endpoints.search_agent_start.has_seer_access_with_detail"
+    default_code_mode = True
+    forwards_unknown_options = False
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        access_patch = patch(self.access_check, return_value=(True, None))
+        self.addCleanup(access_patch.stop)
+        access_patch.start()
+        transport_patch = patch(self.seer_request)
+        self.addCleanup(transport_patch.stop)
+        self.transport = transport_patch.start()
+        self.transport.return_value = Mock(
+            status=200,
+            json=Mock(side_effect=[{"run_id": run_id, "status": "ok"} for run_id in range(42, 52)]),
+        )
+
+    def _post(self, **extra_data: Any) -> Any:
+        return self.client.post(
+            f"/api/0/organizations/{self.organization.slug}/search-agent/{self.route}/",
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "show a smoothed timeseries",
+                **extra_data,
+            },
+            format="json",
+        )
+
+    def test_capabilities_reach_seer(self) -> None:
+        for interpolation, spans, logs, metrics, expected in [
+            (True, True, True, True, ["spans", "logs", "tracemetrics"]),
+            (False, True, True, True, []),
+            (True, True, False, False, ["spans"]),
+            (True, False, True, False, ["logs"]),
+            (True, False, False, True, ["tracemetrics"]),
+            (True, False, False, False, []),
+        ]:
+            with (
+                self.subTest(expected=expected, interpolation=interpolation),
+                self.feature(
+                    {
+                        "organizations:seer-assisted-query-codemode": True,
+                        "organizations:explore-interpolation-and-smoothing": interpolation,
+                        "organizations:visibility-explore-view": spans,
+                        "organizations:ourlogs-enabled": logs,
+                        "organizations:tracemetrics-enabled": metrics,
+                    }
+                ),
+            ):
+                response = self._post(options={"code_mode": True})
+
+                assert response.status_code == status.HTTP_200_OK
+                body = self.transport.call_args[0][0]
+                assert body["options"]["transformation_capabilities"] == {"datasets": expected}
+                assert body["project_ids"] == [self.project.id]
+                assert body["org_id"] == self.organization.id
+
+    def test_code_mode_disabled_omits_capabilities(self) -> None:
+        with self.feature(
+            {
+                "organizations:seer-assisted-query-codemode": False,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self._post(options={"code_mode": True})
+
+        assert response.status_code == status.HTTP_200_OK
+        options_sent = self.transport.call_args[0][0]["options"]
+        assert options_sent["code_mode"] is False
+        assert "transformation_capabilities" not in options_sent
+
+    def test_client_cannot_claim_capabilities(self) -> None:
+        for capabilities in [None, {"datasets": ["spans"]}]:
+            with self.subTest(capabilities=capabilities):
+                response = self._post(options={"transformation_capabilities": capabilities})
+
+                assert response.status_code == status.HTTP_400_BAD_REQUEST
+                assert str(response.data["options"][0]) == (
+                    "transformation_capabilities is derived by Sentry"
+                )
+                self.transport.assert_not_called()
+
+    def test_omitted_options_preserve_route_default(self) -> None:
+        option_variants: list[dict[str, Any]] = [{}, {"options": None}]
+        for extra_data in option_variants:
+            with (
+                self.subTest(extra_data=extra_data),
+                self.feature(
+                    {
+                        "organizations:seer-assisted-query-codemode": True,
+                        "organizations:explore-interpolation-and-smoothing": False,
+                    }
+                ),
+            ):
+                response = self._post(**extra_data)
+
+                assert response.status_code == status.HTTP_200_OK
+                options = self.transport.call_args[0][0]["options"]
+                assert options["code_mode"] is self.default_code_mode
+                assert (
+                    options.get("transformation_capabilities")
+                    == ({"start": {"datasets": []}, "translate": None}[self.route])
+                )
+
+    def test_capabilities_preserve_query_options(self) -> None:
+        metric_context = {"metric_name": "http.request.duration", "metric_type": "distribution"}
+        with self.feature(
+            {
+                "organizations:seer-assisted-query-codemode": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+                "organizations:tracemetrics-enabled": True,
+            }
+        ):
+            response = self._post(
+                strategy="Metrics",
+                options={
+                    "code_mode": True,
+                    "model_name": "gpt-5",
+                    "metric_context": metric_context,
+                    "unrecognized_option": "preserved by synchronous translation",
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = self.transport.call_args[0][0]
+        options = body["options"]
+        assert body["strategy"] == "Metrics"
+        assert options["model_name"] == "gpt-5"
+        assert options["metric_context"] == metric_context
+        assert "tracemetrics" in options["transformation_capabilities"]["datasets"]
+        assert ("unrecognized_option" in options) is self.forwards_unknown_options
+
+    def test_invalid_model_name_rejected(self) -> None:
+        response = self._post(options={"model_name": 123})
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert str(response.data["options"][0]) == "model_name must be a string"
+        self.transport.assert_not_called()
+
+    def test_foreign_project_rejected(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+
+        response = self._post(project_ids=[other_project.id])
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.transport.assert_not_called()
+
+    def test_inaccessible_project_rejected(self) -> None:
+        project = self.project
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member")
+        self.login_as(member)
+
+        response = self._post(project_ids=[project.id])
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        self.transport.assert_not_called()
+
+
+class SearchAgentTranslateTransformationCapabilitiesTest(SearchAgentTransformationCapabilitiesTest):
+    route = "translate"
+    seer_request = (
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.make_translate_agentic_request"
+    )
+    access_check = (
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.has_seer_access_with_detail"
+    )
+    default_code_mode = False
+    forwards_unknown_options = True

@@ -7,7 +7,6 @@ import {
   getOrderedAutofixSections,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -16,6 +15,8 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+
+import {artifactToMarkdown} from './utils';
 
 /**
  * Everything an Autofix surface needs apart from its own chrome, so the drawer

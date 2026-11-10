@@ -10,7 +10,7 @@ import {
   SETUP_LOADER_DOCS_RENDERED_EVENT,
   SOURCE_MAPS_COPY_CLICKED_EVENT,
   SOURCE_MAPS_SELECTED_AND_COPIED_EVENT,
-} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
+} from './docsFlowAnalytics';
 
 describe('docsFlowAnalytics', () => {
   describe('resolveDocsFlowEvent', () => {

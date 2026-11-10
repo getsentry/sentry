@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {InboxNotebookPreview} from 'sentry/views/inbox/inboxNotebookPreview';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
+
+import {InboxNotebookPreview} from './inboxNotebookPreview';
 
 describe('InboxNotebookPreview', () => {
   const organization = OrganizationFixture({

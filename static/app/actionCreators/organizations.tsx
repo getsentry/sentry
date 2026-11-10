@@ -1,6 +1,7 @@
 import type {NavigateFunction} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
@@ -93,12 +94,12 @@ function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams
       OrganizationsStore.onRemoveSuccess(orgId);
 
       if (successMessage) {
-        addSuccessMessage(successMessage);
+        toast.success(successMessage);
       }
     })
     .catch(() => {
       if (errorMessage) {
-        addErrorMessage(errorMessage);
+        toast.error(errorMessage);
       }
     });
 }

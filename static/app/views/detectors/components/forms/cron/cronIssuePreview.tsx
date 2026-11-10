@@ -3,7 +3,8 @@ import {parseActorString} from 'sentry/utils/parseActorString';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
-import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
+
+import {useCronDetectorFormField} from './fields';
 
 const FALLBACK_ISSUE_TITLE = t('Cron failure: …');
 const SUBTITLE = t('Your monitor is failing: A missed check-in was detected');

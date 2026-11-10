@@ -1,8 +1,6 @@
-import type {
-  BlockRenderers,
-  ContentBlock,
-} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {BlockPathProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+
+import type {BlockRenderers, ContentBlock} from './types';
 
 export enum ContentBlockCssVariables {
   BLOCK_SPACING = '--block-spacing',

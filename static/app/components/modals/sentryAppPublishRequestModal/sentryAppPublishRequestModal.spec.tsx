@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from '@sentry/scraps/modal';
 
-import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
+import {SentryAppPublishRequestModal} from './sentryAppPublishRequestModal';
 
 describe('SentryAppDetailsModal', () => {
   const styledWrapper = styled((c: PropsWithChildren) => c.children);

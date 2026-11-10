@@ -13,7 +13,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -36,7 +36,6 @@ import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {
   issueAndEventToMarkdown,
@@ -50,6 +49,8 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+
+import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
 
 interface IssueEventNavigationProps {
   event: Event | undefined;

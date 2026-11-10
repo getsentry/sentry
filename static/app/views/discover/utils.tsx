@@ -53,12 +53,13 @@ import {
   type QueryTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getAllViews} from 'sentry/views/discover/results/data';
-import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
-import type {FieldValue} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import {getAllViews} from './results/data';
+import {displayModeToDisplayType} from './savedQuery/utils';
+import type {FieldValue} from './table/types';
+import {FieldValueKind} from './table/types';
 
 /**
  * @returns whether `widgetType` is one that stores a {@link DisplayType} directly

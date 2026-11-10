@@ -121,6 +121,8 @@ For worked examples of all of the above, use the **`design-system`** skill.
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
 
+Appearance changes (colors, spacing, sizing, responsive layout) are covered by visual snapshots, not RTL → see the **`react-testing`** skill for the rule and **`generate-snapshot-tests`** for writing them.
+
 ## Sentry SDK Instrumentation
 
 Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reuse existing names so the same attribute remains queryable across producers such as SDKs and Relay.

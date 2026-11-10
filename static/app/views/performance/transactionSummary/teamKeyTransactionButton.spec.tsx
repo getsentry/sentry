@@ -9,7 +9,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
-import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummary/teamKeyTransactionButton';
+
+import {TeamKeyTransactionButton} from './teamKeyTransactionButton';
 
 async function clickTeamKeyTransactionDropdown() {
   await waitFor(() =>

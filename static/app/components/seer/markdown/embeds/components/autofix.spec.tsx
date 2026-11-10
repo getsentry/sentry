@@ -10,10 +10,11 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {AutofixRef} from 'sentry/components/seer/markdown/embeds/components/autofix';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AutofixRef} from './autofix';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const GROUP_ID = '1337';
