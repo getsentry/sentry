@@ -9,6 +9,7 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Hovercard} from 'sentry/components/hovercard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -21,6 +22,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
+import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 
 const MAX_VISIBLE_TARGETS = 2;
@@ -54,11 +56,13 @@ function getAlertTargetsByMonitor(alerts: Automation[]) {
       continue;
     }
     const targets = alert.actionFilters.flatMap(filter =>
-      (filter.actions ?? []).map(action => ({
-        type: action.type,
-        label:
-          action.config.targetDisplay ?? ActionMetadata[action.type]?.name ?? action.type,
-      }))
+      (filter.actions ?? []).flatMap(action => {
+        const metadata = ActionMetadata[action.type];
+        // Actions without metadata, like Seer's own, don't notify anyone
+        return metadata
+          ? {type: action.type, label: action.config.targetDisplay ?? metadata.name}
+          : [];
+      })
     );
     for (const monitorId of alert.detectorIds) {
       const known = targetsByMonitor.get(monitorId) ?? [];
@@ -221,7 +225,15 @@ export function MonitorTable({
         monitors.map(monitor => (
           <SimpleTable.Row key={monitor.id}>
             <SimpleTable.RowCell>
-              <DetectorLink detector={monitor} openInNewTab />
+              <Hovercard
+                header={monitor.name}
+                body={<MetricDetectorDetailsDetect detector={monitor} />}
+                position="bottom-start"
+                containerDisplayMode="block"
+                style={{minWidth: 0}}
+              >
+                <DetectorLink detector={monitor} openInNewTab />
+              </Hovercard>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <LastBreach monitor={monitor} />
