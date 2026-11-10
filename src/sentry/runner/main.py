@@ -97,7 +97,8 @@ class _SentryGroup(click.Group):
             name, has_value, _ = args[i].partition("=")
             param = options.get(name)
             if param is None:
-                _exec_sentry_cli(args[i:])
+                if not ctx.resilient_parsing:
+                    _exec_sentry_cli(args[i:])
                 break
             if param.is_eager:
                 break
@@ -108,7 +109,13 @@ class _SentryGroup(click.Group):
     def resolve_command(
         self, ctx: click.Context, args: list[str]
     ) -> tuple[str | None, click.Command | None, list[str]]:
-        if args and not args[0].startswith("-") and self.get_command(ctx, args[0]) is None:
+        # Shell completion parses resiliently. It must not exec anything.
+        if (
+            not ctx.resilient_parsing
+            and args
+            and not args[0].startswith("-")
+            and self.get_command(ctx, args[0]) is None
+        ):
             _exec_sentry_cli(args)
         return super().resolve_command(ctx, args)
 

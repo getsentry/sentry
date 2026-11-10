@@ -6,6 +6,7 @@ from unittest import mock
 
 import click
 import pytest
+from click.shell_completion import _resolve_context
 from click.testing import CliRunner
 
 from sentry.runner import commands
@@ -80,6 +81,15 @@ def test_server_options_do_not_exec(other_sentry: Path, argv: list[str]) -> None
         result = CliRunner().invoke(cli, argv)
 
     assert result.exit_code == 0
+    execv.assert_not_called()
+
+
+@pytest.mark.parametrize("argv", [["issue", "li"], ["--verbose", "issue"]])
+def test_completion_does_not_exec(other_sentry: Path, argv: list[str]) -> None:
+    env = {"PATH": str(other_sentry.parent)}
+    with mock.patch.dict(os.environ, env), mock.patch("os.execv") as execv:
+        _resolve_context(cli, {}, "sentry", argv)
+
     execv.assert_not_called()
 
 
