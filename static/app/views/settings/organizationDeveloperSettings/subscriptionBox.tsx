@@ -40,6 +40,10 @@ export function SubscriptionBox({
 }: Props) {
   const {features} = useOrganization();
 
+  if (resource === 'alert' && !features.includes('sentry-app-alert-webhooks')) {
+    return null;
+  }
+
   let disabled = disabledFromPermissions;
   let message = t(
     "Must have at least 'Read' permissions enabled for %s",

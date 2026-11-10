@@ -7,6 +7,7 @@ export const EVENT_CHOICES = [
   'comment',
   'seer',
   'preprod_artifact',
+  'alert',
 ] as const satisfies readonly WebhookEvent[];
 
 // The webhook subscription vocabulary, mirroring EVENT_EXPANSION in
@@ -36,6 +37,7 @@ export const RESOURCE_EVENTS = {
     'preprod_artifact.size_analysis_completed',
     'preprod_artifact.build_distribution_completed',
   ],
+  alert: ['alert.triggered'],
 } as const satisfies Record<WebhookEvent, readonly string[]>;
 
 export type WebhookSubscription = (typeof RESOURCE_EVENTS)[WebhookEvent][number];
@@ -46,6 +48,7 @@ export const WEBHOOK_SUBSCRIPTION_CHOICES = [
   ...RESOURCE_EVENTS.comment,
   ...RESOURCE_EVENTS.seer,
   ...RESOURCE_EVENTS.preprod_artifact,
+  ...RESOURCE_EVENTS.alert,
 ] as const;
 
 const LEGACY_EVENT_ALIASES: Record<string, WebhookSubscription> = {
@@ -86,6 +89,7 @@ const RESOURCE_LABELS: Record<WebhookEvent, string> = {
   comment: 'Comments',
   seer: 'Seer',
   preprod_artifact: 'Preprod Artifacts',
+  alert: 'Alerts',
 };
 
 export function webhookResourceLabel(resource: WebhookEvent): string {
@@ -98,4 +102,5 @@ export const PERMISSIONS_MAP = {
   comment: 'Event',
   seer: 'Event',
   preprod_artifact: 'Project',
+  alert: 'Alerts',
 } as const;

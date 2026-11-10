@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
@@ -109,6 +111,36 @@ describe('Resource Subscriptions', () => {
       );
 
       expect(onChange).toHaveBeenCalledWith(['preprod_artifact.size_analysis_completed']);
+    });
+  });
+
+  describe('alert subscriptions', () => {
+    const organization = OrganizationFixture({features: ['sentry-app-alert-webhooks']});
+
+    it('requires Alerts permission', () => {
+      render(
+        <Form>
+          <Subscriptions events={[]} permissions={basePermissions} onChange={jest.fn()} />
+        </Form>,
+        {organization}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'alert'})).toBeDisabled();
+    });
+
+    it('enables with Alerts read permission', () => {
+      render(
+        <Form>
+          <Subscriptions
+            events={[]}
+            permissions={{...basePermissions, Alerts: 'read'}}
+            onChange={jest.fn()}
+          />
+        </Form>,
+        {organization}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'alert'})).toBeEnabled();
     });
   });
 

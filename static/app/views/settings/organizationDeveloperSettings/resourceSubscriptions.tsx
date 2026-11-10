@@ -14,6 +14,11 @@ import {SubscriptionBox} from './subscriptionBox';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
+// Optional permissions, like Alerts, are missing until an app sets them.
+function hasNoAccess(permissions: Permissions, resource: Resource): boolean {
+  return (permissions[PERMISSIONS_MAP[resource]] ?? 'no-access') === 'no-access';
+}
+
 type Props = {
   events: WebhookSubscription[];
   onChange: (events: WebhookSubscription[]) => void;
@@ -25,7 +30,7 @@ export function Subscriptions({events, onChange, permissions}: Props) {
   useEffect(() => {
     const permitted = new Set<string>(
       EVENT_CHOICES.flatMap(resource =>
-        permissions[PERMISSIONS_MAP[resource]] === 'no-access'
+        hasNoAccess(permissions, resource)
           ? []
           : [resource, ...RESOURCE_EVENTS[resource]]
       )
@@ -58,7 +63,7 @@ export function Subscriptions({events, onChange, permissions}: Props) {
   };
 
   const boxes = EVENT_CHOICES.map(choice => {
-    const disabledFromPermissions = permissions[PERMISSIONS_MAP[choice]] === 'no-access';
+    const disabledFromPermissions = hasNoAccess(permissions, choice);
     const selectedEvents = disabledFromPermissions
       ? []
       : RESOURCE_EVENTS[choice].filter(event => events.includes(event));
