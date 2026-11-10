@@ -9,6 +9,7 @@ import {
   getMetricDetectorChartOption,
   transformSessionResponseToSeries,
   type MetricDetectorChartData,
+  type MetricDetectorChartOption,
 } from 'sentry/views/detectors/components/details/metric/charts/metricDetectorChartOptions';
 
 import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
@@ -64,26 +65,37 @@ export function makeMetricDetectorCharts(
     },
   };
 
+  const createSlackChartOption = ({
+    series,
+    additionalSeries,
+    yAxis,
+    additionalYAxes,
+    xAxis,
+    grid,
+  }: MetricDetectorChartOption) => ({
+    backgroundColor: theme.tokens.background.primary,
+    series: [...transformAreaSeries(series), ...additionalSeries],
+    xAxis: {...metricDetectorXaxis, ...xAxis},
+    yAxis: [
+      {
+        ...yAxis,
+        ...metricDetectorYaxis,
+        axisLabel: {
+          ...yAxis.axisLabel,
+          ...metricDetectorYaxis.axisLabel,
+        },
+      },
+      ...additionalYAxes,
+    ],
+    grid: {...slackChartDefaults.grid, ...grid},
+  });
+
   metricDetectorCharts.push({
     key: ChartType.SLACK_METRIC_DETECTOR_EVENTS,
     getOption: (data: MetricDetectorChartData) => {
-      const {chartOption} = getMetricDetectorChartOption(data, theme);
+      const chartOption = getMetricDetectorChartOption(data, theme);
 
-      return {
-        ...chartOption,
-        backgroundColor: theme.tokens.background.primary,
-        series: transformAreaSeries(chartOption.series),
-        xAxis: metricDetectorXaxis,
-        yAxis: {
-          ...chartOption.yAxis,
-          ...metricDetectorYaxis,
-          axisLabel: {
-            ...chartOption.yAxis!.axisLabel,
-            ...metricDetectorYaxis.axisLabel,
-          },
-        },
-        grid: slackChartDefaults.grid,
-      };
+      return createSlackChartOption(chartOption);
     },
     ...slackChartSize,
   });
@@ -99,7 +111,8 @@ export function makeMetricDetectorCharts(
     key: ChartType.SLACK_METRIC_DETECTOR_SESSIONS,
     getOption: (data: MetricDetectorSessionData) => {
       const {sessionResponse, detector, ...rest} = data;
-      const {chartOption} = getMetricDetectorChartOption(
+
+      const chartOption = getMetricDetectorChartOption(
         {
           ...rest,
           detector,
@@ -108,21 +121,7 @@ export function makeMetricDetectorCharts(
         theme
       );
 
-      return {
-        ...chartOption,
-        backgroundColor: theme.tokens.background.primary,
-        series: transformAreaSeries(chartOption.series),
-        xAxis: metricDetectorXaxis,
-        yAxis: {
-          ...chartOption.yAxis,
-          ...metricDetectorYaxis,
-          axisLabel: {
-            ...chartOption.yAxis!.axisLabel,
-            ...metricDetectorYaxis.axisLabel,
-          },
-        },
-        grid: slackChartDefaults.grid,
-      };
+      return createSlackChartOption(chartOption);
     },
     ...slackChartSize,
   });

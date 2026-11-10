@@ -12,13 +12,13 @@ import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {isEapDataset} from 'sentry/views/detectors/datasetConfig/utils/isEapDataset';
+import type {IncidentPeriod} from 'sentry/views/detectors/utils/incidentMarkers';
 import {
   EAP_HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS,
 } from 'sentry/views/detectors/utils/timePeriods';
 
-import type {IncidentPeriod} from './useIncidentMarkers';
 import {useMetricDetectorAnomalies} from './useMetricDetectorAnomalies';
 import {useMetricDetectorSeries} from './useMetricDetectorSeries';
 

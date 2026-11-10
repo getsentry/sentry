@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {t} from 'sentry/locale';
-import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import type {IncidentPeriod} from 'sentry/views/detectors/utils/incidentMarkers';
 
 interface IncidentTooltipContext {
   period: IncidentPeriod;

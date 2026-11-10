@@ -1,6 +1,5 @@
 import type {LineSeriesOption} from 'echarts';
-
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {
   DataConditionType,
@@ -8,7 +7,9 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 
-import {useMetricDetectorThresholdSeries} from './useMetricDetectorThresholdSeries';
+import {getMetricDetectorThresholdSeries} from './metricDetectorThresholdSeries';
+
+const theme = ThemeFixture();
 
 function makeConditions(
   overrides: Array<Partial<Omit<MetricCondition, 'id'>>>
@@ -32,7 +33,7 @@ function getStaticBandRanges(additionalSeries: LineSeriesOption[]) {
     .map(([lower, upper]) => [lower.yAxis, upper.yAxis]);
 }
 
-describe('useMetricDetectorThresholdSeries', () => {
+describe('getMetricDetectorThresholdSeries', () => {
   describe('percent detection with session percentage aggregates', () => {
     it('computes correct delta for crash_free_rate (comparison=110 → 10% higher)', () => {
       const comparisonSeries = [
@@ -50,20 +51,19 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'percent',
-          aggregate: 'crash_free_rate(session)',
-          comparisonSeries,
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'percent',
+        aggregate: 'crash_free_rate(session)',
+        comparisonSeries,
+        theme,
+      });
 
-      expect(getThresholdLineNames(result.current.additionalSeries)).toEqual([
+      expect(getThresholdLineNames(thresholdSeries.additionalSeries)).toEqual([
         '10% Higher Threshold',
       ]);
       // 0.95 * (1 + 10/100) = 1.045
-      expect(result.current.maxValue).toBeCloseTo(1.045);
+      expect(thresholdSeries.maxValue).toBeCloseTo(1.045);
     });
 
     it('computes correct delta for crash_free_rate (comparison=60 → 40% lower)', () => {
@@ -82,20 +82,19 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'percent',
-          aggregate: 'crash_free_rate(session)',
-          comparisonSeries,
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'percent',
+        aggregate: 'crash_free_rate(session)',
+        comparisonSeries,
+        theme,
+      });
 
-      expect(getThresholdLineNames(result.current.additionalSeries)).toEqual([
+      expect(getThresholdLineNames(thresholdSeries.additionalSeries)).toEqual([
         '40% Lower Threshold',
       ]);
       // 0.95 * (1 - 40/100) = 0.57
-      expect(result.current.maxValue).toBeCloseTo(0.57);
+      expect(thresholdSeries.maxValue).toBeCloseTo(0.57);
     });
 
     it('computes correct resolution delta for crash_free_rate', () => {
@@ -119,17 +118,16 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'percent',
-          aggregate: 'crash_free_rate(session)',
-          comparisonSeries,
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'percent',
+        aggregate: 'crash_free_rate(session)',
+        comparisonSeries,
+        theme,
+      });
 
       // The alert threshold should be 10% (from 110)
-      expect(result.current.additionalSeries[0]?.name).toBe('10% Higher Threshold');
+      expect(thresholdSeries.additionalSeries[0]?.name).toBe('10% Higher Threshold');
     });
   });
 
@@ -150,18 +148,17 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'percent',
-          aggregate: 'count()',
-          comparisonSeries,
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'percent',
+        aggregate: 'count()',
+        comparisonSeries,
+        theme,
+      });
 
-      expect(result.current.additionalSeries[0]?.name).toBe('10% Higher Threshold');
+      expect(thresholdSeries.additionalSeries[0]?.name).toBe('10% Higher Threshold');
       // 100 * (1 + 10/100) = 110
-      expect(result.current.maxValue).toBeCloseTo(110);
+      expect(thresholdSeries.maxValue).toBeCloseTo(110);
     });
   });
 
@@ -175,16 +172,15 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'static',
-          aggregate: 'crash_free_rate(session)',
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'static',
+        aggregate: 'crash_free_rate(session)',
+        theme,
+      });
 
       // Static threshold for crash_free_rate(session) 95 should normalize to 0.95
-      expect(result.current.maxValue).toBeCloseTo(0.95);
+      expect(thresholdSeries.maxValue).toBeCloseTo(0.95);
     });
   });
 
@@ -200,15 +196,14 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'static',
-          aggregate: 'count()',
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'static',
+        aggregate: 'count()',
+        theme,
+      });
 
-      expect(getStaticBandRanges(result.current.additionalSeries)).toEqual([
+      expect(getStaticBandRanges(thresholdSeries.additionalSeries)).toEqual([
         [-Infinity, 5000],
         [5000, 10000],
         [10000, Infinity],
@@ -225,15 +220,14 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'static',
-          aggregate: 'count()',
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'static',
+        aggregate: 'count()',
+        theme,
+      });
 
-      expect(getStaticBandRanges(result.current.additionalSeries)).toEqual([
+      expect(getStaticBandRanges(thresholdSeries.additionalSeries)).toEqual([
         [-Infinity, 10000],
         [10000, Infinity],
       ]);
@@ -258,15 +252,14 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'static',
-          aggregate: 'count()',
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'static',
+        aggregate: 'count()',
+        theme,
+      });
 
-      expect(getStaticBandRanges(result.current.additionalSeries)).toEqual([
+      expect(getStaticBandRanges(thresholdSeries.additionalSeries)).toEqual([
         [150, Infinity],
         [50, 100],
         [-Infinity, 50],
@@ -286,16 +279,15 @@ describe('useMetricDetectorThresholdSeries', () => {
         {comparison: 150, conditionResult: DetectorPriorityLevel.MEDIUM},
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'percent',
-          aggregate: 'count()',
-          comparisonSeries,
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'percent',
+        aggregate: 'count()',
+        comparisonSeries,
+        theme,
+      });
 
-      const bandSeries = result.current.additionalSeries.filter(series => !series.name);
+      const bandSeries = thresholdSeries.additionalSeries.filter(series => !series.name);
 
       expect(
         bandSeries.map(series => ({
@@ -337,22 +329,21 @@ describe('useMetricDetectorThresholdSeries', () => {
         },
       ]);
 
-      const {result} = renderHookWithProviders(() =>
-        useMetricDetectorThresholdSeries({
-          conditions,
-          detectionType: 'percent',
-          aggregate: 'count()',
-          comparisonSeries,
-        })
-      );
+      const thresholdSeries = getMetricDetectorThresholdSeries({
+        conditions,
+        detectionType: 'percent',
+        aggregate: 'count()',
+        comparisonSeries,
+        theme,
+      });
 
-      expect(getThresholdLineNames(result.current.additionalSeries)).toEqual([
+      expect(getThresholdLineNames(thresholdSeries.additionalSeries)).toEqual([
         '100% Higher Threshold',
         '50% Higher Threshold',
         '25% Higher Resolution Threshold',
       ]);
 
-      const okBand = result.current.additionalSeries.find(
+      const okBand = thresholdSeries.additionalSeries.find(
         series => series.areaStyle?.origin === 'start'
       );
 
@@ -361,15 +352,14 @@ describe('useMetricDetectorThresholdSeries', () => {
   });
 
   it('returns empty series when conditions are undefined', () => {
-    const {result} = renderHookWithProviders(() =>
-      useMetricDetectorThresholdSeries({
-        conditions: undefined,
-        detectionType: 'static',
-        aggregate: 'count()',
-      })
-    );
+    const thresholdSeries = getMetricDetectorThresholdSeries({
+      conditions: undefined,
+      detectionType: 'static',
+      aggregate: 'count()',
+      theme,
+    });
 
-    expect(result.current.additionalSeries).toHaveLength(0);
-    expect(result.current.maxValue).toBeUndefined();
+    expect(thresholdSeries.additionalSeries).toHaveLength(0);
+    expect(thresholdSeries.maxValue).toBeUndefined();
   });
 });

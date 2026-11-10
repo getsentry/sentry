@@ -1,6 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import type {IncidentPeriod} from 'sentry/views/detectors/utils/incidentMarkers';
 
 import {incidentMarklineTooltip, incidentSeriesTooltip} from './chartTooltip';
 

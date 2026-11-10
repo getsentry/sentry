@@ -17,7 +17,6 @@ import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
@@ -30,44 +29,23 @@ import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {useFilteredAnomalyThresholdSeries} from 'sentry/views/detectors/hooks/useFilteredAnomalyThresholdSeries';
-import {
-  useIncidentMarkers,
-  type IncidentPeriod,
-} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyThresholds} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyThresholds';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/useMetricDetectorThresholdSeries';
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {convertOpenPeriodsToIncidentPeriods} from 'sentry/views/detectors/utils/convertOpenPeriodsToIncidentPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
 import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
+import type {IncidentPeriod} from 'sentry/views/detectors/utils/incidentMarkers';
+import {shiftSeriesToBucketEnd} from 'sentry/views/detectors/utils/shiftSeriesToBucketEnd';
 
 import {useDetectorChartAxisBounds} from './utils/useDetectorChartAxisBounds';
 import {useIsMigratedExtrapolation} from './utils/useIsMigratedExtrapolation';
 import {AggregateSummaryTable} from './aggregateSummaryTable';
 import {incidentMarklineTooltip, incidentSeriesTooltip} from './chartTooltip';
 import {getDetectorOpenInDestination} from './getDetectorOpenInDestination';
-
-/**
- * Shift data points from bucket-start to bucket-end timestamps.
- * The API returns timestamps at the start of each bucket (e.g. 1pm for 1pm–2pm),
- * but we want to display them at the end (2pm) since the value represents
- * the data collected during the preceding interval.
- *
- * The reason we do this for metric charts is that it's important that the data points
- * visually align with the open period markers. If an open period starts at 1pm, it should
- * be vertically aligned with the data point for 12pm-1pm.
- */
-function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): Series[] {
-  const offsetMs = intervalSeconds * 1000;
-  return seriesList.map(s => ({
-    ...s,
-    data: s.data.map(point => ({
-      ...point,
-      name: (point.name as number) + offsetMs,
-    })),
-  }));
-}
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
@@ -93,60 +71,6 @@ interface UseMetricDetectorChartProps {
   onOpenPeriodClick?: (openPeriod: GroupOpenPeriod) => void;
   start?: string | null;
   statsPeriod?: string | null;
-}
-
-function createTriggerIntervalMarkerData({
-  period,
-  intervalMs,
-}: {
-  intervalMs: number;
-  period: GroupOpenPeriod;
-}): IncidentPeriod {
-  return {
-    id: period.id,
-    end: new Date(period.start).getTime(),
-    issueShortId: period.shortId,
-    priority: period.activities[0]?.value ?? 'high',
-    start: new Date(period.start).getTime() - intervalMs,
-    type: 'trigger-interval',
-  };
-}
-
-function createOpenPeriodMarkerData({
-  chartEndTimestampMs,
-  period,
-}: {
-  chartEndTimestampMs: number | undefined;
-  period: GroupOpenPeriod;
-}): IncidentPeriod[] {
-  const endDate = period.end
-    ? new Date(period.end).getTime()
-    : (chartEndTimestampMs ?? Date.now());
-
-  const segments = period.activities
-    .filter(activity => activity.type !== 'closed')
-    .map((activity, i) => {
-      const activityEndTime = new Date(
-        period.activities[i + 1]?.dateCreated ?? period.end ?? endDate
-      ).getTime();
-
-      return {
-        priority: activity.value,
-        end: activityEndTime,
-        start: new Date(activity.dateCreated).getTime(),
-      };
-    });
-
-  return segments.map((segment, i) => ({
-    type: i === 0 ? 'open-period-start' : 'open-period-transition',
-    end: segment.end,
-    id: period.id,
-    isOngoing: !period.end && i === segments.length - 1,
-    issueShortId: period.shortId,
-    name: t('Open Periods'),
-    priority: segment.priority ?? 'high',
-    start: segment.start,
-  }));
 }
 
 type UseMetricDetectorChartResult =
@@ -254,13 +178,11 @@ export function useMetricDetectorChart({
       chartEndTimestampMs = new Date(end).getTime();
     }
 
-    return openPeriods.flatMap<IncidentPeriod>(period => [
-      createTriggerIntervalMarkerData({
-        period,
-        intervalMs: snubaQuery.timeWindow * 1000,
-      }),
-      ...createOpenPeriodMarkerData({chartEndTimestampMs, period}),
-    ]);
+    return convertOpenPeriodsToIncidentPeriods({
+      openPeriods,
+      intervalMs: snubaQuery.timeWindow * 1000,
+      chartEndTimestampMs,
+    });
   }, [chartSeries, end, openPeriods, snubaQuery.timeWindow]);
 
   const handleIncidentMarkerClick = useCallback(
