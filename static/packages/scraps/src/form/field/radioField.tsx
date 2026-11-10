@@ -61,6 +61,7 @@ function RadioGroup({children, value, onChange, disabled, field}: RadioGroupProp
 }
 
 // Radio.Item component
+/** @public Required by generated form declarations. */
 export interface RadioItemProps {
   children: React.ReactNode;
   value: string;

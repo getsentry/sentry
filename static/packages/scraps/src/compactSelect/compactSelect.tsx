@@ -21,6 +21,7 @@ import {getDuplicateOptionKeysInfo, getItemsWithKeys, shouldCloseOnSelect} from 
 
 export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
+/** @public Required by generated form declarations. */
 export interface BaseSelectProps<Value extends SelectKey> extends Omit<
   ControlProps,
   'onClear' | 'clearable'

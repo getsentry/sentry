@@ -96,6 +96,7 @@ interface BaseListProps<Value extends SelectKey>
  * A single-selection (only one option can be selected at a time) list that allows
  * clearing the selection.
  * `value` can be `undefined` to represent no selection.
+ * @public Required by generated form declarations.
  */
 export interface SingleClearableListProps<
   Value extends SelectKey,
@@ -120,6 +121,7 @@ export type SingleListProps<Value extends SelectKey> =
   | SingleClearableListProps<Value>
   | SingleUnclearableListProps<Value>;
 
+/** @public Required by generated form declarations. */
 export interface SingleUnclearableListProps<
   Value extends SelectKey,
 > extends BaseListProps<Value> {
