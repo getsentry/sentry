@@ -142,7 +142,6 @@ class SeerAutofixUpdate(NotificationData):
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
     handoff_target: CodingAgentProviderType | None = None
-    has_credits_for_next_step: bool = True
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
