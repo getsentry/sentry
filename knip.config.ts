@@ -87,9 +87,6 @@ const config: KnipConfig = {
         // Referenced by its node_modules path in tests/js/createJestConfig.ts.
         'reflux',
       ],
-      // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
-      // so do not report them as unused files.
-      ignoreFiles: ['static/**/*.less'],
     },
     'static/app': {
       ...frontendWorkspace,

@@ -112,6 +112,7 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const legacyCssPath = path.join(staticPrefix, 'css');
 const typeLoaderPath = path.resolve(
   import.meta.dirname,
   'static/app/stories/typeLoader.ts'
@@ -303,7 +304,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: './less/sentry.less',
+    sentry: './css/sentry.css',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -393,19 +394,20 @@ const appConfig: Configuration = {
         ],
       },
       {
+        // Legacy stylesheets for Django-rendered pages, emitted as
+        // entrypoints/sentry.css (see output.cssFilename)
         test: /\.css$/,
+        include: [legacyCssPath],
+        type: 'css/auto',
+      },
+      {
+        test: /\.css$/,
+        exclude: [legacyCssPath],
         type: 'css/auto',
         // Inject a <style> tag, like style-loader did
         parser: {exportType: 'style'},
-        // Resolve asset URLs against __webpack_public_path__ (set in setupStatics)
+        // Resolve asset URLs against the runtime public path (set in setupStatics)
         generator: {runtimePublicPath: true},
-      },
-      {
-        test: /\.less$/,
-        include: [staticPrefix],
-        // Emitted as a separate stylesheet, see output.cssFilename
-        type: 'css/auto',
-        use: ['less-loader'],
       },
       {
         test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
@@ -415,7 +417,7 @@ const appConfig: Configuration = {
             // sentry.css is emitted to entrypoints/, so its asset URLs must
             // step up to reach assets/. The layer keeps these separate from
             // the same images imported from JS, which need the runtime path.
-            issuer: /\.less$/,
+            issuer: {and: [legacyCssPath, /\.css$/]},
             layer: 'legacy-css-assets',
             generator: {publicPath: '../'},
           },
@@ -549,7 +551,7 @@ const appConfig: Configuration = {
     // Prefers local modules over node_modules
     preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
+    extensions: ['.tsx', '.ts', '.js', '.json'],
     symlinks: true,
   },
   output: {
@@ -1100,7 +1102,7 @@ const rsbuildConfig: RsbuildConfig = {
             import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
             html: false,
           },
-          sentry: {import: 'less/sentry.less', html: false},
+          sentry: {import: 'css/sentry.css', html: false},
         },
       },
       output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
