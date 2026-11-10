@@ -347,9 +347,9 @@ describe('Chart embed', () => {
     expect(jest.mocked(BaseChart).mock.calls.at(-1)![0].series).toEqual([
       expect.objectContaining({
         data: [
-          [Date.parse('2026-07-30T12:00:00Z'), 12],
-          [Date.parse('2026-07-30T13:00:00Z'), '-'],
-          [Date.parse('2026-07-30T14:00:00Z'), 15],
+          expect.objectContaining({value: [Date.parse('2026-07-30T12:00:00Z'), 12]}),
+          expect.objectContaining({value: [Date.parse('2026-07-30T13:00:00Z'), '-']}),
+          expect.objectContaining({value: [Date.parse('2026-07-30T14:00:00Z'), 15]}),
         ],
       }),
     ]);
@@ -390,8 +390,8 @@ describe('Chart embed', () => {
       expect.objectContaining({
         name: 'seer-chart-series-0',
         data: [
-          [Date.parse(t0), 100],
-          [Date.parse(t1), 120],
+          expect.objectContaining({value: [Date.parse(t0), 100]}),
+          expect.objectContaining({value: [Date.parse(t1), 120]}),
         ],
       }),
       expect.objectContaining({name: 'seer-chart-series-1'}),
