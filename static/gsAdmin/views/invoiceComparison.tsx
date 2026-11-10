@@ -166,13 +166,12 @@ function utcDayEndIso(day: string): string {
   return new Date(Date.parse(`${day}T00:00:00.000Z`) + DAY_MS).toISOString();
 }
 
-function startDayFromIso(iso: string): string {
-  return utcDay(Date.parse(iso));
-}
-
-// A window that ends exactly at midnight UTC doesn't include that day.
-function endDayFromIso(iso: string): string {
-  return utcDay(Date.parse(iso) - 1);
+// The URL carries days only. Anything else is ignored.
+function parseDayParam(value: unknown): string | undefined {
+  const day = firstQueryValue(value);
+  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) && utcDay(Date.parse(day)) === day
+    ? day
+    : undefined;
 }
 
 const PAGE_SIZE_OPTIONS: readonly number[] = [25, 50, 100, 250];
@@ -206,8 +205,8 @@ export function InvoiceComparison() {
   // date inputs before they click Run.
   const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
   const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
-  const queryStart = firstQueryValue(location.query.start);
-  const queryEnd = firstQueryValue(location.query.end);
+  const queryStart = parseDayParam(location.query.start);
+  const queryEnd = parseDayParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
@@ -222,17 +221,9 @@ export function InvoiceComparison() {
   // since an old start (`compare_invoices` reads the whole window, then
   // paginates), so don't query until both are set.
   const urlHasBound = Boolean(queryStart || queryEnd);
-  // Links with times inside a day (such as the state violations alert) widen
-  // to the whole UTC days they touch.
-  const startDay = urlHasBound
-    ? queryStart
-      ? startDayFromIso(queryStart)
-      : ''
-    : defaultDay;
-  const endDay = urlHasBound ? (queryEnd ? endDayFromIso(queryEnd) : '') : defaultDay;
-  const windowStart = startDay ? utcDayStartIso(startDay) : undefined;
-  const windowEnd = endDay ? utcDayEndIso(endDay) : undefined;
-  const hasWindow = Boolean(windowStart && windowEnd);
+  const startDay = urlHasBound ? (queryStart ?? '') : defaultDay;
+  const endDay = urlHasBound ? (queryEnd ?? '') : defaultDay;
+  const hasWindow = Boolean(startDay && endDay);
 
   const [startInput, setStartInput] = useState(startDay);
   const [endInput, setEndInput] = useState(endDay);
@@ -256,8 +247,8 @@ export function InvoiceComparison() {
   // reproduces the window being shown. Left out for a one-sided URL so the
   // bound that is there isn't replaced.
   const pinnedWindow = useMemo(
-    () => (hasWindow ? {start: windowStart, end: windowEnd} : {}),
-    [hasWindow, windowStart, windowEnd]
+    () => (hasWindow ? {start: startDay, end: endDay} : {}),
+    [hasWindow, startDay, endDay]
   );
 
   const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
@@ -265,8 +256,8 @@ export function InvoiceComparison() {
       path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
       query: {
-        start: windowStart,
-        end: windowEnd,
+        start: hasWindow ? utcDayStartIso(startDay) : undefined,
+        end: hasWindow ? utcDayEndIso(endDay) : undefined,
         rows_page: rowsPage,
         unmatched_page: unmatchedPage,
         rows_page_size: pageSize,
@@ -376,8 +367,8 @@ export function InvoiceComparison() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        start: utcDayStartIso(startInput),
-        end: utcDayEndIso(endInput),
+        start: startInput,
+        end: endInput,
         rows_page: '1',
         unmatched_page: '1',
         page_size: String(pageSize),

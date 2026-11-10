@@ -86,7 +86,8 @@ describe('InvoiceComparison', () => {
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
   });
 
-  it('widens a window with times to the whole UTC days it touches', async () => {
+  it('ignores a URL window that is not days', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody(),
@@ -100,8 +101,8 @@ describe('InvoiceComparison', () => {
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
       expect.objectContaining({
-        start: '2026-11-05T00:00:00.000Z',
-        end: '2026-11-11T00:00:00.000Z',
+        start: '2026-11-09T00:00:00.000Z',
+        end: '2026-11-10T00:00:00.000Z',
       })
     );
   });
@@ -121,28 +122,31 @@ describe('InvoiceComparison', () => {
     await userEvent.type(endInput, '2026-11-03');
     await userEvent.click(screen.getByRole('button', {name: 'Run comparison'}));
 
-    expect(router.location.query.start).toBe('2026-11-02T00:00:00.000Z');
-    expect(router.location.query.end).toBe('2026-11-04T00:00:00.000Z');
+    expect(router.location.query.start).toBe('2026-11-02');
+    expect(router.location.query.end).toBe('2026-11-03');
   });
 
-  it('uses the window from the URL', async () => {
-    const start = '2026-01-01T00:00:00.000Z';
-    const end = '2026-01-02T00:00:00.000Z';
+  it('queries the whole UTC days from the URL', async () => {
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody(),
     });
 
-    renderComparison({start, end});
+    renderComparison({start: '2026-01-01', end: '2026-01-03'});
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock).toHaveBeenCalledWith(
       COMPARISON_URL,
       expect.objectContaining({
         host: US_URL,
-        query: expect.objectContaining({start, end}),
+        query: expect.objectContaining({
+          start: '2026-01-01T00:00:00.000Z',
+          end: '2026-01-04T00:00:00.000Z',
+        }),
       })
     );
+    expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-01-01');
+    expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-01-03');
   });
 
   it('pins the default window into the URL when paginating', async () => {
@@ -156,16 +160,17 @@ describe('InvoiceComparison', () => {
       match: [MockApiClient.matchQuery({rows_page: 2})],
     });
 
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const {router} = renderComparison({});
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
     expect(router.location.query.rows_page).toBe('2');
-    expect(router.location.query.start).toEqual(expect.any(String));
-    expect(router.location.query.end).toEqual(expect.any(String));
+    expect(router.location.query.start).toBe('2026-11-09');
+    expect(router.location.query.end).toBe('2026-11-09');
   });
 
   it('does not query when the URL has only an end', async () => {
-    const end = '2020-01-01T00:00:00.000Z';
+    const end = '2020-01-01';
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       statusCode: 400,
@@ -178,7 +183,7 @@ describe('InvoiceComparison', () => {
     expect(mock).not.toHaveBeenCalled();
     expect(screen.queryByText(/Failed to load comparison/)).not.toBeInTheDocument();
     expect(screen.queryByText('Comparing…')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2019-12-31');
+    expect(screen.getByLabelText('Last day (UTC)')).toHaveValue(end);
   });
 
   it('does not query when the URL has only a start', async () => {
@@ -187,16 +192,17 @@ describe('InvoiceComparison', () => {
       body: comparisonBody(),
     });
 
-    const start = '2020-01-01T00:00:00.000Z';
+    const start = '2020-01-01';
     renderComparison({start});
     await act(async () => {});
 
     expect(mock).not.toHaveBeenCalled();
-    expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2020-01-01');
+    expect(screen.getByLabelText('First day (UTC)')).toHaveValue(start);
   });
 
   it('keeps typed dates when paginating pins the default window', async () => {
-    const mock = MockApiClient.addMockResponse({
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
+    MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody({rowsTotalPages: 2}),
     });
@@ -214,12 +220,12 @@ describe('InvoiceComparison', () => {
 
     expect(startInput).toHaveValue('2020-06-01');
     expect(router.location.query.rows_page).toBe('2');
-    expect(router.location.query.start).toBe(mock.mock.calls[0][1].query.start);
-    expect(router.location.query.end).toBe(mock.mock.calls[0][1].query.end);
+    expect(router.location.query.start).toBe('2026-11-09');
+    expect(router.location.query.end).toBe('2026-11-09');
   });
 
   it('keeps a one-sided window when changing page size', async () => {
-    const end = '2020-01-01T00:00:00.000Z';
+    const end = '2020-01-01';
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody(),
@@ -262,8 +268,8 @@ describe('InvoiceComparison', () => {
   });
 
   describe('region', () => {
-    const start = '2026-01-01T00:00:00.000Z';
-    const end = '2026-01-02T00:00:00.000Z';
+    const start = '2026-01-01';
+    const end = '2026-01-01';
 
     beforeEach(() => {
       ConfigStore.set('cells', [
