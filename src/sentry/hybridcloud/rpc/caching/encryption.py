@@ -4,8 +4,6 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import NamedTuple
 
-import sentry_sdk
-
 from sentry.utils import metrics
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
@@ -22,11 +20,15 @@ class InvalidEncryptionMethod(Exception):
     pass
 
 
-class InvalidEncodingError(ValueError):
+class CacheDecryptionError(ValueError):
+    """Base for decryption failures; catch it to treat the cache entry as a miss."""
+
+
+class InvalidEncodingError(CacheDecryptionError):
     pass
 
 
-class DecryptionError(ValueError):
+class DecryptionError(CacheDecryptionError):
     pass
 
 
@@ -106,10 +108,10 @@ class CacheEncrypter:
         Inverse of ``encrypt``.
 
         Raises ``InvalidEncryptionMethod`` if the value is not prefixed with a known
-        method; use ``is_encrypted`` to check first. If the value is marked but cannot
-        be decrypted, the original string is returned; callers surface that as a JSON
-        decode failure and treat the entry as a cache miss. Raises
-        ``InvalidEncodingError`` if the value decrypts but is not valid UTF-8.
+        method; use ``is_encrypted`` to check first. Raises ``DecryptionError`` if the
+        value is marked but cannot be decrypted (missing key, invalid token, corrupt
+        payload), and ``InvalidEncodingError`` if the value decrypts to bytes that are
+        not valid UTF-8.
         """
         parsed = CacheEncrypter._parse(value)
         handler = _HANDLERS[parsed.method]
@@ -118,7 +120,6 @@ class CacheEncrypter:
             with metrics.timer(f"{METRICS_PREFIX}.decrypt.duration", tags=tags):
                 decrypted = handler.decrypt(base64.b64decode(parsed.payload), parsed.key_id)
         except Exception as e:
-            sentry_sdk.capture_exception(e)
             logger.exception("hybridcloud.rpc_cache.decryption", extra={"method": parsed.method})
             metrics.incr(f"{METRICS_PREFIX}.decrypt", tags={**tags, "status": "failure"})
             raise DecryptionError from e
