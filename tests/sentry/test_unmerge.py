@@ -8,16 +8,16 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.unmerge_recovery import (
+    RETENTION_SECONDS,
     UnmergeBusy,
     UnmergeCheckpoint,
     UnmergeNeedsRecovery,
     client,
     owner_key,
     release_hashes,
-    reserve_legacy_hashes,
 )
 from sentry.models.grouphash import GroupHash
-from sentry.tasks.unmerge import lock_hashes, start_unmerge, unmerge
+from sentry.tasks.unmerge import start_unmerge, unmerge
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.unmerge import (
@@ -176,31 +176,6 @@ class UnmergeRecoveryTest(TestCase):
         assert self.group_hash.state == GroupHash.State.UNLOCKED
         assert client().get(owner_key(self.project.id, self.fingerprint)) is None
         assert client().get(owner_key(self.project.id, other_hash)) == "another-operation"
-
-    def test_legacy_and_recoverable_tasks_respect_ownership(self) -> None:
-        with reserve_legacy_hashes(self.project.id, [self.fingerprint]):
-            with UnmergeCheckpoint(self.args) as checkpoint:
-                with pytest.raises(UnmergeNeedsRecovery):
-                    checkpoint.lock_hashes()
-        with UnmergeCheckpoint(self.args) as checkpoint:
-            assert checkpoint.lock_hashes() == [self.fingerprint]
-        with pytest.raises(UnmergeNeedsRecovery):
-            lock_hashes(self.project.id, self.source.id, [self.fingerprint])
-
-    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
-    def test_legacy_release_failure_does_not_strand_sql_locks(self, query: Mock) -> None:
-        with (
-            patch(
-                "sentry.issues.unmerge_recovery.release_hashes",
-                side_effect=RedisConnectionError("reservation cleanup interrupted"),
-            ),
-            patch("sentry.tasks.unmerge.truncate_denormalizations"),
-        ):
-            unmerge(self.project.id, self.source.id, None, [self.fingerprint], None)
-        query.assert_called_once()
-        self.group_hash.refresh_from_db()
-        assert self.group_hash.state == GroupHash.State.UNLOCKED
-        assert client().ttl(owner_key(self.project.id, self.fingerprint)) > 0
 
     def test_locked_hash_without_checkpoint_is_not_adopted(self) -> None:
         self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
@@ -460,6 +435,27 @@ class UnmergeRecoveryTest(TestCase):
         unmerge(**arguments)
         query.assert_called_once()
         self.assert_cleanup_complete()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query", side_effect=MemoryError)
+    def test_successive_batch_refreshes_owner_expiry(self, query: Mock) -> None:
+        arguments = self.prepare_successive_batch()
+        key = owner_key(self.project.id, self.fingerprint)
+        client().expire(key, 60)
+        with pytest.raises(UnmergeBusy):
+            unmerge(**arguments)
+        assert client().get(key) == self.args.operation_id
+        assert client().ttl(key) > RETENTION_SECONDS - 10
+        query.assert_called_once()
+
+    def test_ownership_check_does_not_refresh_a_foreign_owner(self) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+            key = owner_key(self.project.id, self.fingerprint)
+            client().set(key, "another-operation", ex=60)
+            with pytest.raises(UnmergeNeedsRecovery, match="ownership"):
+                checkpoint.check_ownership([self.fingerprint])
+        assert client().get(key) == "another-operation"
+        assert 0 < client().ttl(key) <= 60
 
     @patch("sentry.tasks.unmerge.truncate_denormalizations")
     @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))

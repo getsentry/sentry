@@ -24,7 +24,6 @@ from sentry.issues.unmerge_recovery import (
     UnmergeBusy,
     UnmergeCheckpoint,
     UnmergeNeedsRecovery,
-    reserve_legacy_hashes,
 )
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
@@ -484,10 +483,7 @@ def publish_destination_first_seen(project: Project, destination_ids: Collection
 
 
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
-    with (
-        reserve_legacy_hashes(project_id, fingerprints),
-        transaction.atomic(router.db_for_write(GroupHash)),
-    ):
+    with transaction.atomic(router.db_for_write(GroupHash)):
         eligible_hashes = list(
             GroupHash.objects.filter(
                 project_id=project_id, group_id=source_id, hash__in=fingerprints

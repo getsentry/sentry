@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
-from collections.abc import Generator, Mapping, Sequence
-from contextlib import contextmanager
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.conf import settings
 from django.db import router, transaction
 from redis.client import StrictRedis
-from redis.exceptions import RedisError
 from sentry_redis_tools.clients import RedisCluster
 from taskbroker_client.retry import RetryTaskError
 
@@ -22,7 +19,6 @@ from sentry.utils import json, redis
 # A worker attempt has a 300s deadline. Recovery records outlive its lease.
 LEASE_SECONDS = 600
 RETENTION_SECONDS = 7 * 24 * 60 * 60
-logger = logging.getLogger(__name__)
 release_owned_key = redis.load_redis_script("utils/compare_and_delete.lua")
 save_checkpoint_script = redis.load_redis_script("issues/unmerge/save_checkpoint.lua")
 
@@ -43,13 +39,13 @@ def owner_key(project_id: int, fingerprint: str) -> str:
     return f"unmerge:{{{project_id}}}:owner:{fingerprint}"
 
 
-def claim_hashes(
-    project_id: int, fingerprints: Sequence[str], owner: str, duration: int = RETENTION_SECONDS
-) -> None:
+def claim_hashes(project_id: int, fingerprints: Sequence[str], owner: str) -> None:
     claimed: list[str] = []
     for fingerprint in sorted(set(fingerprints)):
         key = owner_key(project_id, fingerprint)
-        if not (client().set(key, owner, nx=True, ex=duration) or client().get(key) == owner):
+        if not (
+            client().set(key, owner, nx=True, ex=RETENTION_SECONDS) or client().get(key) == owner
+        ):
             release_hashes(project_id, claimed, owner)
             raise UnmergeNeedsRecovery("A fingerprint belongs to another unmerge")
         claimed.append(fingerprint)
@@ -58,22 +54,6 @@ def claim_hashes(
 def release_hashes(project_id: int, fingerprints: Sequence[str], owner: str) -> None:
     for fingerprint in fingerprints:
         release_owned_key(keys=[owner_key(project_id, fingerprint)], args=[owner], client=client())
-
-
-@contextmanager
-def reserve_legacy_hashes(project_id: int, fingerprints: Sequence[str]) -> Generator[None]:
-    owner = uuid.uuid4().hex
-    claim_hashes(project_id, fingerprints, owner, LEASE_SECONDS)
-    try:
-        yield
-    finally:
-        try:
-            release_hashes(project_id, fingerprints, owner)
-        except RedisError:
-            # SQL already protects the acquired hashes; reservations expire.
-            logger.exception(
-                "unmerge.legacy_reservation.release_failed", extra={"project_id": project_id}
-            )
 
 
 class UnmergeCheckpoint:
@@ -158,10 +138,15 @@ class UnmergeCheckpoint:
         return fingerprints
 
     def check_ownership(self, fingerprints: Sequence[str]) -> None:
-        if fingerprints and client().mget(
-            [owner_key(self.args.project_id, fingerprint) for fingerprint in fingerprints]
-        ) != [self.owner] * len(fingerprints):
+        keys = [owner_key(self.args.project_id, fingerprint) for fingerprint in fingerprints]
+        if keys and client().mget(keys) != [self.owner] * len(keys):
             raise UnmergeNeedsRecovery("Unmerge fingerprint ownership is missing or has changed")
+        # Keep ownership alive while batches keep refreshing the checkpoint.
+        # EXPIRE preserves the owner value and never recreates a missing key.
+        with client().pipeline(transaction=False) as pipeline:
+            for key in keys:
+                pipeline.expire(key, RETENTION_SECONDS)
+            pipeline.execute()
 
     def release_locks(self) -> None:
         fingerprints = sorted(set(self.args.replacement.primary_hashes_to_lock))
