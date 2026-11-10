@@ -1,5 +1,8 @@
 import pytest
+from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
     ServiceAccount,
@@ -7,6 +10,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
 )
+from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -211,6 +215,46 @@ class ServiceAccountServiceTest(TestCase):
         assert account is None
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+
+    def test_grant_update_outbox_applies_the_latest_grant(self) -> None:
+        account_id = self.create()
+
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                service_account_grant_update_outbox(
+                    organization_id=self.organization.id,
+                    service_account_id=account_id,
+                    scope_list=["project:read"],
+                ).save()
+                service_account_grant_update_outbox(
+                    organization_id=self.organization.id,
+                    service_account_id=account_id,
+                    scope_list=["event:read", "project:read"],
+                    all_projects=True,
+                ).save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            account = ServiceAccount.objects.get(id=account_id)
+            assert account.scope_list == ["event:read", "project:read"]
+            assert account.all_projects
+
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                service_account_grant_update_outbox(
+                    organization_id=self.organization.id,
+                    service_account_id=account_id,
+                    scope_list=["service_account:write"],
+                ).save()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert ServiceAccount.objects.get(id=account_id).scope_list == [
+                "event:read",
+                "project:read",
+            ]
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not CellOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
+            ).exists()
 
     def test_delete_service_account_only_in_its_organization(self) -> None:
         account_id = self.create()
