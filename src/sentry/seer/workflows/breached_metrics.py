@@ -445,6 +445,18 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
 @dataclass
 class BreachedMetricConfigUpdate(ConfigUpdate):
+    def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
+        config = self.config
+        renamed = SeerWorkflowConfigExtras.parse_obj(config.extras).name != extras.name
+        super().set_extras(extras)
+        if not renamed or config.backing_workflow_id is None:
+            return
+        workflow = Workflow.objects.filter(
+            id=config.backing_workflow_id, organization_id=config.organization_id
+        ).first()
+        if workflow is not None:
+            workflow.update(name=_backing_workflow_name(config))
+
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""
         config = self.config
@@ -543,6 +555,10 @@ def _replace_monitor_connections(
     )
 
 
+def _backing_workflow_name(config: SeerWorkflowConfig) -> str:
+    return SeerWorkflowConfigExtras.parse_obj(config.extras).name or "Seer automation"
+
+
 def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -> Workflow:
     triggers = DataConditionGroup.objects.create(
         organization_id=organization_id,
@@ -556,7 +572,7 @@ def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name="Seer automation",
+        name=_backing_workflow_name(config),
         enabled=True,
         config={"frequency": 0},
         when_condition_group=triggers,

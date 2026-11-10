@@ -691,6 +691,40 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert workflow.get_config().enabled is False
 
+    def test_put_renames_metric_automation_and_its_backing_workflow(self) -> None:
+        monitor = self.create_metric_monitor(self.project)
+        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        version = workflow.get_config().version
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", name="Checkout latency"
+        )
+        assert response.data["name"] == "Checkout latency"
+        assert response.data["updatedBy"] == str(self.user.id)
+        assert response.data["version"] == version + 1
+        backing_workflow = workflow.get_config().backing_workflow
+        assert backing_workflow is not None
+        assert backing_workflow.name == "Checkout latency"
+
+        response = self.get_success_response(
+            self.organization.slug, workflow.config_id, method="put", name=None
+        )
+        assert "name" not in response.data
+        backing_workflow.refresh_from_db()
+        assert backing_workflow.name == "Seer automation"
+
+        member, _ = self.create_member_with_project(open_membership=False)
+        self.login_as(member)
+        self.get_error_response(
+            self.organization.slug,
+            workflow.config_id,
+            method="put",
+            name="Renamed",
+            status_code=403,
+        )
+        backing_workflow.refresh_from_db()
+        assert backing_workflow.name == "Seer automation"
+
     def test_put_enables_all_projects_config(self) -> None:
         config = self.create_config(filters={"all_projects": True})
         self.get_error_response(self.organization.slug, config.id, method="put", status_code=400)
