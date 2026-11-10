@@ -1,10 +1,14 @@
+import {useQuery} from '@tanstack/react-query';
 import {TagsFixture} from 'sentry-fixture/tags';
+
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
 
 import {TagStore} from 'sentry/stores/tagStore';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-import {loadOrganizationTags} from './tags';
+import {loadOrganizationTags, organizationTagsApiOptions} from './tags';
 
 describe('loadOrganizationTags', () => {
   const api = new MockApiClient();
@@ -45,5 +49,64 @@ describe('loadOrganizationTags', () => {
 
     await loadOrganizationTags(api, 'org-slug', selection, jest.fn());
     expect(toast.error).toHaveBeenCalledWith('Unable to load tags');
+  });
+});
+
+describe('organizationTagsApiOptions', () => {
+  it('fetches tags with the selected project, dataset, and date range', async () => {
+    const tags = TagsFixture();
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: tags,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useQuery(
+        organizationTagsApiOptions({
+          orgSlug: 'org-slug',
+          projectIds: ['1'],
+          dataset: Dataset.ERRORS,
+          start: '2026-01-01T00:00:00',
+          end: '2026-01-02T00:00:00',
+          useCache: false,
+          useFlagsBackend: true,
+        })
+      )
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(tags));
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/tags/',
+      expect.objectContaining({
+        query: {
+          project: ['1'],
+          dataset: Dataset.ERRORS,
+          start: '2026-01-01T00:00:00',
+          end: '2026-01-02T00:00:00',
+          useCache: '0',
+          useFlagsBackend: '1',
+        },
+      })
+    );
+  });
+
+  it('waits until the query is enabled before fetching tags', async () => {
+    const tags = TagsFixture();
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: tags,
+    });
+    const {result, rerender} = renderHookWithProviders(
+      ({enabled}) => useQuery(organizationTagsApiOptions({orgSlug: 'org-slug', enabled})),
+      {initialProps: {enabled: false}}
+    );
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(request).not.toHaveBeenCalled();
+
+    rerender({enabled: true});
+
+    await waitFor(() => expect(result.current.data).toEqual(tags));
+    expect(request).toHaveBeenCalledTimes(1);
   });
 });

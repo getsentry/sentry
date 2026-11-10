@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
@@ -66,15 +67,13 @@ function KeyField() {
 
   // Select all the tags for an organization to generate a list of the most likely tags
   const organization = useOrganization();
-  const {data: tagOptions = [], isLoading} = useFetchOrganizationTags(
-    {
+  const {data: tagOptions = [], isLoading} = useQuery(
+    organizationTagsApiOptions({
       orgSlug: organization.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      useCache: true,
       keepPreviousData: true,
-    },
-    {}
+    })
   );
 
   const sortedOptions = useMemo(() => {

@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
@@ -57,7 +58,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+import {organizationFeatureFlagsApiOptions} from 'sentry/views/issueList/utils/organizationFeatureFlagsApiOptions';
 
 import {IssueListSeerComboBox} from './issueListSeerComboBox';
 
@@ -250,14 +251,13 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
   const measurements = useMemo(() => getMeasurements(), []);
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
 
-  const featureFlagsQuery = useFetchOrganizationFeatureFlags(
-    {
+  const featureFlagsQuery = useQuery(
+    organizationFeatureFlagsApiOptions({
       orgSlug: organization.slug,
       projectIds: projectIdStrings,
       enabled: includeFeatureFlags,
       ...dateTimeParams,
-    },
-    {}
+    })
   );
   const featureFlagTags = useMemo(
     () =>
