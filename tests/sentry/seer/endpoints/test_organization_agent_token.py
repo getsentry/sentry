@@ -658,8 +658,9 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
 }
 
 # Rows that act on the caller as a person (saved views, stars, a personal team, a Sentry
-# App request that names the acting user) or manage members (including SCIM), so a service
-# account is denied with user-required instead of matching the oracle.
+# App request that names the acting user, deleting a Sentry App) or manage members
+# (including SCIM), so a service account is denied with user-required instead of matching
+# the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
         "OrganizationGroupSearchViews_post",
@@ -687,6 +688,7 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
         "OrganizationSCIMTeamIndex_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",
+        "SentryAppDetails_delete",
         "SentryAppInstallationExternalIssueActions_post",
         "SentryAppInstallationExternalRequests",
     }

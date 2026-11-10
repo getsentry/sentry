@@ -243,6 +243,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         """
         Delete a custom integration.
         """
+        user = require_user(request)
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
                 {"detail": PARTNERSHIP_RESTRICTED_ERROR_MESSAGE},
@@ -253,10 +254,9 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 for install in sentry_app.installations.all():
                     try:
                         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
-                            # The uninstall webhook names the acting user.
                             SentryAppInstallationNotifier(
                                 sentry_app_installation=install,
-                                user=require_user(request),
+                                user=user,
                                 action="deleted",
                             ).run()
                     except RequestException as exc:
@@ -273,14 +273,13 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                     data={"sentry_app": sentry_app.name},
                     transaction_id=scheduled.id,
                 )
-            if request.user.is_authenticated:
-                analytics.record(
-                    SentryAppDeletedEvent(
-                        user_id=acting_user_id(request.user),
-                        organization_id=sentry_app.owner_id,
-                        sentry_app=sentry_app.slug,
-                    )
+            analytics.record(
+                SentryAppDeletedEvent(
+                    user_id=user.id,
+                    organization_id=sentry_app.owner_id,
+                    sentry_app=sentry_app.slug,
                 )
+            )
             return Response(status=204)
 
         return Response({"detail": ["Published apps cannot be removed."]}, status=403)
