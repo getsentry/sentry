@@ -1104,6 +1104,35 @@ describe('DropdownMenu', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Item 0'})).toBeInTheDocument();
     });
 
+    it('tells assistive technology the position of an item in the full menu', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      const item = screen.getByRole('menuitemradio', {name: 'Item 2'});
+      expect(item).toHaveAttribute('aria-posinset', '3');
+      expect(item).toHaveAttribute('aria-setsize', String(manyItems.length));
+    });
+
+    it('does not set positions in a menu that is not virtualized', async () => {
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={manyItems}
+          virtualizeThreshold={Infinity}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+      expect(screen.getByRole('menuitemradio', {name: 'Item 2'})).not.toHaveAttribute(
+        'aria-posinset'
+      );
+    });
+
     it('updates a mounted item when its props change', async () => {
       // Rows that did not change are not re-rendered while scrolling. A row whose
       // item changed, such as a project that was just bookmarked, must still update.
@@ -1280,6 +1309,19 @@ describe('DropdownMenu', () => {
       ).toBeInTheDocument();
       expect(screen.getAllByRole('menuitemradio').length).toBeLessThan(500);
       expect(screen.queryByRole('group', {name: 'Section B'})).not.toBeInTheDocument();
+    });
+
+    it('counts positions across sections', async () => {
+      render(<DropdownMenu triggerLabel="Menu" items={sectionedItems} />, {
+        wrapper: ThemeWrapper,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+      await userEvent.keyboard('{End}');
+
+      const lastItem = await screen.findByRole('menuitemradio', {name: 'B 249'});
+      expect(lastItem).toHaveAttribute('aria-posinset', '500');
+      expect(lastItem).toHaveAttribute('aria-setsize', '500');
     });
 
     it('reaches items in a later section with the keyboard', async () => {

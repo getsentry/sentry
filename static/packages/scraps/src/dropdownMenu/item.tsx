@@ -145,6 +145,12 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   state: TreeState<MenuItemProps>;
   id?: string;
   /**
+   * Whether the item is in a virtualized menu. React Aria then sets
+   * `aria-posinset` and `aria-setsize`, so assistive technology knows the
+   * item's position in the full menu rather than among the mounted rows.
+   */
+  isVirtualized?: boolean;
+  /**
    * Ref to the inner focusable menu item.
    */
   menuItemRef?: React.Ref<HTMLElement>;
@@ -180,6 +186,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   ref,
   menuItemRef,
   submenuRef,
+  isVirtualized,
   rowProps,
   ...props
 }: DropdownMenuItemProps<T>) {
@@ -282,6 +289,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       },
       closeOnSelect: isLink ? false : resolvedCloseOnSelect,
       isDisabled,
+      isVirtualized,
     },
     state,
     innerWrapRef

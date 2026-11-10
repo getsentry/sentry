@@ -136,6 +136,8 @@ interface DropdownMenuCollectionItemProps extends Omit<
   'collection' | 'separatorProps'
 > {
   node: Node<MenuItemProps>;
+  /** Whether the menu is virtualized, see `DropdownMenuItem`. */
+  isVirtualized?: boolean;
   /**
    * Measurement props for the item's row when the menu is virtualized, passed
    * as separate values rather than a `VirtualRowProps` object. The virtualizer
@@ -152,6 +154,7 @@ interface DropdownMenuCollectionItemProps extends Omit<
  */
 const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
   node,
+  isVirtualized,
   rowIndex,
   rowRef,
   closeOnSelect,
@@ -174,6 +177,7 @@ const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
       <DropdownSubmenu
         items={node.value.children}
         node={node}
+        isVirtualized={isVirtualized}
         rowProps={rowProps}
         state={state}
         onClose={onClose}
@@ -187,6 +191,7 @@ const DropdownMenuCollectionItem = memo(function DropdownMenuCollectionItem({
   return (
     <DropdownMenuItem
       node={node}
+      isVirtualized={isVirtualized}
       rowProps={rowProps}
       state={state}
       onClose={onClose}
@@ -338,12 +343,17 @@ function DropdownMenuRows({
           <SectionGroup role="presentation" {...props}>
             <DropdownMenuSeparator separatorProps={separatorProps} />
             <SectionList>
-              <DropdownMenuCollectionItem node={node} {...itemProps} />
+              <DropdownMenuCollectionItem
+                node={node}
+                isVirtualized={virtualized}
+                {...itemProps}
+              />
             </SectionList>
           </SectionGroup>
         ) : (
           <DropdownMenuCollectionItem
             node={node}
+            isVirtualized={virtualized}
             rowIndex={props?.['data-index']}
             rowRef={props?.ref}
             {...itemProps}
@@ -865,12 +875,14 @@ interface DropdownSubmenuProps extends Pick<
   items: MenuItemProps[];
   node: Node<MenuItemProps>;
   state: TreeState<MenuItemProps>;
+  isVirtualized?: boolean;
   rowProps?: VirtualRowProps;
 }
 
 function DropdownSubmenu({
   items,
   node,
+  isVirtualized,
   rowProps,
   state,
   closeOnSelect,
@@ -925,6 +937,7 @@ function DropdownSubmenu({
         submenuRef={isOpen ? overlayRef : undefined}
         renderAs="div"
         node={node}
+        isVirtualized={isVirtualized}
         rowProps={rowProps}
         state={state}
         closeOnSelect={false}
