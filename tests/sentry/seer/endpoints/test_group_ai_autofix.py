@@ -38,7 +38,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.credits import SeerOperation
+from sentry.seer.credits import SeerFeature, SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -1696,7 +1696,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "detail": "Your organization does not have enough credits to continue your Autofix run.",
             "code": "seer_out_of_credits",
         }
-        mock_can_run.assert_called_once_with(group.organization, SeerOperation.AUTOFIX_PR_ITERATION)
+        mock_can_run.assert_called_once_with(
+            group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+        )
         mock_enqueue.assert_not_called()
 
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")

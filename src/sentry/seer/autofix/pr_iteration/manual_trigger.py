@@ -25,7 +25,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
-from sentry.seer.credits import SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.utils import SEER_OUT_OF_CREDITS_CODE, SEER_PERMISSION_DENIED
 from sentry.seer.models import SeerPermissionError
 from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
@@ -83,7 +83,9 @@ def handle_ui_feedback(
         )
 
     # Check credits here, since the queued feedback is consumed after this request returns.
-    if not can_run_seer_operation(group.organization, SeerOperation.AUTOFIX_PR_ITERATION):
+    if not can_run_seer_operation(
+        group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+    ):
         return Response(
             {
                 "detail": "Your organization does not have enough credits to continue your Autofix run.",
