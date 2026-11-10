@@ -17,7 +17,12 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationTemplate,
     SerializableRuleProxy,
 )
-from sentry.notifications.platform.tracking import NotificationLink, classify_link
+from sentry.notifications.platform.tracking import (
+    NotificationLink,
+    classify_link,
+    is_pull_request_redirect_url,
+    parse_pull_request_redirect,
+)
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationProviderKey,
@@ -101,9 +106,16 @@ class RenderTemplateLinkTrackingTest(TestCase):
                     for link in get_links(rendered_template):
                         if not is_sentry_page(link):
                             continue
-                        query = parse_qs(urlsplit(link).query)
-                        assert query["referrer"] == [f"{source}-{provider.key}"], link
-                        assert query["notification_uuid"] == [data.notification_uuid], link
+                        if is_pull_request_redirect_url(link):
+                            redirect = parse_pull_request_redirect(link.split("/")[4])
+                            assert redirect is not None, link
+                            assert redirect.context.source == source, link
+                            assert redirect.context.provider == provider.key, link
+                            assert redirect.context.notification_uuid == data.notification_uuid
+                        else:
+                            query = parse_qs(urlsplit(link).query)
+                            assert query["referrer"] == [f"{source}-{provider.key}"], link
+                            assert query["notification_uuid"] == [data.notification_uuid], link
                         assert link in text, link
                         tracked.add(classify_link(link))
                         checked += 1

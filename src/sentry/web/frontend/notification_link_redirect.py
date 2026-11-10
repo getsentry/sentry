@@ -2,31 +2,24 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urlsplit
 
 from django.core.cache import cache
 from django.http import Http404, HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.views.generic import View
 
-from sentry.constants import ObjectStatus
-from sentry.models.organization import Organization
-from sentry.models.repository import Repository
 from sentry.notifications.platform.tracking import (
-    PULL_REQUEST_PATH,
     NotificationEngagementMechanism,
     NotificationLink,
-    NotificationTrackingContext,
+    PullRequestRedirect,
     is_tracking_enabled,
-    parse_referrer,
+    parse_pull_request_redirect,
     record_engagement,
 )
 from sentry.utils.hashlib import md5_text
-from sentry.web.frontend.base import cell_silo_view
+from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger(__name__)
-
-_GITHUB_PROVIDERS = ("integrations:github", "integrations:github_enterprise")
 
 # Clicks on the same link by the same person are only recorded once every 10 minutes.
 _CLICK_DEDUPE_SECONDS = 10 * 60
@@ -40,69 +33,32 @@ _AUTOMATED_USER_AGENT = re.compile(
 )
 
 
-@cell_silo_view
+@control_silo_view
 class NotificationLinkRedirectView(View):
     """
-    Redirects a notification's link to a pull request, recording the click. Clicks on links to
-    other sites otherwise never reach Sentry. Only pull requests on the organization's connected
-    GitHub repositories are followed, so this can't be used as an open redirect.
+    Redirects a notification's link to a GitHub pull request, recording the click. Clicks on
+    links to other sites otherwise never reach Sentry. The link's token is signed, so only links
+    that Sentry sent are followed and this can't be used as an open redirect.
     """
 
-    def get(
-        self, request: HttpRequest, organization_slug: str, destination: str
-    ) -> HttpResponseBase:
-        try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
-        except Organization.DoesNotExist:
-            raise Http404
-
-        pull_request_url = _get_pull_request_url(organization, destination)
-        if pull_request_url is None:
+    def get(self, request: HttpRequest, token: str) -> HttpResponseBase:
+        redirect = parse_pull_request_redirect(token)
+        if redirect is None:
             raise Http404
 
         try:
-            _record_click(request, organization, pull_request_url)
+            _record_click(request, redirect)
         except Exception:
             logger.exception("notifications.tracking.redirect.failed")
-        return HttpResponseRedirect(pull_request_url)
+        return HttpResponseRedirect(redirect.url)
 
 
-def _get_pull_request_url(organization: Organization, destination: str) -> str | None:
-    """
-    Returns the URL of the pull request that `destination`, a URL without its scheme, names when
-    it's on one of the organization's active GitHub repositories.
-    """
-    host, _, path = destination.partition("/")
-    match = PULL_REQUEST_PATH.match(f"/{path}")
-    if not host or match is None:
-        return None
-
-    repository_urls = Repository.objects.filter(
-        organization_id=organization.id,
-        status=ObjectStatus.ACTIVE,
-        provider__in=_GITHUB_PROVIDERS,
-        name__iexact=match["repository"],
-    ).values_list("url", flat=True)
-    for repository_url in repository_urls:
-        if not repository_url:
-            continue
-        parsed = urlsplit(repository_url)
-        if (
-            parsed.netloc.lower() == host.lower()
-            and parsed.path.strip("/").lower() == match["repository"].lower()
-        ):
-            return f"{repository_url.rstrip('/')}/pull/{match['number']}"
-    return None
-
-
-def _record_click(request: HttpRequest, organization: Organization, pull_request_url: str) -> None:
-    referrer = parse_referrer(request.GET.get("referrer", ""))
-    notification_uuid = request.GET.get("notification_uuid")
+def _record_click(request: HttpRequest, redirect: PullRequestRedirect) -> None:
+    context = redirect.context
     if (
         request.method != "GET"
-        or referrer is None
-        or not notification_uuid
-        or not is_tracking_enabled(referrer.source, referrer.provider)
+        or not context.notification_uuid
+        or not is_tracking_enabled(context.source, context.provider)
     ):
         return
 
@@ -116,19 +72,13 @@ def _record_click(request: HttpRequest, organization: Organization, pull_request
     clicker = user_id if user_id is not None else request.META.get("REMOTE_ADDR")
     dedupe_key = (
         "notifications.tracking.redirect:"
-        f"{md5_text(notification_uuid, pull_request_url, clicker).hexdigest()}"
+        f"{md5_text(context.notification_uuid, redirect.url, clicker).hexdigest()}"
     )
     if not cache.add(dedupe_key, True, _CLICK_DEDUPE_SECONDS):
         return
 
     record_engagement(
-        NotificationTrackingContext(
-            source=referrer.source,
-            provider=referrer.provider,
-            category=referrer.category,
-            notification_uuid=notification_uuid,
-            organization_id=organization.id,
-        ),
+        context,
         mechanism=NotificationEngagementMechanism.REDIRECT,
         link=NotificationLink.PULL_REQUEST,
         user_id=user_id,

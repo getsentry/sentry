@@ -564,6 +564,11 @@ urlpatterns += [
         name="sentry-out",
     ),
     re_path(
+        r"^tr/(?P<token>[\w.:-]+)/$",
+        NotificationLinkRedirectView.as_view(),
+        name="sentry-notification-link-redirect",
+    ),
+    re_path(
         r"^accept-transfer/$",
         react_page_view,
         name="sentry-accept-project-transfer",
@@ -1105,11 +1110,6 @@ urlpatterns += [
                     r"^(?P<organization_slug>[^/]+)/data-export/(?P<data_export_id>\d+)/$",
                     react_page_view,
                     name="sentry-data-export-details",
-                ),
-                re_path(
-                    r"^(?P<organization_slug>[^/]+)/tr/(?P<destination>.+)$",
-                    NotificationLinkRedirectView.as_view(),
-                    name="sentry-notification-link-redirect",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[^/]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",

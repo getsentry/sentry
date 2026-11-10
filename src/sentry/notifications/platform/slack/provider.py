@@ -35,6 +35,7 @@ from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.tracking import (
     NotificationLinkDecorator,
     NotificationTrackingContext,
+    is_pull_request_redirect_url,
     is_tracking_enabled,
 )
 from sentry.notifications.platform.types import (
@@ -202,11 +203,13 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         def is_counted_by_page_load(url: str | None) -> bool:
             """
             Whether the button opens a link decorated with this notification, whose clicks the
-            click middleware records when the page loads. Marking such a button too would count
-            each click twice.
+            click middleware or the pull request redirect records. Marking such a button too
+            would count each click twice.
             """
             if not url:
                 return False
+            if is_pull_request_redirect_url(url):
+                return True
             query = parse_qs(urlsplit(url).query)
             return context.notification_uuid in query.get("notification_uuid", [])
 

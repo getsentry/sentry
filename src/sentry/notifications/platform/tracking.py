@@ -8,6 +8,8 @@ from typing import NotRequired, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
+from django.core import signing
+from django.urls import reverse
 
 from sentry import analytics, options
 from sentry.analytics.events.notification_tracking import (
@@ -47,7 +49,7 @@ class NotificationLink(StrEnum):
     SEER_AGENT_RUN = "seer_agent_run"
     INVESTIGATION = "investigation"
     PULL_REQUEST = "pull_request"
-    """A pull request, opened through the notification link redirect."""
+    """A GitHub pull request, opened through the pull request redirect."""
     OTHER = "other"
 
 
@@ -174,13 +176,21 @@ class NotificationLinkDecorator:
     def decorate_url(self, url: str) -> str:
         """
         Add tracking parameters to a Sentry URL and include its inferred kind in the set of links
-        present in the notification. Other URLs and URLs that can't be decorated are returned
+        present in the notification. A GitHub pull request URL becomes a pull request redirect,
+        which records its clicks. Other URLs and URLs that can't be decorated are returned
         unchanged and aren't included.
         """
         if not is_tracking_enabled(self.data.source, self.provider):
             return url
 
         try:
+            if is_trackable_pull_request_url(url):
+                decorated = self._build_pull_request_redirect_url(url)
+                self.links.add(NotificationLink.PULL_REQUEST)
+                return decorated
+            if is_pull_request_redirect_url(url):
+                self.links.add(NotificationLink.PULL_REQUEST)
+                return url
             parsed = urlsplit(url)
             if not _is_sentry_url(parsed):
                 return url
@@ -199,6 +209,20 @@ class NotificationLinkDecorator:
             return url
         self.links.add(classify_link(url))
         return decorated
+
+    def _build_pull_request_redirect_url(self, url: str) -> str:
+        token = signing.dumps(
+            [
+                url,
+                self.data.organization_id,
+                self.data.notification_uuid,
+                str(self.data.source),
+                str(self.provider),
+            ],
+            salt=_PULL_REQUEST_REDIRECT_SALT,
+            compress=True,
+        )
+        return absolute_uri(reverse("sentry-notification-link-redirect", args=[token]))
 
     def decorate_rendered_template(
         self, rendered_template: NotificationRenderedTemplate
@@ -277,30 +301,69 @@ def classify_link(url: str) -> NotificationLink:
     return NotificationLink.OTHER
 
 
-PULL_REQUEST_PATH = re.compile(r"^/(?P<repository>[^/]+/[^/]+)/pull/(?P<number>\d+)/?$")
-"""The path of a GitHub pull request URL, which is the same on GitHub Enterprise."""
+_PULL_REQUEST_REDIRECT_SALT = "sentry.notifications.tracking.pull-request-redirect"
+
+_PULL_REQUEST_PATH = re.compile(r"^/[^/]+/[^/]+/pull/\d+/?$")
 
 
-def build_pull_request_redirect_url(organization_slug: str, url: str) -> str:
+def is_trackable_pull_request_url(url: str) -> bool:
     """
-    Returns a Sentry URL that redirects to the GitHub pull request at `url`, such as
-    `https://sentry.io/organizations/<slug>/tr/github.com/<owner>/<repo>/pull/1`. Unlike `url`, it
-    can be decorated like any other Sentry link, and the redirect records its clicks. Other URLs
-    are returned unchanged.
-
-    The redirect only follows pull requests on the organization's connected repositories.
+    Whether `url` is a pull request on github.com or on GitHub Enterprise Cloud (`*.ghe.com`).
+    Self-hosted GitHub Enterprise pull requests aren't tracked: an organization chooses that
+    host, so a redirect to it could send people anywhere.
     """
     parsed = urlsplit(url)
+    host = parsed.hostname
+    return (
+        parsed.scheme == "https"
+        and host is not None
+        and (host == "github.com" or host.endswith(".ghe.com"))
+        and parsed.netloc == host
+        and _PULL_REQUEST_PATH.match(parsed.path) is not None
+    )
+
+
+def is_pull_request_redirect_url(url: str) -> bool:
+    parsed = urlsplit(url)
+    return _is_sentry_url(parsed) and parsed.path.startswith("/tr/")
+
+
+@dataclass(frozen=True)
+class PullRequestRedirect:
+    url: str
+    context: NotificationTrackingContext
+
+
+def parse_pull_request_redirect(token: str) -> PullRequestRedirect | None:
+    """
+    Reads the destination and the notification from a pull request redirect's token. Returns
+    None when the token wasn't made by `NotificationLinkDecorator`, so the redirect only follows
+    links that Sentry sent.
+    """
+    try:
+        url, organization_id, notification_uuid, source, provider = signing.loads(
+            token, salt=_PULL_REQUEST_REDIRECT_SALT
+        )
+    except (signing.BadSignature, ValueError, TypeError):
+        return None
     if (
-        parsed.scheme not in ("http", "https")
-        or not parsed.hostname
-        or "@" in parsed.netloc
-        or not PULL_REQUEST_PATH.match(parsed.path)
+        not isinstance(url, str)
+        or not is_trackable_pull_request_url(url)
+        or not isinstance(organization_id, int)
+        or not isinstance(notification_uuid, str)
+        or source not in _SOURCE_CATEGORIES
     ):
-        return url
-    # The organization path, not the organization's subdomain, lets control silo route the
-    # request to the organization's cell, where its repositories are.
-    return absolute_uri(f"/organizations/{organization_slug}/tr/{parsed.netloc}{parsed.path}")
+        return None
+    return PullRequestRedirect(
+        url=url,
+        context=NotificationTrackingContext(
+            source=source,
+            provider=provider,
+            category=_SOURCE_CATEGORIES[source],
+            notification_uuid=notification_uuid,
+            organization_id=organization_id,
+        ),
+    )
 
 
 def _is_sentry_url(parsed: SplitResult) -> bool:

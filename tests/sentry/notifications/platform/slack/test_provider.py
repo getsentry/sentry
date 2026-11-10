@@ -328,6 +328,31 @@ class SlackNotificationProviderTrackActionsTest(TestCase):
         assert tracked_action_id is not None
         assert decode_action_id(tracked_action_id).tracking == self.tracking
 
+    def test_skips_link_button_to_a_pull_request_redirect(self) -> None:
+        action_id = self._view_pr_action_id(123)
+        renderable = SlackRenderable(
+            blocks=[
+                ActionsBlock(
+                    elements=[
+                        LinkButtonElement(
+                            text="View PR (#123)",
+                            url="https://sentry.io/tr/token/",
+                            action_id=action_id,
+                        )
+                    ]
+                )
+            ],
+            text="Seer",
+        )
+
+        with override_options({"system.url-prefix": "https://sentry.io"}):
+            tracked = SlackNotificationProvider.track_actions(
+                renderable=renderable, context=self.context
+            )
+
+        assert tracked == set()
+        assert self._button_action_ids(renderable) == [action_id]
+
 
 class SlackNotificationProviderSendTest(TestCase):
     def setUp(self) -> None:
