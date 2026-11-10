@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import logging
 import pickle
+import random
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from time import time
 from typing import Any
+from zlib import crc32
 
 from django.utils.encoding import force_bytes, force_str
 
+from sentry import options
 from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
 from sentry.tasks.process_buffer import process_incr
@@ -22,6 +25,8 @@ from sentry.utils.redis import (
 )
 
 logger = logging.getLogger(__name__)
+
+PENDING_SLICES = 64
 
 # Debounce our JSON validation a bit in order to not cause too much additional
 # load everywhere
@@ -244,6 +249,11 @@ class RedisBuffer(Buffer):
         except Exception:
             return None
 
+    def _pending_key_for(self, key: str) -> str:
+        if not options.get("buffer.split-pending-set"):
+            return self.pending_key
+        return f"{self.pending_key}:{crc32(key.encode()) % PENDING_SLICES}"
+
     def _make_lock_key(self, key: str) -> str:
         return f"l:{key}"
 
@@ -400,8 +410,9 @@ class RedisBuffer(Buffer):
             pipe.hset(key, "s", "1")
 
         pipe.expire(key, self.key_expire)
-        pipe.zadd(self.pending_key, {key: time()})
-        pipe.expire(self.pending_key, self.pending_key_expire)
+        pending_key = self._pending_key_for(key)
+        pipe.zadd(pending_key, {key: time()})
+        pipe.expire(pending_key, self.pending_key_expire)
         pipe.execute()
 
         metrics.incr(
@@ -420,26 +431,26 @@ class RedisBuffer(Buffer):
         )
 
         try:
-            keys = [force_str(key) for key in self.cluster.zrange(self.pending_key, 0, -1)]
-            keycount = len(keys)
-
-            for key in keys:
-                model_key = self._extract_model_from_key(key=key)
-                pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
-                pending_buffer.append(item=key)
-                if pending_buffer.full():
-                    process_incr.apply_async(
-                        kwargs={"batch_keys": pending_buffer.flush()},
-                        headers={"sentry-propagate-traces": False},
+            keycount = 0
+            pending_keys = [
+                self.pending_key,
+                *(f"{self.pending_key}:{i}" for i in range(PENDING_SLICES)),
+            ]
+            # Stop at the first failure to stay inside the task deadline; random order means
+            # slices on healthy shards still get flushed over the next passes.
+            random.shuffle(pending_keys)
+            for pending_key in pending_keys:
+                try:
+                    keycount += self._drain_pending_key(pending_key, pending_buffers_router)
+                except Exception:
+                    logger.exception(
+                        "buffer.process_pending.slice_failed", extra={"pending_key": pending_key}
                     )
-
-            if keys:
-                self.cluster.zrem(self.pending_key, *keys)
+                    break
 
             # process any non-empty pending buffers
             for pending_buffer_value in pending_buffers_router.pending_buffers():
                 pending_buffer = pending_buffer_value.pending_buffer
-                model_key = pending_buffer_value.model_key
 
                 if not pending_buffer.empty():
                     process_incr.apply_async(
@@ -450,6 +461,25 @@ class RedisBuffer(Buffer):
             metrics.distribution("buffer.pending-size", keycount)
         finally:
             self.cluster.delete(lock_key)
+
+    def _drain_pending_key(
+        self, pending_key: str, pending_buffers_router: PendingBufferRouter
+    ) -> int:
+        keys = [force_str(key) for key in self.cluster.zrange(pending_key, 0, -1)]
+
+        for key in keys:
+            model_key = self._extract_model_from_key(key=key)
+            pending_buffer = pending_buffers_router.get_pending_buffer(model_key=model_key)
+            pending_buffer.append(item=key)
+            if pending_buffer.full():
+                process_incr.apply_async(
+                    kwargs={"batch_keys": pending_buffer.flush()},
+                    headers={"sentry-propagate-traces": False},
+                )
+
+        if keys:
+            self.cluster.zrem(pending_key, *keys)
+        return len(keys)
 
     def process(  # type: ignore[override]
         self, key: str | None = None, batch_keys: list[str] | None = None, **kwargs: Any
@@ -486,7 +516,7 @@ class RedisBuffer(Buffer):
             # ZREM first: an incr landing after it re-adds its own pointer, and a failure
             # here still lets the counts below be read and written.
             try:
-                self.cluster.zrem(self.pending_key, key)
+                self.cluster.zrem(self._pending_key_for(key), key)
             except Exception:
                 metrics.incr("buffer.zrem-failed", skip_internal=False)
                 logger.debug("buffer.zrem-failed", extra={"redis_key": key})
