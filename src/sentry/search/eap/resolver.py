@@ -39,7 +39,7 @@ from sentry_sdk import traces
 
 from sentry.api import event_search
 from sentry.discover import arithmetic
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.explore.models import ExploreSavedFormula
 from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
@@ -947,7 +947,11 @@ class SearchResolver:
         return match
 
     def _ignores_case(self, column: ResolvedAttribute) -> bool:
-        return self.params.case_insensitive and column.search_type == "string"
+        return (
+            self.params.case_insensitive
+            and column.search_type == "string"
+            and not column.canonical_case
+        )
 
     def _resolve_search_value(
         self,
@@ -1178,6 +1182,16 @@ class SearchResolver:
         ):
             raise HiddenApiAttribute(f"Could not parse {column}")
 
+    def _function_argument_hint(self, argument: str) -> str | None:
+        """A fix for a function argument of the wrong type, sent as the 400's `hint`."""
+        # Transactions are stored as spans, which keep their duration in span.duration.
+        if (
+            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_SPAN
+            and argument == "transaction.duration"
+        ):
+            return "Use span.duration instead of transaction.duration on the spans dataset."
+        return None
+
     def resolve_attribute(
         self, column: str, public_alias_override: str | None = None
     ) -> tuple[ResolvedAttribute, list[VirtualColumnDefinition | None]]:
@@ -1220,6 +1234,7 @@ class SearchResolver:
                 internal_type=internal_match.internal_type,
                 validator=internal_match.validator,
                 normalizer=internal_match.normalizer,
+                canonical_case=internal_match.canonical_case,
                 processor=internal_match.processor,
             )
         else:
@@ -1398,8 +1413,10 @@ class SearchResolver:
                 argument_index += 1
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
-                        raise InvalidSearchQuery(
-                            f"{argument} is not a valid argument for {function_name}"
+                        raise InvalidFunctionArgumentQuery(
+                            f"{argument} is not a valid argument for {function_name}",
+                            function=function_name,
+                            argument=argument,
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
@@ -1436,12 +1453,18 @@ class SearchResolver:
             ):
                 if argument_definition.field_allowlist is not None:
                     if parsed_argument.public_alias not in argument_definition.field_allowlist:
-                        raise InvalidSearchQuery(
-                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}."
+                        raise InvalidFunctionArgumentQuery(
+                            f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}.",
+                            function=function_name,
+                            argument=argument,
+                            hint=self._function_argument_hint(argument),
                         )
                 else:
-                    raise InvalidSearchQuery(
-                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    raise InvalidFunctionArgumentQuery(
+                        f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}",
+                        function=function_name,
+                        argument=argument,
+                        hint=self._function_argument_hint(argument),
                     )
 
         resolved_arguments: ResolvedArguments = []

@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 import {IconEdit} from '@sentry/icons/edit';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,9 +8,9 @@ import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {useModal} from '@sentry/scraps/modal';
+import {useModal, closeModal} from '@sentry/scraps/modal';
 
-import {closeModal, openEditOwnershipRules} from 'sentry/actionCreators/modal';
+import {openEditOwnershipRules} from 'sentry/actionCreators/modal';
 import {Access, hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,18 +18,19 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
-import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
-import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
-import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {AddCodeOwnerModal} from './addCodeOwnerModal';
+import {CodeOwnerErrors} from './codeownerErrors';
+import {CodeOwnerFileTable} from './codeOwnerFileTable';
+import {OwnershipRulesTable} from './ownershipRulesTable';
 
 const ownershipSchema = z.object({
   autoAssignment: z.string(),
@@ -45,61 +46,74 @@ export default function ProjectOwnership() {
   const ownershipTitle = t('Ownership Rules');
   const {project} = useProjectSettingsOutlet();
 
-  const ownershipQueryKey: ApiQueryKey = [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
+  const ownershipOptions = apiOptions.as<IssueOwnership>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/',
+    {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-    }),
-  ];
+      staleTime: Infinity,
+    }
+  );
   const {
     data: ownership,
     isPending: isOwnershipPending,
     isError: isOwnershipError,
-  } = useApiQuery<IssueOwnership>(ownershipQueryKey, {staleTime: Infinity});
+  } = useQuery(ownershipOptions);
 
-  const codeownersQueryKey: ApiQueryKey = [
-    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
+  const codeownersOptions = apiOptions.as<CodeOwner[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/',
+    {
       path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-    }),
-    {query: {expand: ['codeMapping', 'ownershipSyntax']}},
-  ];
+      query: {expand: ['codeMapping', 'ownershipSyntax']},
+      staleTime: Infinity,
+    }
+  );
   const {
     data: codeowners = [],
     isLoading: isCodeownersLoading,
     isError: isCodeownersError,
-  } = useApiQuery<CodeOwner[]>(codeownersQueryKey, {
-    staleTime: Infinity,
+  } = useQuery({
+    ...codeownersOptions,
     enabled: organization.features.includes('integrations-codeowners'),
   });
 
   const handleOwnershipSave = (newOwnership: IssueOwnership) => {
-    setApiQueryData<IssueOwnership>(queryClient, ownershipQueryKey, data =>
-      newOwnership ? newOwnership : data
-    );
+    queryClient.setQueryData(ownershipOptions.queryKey, oldData => ({
+      ...oldData,
+      json: newOwnership,
+      headers: oldData?.headers ?? {},
+    }));
     closeModal();
   };
 
   const handleCodeOwnerAdded = (data: CodeOwner) => {
-    setApiQueryData<CodeOwner[]>(queryClient, codeownersQueryKey, existingCodeowners => [
-      data,
-      ...(existingCodeowners || []),
-    ]);
+    queryClient.setQueryData(codeownersOptions.queryKey, oldData => ({
+      ...oldData,
+      json: [data, ...(oldData?.json ?? [])],
+      headers: oldData?.headers ?? {},
+    }));
   };
 
   const handleCodeOwnerDeleted = (data: CodeOwner) => {
-    setApiQueryData<CodeOwner[]>(queryClient, codeownersQueryKey, existingCodeowners =>
-      (existingCodeowners || []).filter(codeowner => codeowner.id !== data.id)
-    );
+    queryClient.setQueryData(codeownersOptions.queryKey, oldData => ({
+      ...oldData,
+      json: (oldData?.json ?? []).filter(codeowner => codeowner.id !== data.id),
+      headers: oldData?.headers ?? {},
+    }));
   };
 
   const handleCodeOwnerUpdated = (data: CodeOwner) => {
-    setApiQueryData<CodeOwner[]>(queryClient, codeownersQueryKey, stateCodeOwners => {
-      const existingCodeowners = stateCodeOwners || [];
+    queryClient.setQueryData(codeownersOptions.queryKey, oldData => {
+      const existingCodeowners = oldData?.json ?? [];
       const index = existingCodeowners.findIndex(item => item.id === data.id);
-      return [
-        ...existingCodeowners.slice(0, index),
-        data,
-        ...existingCodeowners.slice(index + 1),
-      ];
+      return {
+        ...oldData,
+        json: [
+          ...existingCodeowners.slice(0, index),
+          data,
+          ...existingCodeowners.slice(index + 1),
+        ],
+        headers: oldData?.headers ?? {},
+      };
     });
   };
 
@@ -130,6 +144,7 @@ export default function ProjectOwnership() {
         method: 'PUT',
         data,
       }),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: ownershipOptions.queryKey}),
   };
 
   if (isOwnershipPending || isCodeownersLoading) {

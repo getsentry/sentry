@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
@@ -8,7 +9,7 @@ PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
 
 class _ScmStub:
-    def get_pull_request(self, *args, **kwargs): ...
+    def get_pull_request(self, *args: Any, **kwargs: Any) -> None: ...
 
 
 class IterationPrsAnyForeignHeadTest(TestCase):

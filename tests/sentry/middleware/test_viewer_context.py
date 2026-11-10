@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import time
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
-import jwt as pyjwt
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest, HttpResponseBase
 from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
@@ -18,18 +17,17 @@ from sentry.viewer_context import (
     Actor,
     ActorType,
     ViewerContext,
-    _key_id,
     encode_viewer_context,
     get_viewer_context,
 )
 
 
 class ViewerContextFromRequestTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.factory = RequestFactory()
 
-    def test_anonymous_request(self):
+    def test_anonymous_request(self) -> None:
         request = self.factory.get("/")
         request.user = AnonymousUser()
         request.auth = None
@@ -40,7 +38,7 @@ class ViewerContextFromRequestTest(TestCase):
         assert ctx.organization_id is None
         assert ctx.actor.type is ActorType.UNKNOWN
 
-    def test_session_authenticated_user(self):
+    def test_session_authenticated_user(self) -> None:
         request = self.factory.get("/")
         request.user = self.user
         request.auth = None
@@ -51,7 +49,7 @@ class ViewerContextFromRequestTest(TestCase):
         assert ctx.organization_id is None
         assert ctx.actor.type is ActorType.USER
 
-    def test_token_authenticated_user(self):
+    def test_token_authenticated_user(self) -> None:
         request = self.factory.get("/")
         token = AuthenticatedToken(
             allowed_origins=["*"],
@@ -71,7 +69,7 @@ class ViewerContextFromRequestTest(TestCase):
         assert ctx.actor.type is ActorType.USER
         assert request.auth is token
 
-    def test_org_scoped_token_without_user(self):
+    def test_org_scoped_token_without_user(self) -> None:
         request = self.factory.get("/")
         request.user = AnonymousUser()
         token = AuthenticatedToken(
@@ -89,7 +87,7 @@ class ViewerContextFromRequestTest(TestCase):
         assert ctx.organization_id == self.organization.id
         assert request.auth is token
 
-    def test_token_without_organization(self):
+    def test_token_without_organization(self) -> None:
         request = self.factory.get("/")
         token = AuthenticatedToken(
             allowed_origins=[],
@@ -109,15 +107,15 @@ class ViewerContextFromRequestTest(TestCase):
 
 
 class ViewerContextMiddlewareTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.factory = RequestFactory()
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=False)
-    def test_skipped_when_disabled(self):
-        captured: list = []
+    def test_skipped_when_disabled(self) -> None:
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -133,10 +131,10 @@ class ViewerContextMiddlewareTest(TestCase):
         assert captured[0] is None
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_sets_context_during_request(self):
-        captured: list = []
+    def test_sets_context_during_request(self) -> None:
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -153,7 +151,7 @@ class ViewerContextMiddlewareTest(TestCase):
         assert captured[0].actor.actor_id == self.user.id
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_cleans_up_after_request(self):
+    def test_cleans_up_after_request(self) -> None:
         middleware = ViewerContextMiddleware(lambda r: MagicMock(status_code=200))
 
         request = self.factory.get("/")
@@ -165,8 +163,8 @@ class ViewerContextMiddlewareTest(TestCase):
         assert get_viewer_context() is None
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_cleans_up_on_exception(self):
-        def get_response(request):
+    def test_cleans_up_on_exception(self) -> None:
+        def get_response(request: HttpRequest) -> HttpResponseBase:
             raise RuntimeError("boom")
 
         middleware = ViewerContextMiddleware(get_response)
@@ -183,10 +181,10 @@ class ViewerContextMiddlewareTest(TestCase):
         assert get_viewer_context() is None
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_anonymous_request_sets_empty_context(self):
-        captured: list = []
+    def test_anonymous_request_sets_empty_context(self) -> None:
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -206,7 +204,7 @@ class ViewerContextMiddlewareTest(TestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
-    def test_agent_token_sets_agent_context(self):
+    def test_agent_token_sets_agent_context(self) -> None:
         # Through the real chain: AuthenticationMiddleware resolves the agent bearer,
         # then this middleware derives user + org + agent actor from it.
         token, _ = agent_token.encode_agent_token(
@@ -216,9 +214,9 @@ class ViewerContextMiddlewareTest(TestCase):
             session_id="s1",
         )
 
-        captured: list = []
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -238,26 +236,16 @@ class ViewerContextMiddlewareTest(TestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
-    def test_jwt_header_sets_viewer_context(self):
+    def test_jwt_header_sets_viewer_context(self) -> None:
         vc = ViewerContext(
             organization_id=self.organization.id,
             actor=Actor(type=ActorType.AGENT, actor_id=90, delegated_user_id=self.user.id),
         )
-        token = pyjwt.encode(
-            {
-                **vc.serialize(version=2),
-                "iat": time.time(),
-                "exp": time.time() + 300,
-                "iss": "sentry",
-            },
-            "test-secret",
-            algorithm="HS256",
-            headers={"kid": _key_id("test-secret")},
-        )
+        token = encode_viewer_context(vc)
 
-        captured: list = []
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -274,13 +262,13 @@ class ViewerContextMiddlewareTest(TestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
-    def test_authenticated_user_takes_precedence_over_jwt(self):
+    def test_authenticated_user_takes_precedence_over_jwt(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=99)
         token = encode_viewer_context(vc)
 
-        captured: list = []
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -299,13 +287,13 @@ class ViewerContextMiddlewareTest(TestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
-    def test_jwt_used_when_no_authenticated_user(self):
+    def test_jwt_used_when_no_authenticated_user(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=99)
         token = encode_viewer_context(vc)
 
-        captured: list = []
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -326,7 +314,7 @@ class ViewerContextMiddlewareTest(TestCase):
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     @patch("sentry.middleware.viewer_context.logger")
-    def test_logs_warning_on_jwt_request_mismatch(self, mock_logger):
+    def test_logs_warning_on_jwt_request_mismatch(self, mock_logger: MagicMock) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=99)
         token = encode_viewer_context(vc)
 
@@ -355,10 +343,10 @@ class ViewerContextMiddlewareTest(TestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
-    def test_invalid_jwt_falls_back_to_request_user(self):
-        captured: list = []
+    def test_invalid_jwt_falls_back_to_request_user(self) -> None:
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -376,10 +364,10 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor.type == ActorType.USER
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_raw_json_without_signature_falls_back(self):
-        captured: list = []
+    def test_raw_json_without_signature_falls_back(self) -> None:
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 
@@ -401,10 +389,10 @@ class ViewerContextMiddlewareTest(TestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
-    def test_non_jwt_header_ignored(self):
-        captured: list = []
+    def test_non_jwt_header_ignored(self) -> None:
+        captured: list[Any] = []
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> MagicMock:
             captured.append(get_viewer_context())
             return MagicMock(status_code=200)
 

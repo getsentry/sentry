@@ -20,7 +20,9 @@ logger = logging.getLogger("sentry.saml_setup_error")
 
 
 class AuthOrganizationLoginView(AuthPageView):
-    def handle_sso(self, request: HttpRequest, organization: RpcOrganization, auth_provider):
+    def handle_sso(
+        self, request: HttpRequest, organization: RpcOrganization, auth_provider: AuthProvider
+    ) -> HttpResponseBase:
         helper = AuthHelper(
             request=request,
             organization=organization,
@@ -44,7 +46,7 @@ class AuthOrganizationLoginView(AuthPageView):
         return helper.current_step()
 
     @method_decorator(never_cache)
-    def handle(self, request: HttpRequest, organization_slug) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, organization_slug: str) -> HttpResponseBase:
         if request.method == "GET":
             if (
                 request.resolver_match

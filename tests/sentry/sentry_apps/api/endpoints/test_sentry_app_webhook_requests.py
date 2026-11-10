@@ -4,6 +4,7 @@ from unittest.mock import Mock
 from django.urls import reverse
 from requests.models import Response
 
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test, create_test_cells
@@ -11,6 +12,11 @@ from sentry.testutils.skips import requires_snuba
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 pytestmark = [requires_snuba]
+
+
+def webhook_url(sentry_app: SentryApp) -> str:
+    assert sentry_app.webhook_url is not None
+    return sentry_app.webhook_url
 
 
 @control_silo_test(cells=create_test_cells("us"))
@@ -60,13 +66,13 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.unowned_published_app.webhook_url,
+            url=webhook_url(self.unowned_published_app),
         )
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.unowned_published_app.webhook_url,
+            url=webhook_url(self.unowned_published_app),
         )
 
         url = reverse(
@@ -87,7 +93,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.unowned_unpublished_app.webhook_url,
+            url=webhook_url(self.unowned_unpublished_app),
         )
 
         url = reverse(
@@ -106,7 +112,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
@@ -127,7 +133,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
@@ -157,7 +163,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
@@ -177,7 +183,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.unowned_published_app.webhook_url,
+            url=webhook_url(self.unowned_published_app),
         )
 
         url = reverse(
@@ -195,7 +201,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.unpublished_app.webhook_url,
+            url=webhook_url(self.unpublished_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.unpublished_app.slug])
@@ -210,7 +216,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.internal_app.webhook_url,
+            url=webhook_url(self.internal_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
@@ -231,7 +237,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=500,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.internal_app.webhook_url,
+            url=webhook_url(self.internal_app),
             response=self.mock_response,
             headers={
                 "Content-Type": "application/json",
@@ -263,7 +269,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.internal_app.webhook_url,
+            url=webhook_url(self.internal_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
@@ -366,13 +372,13 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
         buffer.add_request(
             response_code=400,
             org_id=self.org.id,
             event="installation.created",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
@@ -408,14 +414,14 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
         with freeze_time(now):
             buffer.add_request(
                 response_code=500,
                 org_id=self.org.id,
                 event="issue.assigned",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
                 error_id="abc123",
                 project_id=1,
                 response=self.mock_response,
@@ -459,7 +465,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
                 response_code=200,
                 org_id=self.org.id,
                 event="issue.assigned",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
                 request_id="req-success",
                 subject_id="123",
                 subject_type="group",
@@ -470,7 +476,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
                 response_code=500,
                 org_id=self.org.id,
                 event="issue.assigned",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
                 request_id="req-error",
                 subject_id="456",
                 subject_type="group",
@@ -508,7 +514,7 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.unpublished_app.webhook_url,
+            url=webhook_url(self.unpublished_app),
             error_id=self.event_id,
             project_id=1000,
         )
@@ -529,13 +535,13 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
@@ -560,21 +566,21 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.published_app.webhook_url,
+            url=webhook_url(self.published_app),
         )
         with freeze_time(now + timedelta(seconds=1)):
             buffer.add_request(
                 response_code=200,
                 org_id=self.org.id,
                 event="issue.assigned",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
             )
         with freeze_time(now + timedelta(seconds=2)):
             buffer.add_request(
                 response_code=200,
                 org_id=self.org.id,
                 event="issue.assigned",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
             )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
@@ -624,28 +630,28 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
                 response_code=200,
                 org_id=self.org.id,
                 event="issue.created",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
             )
         with freeze_time(now + timedelta(seconds=1)):
             buffer.add_request(
                 response_code=200,
                 org_id=self.org.id,
                 event="installation.created",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
             )
         with freeze_time(now + timedelta(seconds=2)):
             buffer.add_request(
                 response_code=200,
                 org_id=self.org.id,
                 event="issue.assigned",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
             )
         with freeze_time(now + timedelta(seconds=3)):
             buffer.add_request(
                 response_code=200,
                 org_id=self.org.id,
                 event="installation.deleted",
-                url=self.published_app.webhook_url,
+                url=webhook_url(self.published_app),
             )
 
         url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])

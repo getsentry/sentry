@@ -11,7 +11,6 @@ pytest_plugins = [
     "sentry.testutils.pytest.stale_database_reads",
     "sentry.testutils.pytest.transactional_flush",
     "sentry.testutils.pytest.json_report_reruns",
-    "sentry.testutils.pytest.pytest_sentry_reruns",
     "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.thread_leaks.pytest",
     "sentry.testutils.pytest.timeout_info",

@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import {RelayWrapper} from 'sentry/views/settings/organizationRelay/relayWrapper';
+import {RelayWrapper} from './relayWrapper';
 
 describe('RelayWrapper', () => {
   beforeEach(() => {

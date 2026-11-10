@@ -219,6 +219,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
             data={"message": "test error", "level": "error"},
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         self.group = self.event.group
 
     def _options(

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
@@ -72,6 +72,7 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
     def convert_args(
@@ -79,20 +80,22 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         request: Request,
         organization_id_or_slug: int | str,
         data_forwarder_id: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
+        organization = cast(Organization, kwargs["organization"])
+
         if request.method == "PUT" and not features.has(
-            "organizations:data-forwarding", kwargs["organization"]
+            "organizations:data-forwarding", organization
         ):
             raise PermissionDenied
 
         try:
             data_forwarder = DataForwarder.objects.get(
                 id=to_valid_int_id("data_forwarder_id", data_forwarder_id, raise_404=True),
-                organization=kwargs["organization"],
+                organization=organization,
             )
         except DataForwarder.DoesNotExist:
             raise ResourceDoesNotExist

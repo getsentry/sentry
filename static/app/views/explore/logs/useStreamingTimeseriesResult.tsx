@@ -12,19 +12,17 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {
-  getLogRowTimestampMillis,
-  getLogTimestampBucketIndex,
-} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {AlwaysPresentLogFields} from './constants';
+import {isLogsEnabled} from './isLogsEnabled';
+import type {OurLogsResponseItem} from './types';
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {getLogRowTimestampMillis, getLogTimestampBucketIndex} from './utils';
 
 type BufferEntry = {
   bucketIndex: number;
@@ -93,9 +91,15 @@ export function useStreamingTimeseriesResult(
   const groupBuffersRef = useRef<Record<string, BufferedTimeseriesGroup>>({});
   const lastProcessedBucketRef = useRef<number | null>(null);
 
-  const timeseriesValues = timeseriesResult.data
-    ? Object.values(timeseriesResult.data)[0]?.[0]?.values
-    : undefined;
+  const rawTimeSeries = useMemo(
+    () =>
+      Object.values(timeseriesResult.data).map(series =>
+        series.filter(row => !row.requestedTransformations?.length)
+      ),
+    [timeseriesResult.data]
+  );
+  const referenceSeries = rawTimeSeries.find(series => series.length)?.[0];
+  const timeseriesValues = referenceSeries?.values;
   const shouldUseStreamedData = isLogsEnabled(organization) && !!timeseriesValues?.length;
 
   const timeseriesStartTimestamp = timeseriesValues?.[0]?.timestamp;
@@ -145,7 +149,7 @@ export function useStreamingTimeseriesResult(
       lastProcessedBucketRef,
       autoRefresh,
       aggregate,
-      timeseriesResult.data ? Object.values(timeseriesResult.data)[0] : undefined
+      rawTimeSeries.find(series => series.length)
     );
     // oxlint-disable-next-line react/refs
     groupBuffersRef.current = buffers;
@@ -161,7 +165,7 @@ export function useStreamingTimeseriesResult(
     timeseriesIngestDelay,
     groupBys,
     autoRefresh,
-    timeseriesResult.data,
+    rawTimeSeries,
     aggregate,
   ]);
 
@@ -349,10 +353,17 @@ function createMergedDataFromBuffer(
 
   const mergedData: typeof timeseriesResult.data = {};
 
-  for (const [aggregateKey, originalGroupedTimeSeries] of Object.entries(
-    timeseriesResult.data
-  )) {
-    mergedData[aggregateKey] = [];
+  for (const [aggregateKey, groupedTimeSeries] of Object.entries(timeseriesResult.data)) {
+    const transformedSeries = groupedTimeSeries.filter(
+      series => series.requestedTransformations?.length
+    );
+    const originalGroupedTimeSeries = groupedTimeSeries.filter(
+      series => !series.requestedTransformations?.length
+    );
+    mergedData[aggregateKey] = [...transformedSeries];
+    if (!originalGroupedTimeSeries.length) {
+      continue;
+    }
     const targetLength = originalGroupedTimeSeries?.[0]?.values.length;
 
     if (!Array.isArray(originalGroupedTimeSeries) || !targetLength) {
@@ -451,6 +462,11 @@ function createMergedDataFromBuffer(
         mergedData[aggregateKey].push({
           ...(originalSeries ?? {
             ...pick(originalGroupedTimeSeries[0], ['dataScanned', 'confidence']),
+            ...(groupedTimeSeries.some(
+              series => series.requestedTransformations !== undefined
+            )
+              ? {requestedTransformations: []}
+              : {}),
             meta: {
               ...originalGroupedTimeSeries[0].meta,
               order: groupBuffer?.stableIndex ?? 0,

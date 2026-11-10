@@ -219,8 +219,9 @@ class HandleSeerRunCreateTest(TestCase):
             mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
             key="viewer-context-test-secret",
         )
+        assert isinstance(viewer_context, ViewerContext)
         assert viewer_context.organization_id == run.organization_id
-        assert viewer_context.user_id is None
+        assert viewer_context.actor.actor_id is None
         assert viewer_context.actor.type == ActorType.SYSTEM
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")

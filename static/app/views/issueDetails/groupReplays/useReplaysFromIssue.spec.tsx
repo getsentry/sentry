@@ -5,7 +5,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types/group';
-import {useReplaysFromIssue} from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
+
+import {useReplaysFromIssue} from './useReplaysFromIssue';
 
 describe('useReplaysFromIssue', () => {
   beforeEach(() => {

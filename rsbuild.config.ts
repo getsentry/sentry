@@ -221,7 +221,24 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+              // Layout and interactive primitives report the component that renders
+              // them, like `IssueActions-Button`, instead of their own name
+              'transparent-components': [
+                'Flex',
+                'Grid',
+                'Container',
+                'Stack',
+                'Button',
+                'LinkButton',
+                'Link',
+                'LinkBase',
+                'ExternalLink',
+                'DropdownButton',
+                'Checkbox',
+                'Radio',
+                'Switch',
+                'Input',
+              ],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -1002,11 +1019,14 @@ if (IS_PRODUCTION) {
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'filesystem',
+    type: 'persistent',
     // Keep clear of the old persistent cache's `app-production` directory,
     // the new cache fails to open when both share a location
     name: `app-${WEBPACK_MODE}-new`,
-    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    storage: {
+      type: 'filesystem',
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    },
     // Read entries from disk instead of holding the whole cache in memory
     maxMemoryGenerations: 0,
     // Only master deploys write the cache, preview deploys restore it from

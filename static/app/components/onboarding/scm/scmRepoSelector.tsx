@@ -1,6 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 
-import {Select} from '@sentry/scraps/select';
+import {Select, type SelectHandle} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
@@ -8,8 +8,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
-import {ScmSearchControl} from './scmSearchControl';
-import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
+import {ScmSearchIcon} from './scmSearchIcon';
 import {useScmRepos} from './useScmRepos';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
@@ -80,7 +79,7 @@ export function ScmRepoSelector({
 }: ScmRepoSelectorProps) {
   const organization = useOrganization();
   const [search, setSearch] = useState('');
-  const selectRef = useRef<{focus: () => void} | null>(null);
+  const selectRef = useRef<SelectHandle>(null);
   const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
     integration.id,
     selectedRepository
@@ -176,12 +175,11 @@ export function ScmRepoSelector({
       onInputChange={setSearch}
       noOptionsMessage={noOptionsMessage}
       isLoading={isFetching || busy}
-      // The core Select blurs single selects on pick, which drops keyboard
-      // focus to body. Keep it in the field.
       blurInputOnSelect={false}
       clearable
       searchable
-      components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+      controlLeadingItems={<ScmSearchIcon />}
+      virtualized
       styles={{container: base => ({...base, width: '100%'})}}
     />
   );

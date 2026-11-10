@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sentry.grouping.component import MessageGroupingComponent, RootGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
@@ -81,6 +81,25 @@ def test_unknown_hash_basis(
     )
 
     _assert_and_snapshot_results(event, variants, config_name, create_snapshot)
+
+
+def test_snapshot_path_keeps_checkout_path() -> None:
+    insta_snapshot = Mock()
+
+    with patch("tests.sentry.grouping.SNAPSHOTS_DIR", "/src/my-checkout/snapshots"):
+        create_snapshot = get_grouping_input_snapshotter(
+            insta_snapshot,
+            folder_name="grouphash_metadata",
+            test_name="test_metadata_from_variants",
+            config_name="newstyle:2026-01-20",
+            grouping_input_file="unity-il2cpp.json",
+        )
+    create_snapshot("dogs are great")
+
+    insta_snapshot.assert_called_once_with(
+        "dogs are great",
+        reference_file="/src/my-checkout/snapshots/grouphash_metadata/test_metadata_from_variants/newstyle@2026_01_20/unity_il2cpp.pysnap",
+    )
 
 
 def _assert_and_snapshot_results(

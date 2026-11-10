@@ -1,10 +1,17 @@
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSliders} from '@sentry/icons/sliders';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
+import {
+  SETUP_CARD_ICON_SIZE,
+  SETUP_CARD_MARKER_PX,
+} from 'sentry/components/onboarding/consts';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t} from 'sentry/locale';
 
@@ -21,12 +28,12 @@ interface AgenticSetupProps {
   hasProgressFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
-  /** The host supplies the action for continuing with browser setup. */
-  manualSetup: React.ReactNode;
   onCopyCommand: (source: AgentSetupCopySource) => void;
   onRefresh: () => void;
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
+  /** The host supplies the action for continuing with browser setup. */
+  onSetupInBrowser: () => void;
   prompt: string;
   run: AgenticProgressRun | undefined;
   onboardingCode?: string;
@@ -39,7 +46,7 @@ export function AgenticSetup({
   onCopyCommand,
   onRetry,
   onSelectSnippet,
-  manualSetup,
+  onSetupInBrowser,
   prompt,
   feedbackSource,
   issueLinkReferrer,
@@ -141,7 +148,44 @@ export function AgenticSetup({
             {t('or')}
           </Text>
 
-          {manualSetup}
+          <ToggleCard
+            variant="button"
+            onClick={onSetupInBrowser}
+            data-test-id="onboarding-setup-in-browser"
+          >
+            <Grid
+              columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
+              gap="0 md"
+              width="100%"
+              areas={`
+          "icon title chevron"
+          ".    body  body"
+        `}
+            >
+              <Flex area="icon" align="center" justify="center">
+                <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
+              </Flex>
+              <Flex area="title" align="center">
+                <Text bold size="lg">
+                  {t('Set up manually')}
+                </Text>
+              </Flex>
+              <Flex area="chevron" align="center">
+                <IconChevron
+                  direction="right"
+                  size={SETUP_CARD_ICON_SIZE}
+                  variant="secondary"
+                />
+              </Flex>
+              <Container area="body" paddingTop="xs">
+                <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+                  {t(
+                    'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
+                  )}
+                </Text>
+              </Container>
+            </Grid>
+          </ToggleCard>
         </Stack>
       </ScmCollapsibleReveal>
     </Stack>

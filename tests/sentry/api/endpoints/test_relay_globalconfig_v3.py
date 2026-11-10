@@ -1,10 +1,13 @@
+from collections.abc import Callable
 from copy import deepcopy
+from typing import Any
 from unittest.mock import patch
 
 import orjson
 import pytest
 from django.test import override_settings
 from django.urls import reverse
+from sentry_relay.auth import SecretKey
 from sentry_relay.processing import normalize_global_config
 
 from sentry.relay.globalconfig import get_global_config
@@ -13,8 +16,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
-def call_endpoint(client, relay, private_key):
-    def inner(version, global_):
+def call_endpoint(client: Any, relay: Any, private_key: SecretKey) -> Any:
+    def inner(version: str, global_: Any) -> Any:
         path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
         body = {"global": True} if global_ else {}
@@ -61,7 +64,7 @@ def call_endpoint(client, relay, private_key):
         "relay.upload-max-chunk.size": 123,
     }
 )
-def test_global_config(inbound_filters_custom_error_values) -> None:
+def test_global_config(inbound_filters_custom_error_values: list[str]) -> None:
     # Nest the settings override inside `override_options`: the `settings` fixture
     # is torn down after the decorator exits, which leaks the options into later tests.
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=inbound_filters_custom_error_values):
@@ -105,11 +108,11 @@ def _lowercase_glob_values(node: object) -> None:
 )
 @django_db_all
 def test_return_global_config_on_right_version(
-    call_endpoint,
-    version,
-    request_global_config,
-    expect_global_config,
-):
+    call_endpoint: Callable[..., tuple[dict[str, Any], int]],
+    version: int,
+    request_global_config: bool,
+    expect_global_config: bool,
+) -> None:
     result, status_code = call_endpoint(version, request_global_config)
     assert status_code < 400
     if not expect_global_config:

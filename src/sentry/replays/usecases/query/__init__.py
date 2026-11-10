@@ -181,7 +181,7 @@ def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
     condition_type: And | Or,
-):
+) -> None:
     """Unnecessary query optimization.
 
     Improves legibility for query debugging. Clickhouse would flatten these nested OR statements
@@ -258,7 +258,7 @@ def query_using_optimized_search(
     request_user_id: int | None = None,
     preferred_source: PREFERRED_SOURCE = "scalar",
     referrer: str | None = None,
-):
+) -> QueryResponse:
     tenant_id = _make_tenant_id(organization)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
@@ -349,7 +349,7 @@ def _query_using_scalar_strategy(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+) -> tuple[Query, str, str]:
     can_scalar_search = can_scalar_search_subquery(search_filters, period_start)
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     if not can_scalar_search or not can_scalar_sort:
@@ -407,7 +407,7 @@ def _query_using_aggregated_strategy(
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-):
+) -> tuple[Query, str, str]:
     orderby = handle_ordering(
         agg_sort_config,
         sort or "-" + DEFAULT_SORT_FIELD,

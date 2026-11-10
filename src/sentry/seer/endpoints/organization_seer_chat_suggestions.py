@@ -18,6 +18,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import Dashboard
@@ -32,7 +33,7 @@ from sentry.seer.oneshot import run_oneshot
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.organization_detector_details import (
-    _check_metric_detector_allowed,
+    check_metric_detector_allowed,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     ORGANIZATION_WORKFLOW_WRITE_SCOPES,
@@ -145,7 +146,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 "chat_suggestions",
                 payload,
                 organization,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 timeout=3.5,
             )
         except HTTPError:
@@ -203,7 +204,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
 
         elif workflow_id := _to_valid_int_id("automationId", route_params.get("automationId")):
             workflow = Workflow.objects.filter(
-                id=workflow_id, organization_id=organization.id
+                id=workflow_id,
+                organization_id=organization.id,
+                type=Workflow.Type.ALERT,
             ).first()
             if workflow:
                 try:
@@ -233,7 +236,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 return None
 
             try:
-                _check_metric_detector_allowed(detector, organization)
+                check_metric_detector_allowed(detector, organization)
             except ResourceDoesNotExist:
                 return None
             if can_edit_detector(detector, request):

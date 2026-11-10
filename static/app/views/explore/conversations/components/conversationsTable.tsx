@@ -212,9 +212,13 @@ export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
 
 interface ConversationsTableProps {
   conversations: ReturnType<typeof useConversations>;
+  hidePagination?: boolean;
 }
 
-export function ConversationsTable({conversations}: ConversationsTableProps) {
+export function ConversationsTable({
+  conversations,
+  hidePagination = false,
+}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
@@ -381,7 +385,9 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
       </FixedRowHeightGrid>
       {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
           only spacing between the table and the controls. */}
-      <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      {!hidePagination && (
+        <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+      )}
     </Stack>
   );
 }

@@ -55,6 +55,11 @@ build-investigation-api-docs: build-deprecated-docs
 	pnpm exec node api-docs/index.ts .artifacts/investigation-api-docs/openapi.json .artifacts/investigation-api-docs/openapi-derefed.json
 	pnpm --filter @sentry-internal/api-docs exec openapi-examples-validator ../.artifacts/investigation-api-docs/openapi-derefed.json --no-additional-properties
 
+api-owner-map:
+	@echo "--> Generating API endpoint owner map"
+	@mkdir -p .artifacts
+	@sentry django api_endpoint_owners --output .artifacts/api-endpoint-owners.json
+
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 
@@ -249,8 +254,10 @@ test-relay-integration:
 		-vv
 	@echo ""
 
-test-api-docs: build-api-docs build-investigation-api-docs
+validate-api-docs: build-api-docs build-investigation-api-docs
 	pnpm run validate-api-examples
+
+test-api-docs: validate-api-docs
 	python3 -b -m pytest tests/apidocs --reuse-db
 	@echo ""
 

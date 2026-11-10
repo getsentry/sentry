@@ -4,6 +4,7 @@ import warnings
 import click
 
 from sentry.runner import importer
+from sentry.runner.boot_gc import frozen_after_boot
 
 DEFAULT_SETTINGS_CONF = "config.yml"
 DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
@@ -16,7 +17,8 @@ def get_sentry_conf() -> str:
     """
     try:
         ctx = click.get_current_context()
-        return ctx.obj["config"]
+        config = ctx.obj["config"]
+        return config
     except (RuntimeError, KeyError, TypeError):
         try:
             return os.environ["SENTRY_CONF"]
@@ -65,6 +67,17 @@ def configure(
     if __installed:
         return
 
+    # This creates most of the long-lived objects a process accumulates during
+    # boot. See sentry.runner.boot_gc for why GC is paused while it runs and
+    # the heap frozen after it.
+    with frozen_after_boot("configure"):
+        _configure(ctx, py, yaml, skip_service_validation)
+        __installed = True
+
+
+def _configure(
+    ctx: click.Context | None, py: str, yaml: str | None, skip_service_validation: bool
+) -> None:
     # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
 
@@ -123,8 +136,6 @@ def configure(
     if os.environ.get("OPENAPIGENERATE", False):
         # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
         from sentry.apidocs import extensions  # NOQA
-
-    __installed = True
 
 
 __installed = False

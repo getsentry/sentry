@@ -1,7 +1,3 @@
-import {
-  StacktraceContext,
-  useStacktraceContext,
-} from 'sentry/components/events/interfaces/stackTraceContext';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
@@ -12,14 +8,15 @@ import type {Project} from 'sentry/types/project';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
   data: NonNullable<ExceptionValue['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  initialCollapse?: boolean;
 };
 
 function StackTraceContentWrapper({
@@ -55,7 +52,7 @@ export function StackTrace({
   event,
   data,
   groupingCurrentLevel,
-  collapseAll,
+  initialCollapse,
 }: Props) {
   function getPlatform(): PlatformKey {
     const framePlatform = data.frames?.find(frame => !!frame.platform);
@@ -69,13 +66,13 @@ export function StackTrace({
 
   return (
     <StacktraceContext
-      collapseAll={collapseAll}
       projectSlug={projectSlug}
       forceFullStackTrace={hasNonAppFrames ? !data.hasSystemFrames : true}
       defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
+        initialCollapse={initialCollapse}
         type={EntryType.STACKTRACE}
         projectSlug={projectSlug}
         event={event}

@@ -60,7 +60,7 @@ def save_with_snowflake_id(
                 save_callback()
             return
         except IntegrityError:
-            instance.id = None
+            setattr(instance, "id", None)
     raise MaxSnowflakeRetryError
 
 

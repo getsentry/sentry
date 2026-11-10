@@ -42,7 +42,11 @@ from sentry.seer.entrypoints.slack.cache import (
     SlackSeerAgentMessageCache,
     SlackSeerAgentMessageCachePayload,
 )
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationError,
+    IntegrationResourceNotFoundError,
+)
 from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
@@ -56,6 +60,32 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _render_tracked(
+    data: NotificationData,
+) -> tuple[SlackRenderable, NotificationTrackingContext, set[str]]:
+    """
+    Renders a Seer Slack message with its callback buttons marked with the notification. Returns
+    the renderable, the context to record its send with, and the links and buttons it contains.
+    """
+    provider = provider_registry.get(NotificationProviderKey.SLACK)
+    template_cls = template_registry.get(data.source)
+    renderable, links = NotificationService.render_template(
+        data=data, template=template_cls(), provider=provider
+    )
+    tracking_context = NotificationTrackingContext(
+        source=data.source,
+        provider=NotificationProviderKey.SLACK,
+        category=template_cls.category,
+        notification_uuid=data.notification_uuid,
+        organization_id=data.organization_id,
+    )
+    tracked: set[str] = {
+        *links,
+        *provider.track_actions(renderable=renderable, context=tracking_context),
+    }
+    return renderable, tracking_context, tracked
 
 
 def send_thread_update(
@@ -83,11 +113,7 @@ def send_thread_update(
                 "ephemeral_user_id": ephemeral_user_id,
             }
         )
-        provider = provider_registry.get(NotificationProviderKey.SLACK)
-        template_cls = template_registry.get(data.source)
-        renderable, links = NotificationService.render_template(
-            data=data, template=template_cls(), provider=provider
-        )
+        renderable, tracking_context, tracked = _render_tracked(data)
         try:
             if ephemeral_user_id:
                 response = install.send_threaded_ephemeral_message(
@@ -105,16 +131,7 @@ def send_thread_update(
                 )
                 message_ts = response.get("ts") if response else None
             if response is not None:
-                record_sent(
-                    NotificationTrackingContext(
-                        source=data.source,
-                        provider=NotificationProviderKey.SLACK,
-                        category=template_cls.category,
-                        notification_uuid=data.notification_uuid,
-                        organization_id=data.organization_id,
-                    ),
-                    links=links,
-                )
+                record_sent(tracking_context, links=tracked)
             run_id = getattr(data, "run_id", None)
             if (
                 message_ts
@@ -143,6 +160,43 @@ def send_thread_update(
             # Retry, hopefully it's transient
             raise
     return message_ts
+
+
+def edit_thread_message(
+    *, install: SlackIntegration, channel_id: str, message_ts: str, data: NotificationData
+) -> None:
+    """
+    Re-render a message we already posted from new data, recording the edit as a send of the
+    data's notification, since the re-rendered links and buttons carry its ID.
+    Returns once there's nothing left to do, including when the message is gone. Raises
+    IntegrationError otherwise, so the caller can retry.
+    """
+    with SlackEntrypointEventLifecycleMetric(
+        interaction_type=SlackEntrypointInteractionType.EDIT_THREAD_MESSAGE,
+        integration_id=install.model.id,
+        organization_id=install.organization_id,
+    ).capture() as lifecycle:
+        lifecycle.add_extras(
+            {"channel_id": channel_id, "message_ts": message_ts, "data_source": data.source}
+        )
+        renderable, tracking_context, tracked = _render_tracked(data)
+        try:
+            install.update_message(
+                channel_id=channel_id, message_ts=message_ts, renderable=renderable
+            )
+            record_sent(tracking_context, links=tracked)
+        except IntegrationResourceNotFoundError as e:
+            lifecycle.record_halt(halt_reason=e)
+        except TimeoutError as e:
+            lifecycle.record_failure(failure_reason=e)
+            raise IntegrationError("Slack request timed out") from e
+        except IntegrationConfigurationError as e:
+            # Halts like rate limits can clear, and the edit may carry the run's final PR status.
+            lifecycle.record_halt(halt_reason=e)
+            raise
+        except IntegrationError as e:
+            lifecycle.record_failure(failure_reason=e)
+            raise
 
 
 @instrumented_task(

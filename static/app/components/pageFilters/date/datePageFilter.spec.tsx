@@ -2,9 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+
+import {DatePageFilter} from './datePageFilter';
 
 describe('DatePageFilter', () => {
   const organization = OrganizationFixture();

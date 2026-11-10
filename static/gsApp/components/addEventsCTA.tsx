@@ -7,11 +7,10 @@ import {
   type LinkButtonProps,
 } from '@sentry/scraps/button';
 
-import type {Client} from 'sentry/api';
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
 import {sendAddEventsRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
@@ -39,7 +38,6 @@ export type EventType = {
 }[keyof typeof DATA_CATEGORY_INFO];
 
 type Props = {
-  api: Client;
   organization: Organization;
   referrer: string;
   source: string;
@@ -58,11 +56,10 @@ type Props = {
  * If on a free plan and trial avaiable, we render a CTA to start/request trial
  * If free plan but no trial, render CTA to upgrade or request an upgrade
  */
-function AddEventsCTA(props: Props) {
+export function AddEventsCTA(props: Props) {
   const {
     subscription,
     organization,
-    api,
     action: _action,
     eventTypes,
     notificationType,
@@ -72,6 +69,7 @@ function AddEventsCTA(props: Props) {
     buttonProps,
   } = props;
 
+  const api = useApi();
   const [busy, setBusy] = useState(false);
 
   const wrapRequest = async (promise: Promise<void>) => {
@@ -196,5 +194,3 @@ function AddEventsCTA(props: Props) {
       );
   }
 }
-
-export default withApi(AddEventsCTA);

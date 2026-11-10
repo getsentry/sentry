@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import {IconDownload} from '@sentry/icons/download';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconLink} from '@sentry/icons/link';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -17,10 +18,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {t, tct, tn} from 'sentry/locale';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
@@ -93,28 +93,24 @@ export function InstallDetailsContent({
     isError,
     error,
     refetch,
-  } = useApiQuery<InstallDetailsApiResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            headArtifactId: artifactId,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-      retry: (failureCount, apiError: RequestError) => {
-        if (apiError?.status === 404) {
-          return false;
-        }
-        return failureCount < 2;
-      },
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<InstallDetailsApiResponse>()(
+      '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/private-install-details/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          headArtifactId: artifactId,
+        },
+        staleTime: 0,
+      }
+    ),
+    retry: (failureCount, apiError) => {
+      if (apiError instanceof RequestError && apiError.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+  });
 
   const distributionDisabledBody = (
     <Stack align="center" gap={outerGap}>
@@ -143,7 +139,7 @@ export function InstallDetailsContent({
       </Stack>
     );
   } else if (isError || !installDetails) {
-    if (error?.status === 404) {
+    if (error instanceof RequestError && error.status === 404) {
       // 404 means there's no installable file. Use the error_code/message the
       // parent passes from build-details to explain why — only show the
       // settings link when distribution is actually disabled for the project.

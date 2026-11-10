@@ -28,13 +28,14 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
 import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 type TransactionsSeriesResponse =
   | EventsStats
@@ -60,6 +61,7 @@ export function useTransactionsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval,
   } = params;
 
@@ -97,6 +99,7 @@ export function useTransactionsSeriesQuery(
       const queryParams = {
         ...restParams,
         ...(period ? {statsPeriod: period} : {}),
+        ...(samplingMode ? {sampling: samplingMode} : {}),
         excludeOther: restParams.excludeOther ? '1' : undefined,
         partial: restParams.partial ? '1' : undefined,
       };
@@ -174,9 +177,7 @@ export function useTransactionsSeriesQuery(
       );
 
       // Maintain color consistency
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
 
     return {
@@ -207,6 +208,7 @@ export function useTransactionsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -258,6 +260,7 @@ export function useTransactionsTableQuery(
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
+        ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
       return queryOptions({

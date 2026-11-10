@@ -17,7 +17,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
     channel = forms.CharField(widget=forms.TextInput())
     channel_id = forms.HiddenInput()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self._team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
 
         super().__init__(*args, **kwargs)

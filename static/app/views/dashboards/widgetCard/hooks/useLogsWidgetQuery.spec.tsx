@@ -137,7 +137,7 @@ describe('useLogsSeriesQuery', () => {
       })
     );
     expect(result.current.timeseriesResults?.map(({seriesName}) => seriesName)).toEqual([
-      'test : count()',
+      'count()',
     ]);
   });
 

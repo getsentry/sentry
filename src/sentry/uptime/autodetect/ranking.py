@@ -34,7 +34,7 @@ RANKED_MAX_SIZE = 20
 KEY_EXPIRY = ORGANIZATION_FLUSH_FREQUENCY * 2
 
 
-def add_base_url_to_rank(project: Project, base_url: str):
+def add_base_url_to_rank(project: Project, base_url: str) -> None:
     """
     Takes a project and valid base url and stores ranking information about it in Redis.
 
@@ -102,7 +102,7 @@ def delete_candidate_projects_for_org(org: Organization) -> None:
     cluster.delete(key)
 
 
-def get_candidate_urls_for_project(project: Project, limit=5) -> list[tuple[str, int]]:
+def get_candidate_urls_for_project(project: Project, limit: int = 5) -> list[tuple[str, int]]:
     """
     Gets all the candidate urls for a project. Returns a tuple of (url, times_url_seen). Urls are sorted by
     `times_url_seen` desc.

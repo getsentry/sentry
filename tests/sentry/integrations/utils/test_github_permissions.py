@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -58,7 +59,11 @@ from sentry.integrations.utils.github_permissions import (
         ),
     ],
 )
-def test_get_missing_github_app_permissions(required_permissions, permissions, expected) -> None:
+def test_get_missing_github_app_permissions(
+    required_permissions: dict[str, object],
+    permissions: dict[str, str] | None,
+    expected: list[dict[str, object]] | None,
+) -> None:
     with mock.patch.dict(
         "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
         required_permissions,
@@ -81,12 +86,12 @@ def test_levels_are_ordered_weakest_to_strongest() -> None:
         ("", None),
     ],
 )
-def test_parsing_a_level(level, expected) -> None:
+def test_parsing_a_level(level: str, expected: PermissionLevel | None) -> None:
     assert PermissionLevel.parse(level) is expected
 
 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
-def test_parse_reads_the_levels_it_knows(mock_warning) -> None:
+def test_parse_reads_the_levels_it_knows(mock_warning: MagicMock) -> None:
     parsed = parse_github_app_permissions(
         {"contents": "read", "issues": "write", "actions": "admin"}, source="installation"
     )
@@ -101,7 +106,7 @@ def test_parse_reads_the_levels_it_knows(mock_warning) -> None:
 
 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
-def test_parse_sets_aside_a_level_it_does_not_know(mock_warning) -> None:
+def test_parse_sets_aside_a_level_it_does_not_know(mock_warning: MagicMock) -> None:
     parsed = parse_github_app_permissions(
         {"contents": "write", "issues": "wrtie"}, source="installation"
     )
@@ -111,7 +116,7 @@ def test_parse_sets_aside_a_level_it_does_not_know(mock_warning) -> None:
 
 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
-def test_parse_reports_a_level_of_the_wrong_type_apart(mock_warning) -> None:
+def test_parse_reports_a_level_of_the_wrong_type_apart(mock_warning: MagicMock) -> None:
     """A level that is not a string is someone writing the constant wrong."""
     parsed = parse_github_app_permissions(
         {"contents": 2, "issues": None, "actions": "wrtie"}, source="required_permissions"
@@ -126,7 +131,7 @@ def test_parse_reports_a_level_of_the_wrong_type_apart(mock_warning) -> None:
 
 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
-def test_an_unreadable_required_level_stops_enforcing_anything(mock_warning) -> None:
+def test_an_unreadable_required_level_stops_enforcing_anything(mock_warning: MagicMock) -> None:
     """One level we cannot place means we do not trust the comparison at all."""
     required = {"contents": "wrtie", "issues": "write"}
 
@@ -139,7 +144,7 @@ def test_an_unreadable_required_level_stops_enforcing_anything(mock_warning) -> 
 
 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
-def test_an_unreadable_held_level_stops_enforcing_anything(mock_warning) -> None:
+def test_an_unreadable_held_level_stops_enforcing_anything(mock_warning: MagicMock) -> None:
     with mock.patch.dict(
         "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
         {"contents": "write"},
@@ -149,7 +154,9 @@ def test_an_unreadable_held_level_stops_enforcing_anything(mock_warning) -> None
 
 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
-def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(mock_warning) -> None:
+def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(
+    mock_warning: MagicMock,
+) -> None:
     """A non-string required level is a mistake in the codebase constant."""
     with mock.patch.dict(
         "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
@@ -186,7 +193,7 @@ def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(mock_warn
     ],
 )
 def test_get_github_permissions_update_url(
-    installation_id, account_type, account_login, expected
+    installation_id: str, account_type: str | None, account_login: str, expected: str | None
 ) -> None:
     assert (
         get_github_permissions_update_url(installation_id, account_type, account_login) == expected
@@ -213,5 +220,5 @@ def test_get_github_permissions_update_url(
         ({"last_refresh_at": 1752192000}, True),
     ],
 )
-def test_is_permissions_snapshot_stale(metadata, expected) -> None:
+def test_is_permissions_snapshot_stale(metadata: dict[str, object] | None, expected: bool) -> None:
     assert is_permissions_snapshot_stale(metadata) is expected

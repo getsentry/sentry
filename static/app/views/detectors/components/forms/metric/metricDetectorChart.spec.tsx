@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
+import {MetricDetectorChart} from './metricDetectorChart';
 
 function ApplicationMetricsChart({aggregate}: {aggregate: string}) {
   return (

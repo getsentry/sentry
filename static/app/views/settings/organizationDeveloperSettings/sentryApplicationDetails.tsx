@@ -1,31 +1,30 @@
 import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {
   sentryAppApiOptions,
   sentryAppsApiOptions,
   sentryAppTokensApiOptions,
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import {Confirm} from 'sentry/components/confirm';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -47,7 +46,6 @@ import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {selectText} from 'sentry/utils/selectText';
@@ -60,16 +58,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  granularWebhookEvents,
-  WEBHOOK_SUBSCRIPTION_CHOICES,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  getSentryAppTemplates,
-  type SentryAppTemplate,
-} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
-import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+
+import type {WebhookSubscription} from './constants';
+import {granularWebhookEvents, WEBHOOK_SUBSCRIPTION_CHOICES} from './constants';
+import {getSentryAppTemplates, type SentryAppTemplate} from './creationTemplates';
+import {PermissionsObserver} from './permissionsObserver';
 import {
   AllowedOriginsField,
   AlertableField,
@@ -82,7 +75,7 @@ import {
   VerifyInstallField,
   WebhookHeadersField,
   WebhookUrlField,
-} from 'sentry/views/settings/organizationDeveloperSettings/sentryAppFormFields';
+} from './sentryAppFormFields';
 
 const AVATAR_STYLES = {
   color: {
@@ -347,7 +340,7 @@ function useSaveSentryApp({
     formApi: Parameters<typeof setFieldErrors>[0]
   ) => {
     if (!(error instanceof RequestError)) {
-      addErrorMessage(t('Unknown Error'));
+      toast.error(t('Unknown Error'));
       return;
     }
     const responseJSON = error.responseJSON ?? {};
@@ -369,7 +362,7 @@ function useSaveSentryApp({
       Array.isArray(responseJSON.events) &&
       typeof responseJSON.events[0] === 'string'
     ) {
-      addErrorMessage(responseJSON.events[0]);
+      toast.error(responseJSON.events[0]);
       return;
     }
 
@@ -379,7 +372,7 @@ function useSaveSentryApp({
       Array.isArray(responseJSON.scopes) &&
       typeof responseJSON.scopes[0] === 'string'
     ) {
-      addErrorMessage(responseJSON.scopes[0]);
+      toast.error(responseJSON.scopes[0]);
       return;
     }
 
@@ -389,7 +382,7 @@ function useSaveSentryApp({
 
     const detail =
       typeof responseJSON.detail === 'string' ? responseJSON.detail : t('Unknown Error');
-    addErrorMessage(detail);
+    toast.error(detail);
   };
 
   const saveSentryAppMutation = useMutation({
@@ -410,7 +403,7 @@ function useSaveSentryApp({
       const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
 
       if (app) {
-        addSuccessMessage(t('%s successfully saved.', data.name));
+        toast.success(t('%s successfully saved.', data.name));
 
         // Patch the index cache so the list doesn't flash the stale name
         // on the way back to the index page.
@@ -427,7 +420,7 @@ function useSaveSentryApp({
           queryKey: sentryAppApiOptions({appSlug: app.slug}).queryKey,
         });
       } else {
-        addSuccessMessage(t('%s successfully created.', data.name));
+        toast.success(t('%s successfully created.', data.name));
       }
 
       navigate(normalizeUrl(url));
@@ -577,21 +570,27 @@ const TEMPLATE_FORMS: Record<string, React.ComponentType> = {
   'claude-routine': ClaudeRoutineTemplateForm,
 };
 
+const templateQueryParsers = {
+  template: parseAsString,
+  referrer: parseAsString,
+};
+
+const serializeTemplateQuery = createSerializer(templateQueryParsers);
+
 export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const [templateQuery] = useQueryStates(templateQueryParsers);
 
   const isInternalRoute = location.pathname.endsWith('new-internal/');
   const isPublicRoute = location.pathname.endsWith('new-public/');
 
-  const templateSlug = isInternalRoute
-    ? decodeScalar(location.query.template)
-    : undefined;
+  const templateSlug = isInternalRoute ? templateQuery.template : undefined;
   const template = getSentryAppTemplates().find(entry => entry.slug === templateSlug);
   const templateFormSlug = template?.slug;
-  const referrer = decodeScalar(location.query.referrer);
+  const referrer = templateQuery.referrer || undefined;
 
   useEffect(() => {
     if (templateFormSlug && TEMPLATE_FORMS[templateFormSlug]) {
@@ -671,7 +670,7 @@ function TemplateHeader({template}: {template: SentryAppTemplate}) {
           <Link
             to={{
               pathname: `/settings/${organization.slug}/developer-settings/new-internal/`,
-              query: {...location.query, template: undefined},
+              search: serializeTemplateQuery(location.search, {template: null}),
             }}
           >
             {t('Start from a blank integration instead')}
@@ -821,6 +820,7 @@ function SentryAppEditForm({
   const {openModal} = useModal();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const isInternal = app.status === 'internal';
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: app.slug});
@@ -841,13 +841,13 @@ function SentryAppEditForm({
         method: 'POST',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Adding token...'));
+      toast.loading(t('Adding token...'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Token successfully added.'));
+      toast.success(t('Token successfully added.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to create token'));
+      toast.error(t('Unable to create token'));
     },
   });
 
@@ -860,15 +860,49 @@ function SentryAppEditForm({
         method: 'DELETE',
       }),
     onMutate: () => {
-      addLoadingMessage(t('Removing token...'));
+      toast.loading(t('Removing token...'));
     },
     onSuccess: () => {
-      addSuccessMessage(t('Token successfully deleted.'));
+      toast.success(t('Token successfully deleted.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to delete token'));
+      toast.error(t('Unable to delete token'));
     },
   });
+
+  const deleteAppMutation = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+          path: {sentryAppIdOrSlug: app.slug},
+        }),
+        method: 'DELETE',
+      }),
+    onMutate: () => {
+      toast.loading(t('Deleting %s...', app.slug));
+    },
+    onSuccess: () => {
+      toast.success(t('%s successfully removed.', app.slug));
+      queryClient.setQueryData(
+        sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
+        old => old && {...old, json: old.json.filter(item => item.slug !== app.slug)}
+      );
+      const type = isInternal ? 'internal' : 'public';
+      navigate(
+        normalizeUrl(`/settings/${organization.slug}/developer-settings/?type=${type}`)
+      );
+    },
+    onError: () => {
+      toast.error(t('Unable to remove %s integration', app.slug));
+    },
+  });
+
+  const disableDeleteReason =
+    app.status === 'published'
+      ? t('Published integrations cannot be removed.')
+      : organization.access.includes('org:admin')
+        ? undefined
+        : t('Organization owner permissions are required for this action.');
 
   const rotateClientSecretMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
@@ -1181,7 +1215,34 @@ function SentryAppEditForm({
         </form.FieldGroup>
       </Stack>
 
-      <Flex justify="end" paddingTop="xl">
+      <Flex justify="between" paddingTop="xl">
+        {disableDeleteReason ? (
+          <Button
+            variant="danger"
+            icon={<IconDelete />}
+            disabled
+            tooltipProps={{title: disableDeleteReason}}
+          >
+            {t('Delete Integration')}
+          </Button>
+        ) : (
+          <ConfirmDelete
+            message={t(
+              'Deleting %s will also delete any and all of its installations. This is a permanent action. Do you wish to continue?',
+              app.slug
+            )}
+            confirmInput={app.slug}
+            onConfirm={() => deleteAppMutation.mutate()}
+          >
+            <Button
+              variant="danger"
+              icon={<IconDelete />}
+              busy={deleteAppMutation.isPending}
+            >
+              {t('Delete Integration')}
+            </Button>
+          </ConfirmDelete>
+        )}
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
     </form.AppForm>

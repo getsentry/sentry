@@ -31,7 +31,6 @@ export default function SeerAutomationSCMRequired() {
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const isSeerSupportedProvider = useIsSeerSupportedProvider();
 
   const {
@@ -121,13 +120,9 @@ export default function SeerAutomationSCMRequired() {
                   {t('Connect a repository')}
                 </Heading>
                 <Text variant="muted" size="md">
-                  {hasGitLabSupport
-                    ? t(
-                        'Seer requires you to have GitHub or GitLab repositories connected in order to run.'
-                      )
-                    : t(
-                        'Seer requires you to have GitHub repositories connected in order to run.'
-                      )}
+                  {t(
+                    'Seer requires you to have GitHub or GitLab repositories connected in order to run.'
+                  )}
                 </Text>
                 <Flex>
                   <LinkButton

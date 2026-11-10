@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -834,16 +834,23 @@ class RPCBase:
 
         series_by_label = {series.label: series for series in timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
-        for axis_index, pipeline in transformations.items():
+        for axis_index, axis_transformations in transformations.items():
+            has_fill = any(
+                isinstance(transformation, FillTransformation)
+                for transformation in axis_transformations
+            )
             series = series_by_label.get(y_axes[axis_index])
             timestamps = (
                 [bucket.seconds for bucket in series.buckets]
                 if series is not None
                 else output_timestamps
             )
-            values = (
+            values: list[float | None] = (
                 [
-                    process_value(point.data if point.data_present else None)
+                    cast(
+                        "float | None",
+                        process_value(point.data if point.data_present or not has_fill else None),
+                    )
                     for point in series.data_points
                 ]
                 if series is not None
@@ -851,7 +858,7 @@ class RPCBase:
             )
             filled = [False] * len(values)
             smoothed = [False] * len(values)
-            for transformation in pipeline:
+            for transformation in axis_transformations:
                 if isinstance(transformation, FillTransformation):
                     filled_timeseries = fill_timeseries(timestamps, values, config=transformation)
                     values = filled_timeseries.values

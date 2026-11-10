@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponse
@@ -18,12 +18,13 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     analytics_event_name = DevToolbarApiRequestEvent.type
 
     @cached_property
-    def factory(self):
+    def factory(self) -> RequestFactory:
         return RequestFactory()
 
     def setUp(self) -> None:
         # Allows changing the get_response mock for each test.
-        self.middleware.get_response = MagicMock(return_value=HttpResponse(status=200))
+        self.get_response = MagicMock(return_value=HttpResponse(status=200))
+        self.middleware.get_response = self.get_response
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
@@ -126,7 +127,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     def test_response_status_code(self, mock_record: MagicMock) -> None:
         request = self.factory.get("/?queryReferrer=devtoolbar")
         request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
-        self.middleware.get_response.return_value = HttpResponse(status=420)
+        self.get_response.return_value = HttpResponse(status=420)
         self.middleware(request)
 
         event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))
@@ -173,11 +174,11 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
         expected_view_name: str,
         expected_route: str,
         mock_record: MagicMock,
-        expected_org_id=None,
-        expected_org_slug=None,
-        expected_proj_id=None,
-        expected_proj_slug=None,
-    ):
+        expected_org_id: Any = None,
+        expected_org_slug: Any = None,
+        expected_proj_id: Any = None,
+        expected_proj_slug: Any = None,
+    ) -> None:
         url = path + query_string
         response: HttpResponse = getattr(self.client, method.lower())(
             url,

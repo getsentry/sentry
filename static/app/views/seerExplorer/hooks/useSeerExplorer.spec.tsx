@@ -4,7 +4,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {
   SeerExplorerChatStateProvider,
@@ -187,6 +186,7 @@ describe('useSeerExplorer', () => {
       '/monitors/mobile-builds/',
       '/monitors/my-monitors/',
       '/monitors/uptime/',
+      '/seer/investigations/:investigationId/',
     ])('sends structured JSON on structured-context route %s', async (route: string) => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => route,
@@ -336,6 +336,30 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('flags a send refused for credits', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        statusCode: 402,
+        body: {detail: 'Not enough credits'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test query');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({
+          query: 'Test query',
+          isOutOfCredits: true,
+        });
+      });
+    });
+
     it('keeps the existing chat and exposes the failed query when sending fails', async () => {
       const runId = 'run-with-history';
       const existingBlocks = [
@@ -380,7 +404,10 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Second question',
+          isOutOfCredits: false,
+        });
       });
       expect(postMock).toHaveBeenCalled();
       expect(result.current.sessionData?.status).toBe('completed');
@@ -398,7 +425,10 @@ describe('useSeerExplorer', () => {
       act(() => {
         result.current.sendMessage('Second question');
       });
-      expect(result.current.requestError).toEqual({query: 'Second question'});
+      expect(result.current.requestError).toEqual({
+        query: 'Second question',
+        isOutOfCredits: false,
+      });
       await waitFor(() => {
         expect(result.current.requestError).toBeNull();
       });
@@ -536,10 +566,9 @@ describe('useSeerExplorer', () => {
 
       // The old chat's optimistic "processing" status is rolled back in the background.
       expect(
-        getApiQueryData<SeerExplorerResponse>(
-          queryClient,
+        queryClient.getQueryData(
           seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
-        )?.session?.status
+        )?.json.session?.status
       ).toBe('completed');
     });
 
@@ -592,7 +621,11 @@ describe('useSeerExplorer', () => {
         statusCode: 500,
         // Polling stores fresher server data after the optimistic update, before the failure.
         body: () => {
-          setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, freshData);
+          queryClient.setQueryData(queryKey, {
+            json: freshData,
+            headers: {'X-Hits': 7},
+            status: 200,
+          });
           return {detail: 'Server error'};
         },
       });
@@ -607,12 +640,17 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Question');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Question',
+          isOutOfCredits: false,
+        });
       });
 
-      expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
-        freshData
-      );
+      expect(queryClient.getQueryData(queryKey)?.json).toEqual(freshData);
+      expect(queryClient.getQueryData(queryKey)).toMatchObject({
+        headers: {'X-Hits': 7},
+        status: 200,
+      });
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {
@@ -661,7 +699,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Second question');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Second question',
+          isOutOfCredits: false,
+        });
       });
 
       // Let the first request succeed and its callbacks run to completion.
@@ -672,7 +713,10 @@ describe('useSeerExplorer', () => {
         }
       });
 
-      expect(result.current.requestError).toEqual({query: 'Second question'});
+      expect(result.current.requestError).toEqual({
+        query: 'Second question',
+        isOutOfCredits: false,
+      });
     });
 
     // TanStack only calls per-call `mutate` callbacks for an observer's latest mutation, so
@@ -782,7 +826,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Will fail');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Will fail'});
+        expect(result.current.requestError).toEqual({
+          query: 'Will fail',
+          isOutOfCredits: false,
+        });
       });
 
       act(() => {
@@ -1698,31 +1745,6 @@ describe('useSeerExplorer', () => {
 
       act(() => {
         result.current.respondToUserInput('test-input-id', {});
-      });
-
-      await waitFor(() => {
-        expect(result.current.hasSentInterrupt).toBe(false);
-      });
-    });
-
-    it('clears after createPR is called', async () => {
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization,
-        additionalWrapper: SeerExplorerChatStateProvider,
-      });
-
-      expect(result.current.hasSentInterrupt).toBe(false);
-
-      act(() => {
-        result.current.interruptRun();
-      });
-
-      await waitFor(() => {
-        expect(result.current.hasSentInterrupt).toBe(true);
-      });
-
-      act(() => {
-        result.current.createPR('test-repo-name');
       });
 
       await waitFor(() => {

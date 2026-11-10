@@ -1,7 +1,10 @@
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -14,14 +17,32 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def build_expected_transformed_timeseries(
-    *args,
-    filled=None,
-    smoothed=None,
-    comparison_filled=None,
-    comparison_smoothed=None,
-    **kwargs,
-):
-    expected = build_expected_timeseries(*args, **kwargs)
+    start: datetime,
+    interval: int,
+    expected_values: object,
+    expected_comparison: object = None,
+    ignore_accuracy: bool = False,
+    sample_count: Sequence[object] | None = None,
+    sample_rate: Sequence[object] | None = None,
+    confidence: Sequence[object] | None = None,
+    *,
+    filled: Sequence[bool] | None = None,
+    smoothed: Sequence[bool] | None = None,
+    comparison_filled: Sequence[bool] | None = None,
+    comparison_smoothed: Sequence[bool] | None = None,
+) -> list[dict[str, object]]:
+    assert isinstance(expected_values, Sequence)
+    assert expected_comparison is None or isinstance(expected_comparison, Sequence)
+    expected = build_expected_timeseries(
+        start,
+        interval,
+        expected_values,
+        expected_comparison,
+        ignore_accuracy,
+        sample_count,
+        sample_rate,
+        confidence,
+    )
     for index, point in enumerate(expected):
         point["filled"] = filled[index] if filled is not None else False
         point["smoothed"] = smoothed[index] if smoothed is not None else False
@@ -49,7 +70,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, features=None):
+    def _do_request(
+        self, data: dict[str, Any], features: dict[str, bool] | None = None
+    ) -> Response:
         with self.feature(
             {
                 "organizations:discover-basic": True,
@@ -70,7 +93,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             )
 
     def _store_spans_in_buckets(
-        self, counts, start, description="foo", interval_seconds=3600
+        self,
+        counts: list[int],
+        start: datetime,
+        description: str = "foo",
+        interval_seconds: int = 3600,
     ) -> None:
         self.store_spans(
             [
@@ -88,9 +115,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         cases = [
             (
                 ["smooth(ema,3)"],
-                [2, None, 4, 4, None, None],
+                [2, 1, 3.5, 3.75, 1.875, 0.9375],
                 None,
-                [True, False, True, True, False, False],
+                [True, True, True, True, True, True],
             ),
             (
                 ["fill(locf)", "smooth(sma,2)"],
@@ -182,8 +209,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         assert smoothed["values"] == build_expected_transformed_timeseries(
             self.start,
             15_000,
-            [2, None, 6, 5, None, None],
-            smoothed=[True, False, True, True, False, False],
+            [2, 1, 3, 5, 2, 0],
+            smoothed=[True, True, True, True, True, True],
             ignore_accuracy=True,
         )
 
@@ -195,12 +222,12 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         cases: list[tuple[int, list[float | None], list[float | None], list[int], list[int]]] = [
             (
                 15,
-                [None, None, None, 8, 6, None, None, None],
-                [10, 5.5, None, None, None, None, None, None],
+                [0, 0, 0, 4, 6, 2, 0, 0],
+                [10, 5.5, 0.5, 0, 0, 0, 0, 0],
                 [0, 0, 0, 8, 4, 0, 0, 0],
                 [10, 1, 0, 0, 0, 0, 0, 0],
             ),
-            (60, [8, 6], [11, None], [8, 4], [11, 0]),
+            (60, [8, 6], [11, 5.5], [8, 4], [11, 0]),
         ]
         for interval, selected_values, other_values, selected_counts, other_counts in cases:
             response = self._do_request(
@@ -235,6 +262,32 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                     sample_rate=[1 if count else None for count in sample_counts],
                     confidence=[any_confidence if count else None for count in sample_counts],
                 )
+
+    def test_smooth_only_uses_rpc_zero_fill_in_comparison_period(self) -> None:
+        self.end = self.start + timedelta(seconds=90)
+        self._store_spans_in_buckets([2, 0, 6, 4, 0, 0], self.start, interval_seconds=15)
+        self._store_spans_in_buckets([0, 8, 0, 2, 0, 0], self.two_days_ago, interval_seconds=15)
+
+        response = self._do_request(
+            data={
+                "interval": "15s",
+                "yAxis": "count()",
+                "comparisonDelta": 24 * 60 * 60,
+                "transformations[0]": ["smooth(sma,2)"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        (timeseries,) = response.data["timeSeries"]
+        assert timeseries["values"] == build_expected_transformed_timeseries(
+            self.start,
+            15_000,
+            [2, 1, 3, 5, 2, 0],
+            [0, 4, 4, 1, 1, 0],
+            smoothed=[True, True, True, True, True, True],
+            comparison_smoothed=[True, True, True, True, True, True],
+            ignore_accuracy=True,
+        )
 
     def test_transformations_apply_to_comparison_period_independently(self) -> None:
         self.end = self.start + timedelta(seconds=90)

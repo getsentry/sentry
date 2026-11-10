@@ -14,11 +14,13 @@ from sentry.replays.usecases.ingest.event_logger import (
     emit_trace_items_to_eap,
     gen_rage_clicks,
     log_multiclick_events,
+    log_option_events,
     log_rage_click_events,
 )
 from sentry.replays.usecases.ingest.event_parser import (
     ClickEvent,
     MultiClickEvent,
+    OptionsEvent,
     ParsedEventMeta,
     TapEvent,
 )
@@ -299,3 +301,16 @@ def test_log_rage_click_events(
         assert second_call[1]["extra"]["project_id"] == 1
         assert second_call[1]["extra"]["replay_id"] == "test-replay-id"
         assert second_call[1]["extra"]["node_id"] == 2
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_option_events(mock_logger: mock.MagicMock) -> None:
+    option = OptionsEvent({"tag": "input", "value": "test"})
+    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
+
+    log_option_events(meta, project_id=1, replay_id="test-replay-id")
+
+    mock_logger.info.assert_called_once_with(
+        "sentry.replays.slow_click",
+        extra={"tag": "input", "value": "test", "project_id": 1, "replay_id": "test-replay-id"},
+    )

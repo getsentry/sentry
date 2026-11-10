@@ -18,7 +18,7 @@ from sentry.search.utils import DEVICE_CLASS
 
 
 class _TopValue(TypedDict):
-    name: str
+    name: str | None
     value: int | str
     count: int
 
@@ -50,11 +50,14 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
+        with handle_query_errors():
+            update_snuba_params_with_timestamp(
+                request, snuba_params, timestamp_key="traceTimestamp"
+            )
 
         dataset = self.get_dataset(request, organization)
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[_KeyTopValues]:
             with traces.start_span(
                 name="discover_query", attributes={"sentry.op": "discover.endpoint"}
             ):

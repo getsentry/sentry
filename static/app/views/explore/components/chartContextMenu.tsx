@@ -1,19 +1,22 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {useQueryParamsHasTransformations} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsHasTransformations,
+  useQueryParamsMode,
+} from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
   type Visualize,
@@ -42,6 +45,11 @@ export function ChartContextMenu({
 
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
+  const mode = useQueryParamsMode();
+  const yAxes = visualizeYAxes.map(visualizeYAxis => visualizeYAxis.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const items = useMemo(() => {
     const menuItems = [];
@@ -53,9 +61,10 @@ export function ChartContextMenu({
 
     if (visualizeYAxes.length === 1) {
       const yAxis = visualizeYAxes[0]!.yAxis;
-      menuItems.push(
-        getSaveAsAlertMenuItem({
+      menuItems.push({
+        ...getSaveAsAlertMenuItem({
           disabled:
+            hasTransformations ||
             isVisualizeEquation(visualizeYAxes[0]!) ||
             hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
@@ -75,8 +84,9 @@ export function ChartContextMenu({
             });
             return;
           },
-        })
-      );
+        }),
+        details: alertCaseDetails,
+      });
     } else {
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
@@ -103,45 +113,37 @@ export function ChartContextMenu({
         },
       }));
 
-      menuItems.push(
-        getSaveAsAlertMenuItem({
+      menuItems.push({
+        ...getSaveAsAlertMenuItem({
           alertsUrls,
+          disabled: hasTransformations,
           submenu: true,
           label: getCreateAlertForLabel(),
-        })
-      );
+        }),
+        details: alertCaseDetails,
+      });
     }
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
     menuItems.push({
       key: 'add-to-dashboard',
       textValue: t('Add to Dashboard'),
-      label: (
-        <Feature
-          overrideName="feature-disabled:dashboards-edit"
-          features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-        >
-          {t('Add to Dashboard')}
-        </Feature>
-      ),
-      disabled: disableAddToDashboard,
+      details: dashboardCaseDetails,
+      label: t('Add to Dashboard'),
       onAction: () => {
-        if (disableAddToDashboard) {
-          return;
-        }
         trackAnalytics('trace_explorer.save_as', {
           save_type: 'dashboard',
           ui_source: 'chart',
           organization,
         });
-        return addToDashboard(visualizeIndex);
+        return addToDashboard(visualizeIndex, {includeChartGroup: true});
       },
     });
 
     return menuItems;
   }, [
     addToDashboard,
+    alertCaseDetails,
+    dashboardCaseDetails,
     organization,
     projects,
     pageFilters,
@@ -149,6 +151,7 @@ export function ChartContextMenu({
     query,
     visualizeIndex,
     visualizeYAxes,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -164,12 +167,6 @@ export function ChartContextMenu({
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
-          disabled={hasTransformations}
-          tooltipProps={
-            hasTransformations
-              ? {title: t('Queries with transformations cannot be saved yet.')}
-              : undefined
-          }
         />
       )}
       position="bottom-end"
@@ -177,7 +174,3 @@ export function ChartContextMenu({
     />
   );
 }
-
-export const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

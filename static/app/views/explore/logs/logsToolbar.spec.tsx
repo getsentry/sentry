@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {initializeLogsTest} from 'sentry-fixture/log';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -12,15 +11,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsToolbar} from './logsToolbar';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -105,38 +105,6 @@ describe('LogsToolbar', () => {
   });
 
   describe('visualize section', () => {
-    it('restores and edits per-series transformations through the log URL', async () => {
-      const {router} = render(<LogsToolbar />, {
-        organization: OrganizationFixture({
-          ...organization,
-          features: [...organization.features, 'explore-interpolation-and-smoothing'],
-        }),
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/logs/',
-            query: {
-              aggregateField: [
-                {groupBy: 'severity'},
-                {yAxes: ['count(message)'], transformations: ['fill(zero)']},
-                {yAxes: ['avg(foo)'], transformations: ['smooth(asap,10)']},
-              ].map(field => JSON.stringify(field)),
-            },
-          },
-        },
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
-      await userEvent.click(screen.getByRole('option', {name: '3'}));
-      await waitFor(() =>
-        expect(router.location.query.aggregateField).toEqual([
-          JSON.stringify({groupBy: 'severity'}),
-          JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
-          JSON.stringify({yAxes: ['avg(foo)'], transformations: ['smooth(asap,3)']}),
-        ])
-      );
-    });
-
     it('options disabled', async () => {
       render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
 

@@ -11,16 +11,6 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  StacktraceContext,
-  useStacktraceContext,
-} from 'sentry/components/events/interfaces/stackTraceContext';
-import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
-import {
-  getMappedThreadState,
-  getThreadStateHelpText,
-  ThreadStates,
-} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {Pill} from 'sentry/components/pill';
@@ -45,7 +35,14 @@ import {ThreadSelector} from './threads/threadSelector';
 import {findBestThread} from './threads/threadSelector/findBestThread';
 import {getThreadException} from './threads/threadSelector/getThreadException';
 import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
+import {getLockReason} from './threads/threadSelector/lockReason';
+import {
+  getMappedThreadState,
+  getThreadStateHelpText,
+  ThreadStates,
+} from './threads/threadSelector/threadStates';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type Props = {
@@ -54,7 +51,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
+  initialCollapse?: boolean;
 };
 
 function getIntendedStackView(
@@ -174,7 +171,7 @@ export function Threads({
   projectSlug,
   groupingCurrentLevel,
   group,
-  collapseAll,
+  initialCollapse,
 }: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
@@ -315,7 +312,6 @@ export function Threads({
         </Fragment>
       )}
       <StacktraceContext
-        collapseAll={collapseAll}
         projectSlug={projectSlug}
         forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
         defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
@@ -324,6 +320,7 @@ export function Threads({
         }
       >
         <TraceEventDataSection
+          initialCollapse={initialCollapse}
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
@@ -399,6 +396,7 @@ export function Threads({
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence

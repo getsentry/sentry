@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from enum import Enum
+from typing import Annotated, Any, Literal, NotRequired, ReadOnly, Required, TypedDict
 
 import pytest
+from django.http import HttpRequest
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from jsonschema.exceptions import ValidationError
 from openapi_schema_validator import OAS30Validator
 from rest_framework import serializers
 
@@ -16,20 +19,32 @@ from sentry.apidocs.extensions import (
     SentryInlineResponseSerializerExtension,
     SentryResponseSerializerExtension,
 )
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.organization_investigation_block_details import (
-    OrganizationInvestigationBlockDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
-    OrganizationInvestigationBlockExecutionDetailsEndpoint,
-)
-from sentry.investigations.endpoints.schema import InvestigationSchema
-from sentry.investigations.endpoints.validators.block import BlockExecutionResumeValidator
 from sentry.investigations.endpoints.validators.investigation import InvestigationCreateValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_details import (
+    OrganizationInvestigationBlockDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_execution_details import (
+    OrganizationInvestigationBlockExecutionDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.schema import InvestigationSchema
+from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
+
+
+def test_null_only_response_field() -> None:
+    schema = resolve_type_hint(type(None))
+    validator = OAS30Validator(schema)
+
+    validator.validate(None)
+    with pytest.raises(ValidationError):
+        validator.validate("123")
+    with pytest.raises(ValidationError):
+        validator.validate({})
 
 
 class NestedDict(TypedDict):
@@ -60,9 +75,15 @@ class BasicSerializer(Serializer):
         raise NotImplementedError
 
 
-class FailSerializer(Serializer):
-    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any):
-        raise NotImplementedError
+FailSerializer = type(
+    "FailSerializer",
+    (Serializer,),
+    {
+        "serialize": lambda self, obj, attrs, user, **kwargs: (_ for _ in ()).throw(
+            NotImplementedError()
+        )
+    },
+)
 
 
 def test_sentry_response_serializer_extension() -> None:
@@ -88,7 +109,7 @@ def test_sentry_response_serializer_extension() -> None:
                 "anyOf": [
                     {"type": "integer"},
                     {"format": "double", "type": "number"},
-                    {"type": "object", "nullable": True},
+                    {"type": "object", "nullable": True, "enum": [None]},
                 ]
             },
         },
@@ -129,13 +150,63 @@ def test_sentry_inline_response_serializer_extension() -> None:
                     "anyOf": [
                         {"type": "integer"},
                         {"format": "double", "type": "number"},
-                        {"type": "object", "nullable": True},
+                        {"type": "object", "nullable": True, "enum": [None]},
                     ]
                 },
             },
             "required": ["b", "c", "d", "e", "f", "g", "h", "i"],
         },
     }
+
+
+def test_enum_literal_schema() -> None:
+    class Status(Enum):
+        QUEUED = "queued"
+        RUNNING = "running"
+        FAILED = "failed"
+
+    assert resolve_type_hint(Literal[Status.QUEUED, Status.RUNNING] | None) == {
+        "enum": ["queued", "running"],
+        "type": "string",
+        "nullable": True,
+    }
+
+
+class ItemQualifiersResponse(TypedDict):
+    plain: str
+    not_required: NotRequired[str]
+    annotated: NotRequired[Annotated[str, "meta"]]
+    read_only: ReadOnly[NotRequired[str]]
+
+
+class PartialResponse(TypedDict, total=False):
+    plain: str
+    required: Required[str]
+
+
+class InheritedQualifiersResponse(PartialResponse):
+    child_plain: str
+    child_not_required: NotRequired[str]
+
+
+def test_typed_dict_item_qualifiers_with_postponed_annotations() -> None:
+    # This module uses `from __future__ import annotations`, under which
+    # `__required_keys__` ignores Required and NotRequired.
+    assert resolve_type_hint(ItemQualifiersResponse) == {
+        "type": "object",
+        "properties": {
+            "plain": {"type": "string"},
+            "not_required": {"type": "string"},
+            "annotated": {"type": "string"},
+            "read_only": {"type": "string"},
+        },
+        "required": ["plain"],
+    }
+    assert resolve_type_hint(PartialResponse)["required"] == ["required"]
+    assert resolve_type_hint(InheritedQualifiersResponse)["required"] == [
+        "child_plain",
+        "required",
+    ]
 
 
 def test_sentry_fails_when_serializer_not_typed() -> None:
@@ -228,13 +299,15 @@ def test_investigation_delete_schema_requires_camel_case_versions() -> None:
         ),
     ],
 )
-def test_investigation_polymorphic_requests_match_validation(serializer, payload, valid) -> None:
+def test_investigation_polymorphic_requests_match_validation(
+    serializer: type[serializers.Serializer], payload: dict[str, object], valid: bool
+) -> None:
     class ExampleEndpoint(Endpoint):
         permission_classes = ()
         schema = InvestigationSchema()
 
         @extend_schema(request=serializer, responses={204: None})
-        def post(self, request):
+        def post(self, request: HttpRequest) -> None:
             pass
 
     schema = generate_schema("investigations/", view=ExampleEndpoint)

@@ -2,11 +2,12 @@ import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {
   BufferedInput,
   type ParameterDescription,
 } from 'sentry/views/discover/table/queryField';
+
+import {sortSelectedFirst} from './selectRow';
 
 export function AggregateParameterField({
   parameter,

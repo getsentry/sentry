@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import qs from 'query-string';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -185,32 +185,107 @@ describe('MetricPanel', () => {
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
   });
 
-  it.each([
-    new VisualizeEquation('equation|1 + 2'),
-    new VisualizeFunction('count(value,bar,distribution,none)', {
-      chartType: ChartType.HEATMAP,
-    }),
-  ])(
-    'keeps the chart visible without transformation controls for $kind $chartType',
-    async visualize => {
-      render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-        organization: {
-          ...organization,
-          features: [...organization.features, 'explore-interpolation-and-smoothing'],
-        },
-        additionalWrapper: createWrapper({
-          queryParams: queryParams.replace({aggregateFields: [visualize]}),
-          traceMetric,
+  it('counts each top-N group once across transformed series', async () => {
+    setupEventsMock(
+      createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
+      [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [
+          {group: 'api', sampleCounts: [5, 10]},
+          {group: 'worker', sampleCounts: [10, 20]},
+          {group: null, sampleCounts: [100, 100]},
+        ].flatMap(({group, sampleCounts}) =>
+          sampleCounts.map(sampleCount =>
+            TimeSeriesFixture({
+              yAxis: 'sum(value)',
+              groupBy: group ? [{key: 'service.name', value: group}] : null,
+              meta: {
+                valueType: 'integer',
+                valueUnit: null,
+                interval: 1000,
+                isOther: group === null,
+              },
+              values: [{timestamp: Date.now(), value: 5, sampleCount, sampleRate: 1}],
+            })
+          )
+        ),
+      },
+    });
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        traceMetric,
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('sum(value)'),
+            new VisualizeFunction('sum(value)', {transformations: ['smooth(sma,5)']}),
+            {groupBy: 'service.name'},
+          ],
         }),
-      });
+      }),
+    });
 
-      expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Add Transformation'})
-      ).not.toBeInTheDocument();
-    }
-  );
+    await waitFor(() =>
+      expect(screen.getByTestId('metric-panel')).toHaveTextContent(
+        '30 data points for top 2 groups'
+      )
+    );
+  });
+
+  it('keeps the chart visible without transformation controls for heat maps', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('count(value,bar,distribution,none)', {
+              chartType: ChartType.HEATMAP,
+            }),
+          ],
+        }),
+        traceMetric,
+      }),
+    });
+
+    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows transformation controls for equations', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeEquation('equation|1 + 2', {transformations: ['fill(zero)']}),
+          ],
+        }),
+        traceMetric,
+      }),
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Remove transformation'})
+    ).toBeInTheDocument();
+  });
 
   describe('dropped data layer', () => {
     function mockDroppedData() {
@@ -222,7 +297,7 @@ describe('MetricPanel', () => {
         ],
         body: {
           meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture()],
+          droppedEvents: [OutcomeRowFixture()],
           acceptedEvents: [],
         },
       });

@@ -1,4 +1,5 @@
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import type {SettingsRouteHandle} from 'sentry/views/settings/types';
 
 /**
  * This is our "custom" route object. It varies a bit from React Router's
@@ -15,7 +16,8 @@ interface BaseRouteObject {
    */
   customerDomainOnlyRoute?: true;
 
-  handle?: Record<string, unknown> & {settingsBreadcrumb?: SettingsBreadcrumb};
+  handle?: Record<string, unknown> &
+    SettingsRouteHandle & {settingsBreadcrumb?: SettingsBreadcrumb};
   /**
    * Is a index route
    */

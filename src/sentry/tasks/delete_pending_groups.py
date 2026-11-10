@@ -11,12 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
 from sentry.utils import metrics
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    viewer_context_scope,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +70,9 @@ def delete_pending_groups() -> None:
     for (project_id, organization_id), group_ids in groups_by_project.items():
         with viewer_context_scope(
             ViewerContext(
-                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=organization_id,
                 project_id=project_id,
+                actor=Actor(type=ActorType.SYSTEM),
             )
         ):
             total_tasks += schedule_group_deletion_tasks(project_id, group_ids)

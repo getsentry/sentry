@@ -1,0 +1,40 @@
+---
+title: Grafana Settings
+description: Save and validate a Grafana stack URL and token together.
+category: forms
+source: sentry/views/settings/organizationIntegrations/grafanaIntegrationForm
+---
+
+import {GrafanaIntegrationForm} from 'sentry/views/settings/organizationIntegrations/grafanaIntegrationForm';
+import * as Storybook from 'sentry/stories';
+
+Use this form for an installed Grafana integration. Changing stacks requires submitting the URL and new token together. A blank token keeps the saved token, and Save and test can re-check an unchanged connection.
+
+## Settings
+
+The demo uses a successful mock save and makes no API requests. Use synthetic credentials.
+
+<Storybook.Demo>
+  <GrafanaIntegrationForm
+    initialUrl="https://example-stack.grafana.net"
+    mutationOptions={{mutationFn: async () => {}}}
+  />
+</Storybook.Demo>
+
+```jsx
+<GrafanaIntegrationForm
+  initialUrl="https://example-stack.grafana.net"
+  mutationOptions={{mutationFn: async () => {}}}
+/>
+```
+
+## Props
+
+| Prop              | Purpose                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `initialUrl`      | The saved URL returned by the integration API.                       |
+| `mutationOptions` | Saves `{url, token}` and refreshes the integration query on success. |
+
+## Accessibility
+
+Both inputs have visible labels and help text. Save and test submits with the keyboard, fields are disabled while saving, and connection errors are announced in an alert. A successful save clears the token input.

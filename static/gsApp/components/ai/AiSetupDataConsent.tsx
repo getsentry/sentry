@@ -9,8 +9,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -78,7 +78,6 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
     shouldShowBilling &&
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
@@ -211,7 +210,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         icon={<IconRefresh size="xs" />}
                         onClick={async () => {
                           await refetch();
-                          addSuccessMessage(t('Refreshed Seer quota'));
+                          toast.success(t('Refreshed Seer quota'));
                         }}
                         size="md"
                         variant="secondary"
@@ -285,13 +284,9 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
       </SingleCard>
       {warnAboutSCMIntegration && (
         <Alert variant="warning" showIcon={false}>
-          {hasGitLabSupport
-            ? t(
-                'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-              )
-            : t(
-                'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-              )}
+          {t(
+            'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+          )}
         </Alert>
       )}
     </Stack>

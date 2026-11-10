@@ -124,19 +124,6 @@ class ProjectTest(APITestCase, TestCase):
         assert team.id in {t.id for t in teams}
 
     @patch("sentry.models.project.locks.get")
-    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
-        # self.organization is cached property, which means it will be created
-        # only if it is accessed, so we need to simulate access and all potential mock
-        # calls before resetting the mock
-        assert self.organization
-        # Ensure the mock starts clean before the save operation
-        mock_lock.reset_mock()
-        Project.objects.create(organization=self.organization)
-        mock_lock.assert_called_once_with(
-            f"slug:project:{self.organization.id}", duration=5, name="project_slug"
-        )
-
-    @patch("sentry.models.project.locks.get")
     def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
         # self.project is cached property, which means it will be created
         # only if it is accessed, so we need to simulate access and all potential mock
@@ -158,11 +145,11 @@ class ProjectTest(APITestCase, TestCase):
         self.project.remove_team(team)
 
         rule.refresh_from_db()
-        assert rule.owner_team_id is None
+        assert rule.owner_team is None
         assert rule.owner_user_id is None
 
         alert_rule.refresh_from_db()
-        assert alert_rule.team_id is None
+        assert alert_rule.team is None
         assert alert_rule.user_id is None
 
     def test_project_detectors(self) -> None:
@@ -321,7 +308,7 @@ class TestProjectTransfer(TestCase):
         assert Project.objects.filter(organization=self.from_org).count() == 0
 
     def test_transfer_to_organization_releases(self) -> None:
-        def project_props(proj: Project):
+        def project_props(proj: Project) -> dict[str, object]:
             return {
                 "id": proj.id,
                 "slug": proj.slug,
@@ -1038,11 +1025,11 @@ class CopyProjectSettingsTest(TestCase):
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
-    def assert_other_project_settings_not_changed(self):
+    def assert_other_project_settings_not_changed(self) -> None:
         # other_project should not have changed. This should check that.
         self.assert_settings_copied(self.other_project)
 
-    def assert_settings_copied(self, project):
+    def assert_settings_copied(self, project: Project) -> None:
         for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
@@ -1113,7 +1100,7 @@ class CopyProjectSettingsTest(TestCase):
 
 @control_silo_test
 class FilterToSubscribedUsersTest(TestCase):
-    def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
+    def run_test(self, users: Iterable[User], expected_users: Iterable[User]) -> None:
         recipients = get_notification_recipients(
             recipients=Actor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,

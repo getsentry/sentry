@@ -3,20 +3,13 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
@@ -25,15 +18,14 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
-import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsCrossEvents,
@@ -47,7 +39,10 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  serializeVisualizes,
+} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   hasConditionalAggregateFilter,
@@ -59,7 +54,6 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
   const {updateQuery, saveQuery} = useSpansSaveQuery();
-  const location = useLocation();
   const organization = useOrganization();
 
   const {projects} = useProjects();
@@ -84,7 +78,9 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
     [visualizeFunctions]
   );
-  const [caseInsensitive] = useCaseInsensitivity();
+  const yAxes = visualizes.map(visualize => visualize.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -96,7 +92,6 @@ export function ToolbarSaveAs() {
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-  const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(withReadableConditionalFilter(yAxis));
@@ -137,16 +132,16 @@ export function ToolbarSaveAs() {
       label: <span>{t('Existing Query')}</span>,
       onAction: async () => {
         try {
-          addLoadingMessage(t('Updating query...'));
+          toast.loading(t('Updating query...'));
           await updateQuery();
-          addSuccessMessage(t('Query updated successfully'));
+          toast.success(t('Query updated successfully'));
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'update_query',
             ui_source: 'toolbar',
             organization,
           });
         } catch (error) {
-          addErrorMessage(t('Failed to update query'));
+          toast.error(t('Failed to update query'));
           Sentry.captureException(error);
         }
       },
@@ -172,26 +167,23 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
-
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  items.push({
+    ...getSaveAsAlertMenuItem({
+      alertsUrls,
+      submenu: true,
+      disabled: hasTransformations,
+    }),
+    details: alertCaseDetails,
+  });
 
   const chartOptions = useMemo(() => {
-    return visualizeYAxes.map((yAxis, index) => {
-      const dedupedYAxes = [yAxis];
-      const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(withReadableConditionalFilter(yaxis));
-        return func ? prettifyParsedFunction(func) : undefined;
-      });
+    return visualizes.map((visualize, index) => {
+      const func = parseFunction(withReadableConditionalFilter(visualize.yAxis));
 
       return {
         key: String(index),
-        label: formattedYAxes.filter(Boolean).join(', '),
+        label: func ? prettifyParsedFunction(func) : visualize.yAxis,
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
-
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'dashboard',
             ui_source: 'toolbar',
@@ -201,25 +193,17 @@ export function ToolbarSaveAs() {
         },
       };
     });
-  }, [addToDashboard, disableAddToDashboard, organization, visualizeYAxes]);
+  }, [addToDashboard, organization, visualizes]);
 
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
+    details: dashboardCaseDetails,
     submenu: chartOptions.length > 1 ? true : false,
-    label: (
-      <Feature
-        overrideName="feature-disabled:dashboards-edit"
-        features="organizations:dashboards-edit"
-        renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
-      >
-        {t('Dashboard widget')}
-      </Feature>
-    ),
-    disabled: disableAddToDashboard,
+    label: t('Dashboard widget'),
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
-      if (disableAddToDashboard || chartOptions.length > 1) {
+      if (chartOptions.length > 1) {
         return;
       }
 
@@ -249,11 +233,7 @@ export function ToolbarSaveAs() {
       ),
       !valueIsEqual(locationSortByString, singleQuery?.orderby),
       !valueIsEqual(fields, singleQuery?.fields),
-      !valueIsEqual(
-        visualizes.map(visualize => visualize.serialize()),
-        singleQuery?.visualize,
-        true
-      ),
+      !valueIsEqual(serializeVisualizes(visualizes), singleQuery?.visualize, true),
       !valueIsEqual(savedQuery.crossEvents ?? [], crossEvents ?? [], true),
       !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
       !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
@@ -288,78 +268,26 @@ export function ToolbarSaveAs() {
     return null;
   }
 
-  const canCompareQueries = visualizeFunctions.length >= 2;
-
   return (
-    <SaveStyledToolbarSection data-test-id="section-save-as">
-      <Grid flow="column" align="center" gap="md">
-        <DropdownMenu
-          items={items}
-          trigger={triggerProps => (
-            <Container width="100%">
-              {containerProps => (
-                <OverlayTrigger.Button
-                  {...mergeProps(triggerProps, containerProps)}
-                  showChevron={false}
-                  variant="primary"
-                  disabled={hasTransformations}
-                  tooltipProps={
-                    hasTransformations
-                      ? {title: t('Queries with transformations cannot be saved yet.')}
-                      : undefined
-                  }
-                  aria-label={t('Save as')}
-                >
-                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-                </OverlayTrigger.Button>
-              )}
-            </Container>
+    <DropdownMenu
+      items={items}
+      trigger={triggerProps => (
+        <Container width={{zero: '100%', sm: 'auto'}}>
+          {containerProps => (
+            <OverlayTrigger.Button
+              {...mergeProps(triggerProps, containerProps)}
+              showChevron={false}
+              variant="primary"
+              aria-label={t('Save as')}
+            >
+              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+            </OverlayTrigger.Button>
           )}
-        />
-
-        <WideLinkButton
-          aria-label={t('Compare')}
-          disabled={hasCrossEvents || !canCompareQueries}
-          onClick={() =>
-            trackAnalytics('trace_explorer.compare', {
-              organization,
-            })
-          }
-          to={generateExploreCompareRoute({
-            organization,
-            mode,
-            location,
-            queries: visualizeFunctions.map(visual => ({
-              query,
-              groupBys,
-              sortBys,
-              yAxes: [visual.yAxis],
-              chartType: visual.chartType,
-              caseInsensitive: caseInsensitive ? '1' : undefined,
-            })),
-          })}
-          tooltipProps={
-            hasCrossEvents
-              ? {title: t('Cross-event queries cannot be compared.')}
-              : canCompareQueries
-                ? undefined
-                : {title: t('Add two or more charts to compare chart queries.')}
-          }
-        >
-          {t('Compare Queries')}
-        </WideLinkButton>
-      </Grid>
-    </SaveStyledToolbarSection>
+        </Container>
+      )}
+    />
   );
 }
-
-const WideLinkButton = styled(LinkButton)`
-  width: 100%;
-`;
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;
 
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};

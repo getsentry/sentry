@@ -7,6 +7,7 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {
@@ -18,8 +19,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
@@ -34,15 +35,14 @@ import type {Member, Organization, Team, TeamMember} from 'sentry/types/organiza
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {useTeamDetailsOutlet} from 'sentry/views/settings/organizationTeams/teamDetails';
-import {TeamMembersRow} from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
+import {useTeamDetailsOutlet} from './teamDetails';
+import {TeamMembersRow} from './teamMembersRow';
 import {getButtonHelpText} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -54,10 +54,12 @@ const COLUMNS: TableColumnConfig[] = [
 function getTeamMembersApiOptions({
   organization,
   teamId,
-  location,
+  cursor,
+  query,
 }: {
-  location: ReturnType<typeof useLocation>;
+  cursor: string | null;
   organization: Organization;
+  query: string | null;
   teamId: string;
 }) {
   return apiOptions.as<TeamMember[]>()(
@@ -65,8 +67,8 @@ function getTeamMembersApiOptions({
     {
       path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamId},
       query: {
-        cursor: location.query.cursor,
-        query: location.query.query,
+        cursor: cursor ?? undefined,
+        query: query ?? undefined,
       },
       staleTime: 30_000,
     }
@@ -200,7 +202,10 @@ export default function TeamMembers() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const location = useLocation();
+  const [{cursor, query}] = useQueryStates({
+    cursor: parseAsString,
+    query: parseAsString,
+  });
   const {team} = useTeamDetailsOutlet();
 
   const {
@@ -209,7 +214,7 @@ export default function TeamMembers() {
     isLoading: isTeamMembersLoading,
     refetch: refetchTeamMembers,
   } = useQuery({
-    ...getTeamMembersApiOptions({organization, teamId: team.slug, location}),
+    ...getTeamMembersApiOptions({organization, teamId: team.slug, cursor, query}),
     select: selectJsonWithHeaders,
   });
   const teamMembers = teamMembersResp?.json ?? [];
@@ -230,7 +235,8 @@ export default function TeamMembers() {
     },
     onSuccess: (_data, variables) => {
       queryClient.setQueryData(
-        getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
+        getTeamMembersApiOptions({organization, teamId: team.slug, cursor, query})
+          .queryKey,
         existingData => {
           if (!existingData) {
             return existingData;
@@ -241,12 +247,10 @@ export default function TeamMembers() {
           };
         }
       );
-      addSuccessMessage(t('Successfully removed member from team.'));
+      toast.success(t('Successfully removed member from team.'));
     },
     onError: () => {
-      addErrorMessage(
-        t('There was an error while trying to remove a member from the team.')
-      );
+      toast.error(t('There was an error while trying to remove a member from the team.'));
     },
   });
 
@@ -270,9 +274,10 @@ export default function TeamMembers() {
       );
     },
     onSuccess: (_data, variables) => {
-      addSuccessMessage(t('Successfully changed role for team member.'));
+      toast.success(t('Successfully changed role for team member.'));
       queryClient.setQueryData(
-        getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
+        getTeamMembersApiOptions({organization, teamId: team.slug, cursor, query})
+          .queryKey,
         existingData => {
           if (!existingData) {
             return existingData;
@@ -295,7 +300,7 @@ export default function TeamMembers() {
       );
     },
     onError: () => {
-      addErrorMessage(
+      toast.error(
         t('There was an error while trying to change the roles for a team member.')
       );
     },
@@ -311,7 +316,8 @@ export default function TeamMembers() {
     },
     onSuccess: (_data, {orgMember}) => {
       queryClient.setQueryData(
-        getTeamMembersApiOptions({organization, teamId: team.slug, location}).queryKey,
+        getTeamMembersApiOptions({organization, teamId: team.slug, cursor, query})
+          .queryKey,
         existingData => {
           if (!existingData) {
             return existingData;
@@ -322,10 +328,10 @@ export default function TeamMembers() {
           };
         }
       );
-      addSuccessMessage(t('Successfully added member to team.'));
+      toast.success(t('Successfully added member to team.'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to add team member.'));
+      toast.error(t('Unable to add team member.'));
     },
   });
 

@@ -7,12 +7,11 @@ import abc
 from typing import Any
 
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
-from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell.model import (
     RpcEmptyResult,
-    RpcInteractionStatsResult,
     RpcPlatformExternalIssueResult,
     RpcSelectRequesterResult,
     RpcServiceHookProjectsResult,
@@ -38,10 +37,6 @@ class SentryAppCellService(RpcService):
         from sentry.sentry_apps.services.cell.impl import DatabaseBackedSentryAppCellService
 
         return DatabaseBackedSentryAppCellService()
-
-    def get_component_interaction_key(self, sentry_app_slug: str, component_type: str) -> str:
-        """Combines SentryApp.slug and SentryAppComponent.type to create a unique key for TSDB metrics."""
-        return f"{sentry_app_slug}:{component_type}"
 
     @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
@@ -150,36 +145,6 @@ class SentryAppCellService(RpcService):
         Deletes service hook projects for an installation.
         Validates that the caller has access to all required projects.
         """
-        pass
-
-    @cell_rpc_method(
-        ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
-    )
-    @abc.abstractmethod
-    def get_interaction_stats(
-        self,
-        *,
-        sentry_app: RpcSentryApp,
-        component_types: list[str],
-        since: float,
-        until: float,
-        resolution: int | None = None,
-    ) -> RpcInteractionStatsResult:
-        """Gets TSDB stats for Sentry App views and component interactions."""
-        pass
-
-    @cell_rpc_method(
-        ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
-    )
-    @abc.abstractmethod
-    def record_interaction(
-        self,
-        *,
-        sentry_app: RpcSentryApp,
-        tsdb_field: str,
-        component_type: str | None = None,
-    ) -> RpcEmptyResult:
-        """Records a TSDB metric for Sentry App interactions."""
         pass
 
 

@@ -1,14 +1,17 @@
 import {useCallback, useMemo} from 'react';
 
-import {AUTOFIX_TTL_IN_DAYS} from 'sentry/components/events/autofix/types';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AUTOFIX_TTL_IN_DAYS} from './types';
 
 const BASE_SUPPORTED_PROVIDERS = [
   'github',
   'integrations:github',
   'github_enterprise',
   'integrations:github_enterprise',
+  'gitlab',
+  'integrations:gitlab',
 ];
 
 /**
@@ -19,10 +22,6 @@ const FEATURE_GATED_PROVIDERS: Array<{
   flag: string;
   providerIds: string[];
 }> = [
-  {
-    flag: 'seer-gitlab-support',
-    providerIds: ['gitlab', 'integrations:gitlab'],
-  },
   {
     flag: 'seer-cursor-origin-support',
     providerIds: ['cursor_origin', 'integrations:cursor_origin'],

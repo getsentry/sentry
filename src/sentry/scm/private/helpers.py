@@ -4,18 +4,22 @@ from typing import NamedTuple, cast
 
 import sentry_sdk
 from django.db.models import Q
-from scm.errors import SCMCodedError, UnhandledException
+from scm import Secret
+from scm.errors import ResourceServiceUnavailable, SCMCodedError, UnhandledException
+from scm.git.types import GitOperation
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException, RpcResponseException
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 
@@ -27,7 +31,7 @@ class Fetchers(NamedTuple):
     fetch_provider: Callable[[int, Repository], Provider | None]
 
 
-def make_fetchers() -> Fetchers:
+def make_fetchers(*, disable_proxy_retries: bool = False) -> Fetchers:
     """Return the repository and provider lookups to build one SourceCodeManager with.
 
     Both lookups can need the repository's integration, and fetching it is an RPC to the control silo,
@@ -37,7 +41,11 @@ def make_fetchers() -> Fetchers:
     get_integration = functools.cache(_get_integration)
     return Fetchers(
         fetch_repository=functools.partial(fetch_repository, get_integration=get_integration),
-        fetch_provider=functools.partial(fetch_service_provider, get_integration=get_integration),
+        fetch_provider=functools.partial(
+            fetch_service_provider,
+            get_integration=get_integration,
+            disable_proxy_retries=disable_proxy_retries,
+        ),
     )
 
 
@@ -53,6 +61,7 @@ def fetch_service_provider(
     repository: Repository,
     *,
     get_integration: IntegrationGetter = _get_integration,
+    disable_proxy_retries: bool = False,
 ) -> Provider | None:
     integration = get_integration(organization_id, repository["integration_id"])
     if not integration:
@@ -62,6 +71,9 @@ def fetch_service_provider(
         client = integration.get_installation(organization_id=organization_id).get_client()
     except (IntegrationError, OrganizationIntegrationNotFound):
         return None
+
+    if isinstance(client, IntegrationProxyClient):
+        client.disable_proxy_retries = disable_proxy_retries
 
     if integration.provider in ("github", "github_enterprise"):
         return GitHubProvider(client, organization_id, repository)
@@ -73,6 +85,35 @@ def fetch_service_provider(
         )
     else:
         return None
+
+
+def fetch_access_token(repository: Repository, operation: GitOperation) -> Secret | None:
+    """Return a token that can run git against the repository, minted or refreshed in control.
+
+    The token is the integration's: an installation token for GitHub and Cursor Origin, or the OAuth
+    token of the user who installed GitLab. It isn't scoped to the repository or the operation, so a
+    fetch gets the same token as a push. It's wrapped in a Secret right away, so the frames an
+    error report carries show it as [Filtered].
+
+    Raises ResourceServiceUnavailable if control can't be reached, which GitServer answers with a
+    503 that Seer retries. None, which GitServer answers with a 502, means control answered but
+    has no token for the repository.
+    """
+    try:
+        access_token = integration_service.get_access_token(
+            integration_id=repository["integration_id"],
+            organization_id=repository["organization_id"],
+        )
+    except (RpcRemoteException, RpcResponseException):
+        # Control couldn't be reached, or answered with something other than an RPC response,
+        # such as a load balancer's error page. Both usually pass, so the request is worth
+        # retrying. Answered as an uncaught exception, it would be a 500 that git shows only as
+        # "HTTP 500".
+        sentry_sdk.capture_exception()
+        raise ResourceServiceUnavailable(
+            detail="Sentry could not reach its control silo for a provider token. The request can be retried."
+        ) from None
+    return Secret(access_token.token) if access_token is not None else None
 
 
 def fetch_repository(
@@ -127,10 +168,7 @@ def fetch_repository(
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
     elif provider_name == "gitlab":
-        integration = integration_service.get_integration(
-            integration_id=repo.integration_id,
-            organization_id=organization_id,
-        )
+        integration = get_integration(organization_id, repo.integration_id)
         if integration:
             # The same instance URL the GitLab API client and source links are built from, so it
             # keeps the scheme and any path prefix of a self-hosted instance. Installs from older

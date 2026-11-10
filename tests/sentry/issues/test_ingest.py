@@ -1,8 +1,9 @@
 from collections import namedtuple
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from hashlib import md5
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 
@@ -51,12 +52,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -81,7 +77,10 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_id", "occurrence_id"],
             groupby=None,
-            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+            filter_keys={
+                "project_id": [self.project.id],
+                "event_id": cast("Sequence[int]", [event.event_id]),
+            },
             tenant_ids={"referrer": "r", "organization_id": 1},
         )
         assert len(result["data"]) == 1
@@ -279,7 +278,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
             name="Test Metric Detector",
             type="metric_issue",
             enabled=True,
-            config={"threshold_period": 1, "detection_type": "static"},
+            config={"detection_type": "static"},
             workflow_condition_group=condition_group,
         )
         _ = AlertRuleDetector.objects.create(

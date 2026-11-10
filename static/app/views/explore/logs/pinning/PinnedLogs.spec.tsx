@@ -6,13 +6,14 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
+
+import {PinnedLogs} from './PinnedLogs';
+import {useLogsPinning} from './useLogsPinning';
+import {usePinnedLogsQuery} from './usePinnedLogsQuery';
 
 const organization = OrganizationFixture({
   features: ['ourlogs-enabled'],

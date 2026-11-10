@@ -1,9 +1,10 @@
-import * as qs from 'query-string';
+import {createLoader} from 'nuqs';
 
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 
 import type {TraceDrawerActionKind} from './traceDrawer/details/utils';
 import type {TraceShape, TraceTree} from './traceModels/traceTree';
@@ -15,6 +16,8 @@ export type TraceTreeSource =
   | 'issue_details_trace_preview'
   | 'issue_details_span_evidence'
   | 'issue_details_anr_root_cause';
+
+const loadTraceAnalyticsQueryParams = createLoader({source: parseAsRawList});
 
 const trackTraceSuccessState = (
   tree: TraceTree,
@@ -38,14 +41,14 @@ const trackTraceSuccessState = (
     .filter(p => projectSlugs.includes(p.slug))
     .map(project => project?.platform ?? '');
 
-  const query = qs.parse(location.search);
+  const {source: referrer} = loadTraceAnalyticsQueryParams(location.search);
 
   trackAnalytics('trace.metadata', {
     shape: tree.shape,
     // round trace_duration_seconds to nearest two decimal places
     trace_duration_seconds: Math.round(trace_duration_seconds * 100) / 100,
     has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
-    referrer: query.source?.toString() || null,
+    referrer: referrer.join(',') || null,
     num_root_children: tree.root.children.length,
     num_nodes: tree.list.length,
     project_platforms: projectPlatforms,

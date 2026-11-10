@@ -51,6 +51,7 @@
   ],
   "references": [
     {"path": "./static/packages/icons"},
-    {"path": "./static/packages/scraps/tsconfig.test.json"}
+    {"path": "./static/packages/scraps/tsconfig.test.json"},
+    {"path": "./static/packages/search-syntax"}
   ]
 }

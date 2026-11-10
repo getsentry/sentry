@@ -1,9 +1,12 @@
+from collections.abc import Mapping
 from functools import cached_property
-from unittest.mock import patch
+from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 import orjson
 import pytest
 import responses
+from requests import PreparedRequest
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.constants import ObjectStatus
@@ -60,14 +63,14 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             self.gitlab_id = 123
 
     @cached_property
-    def provider(self):
+    def provider(self) -> GitlabRepositoryProvider:
         return GitlabRepositoryProvider("gitlab")
 
     def tearDown(self) -> None:
         super().tearDown()
         responses.reset()
 
-    def add_create_repository_responses(self, repository_config):
+    def add_create_repository_responses(self, repository_config: Mapping[str, Any]) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
@@ -80,10 +83,12 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def get_repository(self, **kwargs) -> Repository:
+    def get_repository(self, **kwargs: Any) -> Repository:
         return Repository.objects.get(**kwargs)
 
-    def assert_repository(self, repository_config, organization_id=None):
+    def assert_repository(
+        self, repository_config: dict[str, Any], organization_id: int | None = None
+    ) -> None:
         instance = self.integration.metadata["instance"]
 
         external_id = "{}:{}".format(instance, repository_config["id"])
@@ -104,7 +109,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
     @responses.activate
     @patch("sentry.integrations.gitlab.client.metrics.incr")
-    def test_create_repository(self, incr) -> None:
+    def test_create_repository(self, incr: MagicMock) -> None:
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
@@ -112,8 +117,8 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
     @responses.activate
     def test_create_repository_verify_payload(self) -> None:
-        def request_callback(request):
-            payload = orjson.loads(request.body)
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            payload = orjson.loads(cast(bytes, request.body))
             assert "url" in payload
             assert payload["push_events"]
             assert payload["merge_requests_events"]
@@ -168,8 +173,8 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         response = self.create_repository(self.default_repository_config, self.integration.id)
         responses.reset()
 
-        def request_callback(request):
-            payload = orjson.loads(request.body)
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            payload = orjson.loads(cast(bytes, request.body))
             assert "url" in payload
             assert payload["push_events"]
             assert payload["merge_requests_events"]
@@ -230,7 +235,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         repo = self.get_repository(pk=response.data["id"])
         responses.reset()
 
-        def create(request):
+        def create(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
             with assume_test_silo_mode(SiloMode.CELL):
                 Repository.objects.filter(id=repo.id).update(status=ObjectStatus.DISABLED)
             return 201, {}, '{"id": 100}'

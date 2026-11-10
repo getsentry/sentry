@@ -7,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {EventTagView} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/tag';
-import {EventTagsView} from 'sentry/components/seer/markdown/embeds/components/event/eventViews/tags';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -19,6 +17,8 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
+import {EventTagView} from './eventViews/tag';
+import {EventTagsView} from './eventViews/tags';
 import {getEventLinkTitle} from './eventLink';
 import {makeEventPathname, makeIssueDistributionsPathname} from './eventPathnames';
 

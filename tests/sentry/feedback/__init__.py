@@ -50,10 +50,10 @@ def mock_feedback_event(
 
 
 class MockSeerResponse:
-    def __init__(self, status: int, json_data: dict):
+    def __init__(self, status: int, json_data: object) -> None:
         self.status = status
         self.json_data = json_data
         self.data = json.dumps(json_data)
 
-    def json(self):
+    def json(self) -> object:
         return self.json_data

@@ -2,10 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {
-  generateReleaseMarkLines,
-  releaseMarkLinesLabels,
-} from 'sentry/views/explore/releases/detail/utils';
+import {generateReleaseMarkLines, releaseMarkLinesLabels} from './utils';
 
 const theme = ThemeFixture();
 

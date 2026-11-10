@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -11,11 +12,14 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.endpoints.organization_trace_meta_types import OrganizationTraceMetaResponse
+from sentry.api.endpoints.organization_trace_meta_types import (
+    OrganizationTraceMetaResponse,
+    TransactionChildCount,
+)
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_examples import TraceExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, TraceParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -38,14 +42,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
-
-TRACE_ID_PATH_PARAM = OpenApiParameter(
-    name="trace_id",
-    location="path",
-    required=True,
-    type=str,
-    description="The ID of the trace, a 32-character hexadecimal string.",
-)
 
 INCLUDE_UPTIME_PARAM = OpenApiParameter(
     name="include_uptime",
@@ -280,10 +276,11 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
         summary="Retrieve Trace Metadata",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            TRACE_ID_PATH_PARAM,
+            TraceParams.TRACE_ID,
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
+            TraceParams.TIMESTAMP,
             INCLUDE_UPTIME_PARAM,
         ],
         responses={
@@ -364,7 +361,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             "metricsCount": results["metrics_meta"]["data"][0].get("count(value)") or 0,
             "performanceIssuesCount": perf_issues,
             "spansCount": results["spans_meta"]["data"][0].get("count()") or 0,
-            "transactionChildCountMap": results["transaction_children"]["data"],
+            "transactionChildCountMap": cast(
+                list[TransactionChildCount], results["transaction_children"]["data"]
+            ),
             "spansCountMap": {
                 row["span.op"]: row["count()"] for row in results["spans_op_count"]["data"]
             },

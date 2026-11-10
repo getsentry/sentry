@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
@@ -32,9 +33,8 @@ import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
-  ToolbarRow,
+  ToolbarVisualizeRow,
 } from 'sentry/views/explore/components/toolbar/styles';
-import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
@@ -44,6 +44,8 @@ import {
   getFormulaArgumentParams,
 } from 'sentry/views/explore/utils/formulaAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+import {ExpandableFilterSearchBar} from './expandableFilterSearchBar';
 
 const NO_FORMULAS: SavedFormula[] = [];
 
@@ -63,11 +65,15 @@ export function ToolbarVisualizeHeader() {
 }
 
 interface ToolbarVisualizeDropdownProps {
-  aggregateOptions: Array<SelectOption<SelectKey>>;
   fieldOptions: Array<SelectOption<SelectKey>>;
-  onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, value: string) => void;
   parsedFunction: ParsedFunction | null;
+  aggregateOptions?: Array<SelectOption<SelectKey>>;
+  /**
+   * Replaces the default single-select aggregate dropdown, e.g. to allow
+   * selecting several aggregates at once.
+   */
+  aggregateSelect?: ReactNode;
   deleteLabel?: string;
   dragColumnId?: number;
   fieldDefinitionType?: GetFieldDefinitionType;
@@ -80,15 +86,16 @@ interface ToolbarVisualizeDropdownProps {
   formulas?: readonly SavedFormula[];
   label?: ReactNode;
   loading?: boolean;
+  onChangeAggregate?: (option: SelectOption<SelectKey>) => void;
   onClose?: () => void;
   onDelete?: () => void;
   onSearch?: (search: string) => void;
-  transformationControls?: ReactNode;
 }
 
 export function ToolbarVisualizeDropdown({
   dragColumnId,
-  aggregateOptions,
+  aggregateOptions = [],
+  aggregateSelect,
   fieldOptions,
   onChangeAggregate,
   onChangeArgument,
@@ -102,9 +109,9 @@ export function ToolbarVisualizeDropdown({
   filterSearchBar,
   formulaDefaultColumn = null,
   formulas = NO_FORMULAS,
-  transformationControls,
   fieldDefinitionType = 'span',
 }: ToolbarVisualizeDropdownProps) {
+  const theme = useTheme();
   const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: dragColumnId ?? 0,
     transition: null,
@@ -129,7 +136,6 @@ export function ToolbarVisualizeDropdown({
             label: stripNamePrefix(savedFormula.name),
             value: savedFormula.name,
             textValue: savedFormula.name,
-            details: savedFormula.description,
             disabled: buildFormulaYAxis(savedFormula, formulaDefaultColumn) === null,
             trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
           })),
@@ -151,20 +157,20 @@ export function ToolbarVisualizeDropdown({
   };
 
   return (
-    <ToolbarRow
+    <ToolbarVisualizeRow
       ref={setNodeRef}
       style={{
         transform: CSS.Transform.toString(transform),
         // Keep the drag handle, label and delete button aligned with the dropdowns
         // rather than centered against the taller filter bar row.
-        ...(filterSearchBar || transformationControls || formula
-          ? {alignItems: 'flex-start'}
-          : null),
+        ...(filterSearchBar || formula ? {alignItems: 'flex-start'} : null),
       }}
       {...attributes}
     >
       {dragColumnId === undefined ? null : (
-        <DragReorderButton iconSize="sm" {...listeners} />
+        <Flex align="center" height={theme.form.md.height} flexShrink={0}>
+          <DragReorderButton iconSize="sm" {...listeners} />
+        </Flex>
       )}
       {label}
       <Stack
@@ -175,21 +181,22 @@ export function ToolbarVisualizeDropdown({
         overflow="visible"
       >
         <Flex gap="md" align="center" width="100%">
-          {formula ? (
-            <FieldCompactSelect
-              search
-              options={allAggregateOptions}
-              value={parsedFunction?.name ?? ''}
-              onChange={onChangeAggregate}
-            />
-          ) : (
-            <AggregateCompactSelect
-              search
-              options={allAggregateOptions}
-              value={parsedFunction?.name ?? ''}
-              onChange={onChangeAggregate}
-            />
-          )}
+          {aggregateSelect ??
+            (formula ? (
+              <FieldCompactSelect
+                search
+                options={allAggregateOptions}
+                value={parsedFunction?.name ?? ''}
+                onChange={option => onChangeAggregate?.(option)}
+              />
+            ) : (
+              <AggregateCompactSelect
+                search
+                options={allAggregateOptions}
+                value={parsedFunction?.name ?? ''}
+                onChange={option => onChangeAggregate?.(option)}
+              />
+            ))}
           {aggregateDefinition?.parameters?.map((param, index) => {
             return (
               <FieldCompactSelect
@@ -248,18 +255,19 @@ export function ToolbarVisualizeDropdown({
         {filterSearchBar ? (
           <ExpandableFilterSearchBar>{filterSearchBar}</ExpandableFilterSearchBar>
         ) : null}
-        {transformationControls}
       </Stack>
       {onDelete ? (
-        <Button
-          variant="transparent"
-          icon={<IconDelete size="sm" />}
-          size="zero"
-          onClick={onDelete}
-          aria-label={deleteLabel ?? t('Remove Overlay')}
-        />
+        <Flex align="center" height={theme.form.md.height} flexShrink={0}>
+          <Button
+            variant="transparent"
+            icon={<IconDelete size="sm" />}
+            size="zero"
+            onClick={onDelete}
+            aria-label={deleteLabel ?? t('Remove Overlay')}
+          />
+        </Flex>
       ) : null}
-    </ToolbarRow>
+    </ToolbarVisualizeRow>
   );
 }
 

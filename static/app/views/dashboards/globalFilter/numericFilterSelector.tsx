@@ -20,28 +20,24 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
-import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
-import {FilterSelectorTriggerButton} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
-import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
+import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
+import {getDatasetLabel} from './datasetLabels';
+import {MenuTitleWrapper} from './filterSelector';
+import {FilterSelectorTriggerButton} from './filterSelectorTrigger';
+import type {GenericFilterSelectorProps} from './genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
   NumericFilterSelectorTrigger,
-} from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
-import {
-  CustomOperator,
-  type Operator,
-  getOperatorLabel,
-} from 'sentry/views/dashboards/globalFilter/operatorLabels';
+} from './numericFilterSelectorTrigger';
+import {CustomOperator, type Operator, getOperatorLabel} from './operatorLabels';
+import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 import {
   getFieldDefinitionForDataset,
   isValidNumericFilterValue,
   newNumericFilterQuery,
   parseFilterValue,
-} from 'sentry/views/dashboards/globalFilter/utils';
-import type {GlobalFilter} from 'sentry/views/dashboards/types';
-
-import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
+} from './utils';
 
 const FILTER_QUERY_SEPARATOR = ' ';
 

@@ -1,10 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {ReplayLoadingState} from './replayLoadingState';
 
 type ReaderResult = ReturnType<typeof useLoadReplayReader>;
 

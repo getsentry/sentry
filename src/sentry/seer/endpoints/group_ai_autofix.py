@@ -32,6 +32,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user, acting_user_id
 from sentry.issues.action_log import (
     action_context_scope,
 )
@@ -57,11 +58,15 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
+from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
+from sentry.seer.autofix.single_run import is_single_run, is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
@@ -117,7 +122,6 @@ class GroupAutofixPermission(GroupAiPermission):
 # Sentry: pushing a branch, opening or iterating on a pull request, or handing the run to
 # an external coding agent.
 PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
-PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
 
 
 # If an autofix can be handed off we want to use these stopping points to require user approval
@@ -202,7 +206,7 @@ def _check_autofix_setup(organization: Organization, project: Project) -> str | 
     return None
 
 
-class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
+class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
     """Serializer for the agent-based autofix requests."""
 
     step = serializers.ChoiceField(
@@ -264,11 +268,6 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         required=False,
         help_text="Referrer identifying where the issue fix was triggered from.",
     )
-    enable_bash_mode = serializers.BooleanField(
-        required=False,
-        default=False,
-        help_text="Override bash mode tools.",
-    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -285,6 +284,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     permission_classes = (GroupAutofixPermission,)
@@ -351,7 +351,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        _require_publish_scope(request, group, step, {stopping_point})
+        stopping_points = {stopping_point}
+        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
+        if (
+            stopping_point is None
+            and is_new_run
+            and should_use_single_run(group, step)
+            and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
+        ):
+            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
+        _require_publish_scope(request, group, step, stopping_points)
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
@@ -386,9 +395,10 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         referrer = _parse_autofix_referrer(data.get("referrer"), request)
 
-        run_id: int
+        run_id: int | None
         sentry_run_id: str | None
 
+        feature_id = AUTOFIX_FEATURE_ID
         match step:
             case "coding_agent_handoff":
                 integration_id = data.get("integration_id")
@@ -415,7 +425,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         referrer=referrer,
                         integration_id=integration_id,
                         provider=provider,
-                        user_id=request.user.id if request.user else None,
+                        user_id=acting_user_id(request.user),
                         auto_create_pr=True,
                     )
                 except SeerPermissionError as e:
@@ -443,7 +453,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             group.organization.id,
                             referrer="autofix_open_pr",
                         ),
-                        user=request.user,
+                        user=acting_user(request.user),
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -455,13 +465,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         {"detail": "run_id is required for pr_iteration"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                if request.user.id is None:
+                user_id = acting_user_id(request.user)
+                if user_id is None:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 error_response = handle_ui_feedback(
                     group=group,
                     run_id=resolved_run_id,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     user_feedback=user_context,
                     referrer=referrer,
                 )
@@ -561,10 +572,13 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         run_id=resolved_run_id,
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
-                        user=request.user,
-                        enable_bash_mode=data.get("enable_bash_mode", False),
+                        user=acting_user(request.user),
+                        # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
+                        # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(
-                            request.user.id if step == AutofixStep.CODE_CHANGES.value else None
+                            acting_user_id(request.user)
+                            if not is_autofix_kickoff or step == AutofixStep.CODE_CHANGES.value
+                            else None
                         ),
                     )
                 except NoSeerQuotaException:
@@ -577,6 +591,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 run_id = run.seer_run_state_id
+                if is_single_run_record(run):
+                    feature_id = SINGLE_RUN_FEATURE_ID
 
                 if is_autofix_kickoff:
                     sentry_run_id = str(run.uuid)
@@ -586,6 +602,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         kickoff_body = {
             "run_id": run_id,
             "sentry_run_id": sentry_run_id,
+            "feature_id": feature_id,
         }
         return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
 
@@ -635,12 +652,13 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         if state is None:
             return Response({"autofix": None})
 
-        if state.coding_agents and request.user.id:
+        user_id = acting_user_id(request.user)
+        if state.coding_agents and user_id:
             agent_providers = {a.provider for a in state.coding_agents.values()}
             if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
                 poll_github_copilot_agents(
                     coding_agents=state.coding_agents,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     organization_id=group.organization.id,
                     run_id=state.run_id,
                     group_id=group.id,
@@ -660,7 +678,11 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
+                    "feature_id": SINGLE_RUN_FEATURE_ID
+                    if is_single_run(state)
+                    else AUTOFIX_FEATURE_ID,
                     "status": state.status,
+                    "failure_reason": state.failure_reason,
                     "blocks": blocks,
                     "updated_at": state.updated_at,
                     "pending_user_input": (

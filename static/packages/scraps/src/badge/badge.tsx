@@ -2,8 +2,6 @@ import type * as React from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {unreachable} from '@sentry/scraps/unreachable';
-
 type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -95,7 +93,7 @@ function makeBadgeTheme(p: BadgeProps, theme: Theme): React.CSSProperties {
         background: theme.tokens.background.transparent.success.muted,
       };
     default:
-      unreachable(p.variant);
+      p.variant satisfies never;
       throw new TypeError(`Unsupported badge variant: ${p.variant}`);
   }
 }

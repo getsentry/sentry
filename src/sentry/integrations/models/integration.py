@@ -83,7 +83,7 @@ class Integration(DefaultFieldsModelExisting):
 
         return has_feature(instance=self, feature=feature)
 
-    def delete(self, *args, **kwds):
+    def delete(self, *args: Any, **kwds: Any) -> Any:
         with outbox_context(
             transaction.atomic(using=router.db_for_write(OrganizationIntegration)), flush=False
         ):
@@ -191,7 +191,7 @@ class Integration(DefaultFieldsModelExisting):
             )
             return None
 
-    def disable(self):
+    def disable(self) -> None:
         """
         Disable this integration
         """

@@ -8,7 +8,10 @@ import pytest
 import responses
 from django.urls import reverse
 
-from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider
+from sentry.integrations.bitbucket.integration import (
+    BitbucketIntegration,
+    BitbucketIntegrationProvider,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -57,6 +60,7 @@ class BitbucketIntegrationTest(APITestCase):
             json={"values": [{"full_name": "sentryuser/stuf", "uuid": "{abc-001}"}]},
         )
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         result = installation.get_repositories()
         assert result == [
             {"identifier": "sentryuser/stuf", "name": "sentryuser/stuf", "external_id": "{abc-001}"}
@@ -89,6 +93,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         result = installation.get_repositories()
         assert result == [
             {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
@@ -117,6 +122,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         result = installation.get_repositories(page_number_limit=1)
         assert result == [
             {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
@@ -142,6 +148,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         result = installation.get_repositories(page_number_limit=0)
         assert result == [
             {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
@@ -159,6 +166,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         client = installation.get_client()
         result = installation.get_repositories(page_number_limit=client.page_number_limit + 100)
         assert result == [
@@ -198,6 +206,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         result = installation.get_repositories("stuf")
         assert result == [
             {
@@ -294,6 +303,7 @@ class BitbucketIntegrationTest(APITestCase):
         )
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         result = installation.get_repositories("stu")
         assert result == [
             {
@@ -356,6 +366,7 @@ class BitbucketIntegrationTest(APITestCase):
     @responses.activate
     def test_source_url_matches(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
 
         test_cases = [
             (
@@ -378,6 +389,7 @@ class BitbucketIntegrationTest(APITestCase):
     @responses.activate
     def test_extract_branch_from_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         integration = Integration.objects.get(provider=self.provider.key)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -397,6 +409,7 @@ class BitbucketIntegrationTest(APITestCase):
     @responses.activate
     def test_extract_source_path_from_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         integration = Integration.objects.get(provider=self.provider.key)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -419,6 +432,7 @@ class BitbucketIntegrationTest(APITestCase):
     @responses.activate
     def test_extract_source_path_from_source_url_strips_query_params(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         integration = Integration.objects.get(provider=self.provider.key)
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -451,6 +465,7 @@ class BitbucketIntegrationTest(APITestCase):
             json={"error": {"message": "No workspace with identifier sentryuser"}},
         )
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         with pytest.raises(
             IntegrationError, match="Unable to retrieve repositories. Please try again later."
         ):
@@ -471,6 +486,7 @@ class BitbucketIntegrationTest(APITestCase):
             json={"error": {"message": "Some other error, sentry is responsible"}},
         )
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, BitbucketIntegration)
         with pytest.raises(
             IntegrationError, match="Unable to retrieve repositories. Please try again later."
         ):

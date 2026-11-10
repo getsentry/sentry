@@ -4,8 +4,9 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
-import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
-import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
+
+import {detectorTypeIsUserCreateable} from './detectorTypeConfig';
+import {hasDetectorWriteAccess} from './permissions';
 
 export function useCanEditDetectorWorkflowConnections({
   projectId,

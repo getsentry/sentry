@@ -49,7 +49,7 @@ const api = {
             'Code outside a serializer looks up a key in request.data or request.POST and uses the value, whether or not a serializer also validates the body.',
           severity: 'warn',
           report:
-            "Read request body values from a serializer's validated_data, not from request.data. A raw read skips validation, and with a CamelSnake serializer the raw keys can differ from the validated ones (stackPath vs stack_path), so valid requests can fail.",
+            "Request body values should be read from a serializer's `validated_data`. This file reads a value directly from `request.data` or `request.POST`.",
         },
         {
           value: 'FALSE',
@@ -78,7 +78,7 @@ const api = {
             'The code looks up keys in the raw or parsed incoming payload and uses the values directly, without a serializer or schema validating that payload first.',
           severity: 'warn',
           report:
-            'Validate this third-party payload with a serializer and read from its validated data, so missing keys and unexpected types fail with a clear error instead of an exception, and the expected payload shape is written down.',
+            'Third-party webhook payloads should be validated with a serializer or typed schema before their fields are read. This file reads fields directly from the incoming payload.',
         },
         {
           value: 'FALSE',
@@ -115,7 +115,7 @@ const audit = {
             'The code calls create, delete, or update on one of those token models (for example ApiToken.objects.create, token.delete(), update(date_deactivated=...), or update(scope_list=...)), or calls a function whose name says it grants token scopes (for example create_write_grant). Nothing in the file records it.',
           severity: 'warn',
           report:
-            'Record this change: org-level changes with create_audit_entry and an event from sentry/audit_log/register.py, user-level changes with capture_security_activity. If a function this code calls already records it, say so in the PR.',
+            'Token changes should be logged with `create_audit_entry` for org tokens or `capture_security_activity` for personal tokens. This file creates, revokes, or rescopes a token, but neither call was found in it. Ignore this if a function the file calls already logs the change.',
         },
         {
           value: 'FALSE',
@@ -134,7 +134,7 @@ const audit = {
             'The code sets is_superuser or is_staff on a User, or creates or deletes a UserPermission, and no audit_logger.info(...) call on a sentry.audit logger follows it. Judge each separately: if is_superuser or is_staff changes and only the UserPermission change is recorded, answer TRUE. Nothing in the file records it.',
           severity: 'warn',
           report:
-            'Record this change: org-level changes with create_audit_entry and an event from sentry/audit_log/register.py, user-level changes with capture_security_activity. If a function this code calls already records it, say so in the PR.',
+            'Superuser, staff, and `UserPermission` changes should be logged to the `sentry.audit.user` logger. This file grants or removes one of them, but no such log call was found in it. Ignore this if a function the file calls already logs the change.',
         },
         {
           value: 'FALSE',
@@ -153,12 +153,74 @@ const audit = {
             'The code updates User.email or a UserEmail of an existing user, deletes an AuthIdentity, or merges or deletes User records. Setting the email of a new account being registered does not count. Nothing in the file records it.',
           severity: 'warn',
           report:
-            'Record this change: org-level changes with create_audit_entry and an event from sentry/audit_log/register.py, user-level changes with capture_security_activity. If a function this code calls already records it, say so in the PR.',
+            'Email changes, identity unlinks, and account merges should be logged with `capture_security_activity` so the user is notified. This file makes one of these changes, but no such call was found in it. Ignore this if a function the file calls already logs the change.',
         },
         {
           value: 'FALSE',
           description:
             'None of those change. Linking an identity through SSO setup, integration Identity links (Slack, MS Teams, Discord), verifying an email, and logging in do not count. Or the file records it.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
+const frontend = {
+  files: [
+    'static/app/**/*.ts',
+    'static/app/**/*.tsx',
+    'static/gsApp/**/*.ts',
+    'static/gsApp/**/*.tsx',
+  ],
+  ignores: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.stories.tsx', '**/__stories__/**'],
+  rules: {
+    parsesJsonUrlParamWithoutParseAsJson: {
+      prompt:
+        'Does the code turn a URL query parameter whose value is JSON into data with JSON.parse instead of nuqs parseAsJson with a Zod schema? A URL query parameter is a value from location.query (including through decodeScalar or decodeList), window.location.search, qs.parse, URLSearchParams, useSearchParams, or a nuqs hook or parser (useQueryState, useQueryStates, createParser, createMultiParser). JSON from localStorage, sessionStorage, an API response, a webhook body, event or span attributes, a file, or the clipboard does not count, and neither do JSON.parse(JSON.stringify(...)) copies or writing JSON into a URL.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'JSON.parse turns a JSON-valued URL query parameter into data, whether or not the result is checked afterward.',
+          severity: 'warn',
+          report:
+            'JSON-valued URL query params should be described with a Zod schema and read with nuqs `parseAsJson(schema)`. This file parses one with `JSON.parse`.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'JSON-valued URL query parameters are read with parseAsJson and a Zod schema, or JSON.parse only reads JSON that does not come from the URL.',
+        },
+      ],
+    },
+    usesUrlQueryParamWithoutNuqs: {
+      // Rule ignores replace the suite's, so the suite's test and story globs are repeated.
+      ignores: [
+        '**/*.spec.ts',
+        '**/*.spec.tsx',
+        '**/*.stories.tsx',
+        '**/__stories__/**',
+        'static/app/utils/url/**',
+        'static/app/utils/queryString.tsx',
+        'static/app/views/explore/queryParams/parsers.ts',
+        'static/app/components/pageFilters/**',
+        'static/app/router/legacy/**',
+      ],
+      prompt:
+        "Does the code read a query parameter of the current page's URL, or navigate or link to the current page with a changed query, without nuqs? Reading means taking a value from location.query (directly or through decodeScalar, decodeList, decodeInteger, decodeBoolean, or decodeSorts), from location.search or window.location.search with URLSearchParams or qs.parse, or from useSearchParams. Navigating or linking to the current page means calling navigate, or setting the to of a Link or LinkButton, with the current pathname (...location, location.pathname, a pathname taken from useLocation(), or no pathname) and a query built from location.query, for example navigate({...location, query: {...location.query, cursor}}). Using useQueryState, useQueryStates, createLoader, createSerializer, or Sentry helpers built on them such as loadQueryParamsFromLocation and applyQueryParamsUpdates does not count. Neither do links or navigation to a different pathname, even when they copy location.query to keep page filters. Reading route path parameters from useParams, location.pathname, location.hash, or location.state does not count either, nor do URLs that are not the current page's address, nor passing the whole location, query, or search string along without reading a parameter from it.",
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            "The code reads a query parameter of the current page's URL, or navigates or links to the current page with a changed query, without nuqs.",
+          severity: 'warn',
+          report:
+            'URL query params should be read and updated through nuqs, with `useQueryState` or `useQueryStates` in React or `createLoader` elsewhere, and a parser (for repeated-key lists, `parseAsStringArray`). Page filters should come from `usePageFilters`. This file reads or updates a query param through `location.query` or another API.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            "The current page's query parameters are only read or updated through nuqs, or the code reads or updates no query parameter of the current page, or only passes the whole location, query, or search string along.",
         },
       ],
     },
@@ -173,6 +235,25 @@ const security = {
     'src/sentry/new_migrations/**',
   ],
   rules: {
+    lookupMayMatchNullRows: {
+      prompt:
+        'Does the code put a value that is None for some callers or rows into an exact ORM lookup keyword (in filter(), exclude(), get(), get_or_create(), update_or_create() or Q()) without checking for None first? Examples: user_id=request.user.id, which is None for API keys and anonymous callers; user_id=member.user_id, which is None for a pending invite; application=app.application or user=obj.user when that foreign key is nullable; a parameter typed int | None. It does not count when the code checks the value first (if x is None: return), adds an __isnull=False lookup for the same field, passes a literal None, writes x.id if x else None on purpose to match NULL rows, or uses a value that is always set, such as a primary key or a required field.',
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A lookup keyword takes request.user.id, a member or object user id, a nullable foreign key, or an optional parameter that can be None, with no None check, so None silently matches rows where the column IS NULL.',
+          severity: 'warn',
+          report:
+            "`filter(field=None)` matches rows where the column is NULL. Decide what None means here: no rows (check for None first, or use `owned_by_acting_user()` for the caller's own rows), no filter (leave the lookup out), or NULL rows (pass None or use `__isnull=True`). See src/AGENTS.md, Request Principals.",
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every lookup value is always set or checked for None first, or matching NULL rows is clearly intended.',
+        },
+      ],
+    },
     comparesSecretWithEquality: {
       // Raised to cut borderline false positives, accepting that some real findings score below it.
       threshold: 0.8,
@@ -185,7 +266,7 @@ const security = {
             'A caller-supplied secret and the expected secret are compared with == or !=, directly or after hashing one side.',
           severity: 'warn',
           report:
-            'Comparing secrets with == takes longer the more leading characters match. Use django.utils.crypto.constant_time_compare or hmac.compare_digest.',
+            'Secrets supplied in a request should be compared with `constant_time_compare` or `hmac.compare_digest`. This file compares one with `==` or `!=`.',
         },
         {
           value: 'FALSE',
@@ -206,7 +287,7 @@ const security = {
             'A write method that changes shared organization, project, team, or member data is reachable with only read scopes or without authentication, and the file shows no compensating check.',
           severity: 'warn',
           report:
-            'This lets callers with only read access, or no authentication, change shared data. Require write or admin scopes for the method, or add an explicit permission check and a comment explaining why.',
+            "Write methods that change shared data should require write or admin scopes, or have an explicit permission check. This file lets read-only or unauthenticated callers use one. If that's intended, add a comment explaining why.",
         },
         {
           value: 'FALSE',
@@ -227,7 +308,7 @@ const security = {
             'A credential value, or the whole incoming request body, headers, or parsed payload, reaches one of those sinks. Formatting a dict that contains a token, such as an OAuth token response, counts.',
           severity: 'warn',
           report:
-            'Logs, spans, and error reports are kept and widely readable, so credentials and raw request data should not reach them. Log an id or a redacted value instead.',
+            "Credentials and whole request payloads shouldn't be sent to logs, metrics, spans, or error reports. This file sends one of them. Log an ID or a redacted value instead.",
         },
         {
           value: 'FALSE',
@@ -246,7 +327,7 @@ const security = {
             'A user- or customer-supplied URL or host reaches requests.get, requests.post, a requests session, urllib.request.urlopen, httpx, or urllib3 without safe_urlopen, build_session, or an is_safe_hostname check.',
           severity: 'warn',
           report:
-            'Fetching a customer-supplied URL with a plain HTTP client can reach internal services or cloud metadata. Use sentry.http.safe_urlopen or a session from build_session, which block private addresses.',
+            'Customer-supplied URLs should be fetched with `sentry.http.safe_urlopen` or a session from `build_session`. This file fetches one with a plain HTTP client.',
         },
         {
           value: 'FALSE',
@@ -265,7 +346,7 @@ const security = {
             'A redirect target comes from request parameters, headers, or cookies and is not validated against allowed hosts before the redirect.',
           severity: 'warn',
           report:
-            'Redirecting to a URL from the request lets an attacker send users to any site from a trusted Sentry link. Validate it with url_has_allowed_host_and_scheme or is_valid_redirect, and fall back to a safe default.',
+            'Redirects to URLs taken from the request should be checked with `url_has_allowed_host_and_scheme` or `is_valid_redirect`. This file redirects to one without that check.',
         },
         {
           value: 'FALSE',
@@ -286,7 +367,7 @@ const security = {
             'A value that is not a constant or allowlisted identifier is formatted into the SQL text itself before it runs.',
           severity: 'warn',
           report:
-            'Formatting values into SQL text allows SQL injection. Pass values as query parameters, and allowlist any identifiers such as table or column names.',
+            'Values in raw SQL should be passed as query parameters, and table or column names allowlisted. This file formats a value into the SQL text.',
         },
         {
           value: 'FALSE',
@@ -305,7 +386,7 @@ const security = {
             'User-supplied or database content reaches mark_safe, SafeString, Markup, a format_html format string, or an unescaped template output without escaping first.',
           severity: 'warn',
           report:
-            'Marking user content as safe HTML allows cross-site scripting. Escape it first, or build the HTML with format_html and pass user values as arguments.',
+            "User content should be escaped before it's marked safe, or passed as an argument to `format_html`. This file marks user content as safe HTML.",
         },
         {
           value: 'FALSE',
@@ -324,7 +405,7 @@ const security = {
             'A value that grants access or proves identity is generated with the random module instead of secrets or os.urandom.',
           severity: 'warn',
           report:
-            'The random module is predictable, so values made with it can be guessed. Use the secrets module (secrets.token_urlsafe, secrets.choice) for tokens, codes, and passwords.',
+            'Tokens, codes, and passwords should be generated with the `secrets` module. This file generates one with the `random` module.',
         },
         {
           value: 'FALSE',
@@ -336,9 +417,302 @@ const security = {
   },
 } satisfies Suite;
 
+const brandNames = ['Sentry', 'Seer', 'Autofix', 'Spotlight', 'dotagents'];
+const brandCaseExamples = brandNames
+  .map(
+    name =>
+      `"${name === name.toLowerCase() ? name.toUpperCase() : name.toLowerCase()}" should be "${name}"`
+  )
+  .join('; ');
+const productNames = [
+  ...brandNames,
+  'Agent Monitoring',
+  'AI Code Review',
+  'Application Metrics',
+  'Build Distribution',
+  'Code Review',
+  'Continuous Profiling',
+  'Cron Monitoring',
+  'Crons',
+  'Discover',
+  'Error Monitoring',
+  'Explore',
+  'Insights',
+  'Logging',
+  'Logs',
+  'MCP Monitoring',
+  'Performance Monitoring',
+  'Profiling',
+  'Relay',
+  'Seer Agent',
+  'Session Replay',
+  'Size Analysis',
+  'Snapshots',
+  'Structured Logs',
+  'Trace Explorer',
+  'Tracing',
+  'UI Profiling',
+  'Uptime Monitoring',
+  'User Feedback',
+  'User Feedback Widget',
+];
+const acronyms = [
+  '2FA',
+  'AI',
+  'ANR',
+  'AOT',
+  'API',
+  'ARN',
+  'ASGI',
+  'AWS',
+  'CD',
+  'CDN',
+  'CI',
+  'CIDR',
+  'CLI',
+  'CLS',
+  'CORS',
+  'CPU',
+  'CSP',
+  'CSS',
+  'CSV',
+  'DB',
+  'DEX',
+  'DNS',
+  'DOM',
+  'DSN',
+  'ELF',
+  'ESM',
+  'FCP',
+  'FID',
+  'FIFO',
+  'FPS',
+  'GC',
+  'GCP',
+  'GCS',
+  'GDPR',
+  'GPU',
+  'GraphQL',
+  'GUID',
+  'HEIC',
+  'HTML',
+  'HTTP',
+  'HTTPS',
+  'HMAC',
+  'IAM',
+  'ID',
+  'IdP',
+  'INP',
+  'IP',
+  'JAR',
+  'JPEG',
+  'JS',
+  'JSON',
+  'JSONL',
+  'JVM',
+  'JWT',
+  'LCP',
+  'LLM',
+  'MAUI',
+  'MCP',
+  'MIME',
+  'NDA',
+  'NDK',
+  'OAuth',
+  'OAuth2',
+  'OIDC',
+  'OOM',
+  'OS',
+  'OTel',
+  'OTLP',
+  'OTP',
+  'PDB',
+  'PE',
+  'PEM',
+  'PHP',
+  'PII',
+  'PKCE',
+  'PNG',
+  'PR',
+  'QR',
+  'RAM',
+  'REST',
+  'RSA',
+  'RPC',
+  'RSS',
+  'S3',
+  'SAML',
+  'SAML2',
+  'SCIM',
+  'SCM',
+  'SDK',
+  'SHA',
+  'SMS',
+  'SMTP',
+  'SPM',
+  'SQL',
+  'SQS',
+  'SSL',
+  'SSO',
+  'SSR',
+  'STARTTLS',
+  'SVG',
+  'TCP',
+  'TLS',
+  'TPM',
+  'TTFB',
+  'TTFD',
+  'TTID',
+  'TTL',
+  'U2F',
+  'UI',
+  'URI',
+  'URL',
+  'UTC',
+  'UDP',
+  'UTF-8',
+  'UUID',
+  'UWP',
+  'UX',
+  'WSGI',
+  'XSS',
+  'XML',
+  'YAML',
+  'ZIP',
+];
+const uiCopyScope =
+  'Inspect only hardcoded English in the FIRST argument of t or tct and the FIRST TWO text arguments of tn imported from sentry/locale, including aliases. Calls to unrelated or locally shadowed helpers do not count. Ignore all other arguments, even if they contain English strings. Ignore unwrapped strings, code, URLs, identifiers, search keywords, and user data. Labels, headings, placeholders, productName fields, and body messages can be UI copy. In tct, [link:text] and [strong:text] display text; [code:text] displays code. In a diff, imports may be omitted; only changed literals count.';
+
+const voice = {
+  files: ['static/app/**/*.ts*'],
+  ignores: [
+    '**/*.tsbuildinfo',
+    ...['spec', 'test', 'stories', 'd', 'figma'].map(kind => `**/*.${kind}.ts*`),
+    ...['tests', 'fixtures', 'stories'].flatMap(directory => [
+      `**/${directory}/**`,
+      `**/__${directory}__/**`,
+    ]),
+    ...['testutils', 'dist', 'vendor', '.types', '.artifacts'].map(
+      directory => `**/${directory}/**`
+    ),
+  ],
+  threshold: 0.7,
+  unchecked: 'warn',
+  rules: {
+    usesTitleCaseInUiCopy: {
+      // Distinct contexts evaluate each copy rule independently.
+      context: {
+        copyKind: 'heading and label capitalization',
+      },
+      prompt: `${uiCopyScope}\n\nDoes a heading, button, or label incorrectly use Title Case after its first word, or ALL CAPS for an ordinary English word? This includes bold section headings, table/chart labels, sidebar items, form labels, and widget titles. Use sentence case: "Last seen", not "Last Seen"; "Settings", not "SETTINGS". Preserve proper names and named products (${productNames.join(', ')}). Preserve recognized acronyms and their plurals, including ${acronyms.join(', ')}. These examples are not exhaustive. Preserve canonical mixed/lowercase names and metric notation. An ordinary English word does not become an acronym just because it is uppercase. Body prose and strings in other function arguments do not count.`,
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'An ordinary word in a translated heading or label uses title case after the first word, or unnecessary ALL CAPS. The offending word is in a translation text argument, not another argument or an unwrapped string.',
+          severity: 'warn',
+          report:
+            'Use sentence case for this title or label. Preserve the canonical spelling of product names, proper nouns, and acronyms.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every ordinary word has sentence-case spelling: only the first letter of an ordinary first word is capitalized, and later ordinary words are lowercase. Other capitalization belongs to proper names, acronyms, or technical notation.',
+        },
+      ],
+    },
+    miscapitalizesProductName: {
+      context: {copyKind: 'product name capitalization'},
+      threshold: 0.6,
+      prompt: `${uiCopyScope}\n\nDoes UI text use the wrong capitalization for a named product or feature? Canonical names: ${productNames.join(', ')}. These are proper names: retain ALL their canonical word capitalization even inside a sentence; do not sentence-case a product name. Match names ignoring case, then compare exact spelling. Brand-reference examples: ${brandCaseExamples}. A productName field explicitly identifies a product label. Mentioning a named Sentry product/feature in setup or navigation also counts, including visible link text. For example, "Sentry's continuous profiling product" names a product; "profiling an application" is a generic activity. Generic activities/resources do not count as names.`,
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A translated UI literal names a product or feature but spells it with different capitalization from the canonical list, including lowercasing ordinary-looking words inside a proper product name.',
+          severity: 'warn',
+          report:
+            'Use the canonical spelling for this named Sentry product or feature. Leave generic descriptions lowercase and preserve package names and identifiers.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Brand mentions have canonical spelling, and descriptive feature words are either generic activities/resources or correctly spelled named features. Exempt identifiers and keywords do not count.',
+        },
+      ],
+    },
+    directsFrustrationAtUser: {
+      prompt: `${uiCopyScope}\n\nDoes UI copy direct frustration, ridicule, contempt, or a judgment about competence at the user? Flag insults or scolding, not ordinary second-person instructions. Neutral explanations of permissions, invalid input, configuration mistakes, or responsibility do not count. "You do not have permission" and "Check your connection" are neutral. Empathetic humor about the situation, the product itself, missing pages, or slow loading does not count as user-directed frustration. Do not flag all humor or all uses of "you".`,
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'The wording mocks, belittles, or scolds the user, rather than explaining the problem or joking about the situation.',
+          severity: 'warn',
+          report:
+            'Direct frustration or humor at the situation. Explain what happened and what the user can do next without blaming or belittling them.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Copy is neutral, helpful, empathetic, or jokes about the situation without attacking the user.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
+// Guardrails for the org:ci scope: endpoints reachable by CI org-auth-tokens
+// (e.g. sentry-cli) that expose data beyond what CI automation should read.
+const orgCiGuardrails = {
+  ignores: [
+    '**/tests/**',
+    '**/testutils/**',
+    '**/migrations/**',
+    'src/sentry/new_migrations/**',
+  ],
+  rules: {
+    grantsCiScopeToRepositoryContent: {
+      // Raised to cut borderline false positives, accepting that some real findings score below it.
+      threshold: 0.8,
+      prompt:
+        'Answer in two parts. First: does the code define a read endpoint (a GET handler) that returns source-control or repository content — pull request files, diffs, or patches; file, blob, or tree contents; or commit diffs — and make it reachable by an org:ci token? A caller holds org:ci when the endpoint\'s scope_map lists "org:ci" for GET, or when permission_classes uses a class that grants org:ci on GET: OrganizationIntegrationsLoosePermission, OrganizationCodeMappingsBulkPermission, OrganizationReleasePermission, or ProjectReleasePermission. In a scope_map the scopes listed for a method are alternatives, so including "org:ci" lets any org:ci token call the endpoint. The org:ci scope is for CI automation only — creating releases and uploading suspect-commit data, source maps, and debug files — so it should not read repository contents. Endpoints that only manage releases, deploys, or artifact uploads, and endpoints behind a permission whose GET scope omits org:ci (for example OrganizationIntegrationsPermission or OrganizationPermission), do not count. Second, only if the first part is true: does a comment or docstring on the endpoint explain that org:ci or CI-token access to this data is intentional or expected?',
+      values: [
+        {
+          value: 'EXPECTED',
+          description:
+            'The endpoint is a GET that returns repository or source-control content reachable by an org:ci token, AND a comment or docstring explains that org:ci or CI-token access to this data is intentional or expected.',
+          severity: 'warn',
+          report:
+            'An endpoint in this file exposes repository content to an `org:ci` token, which a comment marks as intentional. Logged as an accepted exception — confirm the justification for that endpoint still holds.',
+        },
+        {
+          value: 'TRUE',
+          description:
+            'The endpoint is a GET that returns repository or source-control content reachable by an org:ci token (its GET scope_map lists "org:ci", or it uses OrganizationIntegrationsLoosePermission, OrganizationCodeMappingsBulkPermission, OrganizationReleasePermission, or ProjectReleasePermission), and no comment or docstring explains that this org:ci access is intentional.',
+          severity: 'warn',
+          report:
+            'The `org:ci` scope is for CI automation (releases and artifact uploads), not for reading repository contents. An endpoint in this file returns source-control data but is reachable by an `org:ci` token, with no comment marking it as intentional. Find the endpoint whose permission grants `org:ci` and either use a permission class whose GET scope omits `org:ci` (for example `OrganizationIntegrationsPermission`), reject `org:ci` tokens explicitly, or add a comment on it explaining why the access is intended.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'The endpoint does not return repository or source-control content, or it is not reachable by an org:ci token — its GET scope_map omits "org:ci" and it uses no permission class that grants org:ci. Release, deploy, and artifact-upload endpoints do not count.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
 export default {
   model: jev,
-  files: ['src/sentry/**/*.py'],
+  files: [
+    'src/sentry/**/*.py',
+    'static/app/**/*.ts',
+    'static/app/**/*.tsx',
+    'static/gsApp/**/*.ts',
+    'static/gsApp/**/*.tsx',
+  ],
   ignores: ['**/tests/**', '**/testutils/**'],
-  suites: {api, audit, security},
+  suites: {api, audit, frontend, security, voice, orgCiGuardrails},
 } satisfies Config;

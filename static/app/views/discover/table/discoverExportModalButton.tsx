@@ -6,10 +6,11 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {useDiscoverExportEstimatedRowCount} from 'sentry/views/discover/table/useDiscoverExportEstimatedRowCount';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+
+import {useDiscoverExportEstimatedRowCount} from './useDiscoverExportEstimatedRowCount';
 
 type DiscoverExportModalButtonProps = {
   error: string | null;

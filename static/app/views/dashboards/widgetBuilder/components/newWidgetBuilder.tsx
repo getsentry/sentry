@@ -6,23 +6,24 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   type DashboardDetails,
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {
-  DEFAULT_WIDGET_DRAG_POSITIONING,
-  snapPreviewToCorners,
-} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
-import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreviewContainer';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
+import {
+  DEFAULT_WIDGET_DRAG_POSITIONING,
+  snapPreviewToCorners,
+} from './common/draggableUtils';
+import {WidgetBuilderSlideout} from './widgetBuilderSlideout';
+import {WidgetPreviewContainer} from './widgetPreviewContainer';
 
 export interface ThresholdMetaState {
   dataType?: string;
@@ -55,7 +56,10 @@ export function WidgetBuilderV2({
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
+  // Preserve viewport sizing for the widget builder during the hook move.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
   const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
@@ -104,11 +108,10 @@ export function WidgetBuilderV2({
       const field = keys[0]!;
       dataType = tableMeta[field];
       dataUnit = tableMeta.units?.[field];
-    } else if (results.timeseriesResultsTypes) {
-      const keys = Object.keys(results.timeseriesResultsTypes);
-      dataType = results.timeseriesResultsTypes[keys[0]!];
-      const rawUnit = results.timeseriesResultsUnits?.[keys[0]!];
-      dataUnit = rawUnit ?? undefined;
+    } else if (results.timeseriesResults?.length) {
+      const meta = results.timeseriesResults[0]?.timeSeries.meta;
+      dataType = meta?.valueType;
+      dataUnit = meta?.valueUnit ?? undefined;
     }
 
     setThresholdMetaState({dataType, dataUnit});

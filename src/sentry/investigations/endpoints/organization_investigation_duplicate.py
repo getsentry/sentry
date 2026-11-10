@@ -8,22 +8,23 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
 )
-from sentry.investigations.models import Investigation
-from sentry.investigations.services import duplicate_investigation
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+    service_error,
+)
+from sentry.notebooks.models import Notebook
+from sentry.notebooks.services import duplicate_investigation
 
 
 @extend_schema(tags=["Investigations"])
@@ -47,7 +48,7 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
         },
     )
     def post(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Copy the notebook into a new manual investigation for the current user. Copies blocks
@@ -55,9 +56,11 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
         No request body is required. Returns the new notebook. Requires an authenticated user.
         Requires the organizations:investigations feature and open organization membership.
         """
-        viewer_id = require_authenticated_user(request)
+        require_authenticated_user(request)
         try:
-            duplicate = duplicate_investigation(investigation=investigation, user_id=viewer_id)
+            duplicate = duplicate_investigation(
+                investigation=investigation, creator=get_creator_reference(request)
+            )
         except Exception as error:
             response = service_error(error)
             if response is not None:
@@ -67,7 +70,7 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
             serialize(
                 duplicate,
                 request.user,
-                InvestigationDetailsSerializer(),
+                InvestigationDetailsSerializer(access=request.access),
             ),
             status=status.HTTP_201_CREATED,
         )

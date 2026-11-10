@@ -73,7 +73,6 @@ from sentry.seer.agent.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
-    get_dsn,
     get_event_details,
     get_group_assignees,
     get_issue_committers,
@@ -105,6 +104,7 @@ from sentry.seer.assisted_query.traces_tools import (
 )
 from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
@@ -121,6 +121,7 @@ from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
+    CommitAuthorResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -128,7 +129,6 @@ from sentry.seer.sentry_data_models import (
     HasRepoCodeMappingsResponse,
     InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
-    OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
@@ -141,7 +141,7 @@ from sentry.seer.sentry_data_models import (
     SpanAttribute,
     SpanAttributesResponse,
 )
-from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
+from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.shared_integrations.exceptions import ApiError
@@ -153,6 +153,7 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import (
+    get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
     viewer_context_from_header,
@@ -410,6 +411,23 @@ def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     return OrganizationSlugResponse(slug=org.slug)
 
 
+def get_commit_author(*, org_id: int) -> CommitAuthorResponse:
+    """The viewer's GitHub identity, which Seer credits on the PRs its agent opens.
+
+    The user comes from the signed viewer context, never an argument, so Seer can only
+    credit whoever is driving the run.
+    """
+    viewer = get_viewer_context()
+    user_id = get_acting_user_id(viewer)
+    # HMAC callers aren't bound to ``org_id``, so check it against the viewer here.
+    if viewer is None or viewer.organization_id != org_id or user_id is None:
+        return CommitAuthorResponse()
+    user = user_service.get_user(user_id=user_id)
+    return CommitAuthorResponse(
+        author=commit_author_for_user(user, org_id, referrer="seer_agent_write_pull_request")
+    )
+
+
 def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
     statements = find_fix_statements(text, org_id)
     return ReferencedFixStatementsResponse(
@@ -514,10 +532,6 @@ class SentryOrganizaionIdsAndSlugs(TypedDict):
     org_slugs: list[str]
 
 
-def get_organization_autofix_consent(*, org_id: int) -> OrganizationAutofixConsentResponse:
-    return OrganizationAutofixConsentResponse(consent=True)
-
-
 def get_attributes_for_span(
     *,
     org_id: int,
@@ -615,7 +629,7 @@ def get_github_enterprise_integration_config(
 
 
 def send_seer_webhook(
-    *, event_name: str, organization_id: int, payload: dict
+    *, event_name: str, organization_id: int, payload: dict[str, Any]
 ) -> SendSeerWebhookSuccessResponse | SendSeerWebhookErrorResponse:
     """
     Handles receipt (in Sentry, from Seer) of a seer webhook event for an organization.
@@ -640,6 +654,11 @@ def send_seer_webhook(
             "seer.webhook_invalid_event_type",
             extra={"event_type": event_type},
         )
+        return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
+    # Internal only: Sentry raises it itself from the autofix completion hook, and it must not
+    # reach Sentry Apps until its payload is settled.
+    if sentry_app_event_type == SentryAppEventType.SEER_ERRORED:
+        logger.warning("seer.webhook_internal_event_type", extra={"event_type": event_type})
         return SendSeerWebhookErrorResponse(error=f"Invalid event type: {event_type}")
 
     # Handle organization lookup safely
@@ -736,7 +755,12 @@ def get_repo_installation_id(
         owner: The repository owner (e.g., "getsentry")
         name: The repository name (e.g., "sentry")
     """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    repo, _resolution = Repository.objects.resolve_active_by_reference(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        name=f"{owner}/{name}",
+    )
 
     if not repo:
         return GetRepoInstallationIdErrorResponse(error="repository_not_found")
@@ -836,6 +860,35 @@ def get_monitoring_provider_connections(
     )
 
 
+def refresh_org_monitoring_provider_token(
+    *, organization_id: int, integration_id: int
+) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
+    """Replace an org integration's rejected MCP token without a user identity."""
+    if not settings.SEER_GHE_ENCRYPT_KEY:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+    integrations = integration_service.get_integrations(
+        integration_ids=[integration_id],
+        organization_id=organization_id,
+        providers=[IntegrationProviderSlug.LINEAR.value],
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+    )
+    if not integrations:
+        return RefreshMonitoringProviderTokenErrorResponse(error="integration_not_found")
+    token = integration_service.get_access_token(
+        organization_id=organization_id, integration_id=integration_id, force_refresh=True
+    )
+    if token is None:
+        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
+    encrypted_header = encrypt_access_token_for_seer(f"Bearer {token.token}")
+    if not encrypted_header:
+        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
+    return RefreshMonitoringProviderTokenSuccessResponse(
+        encrypted_auth_headers={"Authorization": encrypted_header},
+        expires=int(token.expires_at.timestamp()) if token.expires_at else None,
+    )
+
+
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
@@ -932,7 +985,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
     "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
-    "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
     "send_seer_webhook": seer_rpc(send_seer_webhook),
@@ -981,7 +1033,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
-    "get_dsn": seer_rpc(get_dsn),
+    "get_commit_author": seer_rpc(get_commit_author),
     #
     # Replays
     "get_replay_summary_logs": seer_rpc(rpc_get_replay_summary_logs),
@@ -999,6 +1051,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
+    "refresh_org_monitoring_provider_token": seer_rpc(refresh_org_monitoring_provider_token),
 }
 
 

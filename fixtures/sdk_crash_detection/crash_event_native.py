@@ -1,5 +1,6 @@
 import time
 from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 
 def get_frames(
@@ -38,10 +39,10 @@ def get_frames(
 
 
 def get_crash_event(
-    sdk_frame_function="sentry_value_to_msgpack",
-    sdk_frame_package="E:\\Sentry\\Sentaurs\\Game\\Sentaurs.exe",
-    system_frame_package="C:\\Windows\\System32\\DriverStore\\FileRepository\\u0398226.inf_amd64_c5d9587384e4b5ff\\B398182\\amdxx64.dll",
-    **kwargs,
+    sdk_frame_function: str = "sentry_value_to_msgpack",
+    sdk_frame_package: str = "E:\\Sentry\\Sentaurs\\Game\\Sentaurs.exe",
+    system_frame_package: str = "C:\\Windows\\System32\\DriverStore\\FileRepository\\u0398226.inf_amd64_c5d9587384e4b5ff\\B398182\\amdxx64.dll",
+    **kwargs: Any,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
         get_frames(sdk_frame_function, sdk_frame_package, system_frame_package),
@@ -49,7 +50,9 @@ def get_crash_event(
     )
 
 
-def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
+def get_crash_event_with_frames(
+    frames: Sequence[Mapping[str, str]], **kwargs: Any
+) -> dict[str, object]:
     result = {
         "event_id": "0a52a8331d3b45089ebd74f8118d4fa1",
         "release": "14.7",

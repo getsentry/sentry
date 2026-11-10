@@ -9,12 +9,8 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {LinkProps} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -83,30 +79,13 @@ function useSurfaceConfig(surface: ExploreSurface): SurfaceConfig {
   const organization = useOrganization();
 
   switch (surface) {
+    case 'compare':
     case 'traces': {
       const to = makeTracesPathname({organization, path: '/'});
       return {
         analytics: 'trace_explorer',
         items: [{type: 'link', label: t('Traces'), to}],
         landingTo: to,
-        saveQueryModalSource: 'explorer',
-      };
-    }
-    case 'compare': {
-      // Compare mode lives under Traces but has its own landing page, so it
-      // stays in the trail as a real parent rather than being dropped.
-      const comparePath = makeTracesPathname({organization, path: '/compare/'});
-      return {
-        analytics: 'trace_explorer',
-        items: [
-          {
-            type: 'link',
-            label: t('Traces'),
-            to: makeTracesPathname({organization, path: '/'}),
-          },
-          {type: 'link', label: t('Compare Queries'), to: comparePath},
-        ],
-        landingTo: comparePath,
         saveQueryModalSource: 'explorer',
       };
     }
@@ -186,15 +165,15 @@ function useSavedQueryMenuItems({
     label: t('Duplicate'),
     leadingItems: <IconCopy size="md" />,
     onAction: async () => {
-      addLoadingMessage(t('Duplicating query...'));
+      toast.loading(t('Duplicating query...'));
       try {
         await saveQueryFromSavedQuery({
           ...savedQuery,
           name: `${savedQuery.name} (Copy)`,
         });
-        addSuccessMessage(t('Query duplicated'));
+        toast.success(t('Query duplicated'));
       } catch (error) {
-        addErrorMessage(t('Unable to duplicate query'));
+        toast.error(t('Unable to duplicate query'));
       }
     },
   };
@@ -257,15 +236,15 @@ function useSavedQueryMenuItems({
     onAction: () => {
       confirmDeleteSavedQuery({
         handleDelete: async () => {
-          addLoadingMessage(t('Deleting query...'));
+          toast.loading(t('Deleting query...'));
           try {
             await deleteQuery({
               queryId: savedQuery.id,
               queryType: savedQuery.queryType,
             });
-            addSuccessMessage(t('Query deleted'));
+            toast.success(t('Query deleted'));
           } catch (error) {
-            addErrorMessage(t('Unable to delete query'));
+            toast.error(t('Unable to delete query'));
             return;
           }
 

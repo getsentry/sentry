@@ -69,9 +69,21 @@ interface ThinkingBlockProps {
   title: string;
   children?: React.ReactNode;
   endTime?: Date;
+  /**
+   * Whether to lead the title with the Seer icon. Turn it off when the block
+   * sits beside a spinning Seer of its own, so one loading state isn't shown
+   * twice; the disclosure's chevron leads instead.
+   */
+  showIcon?: boolean;
 }
 
-export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlockProps) {
+export function ThinkingBlock({
+  title,
+  startTime,
+  endTime,
+  children,
+  showIcon = true,
+}: ThinkingBlockProps) {
   const {t} = useTranslation();
   const elapsed = useElapsedTime(startTime, endTime);
   const isActive = !endTime;
@@ -103,7 +115,11 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
     >
       <Global styles={streamingAnimationStyles} />
       <Disclosure.Title
-        leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
+        leadingItems={
+          showIcon ? (
+            <IconSeer size="xs" animation={isActive ? 'loading' : undefined} />
+          ) : undefined
+        }
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
             {formatElapsedDuration(elapsed)}

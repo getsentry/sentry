@@ -6,6 +6,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconCode} from '@sentry/icons/code';
 import {IconFire} from '@sentry/icons/fire';
 import {IconFix} from '@sentry/icons/fix';
+import {IconList} from '@sentry/icons/list';
 import {IconSearch} from '@sentry/icons/search';
 import {IconTag} from '@sentry/icons/tag';
 
@@ -22,6 +23,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isCodeModeNode} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {isEvaluationNode} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {isExtractionNode} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {
   isMemoryNode,
   MemoryOperation,
@@ -36,6 +38,9 @@ function operationTypeIcon(node: AITraceSpanNode) {
   // produce a response.
   if (isEvaluationNode(node)) {
     return <IconTag size="md" />;
+  }
+  if (isExtractionNode(node)) {
+    return <IconList size="md" />;
   }
   // Searches read memory; every other memory operation changes what's saved.
   if (isMemoryNode(node)) {

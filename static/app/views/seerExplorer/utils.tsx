@@ -10,22 +10,24 @@ import {
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
+
 import type {
   Artifact,
   Block,
   SeerExplorerRunId,
+  SeerExplorerResponse,
   SeerExplorerSidebarPosition,
   ToolLink,
-} from 'sentry/views/seerExplorer/types';
+} from './types';
 
 /**
  * Tool formatter function type.
@@ -38,20 +40,24 @@ type ToolFormatter = (
   toolLinkParams?: Record<string, any> | null
 ) => string;
 
+export const seerExplorerApiOptions = (
+  orgSlug: string,
+  runId: SeerExplorerRunId | null
+) =>
+  runId
+    ? apiOptions.as<SeerExplorerResponse>()(
+        '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/',
+        {path: {organizationIdOrSlug: orgSlug, runId}, staleTime: 0}
+      )
+    : apiOptions.as<SeerExplorerResponse>()(
+        '/organizations/$organizationIdOrSlug/seer/explorer-chat/',
+        {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
+      );
+
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
   runId: SeerExplorerRunId | null
-): ApiQueryKey => [
-  runId
-    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
-        path: {organizationIdOrSlug: orgSlug, runId},
-      })
-    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-
-  {},
-];
+) => seerExplorerApiOptions(orgSlug, runId).queryKey;
 
 /**
  * Registry of custom tool formatters.

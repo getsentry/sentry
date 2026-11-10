@@ -39,6 +39,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
     """
 
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,

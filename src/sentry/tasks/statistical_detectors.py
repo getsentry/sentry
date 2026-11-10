@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Generator, Iterable, Sequence
+from collections.abc import Generator, Iterable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
@@ -74,7 +74,7 @@ PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
 
-def get_performance_issue_settings(projects: list[Project]):
+def get_performance_issue_settings(projects: list[Project]) -> dict[Project, dict[str, object]]:
     project_settings = {}
 
     project_option_settings = ProjectOption.objects.get_value_bulk(
@@ -168,7 +168,8 @@ class FunctionRegressionDetector(RegressionDetector):
 
     @classmethod
     def min_throughput_threshold(cls) -> int:
-        return options.get("statistical_detectors.throughput.threshold.functions")
+        threshold = options.get("statistical_detectors.throughput.threshold.functions")
+        return threshold
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -182,7 +183,9 @@ class FunctionRegressionDetector(RegressionDetector):
         )
 
     @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
+    def detector_store_factory(
+        cls,
+    ) -> DetectorStore[Mapping[str | bytes, bytes | float | int | str]]:
         return RedisDetectorStore(regression_type=RegressionType.FUNCTION)
 
     @classmethod
@@ -208,7 +211,9 @@ class FunctionRegressionDetector(RegressionDetector):
     namespace=profiling_tasks,
     processing_deadline_duration=30,
 )
-def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
+def detect_function_trends(
+    project_ids: list[int], start: str, *args: object, **kwargs: object
+) -> None:
     if not options.get("statistical_detectors.enable"):
         return
 
@@ -247,8 +252,8 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
 def detect_function_change_points(
     functions_list: list[tuple[int, int]] | None = None,
     start: str | None = None,
-    *args,
-    **kwargs,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -295,7 +300,10 @@ def process_function_change_points(candidates: list[tuple[int, str, str]]) -> No
 
 
 def _detect_function_change_points(
-    functions_list: Sequence[tuple[int, int | str]], start: datetime, *args, **kwargs
+    functions_list: Sequence[tuple[int, int | str]],
+    start: datetime,
+    *args: object,
+    **kwargs: object,
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -346,16 +354,11 @@ def _detect_function_change_points(
     )
 
     breakpoint_count = 0
-    vroom_emitted_count = 0
-    sentry_emitted_count = 0
+    emitted_count = 0
 
     for regression_chunk in chunked(regressions, 100):
         breakpoint_count += len(regression_chunk)
-        vroom_count, sentry_count = emit_function_regression_issue(
-            projects_by_id, regression_chunk, start
-        )
-        vroom_emitted_count += vroom_count
-        sentry_emitted_count += sentry_count
+        emitted_count += emit_function_regression_issue(projects_by_id, regression_chunk, start)
 
     metrics.incr(
         "statistical_detectors.breakpoint.detected",
@@ -366,13 +369,7 @@ def _detect_function_change_points(
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
-        amount=vroom_emitted_count,
-        tags={"source": "profile", "kind": "function", "producer": "vroom"},
-        sample_rate=1.0,
-    )
-    metrics.incr(
-        "statistical_detectors.breakpoint.emitted",
-        amount=sentry_emitted_count,
+        amount=emitted_count,
         tags={"source": "profile", "kind": "function", "producer": "sentry"},
         sample_rate=1.0,
     )
@@ -382,7 +379,7 @@ def emit_function_regression_issue(
     projects_by_id: dict[int, Project],
     regressions: list[BreakpointData],
     start: datetime,
-) -> tuple[int, int]:
+) -> int:
     start = start - timedelta(hours=1)
     start = start.replace(minute=0, second=0, microsecond=0)
 
@@ -437,8 +434,7 @@ def emit_function_regression_issue(
 
     continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
-    payloads_by_producer: dict[bool, list[dict[str, Any]]] = {}
-    produce_in_sentry_by_org: dict[int, bool] = {}
+    payloads: list[dict[str, Any]] = []
 
     for regression in regressions:
         project_id = int(regression["project"])
@@ -454,12 +450,7 @@ def emit_function_regression_issue(
         if example is None:
             continue
 
-        if project.organization_id not in produce_in_sentry_by_org:
-            produce_in_sentry_by_org[project.organization_id] = features.has(
-                "organizations:profiling-sentry-regression-occurrences", project.organization
-            )
-        produce_in_sentry = produce_in_sentry_by_org[project.organization_id]
-        payloads_by_producer.setdefault(produce_in_sentry, []).append(
+        payloads.append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
@@ -476,40 +467,36 @@ def emit_function_regression_issue(
             }
         )
 
-    vroom_occurrences = 0
-    sentry_occurrences = 0
-    for produce_in_sentry, payloads in payloads_by_producer.items():
-        response = get_from_profiling_service(
-            method="POST",
-            path="/regressed?produce=false" if produce_in_sentry else "/regressed",
-            json_data=payloads,
+    if not payloads:
+        return 0
+
+    response = get_from_profiling_service(
+        method="POST", path="/regressed?produce=false", json_data=payloads
+    )
+    if response.status != 200:
+        return 0
+
+    data = json.loads(response.data)
+    for payload in data["occurrence_payloads"]:
+        event_data = payload["event"]
+        occurrence = IssueOccurrence.from_dict(
+            cast(
+                IssueOccurrenceData,
+                {
+                    **payload,
+                    "event_id": event_data["event_id"],
+                    "resource_id": payload.get("resource_id"),
+                },
+            )
         )
-        if response.status != 200:
-            continue
+        produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
 
-        data = json.loads(response.data)
-        if produce_in_sentry:
-            for payload in data["occurrence_payloads"]:
-                event_data = payload["event"]
-                occurrence = IssueOccurrence.from_dict(
-                    cast(
-                        IssueOccurrenceData,
-                        {
-                            **payload,
-                            "event_id": event_data["event_id"],
-                            "resource_id": payload.get("resource_id"),
-                        },
-                    )
-                )
-                produce_occurrence_to_kafka(occurrence=occurrence, event_data=event_data)
-            sentry_occurrences += len(data["occurrence_payloads"])
-        else:
-            vroom_occurrences += data["occurrences"]
-
-    return vroom_occurrences, sentry_occurrences
+    return len(data["occurrence_payloads"])
 
 
-def fetch_continuous_examples(raw_examples):
+def fetch_continuous_examples(
+    raw_examples: Mapping[tuple[int, int], Mapping[str, datetime | str | float | None]],
+) -> Mapping[tuple[int, int], Mapping[str, datetime | str | float | None]]:
     if not raw_examples:
         return raw_examples
 
@@ -669,18 +656,21 @@ def query_functions_timeseries(
         for project, fingerprint in functions_list
     ]
 
-    results = functions.top_events_timeseries(
-        timeseries_columns=[agg_function],
-        selected_columns=["project.id", "fingerprint"],
-        user_query="is_application:1",
-        snuba_params=params,
-        orderby=None,  # unused because top events is specified
-        rollup=interval,
-        limit=len(chunk),
-        organization=None,  # unused
-        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
-        top_events={"data": chunk},
-        result_key_order=["project.id", "fingerprint"],
+    results = cast(
+        dict[str, SnubaTSResult],
+        functions.top_events_timeseries(
+            timeseries_columns=[agg_function],
+            selected_columns=["project.id", "fingerprint"],
+            user_query="is_application:1",
+            snuba_params=params,
+            orderby=None,  # unused because top events is specified
+            rollup=interval,
+            limit=len(chunk),
+            organization=None,  # unused
+            referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS.value,
+            top_events={"data": chunk},
+            result_key_order=["project.id", "fingerprint"],
+        ),
     )
 
     for project, fingerprint in functions_list:

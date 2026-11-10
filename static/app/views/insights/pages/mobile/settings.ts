@@ -1,9 +1,10 @@
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
-import type {ValidSort} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import type {ValidSort} from './mobileOverviewTable';
 
 export const MOBILE_LANDING_SUB_PATH = 'mobile';
 export const MOBILE_LANDING_TITLE = t('Mobile');

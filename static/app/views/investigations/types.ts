@@ -1,6 +1,13 @@
 import type {AvatarUser} from 'sentry/types/user';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
+import type {
+  ActionRequestError,
+  ActionRequestFollowUp,
+  CannotApplyReason,
+  InvestigationDetectorValues,
+} from './api';
+
 /**
  * The scalar head of an agentic run, served inline with an investigation so a
  * caller can tell one apart without a second request.
@@ -15,6 +22,18 @@ type InvestigationOrchestrationSummary = {
   phase: InvestigationOrchestrationPhase;
   status: InvestigationOrchestrationStatus;
 };
+
+/**
+ * What started an investigation: the automation run that created it, else the
+ * user who did.
+ */
+export type InvestigationTrigger =
+  | {
+      automation: {id: string; name: string | null; strategy: string};
+      runId: string;
+      type: 'automation';
+    }
+  | {type: 'user'; user: AvatarUser};
 
 export type InvestigationListItem = {
   blockCount: number;
@@ -33,6 +52,7 @@ export type InvestigationListItem = {
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
+  trigger?: InvestigationTrigger | null;
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -75,11 +95,6 @@ export type InvestigationComment = {
   dateCreated: string;
   dateUpdated: string;
   id: string;
-};
-
-export type InvestigationBlockExecutionStart = {
-  id: string;
-  status: InvestigationExecutionStatus;
 };
 
 export type InvestigationExecutionStatus =
@@ -174,7 +189,6 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
-  template?: {key: string; version: number} | null;
 };
 
 export type InvestigationTitleGeneration = {
@@ -188,6 +202,16 @@ export type MetricOpenPeriodInvestigationSource = {
     openPeriodId: string;
   };
   type: 'metric_open_period';
+};
+
+export type ManualInvestigationSource = {
+  type: 'manual';
+  /** Without a non-blank prompt, the run waits for input. */
+  prompt?: string;
+  /** Context forwarded to the investigation agent as evidence. */
+  seed?: Record<string, unknown>;
+  /** Timezone-aware ISO-8601 range for the run to look at. */
+  timeRange?: {end: string; start: string};
 };
 
 export type InvestigationCandidate =
@@ -259,18 +283,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-export type InvestigationDetectorChangeKey =
-  | 'query'
-  | 'aggregate'
-  | 'environment'
-  | 'timeWindowSeconds'
-  | 'highThreshold'
-  | 'mediumThreshold'
-  | 'resolutionThreshold';
-
-type InvestigationDetectorValues = Partial<
-  Record<InvestigationDetectorChangeKey, number | string | null>
->;
+export type InvestigationDetectorChangeKey = keyof InvestigationDetectorValues;
 
 export type InvestigationUpdateDetectorAction = {
   before: InvestigationDetectorValues;
@@ -279,11 +292,16 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
-type InvestigationAction =
-  | InvestigationUpdateDetectorAction
-  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+export type InvestigationConnectTelemetryAction = {
+  kind: 'connect_telemetry';
+  provider: 'datadog' | 'gcp';
+};
 
-type InvestigationActionRequestAnchor = {
+export type InvestigationAction =
+  | InvestigationUpdateDetectorAction
+  | InvestigationConnectTelemetryAction;
+
+export type InvestigationActionRequestAnchor = {
   blockId: string | null;
   id: string;
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
@@ -294,9 +312,12 @@ export type InvestigationActionRequest = {
   anchor: InvestigationActionRequestAnchor | null;
   appliedBy: AvatarUser | null;
   appliedDetails: Record<string, unknown> | null;
+  canApply: boolean;
+  cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
   dateApplied: string | null;
   dateCreated: string;
-  error: Record<string, unknown> | null;
+  error: ActionRequestError | null;
+  followUp: ActionRequestFollowUp | null;
   id: string;
   impact: string | null;
   key: string;
@@ -308,6 +329,10 @@ export type InvestigationActionRequest = {
     'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
   >;
   title: string;
+};
+
+export type InvestigationActionRequestApplyResponse = {
+  actionRequest: InvestigationActionRequest;
 };
 
 type InvestigationOrchestrationError = {
@@ -326,6 +351,14 @@ export type InvestigationToolActivity = {
     'queued' | 'running' | 'completed' | 'failed'
   >;
   title: string;
+};
+
+/** The agent's reasoning before the calls that follow it in the same phase. */
+export type InvestigationThought = {
+  id: string;
+  text: string;
+  /** The tool activity entry this came before; null until a call follows it. */
+  beforeActivityId?: string | null;
 };
 
 type InvestigationOrchestrationEvidence = {
@@ -388,6 +421,7 @@ export type InvestigationHypothesis = {
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
+  thoughts?: InvestigationThought[];
   toolActivity?: InvestigationToolActivity[];
   /**
    * Absent, not empty, until the agent has planned any checks: the contract
@@ -424,6 +458,7 @@ type InvestigationOrchestrationReport = {
   >;
   automaticRetryCount?: number;
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  currentBlockThoughts?: InvestigationThought[];
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
   nextStep?: {
@@ -448,6 +483,7 @@ export type InvestigationOrchestration = {
     automaticRetryCount?: number;
     heartbeatAt?: string | null;
     runId?: number | string | null;
+    thoughts?: InvestigationThought[];
     toolActivity?: InvestigationToolActivity[];
   };
   errors: InvestigationOrchestrationError[];
@@ -468,8 +504,9 @@ export type InvestigationOrchestration = {
   activeTimeElapsedSeconds?: number | null;
   finishedAt?: string | null;
   pendingInput?: {
-    missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
+    /** What the run is waiting for. Optional on the wire. */
+    missingFields?: Array<'prompt' | 'time_range'>;
   } | null;
   /** Fresh API server time, independent of the projection's last update. */
   serverTime?: string;
@@ -487,41 +524,16 @@ export type InvestigationOrchestration = {
 };
 
 /**
- * A viewer-issued instruction to a running workflow. Mirrors
- * `COMMAND_VALIDATORS`. The inner payload stays camelCase because the server
+ * A viewer-issued instruction to a running workflow, from `COMMAND_VALIDATORS`.
+ * Only `provide_input` is sent from here; the others are left out until
+ * something sends them. The inner payload stays camelCase because the server
  * only case-converts the envelope keys.
  */
-export type InvestigationOrchestrationCommand =
-  | {
-      type: 'provide_input';
-      prompt?: string;
-      timeRange?: {end: string; start: string};
-    }
-  | {
-      statement: string;
-      type: 'add_hypothesis';
-      rationale?: string | null;
-    }
-  | {
-      disposition: 'accepted' | 'rejected' | null;
-      hypothesisId: string;
-      type: 'set_hypothesis_disposition';
-    }
-  | {
-      instruction: string;
-      target: 'workflow' | 'hypothesis' | 'report' | 'block';
-      type: 'steer';
-      targetId?: string | null;
-    }
-  | {
-      target: 'run' | 'hypothesis' | 'report';
-      type: 'retry';
-      targetId?: string | null;
-    }
-  | {
-      type: 'cancel';
-      reason?: string | null;
-    };
+export type InvestigationOrchestrationCommand = {
+  type: 'provide_input';
+  prompt?: string;
+  timeRange?: {end: string; start: string};
+};
 
 export type InvestigationOrchestrationCommandVariables = {
   command: InvestigationOrchestrationCommand;

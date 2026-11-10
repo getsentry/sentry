@@ -1,17 +1,23 @@
+from typing import cast
+
 import pytest
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 
 from fixtures.sudo_testutils import BaseTestCase
 from sentry.middleware.placeholder import placeholder_get_response
 from sudo.middleware import SudoMiddleware
 from sudo.settings import COOKIE_NAME
-from sudo.utils import grant_sudo_privileges, revoke_sudo_privileges
+from sudo.utils import _SudoRequest, grant_sudo_privileges, revoke_sudo_privileges
+
+
+def _sudo_request(request: HttpRequest) -> _SudoRequest:
+    return cast("_SudoRequest", request)
 
 
 class SudoMiddlewareTestCase(BaseTestCase):
     middleware = SudoMiddleware(placeholder_get_response)
 
-    def assertSignedCookieEqual(self, v1, v2, reason=None):
+    def assertSignedCookieEqual(self, v1: str, v2: str, reason: str | None = None) -> None:
         value, _, _ = v1.split(":")
         return self.assertEqual(value, v2, reason)
 
@@ -38,8 +44,8 @@ class SudoMiddlewareTestCase(BaseTestCase):
         self.assertEqual(morsels[0][0], COOKIE_NAME)
         _, sudo = morsels[0]
         self.assertEqual(sudo.key, COOKIE_NAME)
-        self.assertSignedCookieEqual(sudo.value, self.request._sudo_token)
-        self.assertEqual(sudo["max-age"], self.request._sudo_max_age)
+        self.assertSignedCookieEqual(sudo.value, _sudo_request(self.request)._sudo_token)
+        self.assertEqual(sudo["max-age"], _sudo_request(self.request)._sudo_max_age)
         self.assertTrue(sudo["httponly"])
 
         # Asserting that these are insecure together explicitly
@@ -49,7 +55,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
 
     def test_process_response_sets_secure_cookie(self) -> None:
         self.login()
-        self.request.is_secure = lambda: True
+        setattr(self.request, "is_secure", lambda: True)
 
         self.middleware.process_request(self.request)
         grant_sudo_privileges(self.request)
@@ -70,7 +76,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
         self.login()
         self.middleware.process_request(self.request)
         grant_sudo_privileges(self.request)
-        self.request.COOKIES[COOKIE_NAME] = self.request._sudo_token
+        self.request.COOKIES[COOKIE_NAME] = _sudo_request(self.request)._sudo_token
         revoke_sudo_privileges(self.request)
         response = self.middleware.process_response(self.request, HttpResponse())
         morsels = list(response.cookies.items())

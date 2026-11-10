@@ -9,6 +9,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiDeleteEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -38,7 +39,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
             PreprodArtifactApiDeleteEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=str(head_artifact_id),
             )
         )
@@ -48,7 +49,10 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
         except Exception:
             logger.exception(
                 "preprod_artifact.delete_failed",
-                extra={"preprod_artifact_id": int(head_artifact_id), "user_id": request.user.id},
+                extra={
+                    "preprod_artifact_id": int(head_artifact_id),
+                    "user_id": acting_user_id(request.user),
+                },
             )
             return Response(
                 {
@@ -62,7 +66,7 @@ class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
             "preprod_artifact.deleted",
             extra={
                 "preprod_artifact_id": int(head_artifact_id),
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "files_deleted": result.files_deleted,
                 "size_metrics_deleted": result.size_metrics_deleted,
                 "installable_artifacts_deleted": result.installable_artifacts_deleted,

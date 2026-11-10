@@ -23,6 +23,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from tests.sentry.integrations.msteams.test_message_builder import _is_open_url_action
@@ -236,7 +237,12 @@ class MSTeamsNotificationProviderTest(TestCase):
 
     def test_is_available(self) -> None:
         assert MSTeamsNotificationProvider.is_available() is False
-        assert MSTeamsNotificationProvider.is_available(organization=self.organization) is False
+        assert (
+            MSTeamsNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is False
+        )
 
 
 class MSTeamsNotificationProviderSendTest(TestCase):

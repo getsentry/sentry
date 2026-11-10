@@ -1,7 +1,8 @@
 import {z} from 'zod';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+
+import type {InvestigationDetail} from './types';
 
 // Mirrors the snapshot built in src/sentry/investigations/services/breached_metrics.py.
 const sourceConditionSchema = z.object({

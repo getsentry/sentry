@@ -1,5 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useMemo} from 'react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
@@ -9,14 +8,13 @@ import {IconGraph} from '@sentry/icons/graph';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Feature from 'sentry/components/acl/feature';
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -25,6 +23,7 @@ import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useIsShortViewport} from 'sentry/utils/useIsShortViewport';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -40,16 +39,22 @@ import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottab
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -66,6 +71,7 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -77,9 +83,12 @@ import {
   isConditionalAggregateYAxisValid,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {ConfidenceFooter} from './confidenceFooter';
 
 interface LogsGraphProps {
   rawLogCounts: RawCounts;
@@ -110,6 +119,17 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
     setVisualizes(newVisualizes);
   }
 
+  function handleTransformationsChange(
+    index: number,
+    transformations: readonly string[]
+  ) {
+    setVisualizes(
+      visualizes.map((visualize, i) =>
+        (i === index ? visualize.replace({transformations}) : visualize).serialize()
+      )
+    );
+  }
+
   return (
     <Fragment>
       <DroppedDataLLMContext dataset={DiscoverDatasets.OURLOGS} />
@@ -124,6 +144,9 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
             onChartVisibilityChange={visible =>
               handleChartVisibilityChange(index, visible)
             }
+            onTransformationsChange={transformations =>
+              handleTransformationsChange(index, transformations)
+            }
           />
         );
       })}
@@ -134,16 +157,23 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
 interface GraphProps extends LogsGraphProps {
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onTransformationsChange: (transformations: readonly string[]) => void;
   visualize: Visualize;
 }
 
 function Graph({
   onChartTypeChange,
   onChartVisibilityChange,
+  onTransformationsChange,
   rawLogCounts,
   timeseriesResult,
   visualize,
 }: GraphProps) {
+  const organization = useOrganization();
+  const showTransformationControls =
+    visualize.visible &&
+    visualize.chartType !== ChartType.HEATMAP &&
+    organization.features.includes('explore-interpolation-and-smoothing');
   const isShortViewport = useIsShortViewport();
   const {isEmpty: tableIsEmpty, isPending: tableIsPending} = useLogsPageDataQueryResult();
 
@@ -154,15 +184,10 @@ function Graph({
   const groupBys = useQueryParamsGroupBys();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {droppedEvents, acceptedEvents} = useDroppedData({
-    dataset: DiscoverDatasets.OURLOGS,
-    interval,
-  });
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
-  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand =
-    canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
+  const droppedData = useDroppedDataLayer(
+    {dataset: DiscoverDatasets.OURLOGS, interval},
+    {hidden: tableIsEmpty || tableIsPending}
+  );
 
   // Invalid `_if` filters skip the backend request; surface that as a chart error
   // instead of an empty/no-data state.
@@ -178,7 +203,11 @@ function Graph({
     const series =
       withholdData || !hasValidConditionalFilter
         ? []
-        : (timeseriesResult.data[aggregate] ?? []);
+        : getTimeSeriesForQuery(
+            timeseriesResult.data,
+            aggregate,
+            visualize.transformations
+          );
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     const resultForChart = (
@@ -217,10 +246,11 @@ function Graph({
     tableIsPending,
     timeseriesResult,
     topEventsLimit,
-    visualize.chartType,
+    visualize,
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -256,11 +286,8 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
-        <DroppedDataLayerControl
-          showDroppedData={isDroppedDataLayerOn}
-          onChange={setIsDroppedDataLayerOn}
-        />
+      {droppedData.layerControl ? (
+        <DroppedDataLayerControl {...droppedData.layerControl} />
       ) : null}
       <CompactSelect
         trigger={triggerProps => (
@@ -319,44 +346,84 @@ function Graph({
   const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
-    <Widget
-      Title={Title}
-      TitleBadges={TitleBadges}
-      Actions={Actions}
-      Visualization={
-        visualize.visible && (
-          <ChartVisualization
-            key={chartRemountKey}
-            chartInfo={chartInfo}
-            droppedData={
-              showDroppedDataBand
-                ? {
-                    droppedEvents,
-                    acceptedEvents,
-                    onClick: openDroppedDataDrawer,
-                  }
-                : undefined
-            }
+    <Container minWidth="0" border="primary" radius="md" background="primary">
+      <Widget
+        Title={Title}
+        TitleBadges={TitleBadges}
+        Actions={Actions}
+        Visualization={
+          visualize.visible && (
+            <ChartVisualization
+              key={chartRemountKey}
+              chartInfo={chartInfo}
+              droppedData={droppedData.band}
+              plottables={plottables}
+              isDroppedDataLoading={droppedData.isLoading}
+            />
+          )
+        }
+        Footer={
+          visualize.visible && (
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={chartInfo.timeseriesResult.isPending}
+                      rawLogCounts={rawLogCounts}
+                      hasUserQuery={!!userQuery}
+                      disabled={
+                        !hasValidConditionalFilter ||
+                        (tableIsPending ? false : tableIsEmpty)
+                      }
+                    />
+                  )}
+                  {droppedData.filterNote ? (
+                    <DroppedDataFilterNote
+                      {...droppedData.filterNote}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.LOGS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
+            </Container>
+          )
+        }
+        height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}
+        revealActions="always"
+        borderless
+      />
+      {showTransformationControls && visualize.transformations.length > 0 ? (
+        <Container padding="xl" paddingTop="0" paddingBottom="md">
+          <VisualizeTransformationRows
+            traceItemDataset={TraceItemDataset.LOGS}
+            transformations={visualize.transformations}
+            layout="inline"
+            onChange={onTransformationsChange}
           />
-        )
-      }
-      Footer={
-        visualize.visible && (
-          <ConfidenceFooter
-            chartInfo={chartInfo}
-            // Match chart pending state (includes table withhold + invalid `_if` errors).
-            isLoading={chartInfo.timeseriesResult.isPending}
-            rawLogCounts={rawLogCounts}
-            hasUserQuery={!!userQuery}
-            disabled={
-              !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
-            }
-          />
-        )
-      }
-      height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}
-      revealActions="always"
-    />
+        </Container>
+      ) : null}
+    </Container>
   );
 }
 
@@ -371,6 +438,14 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   const search = useQueryParamsSearch();
   const aggregateFields = useQueryParamsAggregateFields();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: search.formatString(),
+      yAxes: [visualize.yAxis],
+      groupBys,
+      mode,
+    });
 
   const items = useMemo(() => {
     const project =
@@ -378,46 +453,37 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
         ? projects[0]
         : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-    const disableAddToDashboard = !organization.features.includes('dashboards-edit');
-
     return [
-      getSaveAsAlertMenuItem({
-        to: getAlertsUrl({
-          project,
-          query: search.formatString(),
-          pageFilters: pageFilters.selection,
-          aggregate: visualize.yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
-          eventTypes: [EventTypes.TRACE_ITEM_LOG],
-        }),
-        onAction: () => {
-          trackAnalytics('logs.save_as', {
-            save_type: 'alert',
-            ui_source: 'chart',
+      {
+        ...getSaveAsAlertMenuItem({
+          disabled: hasTransformations,
+          to: getAlertsUrl({
+            project,
+            query: search.formatString(),
+            pageFilters: pageFilters.selection,
+            aggregate: visualize.yAxis,
             organization,
-          });
-          return;
-        },
-      }),
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval,
+            eventTypes: [EventTypes.TRACE_ITEM_LOG],
+          }),
+          onAction: () => {
+            trackAnalytics('logs.save_as', {
+              save_type: 'alert',
+              ui_source: 'chart',
+              organization,
+            });
+            return;
+          },
+        }),
+        details: alertCaseDetails,
+      },
       {
         key: 'add-to-dashboard',
         textValue: t('Add to Dashboard'),
-        label: (
-          <Feature
-            overrideName="feature-disabled:dashboards-edit"
-            features="organizations:dashboards-edit"
-            renderDisabled={() => <DisabledText>{t('Add to Dashboard')}</DisabledText>}
-          >
-            {t('Add to Dashboard')}
-          </Feature>
-        ),
-        disabled: disableAddToDashboard,
+        details: dashboardCaseDetails,
+        label: t('Add to Dashboard'),
         onAction: () => {
-          if (disableAddToDashboard) {
-            return;
-          }
           trackAnalytics('logs.save_as', {
             save_type: 'dashboard',
             ui_source: 'chart',
@@ -462,6 +528,7 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
             yAxis: visualize.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
+            transformations: visualizesToWidgetTransformations([visualize]),
           });
         },
       },
@@ -469,6 +536,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
   }, [
     aggregateFields,
     aggregateSortBys,
+    alertCaseDetails,
+    dashboardCaseDetails,
     interval,
     location,
     mode,
@@ -476,8 +545,8 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     pageFilters,
     projects,
     search,
-    visualize.chartType,
-    visualize.yAxis,
+    visualize,
+    hasTransformations,
   ]);
 
   if (items.length === 0) {
@@ -493,12 +562,6 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('Chart actions')}
-          disabled={hasTransformations}
-          tooltipProps={
-            hasTransformations
-              ? {title: t('Queries with transformations cannot be saved yet.')}
-              : undefined
-          }
         />
       )}
       position="bottom-end"
@@ -506,7 +569,3 @@ function ContextMenu({interval, visualize}: {interval: string; visualize: Visual
     />
   );
 }
-
-const DisabledText = styled('span')`
-  color: ${p => p.theme.tokens.content.disabled};
-`;

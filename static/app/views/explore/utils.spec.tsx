@@ -1,3 +1,4 @@
+import qs from 'query-string';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -8,13 +9,11 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {
-  DiscoverSavedQuery,
-  ReadableSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {SavedQuery, SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {Mode} from './contexts/pageParamsContext/mode';
+import type {DiscoverSavedQuery, ReadableSavedQuery} from './hooks/useGetSavedQueries';
+import {SavedQuery, SavedQueryType} from './hooks/useGetSavedQueries';
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   findSuggestedColumns,
   getFirstSamplingWarning,
@@ -26,7 +25,7 @@ import {
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
-} from 'sentry/views/explore/utils';
+} from './utils';
 
 describe('viewSamplesTarget', () => {
   const project = ProjectFixture();
@@ -808,6 +807,84 @@ describe('getYAxisDiscoverSavedQuery', () => {
 
 describe('getSavedQueryTraceItemUrl', () => {
   const organization = OrganizationFixture();
+
+  const readableQuery = {
+    mode: Mode.SAMPLES,
+    query: 'span.op:DB',
+    fields: ['id', 'timestamp'],
+    orderby: '-timestamp',
+    aggregateField: [{yAxes: ['count(span.duration)']}],
+  };
+
+  function makeSavedQuery(
+    dataset: ReadableSavedQuery['dataset'],
+    query: ReadableSavedQuery['query']
+  ) {
+    return new SavedQuery({
+      id: 1,
+      interval: '5m',
+      name: 'test query',
+      projects: [],
+      dataset,
+      dateAdded: '2025-01-01T00:00:00.000000Z',
+      dateUpdated: '2025-01-01T00:00:00.000000Z',
+      lastVisited: '2025-01-01T00:00:00.000000Z',
+      starred: false,
+      position: null,
+      query,
+    });
+  }
+
+  function getCaseInsensitiveParam(savedQuery: SavedQuery) {
+    return qs.parseUrl(getSavedQueryTraceItemUrl({savedQuery, organization})).query
+      .caseInsensitive;
+  }
+
+  function getCompareCaseInsensitiveParams(savedQuery: SavedQuery) {
+    const {queries} = qs.parseUrl(
+      getSavedQueryTraceItemUrl({savedQuery, organization})
+    ).query;
+    return (queries as string[]).map(query => JSON.parse(query).caseInsensitive);
+  }
+
+  it('matches case when a spans query predates the case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a spans query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('matches case when a logs query was saved matching case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: false},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a logs query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('keeps each compare query case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      readableQuery,
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
 
   function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
     return new SavedQuery({

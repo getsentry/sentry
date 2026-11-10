@@ -37,7 +37,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
     permission_classes = ()
     slack_request_class = SlackOptionsLoadRequest
 
-    def is_substring(self, string, substring):
+    def is_substring(self, string: str, substring: str) -> bool:
         # in case either have special characters, we want to preserve the strings
         # as is, so we escape both before applying re.match
         substring = re.escape(substring)

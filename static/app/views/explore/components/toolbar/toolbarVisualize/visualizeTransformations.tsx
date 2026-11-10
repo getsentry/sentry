@@ -1,11 +1,13 @@
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import type {FormSize, SpaceSize} from '@sentry/scraps/theme';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {t} from 'sentry/locale';
@@ -13,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   exploreAnalyticsEventMap,
   type ExploreAnalyticsEventParameters,
+  type TransformationAnalyticsSource,
 } from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -32,14 +35,38 @@ const KIND_OPTIONS: Array<SelectOption<Transformation['kind']>> = [
   {value: 'smooth', label: t('Smooth')},
 ];
 const FILL_OPTIONS: Array<SelectOption<FillMethod>> = [
-  {value: 'zero', label: t('Zero')},
-  {value: 'locf', label: t('LOCF')},
-  {value: 'linear', label: t('Linear')},
+  {
+    value: 'zero',
+    label: t('Zero'),
+    details: t('Fills missing values with zero.'),
+  },
+  {
+    value: 'locf',
+    label: t('LOCF'),
+    details: t('Last observation carried forward. Fills gaps with the last known value.'),
+  },
+  {
+    value: 'linear',
+    label: t('Linear'),
+    details: t('Fills gaps along a straight line between known values.'),
+  },
 ];
 const SMOOTH_OPTIONS: Array<SelectOption<SmoothMethod>> = [
-  {value: 'sma', label: t('SMA')},
-  {value: 'ema', label: t('EMA')},
-  {value: 'asap', label: t('ASAP')},
+  {
+    value: 'sma',
+    label: t('SMA'),
+    details: t('Simple moving average. Gives equal weight to values in the window.'),
+  },
+  {
+    value: 'ema',
+    label: t('EMA'),
+    details: t('Exponential moving average. Gives more weight to recent values.'),
+  },
+  {
+    value: 'asap',
+    label: t('ASAP'),
+    details: t('Automatically chooses a smoothing window to reduce noise.'),
+  },
 ];
 const WINDOW_OPTIONS = Array.from({length: 10}, (_, index) => ({
   value: index + 1,
@@ -115,43 +142,28 @@ interface Props {
     | TraceItemDataset.LOGS
     | TraceItemDataset.TRACEMETRICS;
   transformations: readonly string[];
-}
-
-export function VisualizeTransformations({
-  transformations,
-  onChange,
-  traceItemDataset,
-}: Props) {
-  return (
-    <Stack gap="sm">
-      <VisualizeTransformationRows
-        transformations={transformations}
-        onChange={onChange}
-        traceItemDataset={traceItemDataset}
-      />
-      <AddTransformationButton
-        transformations={transformations}
-        onChange={onChange}
-        traceItemDataset={traceItemDataset}
-      />
-    </Stack>
-  );
+  analyticsSource?: TransformationAnalyticsSource;
 }
 
 interface TransformationRowsProps extends Props {
+  gap?: SpaceSize;
   layout?: TransformationLayout;
+  size?: FormSize;
 }
 
 export function VisualizeTransformationRows({
   transformations,
   onChange,
   traceItemDataset,
+  gap = 'sm',
   layout = 'stacked',
+  size = 'md',
+  analyticsSource = 'explore',
 }: TransformationRowsProps) {
   const organization = useOrganization();
 
   return transformations.length ? (
-    <Stack gap="sm">
+    <Stack gap={gap}>
       {transformations.map((raw, index) => {
         const transformation = parseTransformation(raw);
         return (
@@ -160,7 +172,9 @@ export function VisualizeTransformationRows({
             transformation={transformation}
             index={index}
             traceItemDataset={traceItemDataset}
+            analyticsSource={analyticsSource}
             layout={layout}
+            size={size}
             onChange={value =>
               onChange(transformations.toSpliced(index, 1, formatTransformation(value)))
             }
@@ -171,6 +185,7 @@ export function VisualizeTransformationRows({
               }
               const analyticsParams = {
                 organization,
+                source: analyticsSource,
                 traceItemDataset,
                 transformation_index: index,
               };
@@ -215,11 +230,19 @@ export function VisualizeTransformationRows({
   ) : null;
 }
 
+interface AddTransformationButtonProps extends Props {
+  iconOnly?: boolean;
+  variant?: 'transparent' | 'link';
+}
+
 export function AddTransformationButton({
   transformations,
   onChange,
   traceItemDataset,
-}: Props) {
+  iconOnly = false,
+  analyticsSource = 'explore',
+  variant = 'transparent',
+}: AddTransformationButtonProps) {
   const organization = useOrganization();
   const kindOptions = KIND_OPTIONS.map(option => ({
     ...option,
@@ -231,14 +254,31 @@ export function AddTransformationButton({
       options={kindOptions}
       disabled={transformations.length >= KIND_OPTIONS.length}
       value={undefined}
-      trigger={props => (
-        <OverlayTrigger.Button {...props} variant="link" size="zero" icon={<IconAdd />}>
-          {t('Add Transformation')}
-        </OverlayTrigger.Button>
-      )}
+      trigger={props =>
+        iconOnly ? (
+          <OverlayTrigger.IconButton
+            {...props}
+            variant="transparent"
+            size="zero"
+            icon={<IconSettings />}
+            aria-label={t('Add Transformation')}
+            tooltipProps={{title: t('Add Transformation')}}
+          />
+        ) : (
+          <OverlayTrigger.Button
+            {...props}
+            variant={variant}
+            size={variant === 'transparent' ? 'zero' : 'md'}
+            icon={<IconAdd />}
+          >
+            {t('Add Transformation')}
+          </OverlayTrigger.Button>
+        )
+      }
       onChange={({value}) => {
         trackAnalytics('explore.visualize.transformation.added', {
           organization,
+          source: analyticsSource,
           traceItemDataset,
           transformation_index: transformations.length,
           transformation_type: value,
@@ -255,26 +295,34 @@ export function AddTransformationButton({
 }
 
 interface TransformationRowProps {
+  analyticsSource: TransformationAnalyticsSource;
   index: number;
   layout: TransformationLayout;
   onChange: (value: Transformation) => void;
   onRemove: () => void;
   onTypeChange: (kind: Transformation['kind']) => void;
+  size: FormSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: Transformation | null;
 }
 
 function TransformationRow({
+  analyticsSource,
   index,
   layout,
   onChange,
   onRemove,
   onTypeChange,
+  size,
   traceItemDataset,
   transformation,
 }: TransformationRowProps) {
   const organization = useOrganization();
-  const analyticsParams = {traceItemDataset, transformation_index: index};
+  const analyticsParams = {
+    source: analyticsSource,
+    traceItemDataset,
+    transformation_index: index,
+  };
   const removalAnalyticsParams = {
     ...analyticsParams,
     transformation_type: transformation?.kind ?? 'unsupported',
@@ -283,19 +331,25 @@ function TransformationRow({
     'organization'
   >;
   return (
-    <Stack
-      role="group"
-      aria-label={t('Transformation %s', index + 1)}
-      gap="sm"
-      padding="md"
-      background="secondary"
-      radius="md"
-    >
-      <Flex align="center" justify="between" gap="sm">
+    <Stack role="group" aria-label={t('Transformation %s', index + 1)} gap="sm">
+      <Flex align="center" gap="md">
+        <Button
+          variant="transparent"
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          aria-label={t('Remove transformation')}
+          analyticsEventKey="explore.visualize.transformation.removed"
+          analyticsEventName={
+            exploreAnalyticsEventMap['explore.visualize.transformation.removed']
+          }
+          analyticsParams={removalAnalyticsParams}
+          onClick={onRemove}
+        />
         <Flex align="center" gap="md" wrap="wrap" minWidth="0">
           {transformation ? (
-            <PageFilterBar condensed>
+            <PageFilterBar condensed size={size}>
               <CompactSelect
+                size={size}
                 options={KIND_OPTIONS}
                 value={transformation.kind}
                 trigger={props => (
@@ -308,7 +362,9 @@ function TransformationRow({
               />
               {transformation.kind === 'fill' ? (
                 <CompactSelect
+                  size={size}
                   options={FILL_OPTIONS}
+                  menuWidth={320}
                   value={transformation.method}
                   trigger={props => (
                     <OverlayTrigger.Button {...props} aria-label={t('Fill method')} />
@@ -327,7 +383,9 @@ function TransformationRow({
                 />
               ) : (
                 <CompactSelect
+                  size={size}
                   options={SMOOTH_OPTIONS}
+                  menuWidth={320}
                   value={transformation.method}
                   trigger={props => (
                     <OverlayTrigger.Button
@@ -359,32 +417,24 @@ function TransformationRow({
           {layout === 'inline' && transformation?.kind === 'smooth' ? (
             <SmoothingSettings
               transformation={transformation}
+              analyticsSource={analyticsSource}
               index={index}
               traceItemDataset={traceItemDataset}
               layout={layout}
+              size={size}
               onChange={onChange}
             />
           ) : null}
         </Flex>
-        <Button
-          variant="transparent"
-          size="zero"
-          icon={<IconDelete size="sm" />}
-          aria-label={t('Remove transformation')}
-          analyticsEventKey="explore.visualize.transformation.removed"
-          analyticsEventName={
-            exploreAnalyticsEventMap['explore.visualize.transformation.removed']
-          }
-          analyticsParams={removalAnalyticsParams}
-          onClick={onRemove}
-        />
       </Flex>
       {layout === 'stacked' && transformation?.kind === 'smooth' ? (
         <SmoothingSettings
           transformation={transformation}
+          analyticsSource={analyticsSource}
           index={index}
           traceItemDataset={traceItemDataset}
           layout={layout}
+          size={size}
           onChange={onChange}
         />
       ) : null}
@@ -393,22 +443,30 @@ function TransformationRow({
 }
 
 interface SmoothingSettingsProps {
+  analyticsSource: TransformationAnalyticsSource;
   index: number;
   layout: TransformationLayout;
   onChange: (value: SmoothTransformation) => void;
+  size: FormSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: SmoothTransformation;
 }
 
 function SmoothingSettings({
+  analyticsSource,
   index,
   layout,
   onChange,
+  size,
   traceItemDataset,
   transformation,
 }: SmoothingSettingsProps) {
   const organization = useOrganization();
-  const analyticsParams = {traceItemDataset, transformation_index: index};
+  const analyticsParams = {
+    source: analyticsSource,
+    traceItemDataset,
+    transformation_index: index,
+  };
   const windowLabel =
     transformation.method === 'asap' ? t('Max Window Size') : t('Window Size');
   return (
@@ -422,6 +480,7 @@ function SmoothingSettings({
           {windowLabel}
         </Text>
         <CompactSelect
+          size={size}
           options={WINDOW_OPTIONS}
           value={transformation.window}
           clearable={transformation.method === 'asap'}
@@ -459,14 +518,15 @@ function SmoothingSettings({
           gap="xs"
         >
           <Text size="sm" wrap="nowrap">
-            {t('Smoothing Factor')}
+            {t('Smoothing Weight')}
           </Text>
           <CompactSelect
+            size={size}
             options={FACTOR_OPTIONS}
             value={transformation.factor}
             clearable
             trigger={props => (
-              <OverlayTrigger.Button {...props} aria-label={t('Smoothing Factor')}>
+              <OverlayTrigger.Button {...props} aria-label={t('Smoothing Weight')}>
                 {transformation.factor === undefined ? t('Auto') : props.children}
               </OverlayTrigger.Button>
             )}

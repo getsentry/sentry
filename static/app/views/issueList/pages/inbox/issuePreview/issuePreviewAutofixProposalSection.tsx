@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -9,25 +9,14 @@ import {
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   type AutofixSection,
-  type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t, tn} from 'sentry/locale';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
-import {CopySectionMarkdown} from './copySectionMarkdown';
 import {IssuePreviewSection} from './issuePreviewSection';
-import {RetryableAutofixSection} from './retryableAutofixSection';
 import {WorkingIndicator} from './workingIndicator';
 
-export function IssuePreviewAutofixProposalSection({
-  autofix,
-  readOnly = false,
-  section,
-}: {
-  autofix: ReturnType<typeof useExplorerAutofix>;
-  section: AutofixSection;
-  readOnly?: boolean;
-}) {
+export function IssuePreviewAutofixProposalSection({section}: {section: AutofixSection}) {
   const patchesByRepo = useMemo(() => {
     const artifact = getAutofixArtifactFromSection(section);
     return collectPatches(isCodeChangesArtifact(artifact) ? artifact : []);
@@ -44,26 +33,10 @@ export function IssuePreviewAutofixProposalSection({
       : t('%s files changed in %s repos', filesChanged, patchesByRepo.size);
 
   return (
-    <RetryableAutofixSection
-      autofix={autofix}
-      readOnly={readOnly}
+    <IssuePreviewSection
       section={section}
-      step="code_changes"
-    >
-      <IssuePreviewSection
-        title={t('Code Changes')}
-        actions={
-          <Fragment>
-            <RetryableAutofixSection.Button />
-            <CopySectionMarkdown section={section} />
-          </Fragment>
-        }
-      >
-        <RetryableAutofixSection.Prompt
-          placeholder={t('Give Seer additional context to improve these code changes.')}
-          prompt={t('How can this code change be improved?')}
-        />
-        {section.status === 'processing' ? (
+      summary={
+        section.status === 'processing' ? (
           <WorkingIndicator blocks={section.blocks}>
             {t('Generating code changes...')}
           </WorkingIndicator>
@@ -71,7 +44,10 @@ export function IssuePreviewAutofixProposalSection({
           <Text>{proposalSummary}</Text>
         ) : (
           <Text variant="muted">{t('No code changes were proposed.')}</Text>
-        )}
+        )
+      }
+    >
+      {patchesByRepo.size > 0 && (
         <Stack gap="lg">
           {Array.from(patchesByRepo.entries(), ([repoName, patches]) => (
             <Stack key={repoName} gap="md">
@@ -91,8 +67,8 @@ export function IssuePreviewAutofixProposalSection({
             </Stack>
           ))}
         </Stack>
-      </IssuePreviewSection>
-    </RetryableAutofixSection>
+      )}
+    </IssuePreviewSection>
   );
 }
 

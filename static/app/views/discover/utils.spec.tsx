@@ -19,7 +19,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
+
+import {DEFAULT_EVENT_VIEW} from './results/data';
 import {
   canCreateAlerts,
   constructAddQueryToDashboardLink,
@@ -29,7 +30,7 @@ import {
   getCreateAlertFromViewUrl,
   getExpandedResults,
   handleAddQueryToDashboard,
-} from 'sentry/views/discover/utils';
+} from './utils';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -702,7 +703,23 @@ describe('downloadAsCsv', () => {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
     expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
-      encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
+      encodeURIComponent('message\r\n"\'=HYPERLINK(http://some-bad-website#)"')
+    );
+  });
+  it('quotes unsafe strings after leading whitespace and newlines', () => {
+    const result = {
+      data: [{message: '\t=1+1'}, {message: ' @SUM(A1)'}, {message: '-1+1\nfoo'}],
+    };
+    expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
+      encodeURIComponent('message\r\n"\'\t=1+1"\r\n"\' @SUM(A1)"\r\n"\'-1+1\nfoo"')
+    );
+  });
+  it('does not quote numbers', () => {
+    const result = {
+      data: [{count: -3}],
+    };
+    expect(downloadAsCsv(result, [countColumn], 'filename.csv')).toContain(
+      encodeURIComponent('count\r\n-3')
     );
   });
   it('handles the user column', () => {

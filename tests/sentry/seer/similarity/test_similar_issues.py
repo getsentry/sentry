@@ -3,6 +3,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock
 
+from django.test import override_settings
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
@@ -23,10 +24,21 @@ from sentry.seer.similarity.types import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 class GetSimilarityDataFromSeerTest(TestCase):
     def setUp(self) -> None:
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
+        self.enterContext(
+            viewer_context_scope(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                )
+            )
+        )
         self.similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         self.similar_event_hash = self.similar_event.get_primary_hash()
         self.request_params: SimilarIssuesEmbeddingsRequest = {
@@ -37,7 +49,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "exception_type": "FailedToFetchError",
         }
 
-    def _make_response(self, data: dict[str, Any], status: int = 200):
+    def _make_response(self, data: dict[str, Any], status: int = 200) -> HTTPResponse:
         return HTTPResponse(json.dumps(data).encode("utf-8"), status=status)
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
@@ -109,9 +121,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_seer_request: MagicMock,
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
-    ):
+    ) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         cases: list[tuple[Any, str]] = [
             (None, "AttributeError"),
@@ -180,7 +192,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_logger: MagicMock,
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
-    ):
+    ) -> None:
         mock_seer_request.return_value = HTTPResponse(
             status=308, headers={"location": "/new/and/improved/endpoint/"}
         )
@@ -206,7 +218,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_logger: MagicMock,
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
-    ):
+    ) -> None:
         for request_error, expected_error_tag in [
             (TimeoutError, "TimeoutError"),
             (
@@ -246,7 +258,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_logger: MagicMock,
         mock_metrics_incr: MagicMock,
         mock_record_circuit_breaker_error: MagicMock,
-    ):
+    ) -> None:
         for response, status, counts_for_circuit_breaker in [
             ("No soup for you", 403, False),
             ("No soup, period", 500, True),
@@ -314,7 +326,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self,
         mock_seer_similarity_request: MagicMock,
         mock_seer_deletion_request: MagicMock,
-    ):
+    ) -> None:
         mock_seer_similarity_request.return_value = self._make_response(
             {
                 "responses": [
@@ -337,9 +349,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self,
         mock_seer_similarity_request: MagicMock,
         mock_seer_deletion_request: MagicMock,
-    ):
+    ) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         # Set the grouphash creation date to yesterday
         GroupHashMetadata.objects.get_or_create(
@@ -368,7 +380,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         newly_created_grouphash = GroupHash.objects.create(
             hash="adopt_dont_shop", project=self.project
         )
-        assert newly_created_grouphash.group_id is None
+        assert newly_created_grouphash.group is None
 
         # Set the grouphash creation date to today
         GroupHashMetadata.objects.get_or_create(
@@ -397,7 +409,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         # grouphash metadata was a thing
 
         very_old_grouphash = GroupHash.objects.create(hash="maisey", project=self.project)
-        assert very_old_grouphash.group_id is None
+        assert very_old_grouphash.group is None
         assert very_old_grouphash.metadata is None
 
         mock_seer_similarity_request.return_value = self._make_response(
@@ -425,12 +437,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_seer_similarity_request: MagicMock,
         mock_logger: MagicMock,
         mock_grouphash_objects_filter: MagicMock,
-    ):
+    ) -> None:
         existing_grouphash_no_group = GroupHash.objects.create(
             hash="dogs_are_great", project=self.project
         )
         GroupHashMetadata.objects.create(grouphash=existing_grouphash_no_group)
-        assert existing_grouphash_no_group.group_id is None
+        assert existing_grouphash_no_group.group is None
         existing_grouphash_with_group = GroupHash.objects.create(
             hash="adopt_dont_shop", project=self.project, group=self.group
         )
@@ -484,10 +496,10 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self,
         mock_seer_similarity_request: MagicMock,
         mock_logger: MagicMock,
-    ):
+    ) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         GroupHashMetadata.objects.create(grouphash=existing_grouphash)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         mock_seer_similarity_request.return_value = self._make_response(
             {

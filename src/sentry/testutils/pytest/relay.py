@@ -1,15 +1,20 @@
 # Fixtures used to interact with a test Relay server
 
+from __future__ import annotations
 
 import datetime
 import logging
 import shutil
 import sys
 import time
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager
 from os import environ, path
+from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, cast
 from unittest import mock
 from urllib.parse import urlparse
 
+import docker
 import docker.errors
 import ephemeral_port_reserve
 import pytest
@@ -18,7 +23,31 @@ import requests
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.testutils.pytest import xdist
 
+if TYPE_CHECKING:
+    from pytest import TempPathFactory
+    from pytest_django.live_server_helper import LiveServer
+
 _log = logging.getLogger(__name__)
+
+
+class RelayDockerOptions(TypedDict):
+    image: str
+    ports: dict[str, int]
+    network: str
+    detach: Literal[True]
+    name: str
+    volumes: dict[str, dict[str, str]]
+    command: list[str]
+    extra_hosts: dict[str, str]
+
+
+class RelayServerSetup(TypedDict):
+    url: str
+    options: RelayDockerOptions
+
+
+class RelayServer(TypedDict):
+    url: str
 
 
 # This helps the Relay CI to specify the generated Docker build before it is published
@@ -47,17 +76,23 @@ def _wait_until_ready(url: str, timeout: float) -> None:
     raise TimeoutError(last_result)
 
 
-def _get_template_dir():
+class _Container(Protocol):
+    def stop(self, timeout: int | None = None) -> object: ...
+    def kill(self) -> object: ...
+    def remove(self) -> object: ...
+
+
+def _get_template_dir() -> str:
     return path.abspath(path.join(path.dirname(__file__), "template"))
 
 
-def _remove_container_if_exists(docker_client, container_name):
+def _remove_container_if_exists(docker_client: docker.DockerClient, container_name: str) -> None:
     try:
-        container = docker_client.containers.get(container_name)
+        container = cast("_Container", docker_client.containers.get(container_name))
     except Exception:
         pass  # container not found
     else:
-        actions = [
+        actions: list[Callable[[], object]] = [
             lambda: container.stop(timeout=1),
             lambda: container.kill(),
             lambda: container.remove(),
@@ -70,13 +105,15 @@ def _remove_container_if_exists(docker_client, container_name):
 
 
 @pytest.fixture(scope="module")
-def relay_server_setup(live_server, tmpdir_factory):
+def relay_server_setup(
+    live_server: LiveServer, tmpdir_factory: TempPathFactory
+) -> Generator[RelayServerSetup]:
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
-    config_path = tmpdir_factory.mktemp(prefix)
-    config_path.chmod(0o755)
-    config_path = str(config_path)
+    config_dir = tmpdir_factory.mktemp(prefix)
+    config_dir.chmod(0o755)
+    config_path = str(config_dir)
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
@@ -127,7 +164,7 @@ def relay_server_setup(live_server, tmpdir_factory):
         container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
 
-    options = {
+    options: RelayDockerOptions = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
         "network": "devservices",
@@ -139,13 +176,16 @@ def relay_server_setup(live_server, tmpdir_factory):
     }
 
     # Some structure similar to what the live_server fixture returns
-    server_info = {"url": f"http://127.0.0.1:{relay_port}", "options": options}
+    server_info: RelayServerSetup = {
+        "url": f"http://127.0.0.1:{relay_port}",
+        "options": options,
+    }
 
     # Relay keeps idle upstream connections open past the global 5s socket timeout.
     httpd = live_server.thread.httpd
     handle_error = httpd.handle_error
 
-    def _handle_error(request, client_address):
+    def _handle_error(request: object, client_address: object) -> None:
         if not isinstance(sys.exception(), TimeoutError):
             handle_error(request, client_address)
 
@@ -160,7 +200,7 @@ def relay_server_setup(live_server, tmpdir_factory):
 
 
 @pytest.fixture(scope="function")
-def relay_server(relay_server_setup):
+def relay_server(relay_server_setup: RelayServerSetup) -> Generator[RelayServer]:
     # Imported lazily: this module is loaded as a pytest plugin before Django is set up,
     # and override_options pulls in app code that requires configured settings.
     from sentry.testutils.helpers.options import override_options
@@ -223,10 +263,11 @@ def relay_server(relay_server_setup):
                     f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
                 ) from e
 
-        yield {"url": relay_server_setup["url"]}
+        server: RelayServer = {"url": relay_server_setup["url"]}
+        yield server
 
 
-def relay_test_settings():
+def relay_test_settings() -> AbstractContextManager[object]:
     """
     Settings that let a Relay instance running inside a docker container call the app.
     """
@@ -255,40 +296,48 @@ def relay_test_settings():
 
 
 @pytest.fixture
-def get_relay_store_url(relay_server):
-    def inner(project_id):
+def get_relay_store_url(relay_server: RelayServer) -> Callable[[int | str], str]:
+    def inner(project_id: int | str) -> str:
         return "{}/api/{}/store/".format(relay_server["url"], project_id)
 
     return inner
 
 
 @pytest.fixture
-def get_relay_security_url(relay_server):
-    def inner(project_id, key):
+def get_relay_security_url(
+    relay_server: RelayServer,
+) -> Callable[[int | str, str], str]:
+    def inner(project_id: int | str, key: str) -> str:
         return "{}/api/{}/security/?sentry_key={}".format(relay_server["url"], project_id, key)
 
     return inner
 
 
 @pytest.fixture
-def get_relay_minidump_url(relay_server):
-    def inner(project_id, key):
+def get_relay_minidump_url(
+    relay_server: RelayServer,
+) -> Callable[[int | str, str], str]:
+    def inner(project_id: int | str, key: str) -> str:
         return "{}/api/{}/minidump/?sentry_key={}".format(relay_server["url"], project_id, key)
 
     return inner
 
 
 @pytest.fixture
-def get_relay_unreal_url(relay_server):
-    def inner(project_id, key):
+def get_relay_unreal_url(
+    relay_server: RelayServer,
+) -> Callable[[int | str, str], str]:
+    def inner(project_id: int | str, key: str) -> str:
         return "{}/api/{}/unreal/{}/".format(relay_server["url"], project_id, key)
 
     return inner
 
 
 @pytest.fixture
-def get_relay_attachments_url(relay_server):
-    def inner(project_id, event_id):
+def get_relay_attachments_url(
+    relay_server: RelayServer,
+) -> Callable[[int | str, str], str]:
+    def inner(project_id: int | str, event_id: str) -> str:
         return "{}/api/{}/events/{}/attachments/".format(relay_server["url"], project_id, event_id)
 
     return inner

@@ -332,6 +332,15 @@ def main(context: dict[str, str]) -> int:
     ):
         proc.run((f"{venv_dir}/bin/sentry", "init", "--dev"))
 
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (("prod feature flags", ("bin/sync-prod-flags",), {}),),
+        verbose,
+    ):
+        print("⚠️  prod feature flags failed to sync, using registered defaults (non-fatal)")
+
     # Frontend engineers don't necessarily always have devservices running and
     # can configure to skip them to save on local resources
     if FRONTEND_ONLY:

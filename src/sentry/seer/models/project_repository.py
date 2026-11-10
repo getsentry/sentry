@@ -20,7 +20,6 @@ class SeerProjectRepository(DefaultFieldsModel):
     project_repository = models.OneToOneField("sentry.ProjectRepository", on_delete=models.CASCADE)
     branch_name = models.TextField(null=True, blank=True)
     instructions = models.TextField(null=True, blank=True)
-    enabled = models.BooleanField(db_default=True)  # Opt-out toggle for token-based billing.
 
     class Meta:
         app_label = "seer"

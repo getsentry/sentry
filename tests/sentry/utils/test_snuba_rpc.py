@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
@@ -29,6 +31,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsResponse,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    Column,
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
@@ -38,8 +41,11 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
 )
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 from urllib3.response import HTTPResponse
 
+from sentry.testutils.cases import OurLogTestCase, SnubaTestCase, TestCase
 from sentry.utils import snuba_rpc
 
 
@@ -47,6 +53,11 @@ from sentry.utils import snuba_rpc
     "status, message, exception",
     [
         (400, "invalid routing_hint", snuba_rpc.SnubaRPCBadRequest),
+        (
+            400,
+            "Code: 427. DB::Exception: cannot compile re2: (?<=a)b (CANNOT_COMPILE_REGEXP)",
+            snuba_rpc.SnubaRPCInvalidRegex,
+        ),
         (400, "Too many simultaneous queries", snuba_rpc.SnubaRPCTooManySimultaneous),
         (404, "not found", NotFound),
         (429, "rate limited", snuba_rpc.SnubaRPCRateLimitExceeded),
@@ -64,7 +75,7 @@ def test_rpc_http_errors(status: int, message: str, exception: type[Exception]) 
         snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
 
     assert type(raised.value) is exception
-    if exception is snuba_rpc.SnubaRPCBadRequest:
+    if issubclass(exception, snuba_rpc.SnubaRPCBadRequest):
         assert str(raised.value) == message
 
 
@@ -351,3 +362,45 @@ def test_create_subscription_logs_response() -> None:
     assert extra["rpc_rows"] is None
     assert extra["referrer"] == "test.referrer"
     assert mock_distribution.call_count == 0
+
+
+class TestRegexRpcErrors(TestCase, SnubaTestCase, OurLogTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.store_eap_items([self.create_ourlog({"body": "hello world!"})])
+
+    def _regex_request(self, pattern: str) -> TraceItemTableRequest:
+        start, end = Timestamp(), Timestamp()
+        start.FromDatetime(datetime.now() - timedelta(hours=1))
+        end.FromDatetime(datetime.now() + timedelta(minutes=5))
+        key = AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.body")
+        return TraceItemTableRequest(
+            meta=RequestMeta(
+                organization_id=self.organization.id,
+                project_ids=[self.project.id],
+                referrer="test.referrer",
+                cogs_category="test",
+                start_timestamp=start,
+                end_timestamp=end,
+                trace_item_type=TraceItemType.TRACE_ITEM_TYPE_LOG,
+            ),
+            columns=[Column(key=key)],
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=key,
+                    op=ComparisonFilter.OP_REGEXP,
+                    value=AttributeValue(val_str=pattern),
+                )
+            ),
+            limit=1,
+        )
+
+    def test_raises_invalid_regex_when_clickhouse_cannot_compile_the_pattern(self) -> None:
+        with pytest.raises(snuba_rpc.SnubaRPCInvalidRegex):
+            snuba_rpc.table_rpc([self._regex_request("(?<=hello) world")])
+
+    def test_raises_plain_bad_request_when_snuba_rejects_the_request(self) -> None:
+        with pytest.raises(snuba_rpc.SnubaRPCBadRequest) as raised:
+            snuba_rpc.table_rpc([self._regex_request("")])
+
+        assert type(raised.value) is snuba_rpc.SnubaRPCBadRequest

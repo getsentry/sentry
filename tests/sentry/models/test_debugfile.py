@@ -5,7 +5,7 @@ import tempfile
 import time
 import zipfile
 from io import BytesIO
-from typing import Any
+from typing import IO, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,6 +13,8 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
+from objectstore_client import Session
+from symbolic.debuginfo import Archive
 
 from sentry.models.debugfile import (
     DifMeta,
@@ -42,6 +44,10 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 """
 
 
+def get_local_fixture_path(name: str) -> str:
+    return os.path.join(os.path.dirname(__file__), "fixtures", name)
+
+
 class DebugFileTest(TestCase):
     def test_delete_dif(self) -> None:
         dif = self.create_dif_file(
@@ -49,10 +55,11 @@ class DebugFileTest(TestCase):
         )
 
         dif_id = dif.id
+        file_id = dif.file_id
         dif.delete()
 
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
-        assert not File.objects.filter(id=dif.file.id).exists()
+        assert not File.objects.filter(id=file_id).exists()
 
     def test_delete_shared_file_keeps_file_until_last_reference_removed(self) -> None:
         file = self.create_file(
@@ -160,6 +167,7 @@ class DebugFileTest(TestCase):
 
     def test_find_missing(self) -> None:
         dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
+        assert dif.checksum is not None
         ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
         assert ret == ["a" * 40]
 
@@ -248,10 +256,12 @@ class DebugFileTest(TestCase):
 class DebugFileObjectstoreTest(TestCase):
     """Tests for Objectstore-backed debug files."""
 
-    def _get_session(self):
+    def _get_session(self) -> Session:
         return get_session(UsecaseId.DEBUG_FILES, self.project)
 
-    def _create_objectstore_dif(self, content=b"test-content", **kwargs):
+    def _create_objectstore_dif(
+        self, content: bytes = b"test-content", **kwargs: object
+    ) -> ProjectDebugFile:
         storage_path = self._get_session().put(content, compress="zstd")
         defaults = {
             "debug_id": "dfb8e43a-f242-3d73-a453-aeb6a777ef75",
@@ -268,12 +278,12 @@ class DebugFileObjectstoreTest(TestCase):
         return ProjectDebugFile.objects.create(**defaults)
 
     def _create_non_objectstore_dif(
-        self, debug_id: str = "dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs: Any
-    ):
-        return self.create_dif_file(debug_id=debug_id, **kwargs)
+        self, debug_id: str = "dfb8e43a-f242-3d73-a453-aeb6a777ef75", **kwargs: object
+    ) -> ProjectDebugFile:
+        return self.create_dif_file(self.project, debug_id=debug_id, **kwargs)
 
     @requires_objectstore
-    def test_metadata_reads_from_new_columns_when_storage_path_set(self):
+    def test_metadata_reads_from_new_columns_when_storage_path_set(self) -> None:
         ts = timezone.now()
         dif = self._create_objectstore_dif(
             content_type="text/x-proguard+plain",
@@ -286,21 +296,22 @@ class DebugFileObjectstoreTest(TestCase):
         assert dif.get_date_created() == ts
         assert dif.file_format == "proguard"
 
-    def test_metadata_reads_from_file_columns_when_file_set(self):
+    def test_metadata_reads_from_file_columns_when_file_set(self) -> None:
         dif = self._create_non_objectstore_dif()
 
         assert dif.get_content_type() == "application/x-mach-binary"
+        assert dif.file is not None
         assert dif.get_file_size() == dif.file.size
         assert dif.get_date_created() == dif.file.timestamp
 
     @requires_objectstore
-    def test_get_file(self):
+    def test_get_file(self) -> None:
         dif = self._create_objectstore_dif()
 
         assert dif.get_file().read() == b"test-content"
 
     @requires_objectstore
-    def test_save_to(self):
+    def test_save_to(self) -> None:
         dif = self._create_objectstore_dif()
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -311,7 +322,7 @@ class DebugFileObjectstoreTest(TestCase):
                 assert f.read() == b"test-content"
 
     @requires_objectstore
-    def test_delete(self):
+    def test_delete(self) -> None:
         dif = self._create_objectstore_dif()
         storage_path = dif.storage_path
         assert storage_path is not None
@@ -324,10 +335,10 @@ class DebugFileObjectstoreTest(TestCase):
 
 class CreateDebugFileTest(APITestCase):
     @property
-    def file_path(self):
-        return os.path.join(os.path.dirname(__file__), "fixtures", "crash.dsym")
+    def file_path(self) -> str:
+        return get_local_fixture_path("crash.dsym")
 
-    def _create_meta(self, **kwargs) -> DifMeta:
+    def _create_meta(self, **kwargs: object) -> DifMeta:
         args: dict[str, Any] = {
             "file_format": "macho",
             "arch": "x86_64",
@@ -339,16 +350,20 @@ class CreateDebugFileTest(APITestCase):
         args.update(kwargs)
         return DifMeta(**args)
 
-    def create_dif(self, file: File, **kwargs):
+    def create_dif(self, file: File, **kwargs: object) -> tuple[ProjectDebugFile, bool]:
         if file.size is None:
             file.size = 0
             file.save(update_fields=["size"])
         return create_dif_from_file(self.project, self._create_meta(**kwargs), file)
 
-    def create_dif_from_fileobj(self, fileobj, **kwargs):
+    def create_dif_from_fileobj(
+        self, fileobj: IO[bytes], **kwargs: object
+    ) -> tuple[ProjectDebugFile, bool]:
         return create_dif_from_fileobj(self.project, self._create_meta(**kwargs), fileobj)
 
-    def create_dif_from_content(self, content: bytes, **kwargs):
+    def create_dif_from_content(
+        self, content: bytes, **kwargs: object
+    ) -> tuple[ProjectDebugFile, bool]:
         file = self.create_file(name="crash.dsym")
         file.putfile(ContentFile(content))
         return self.create_dif(file, **kwargs)
@@ -364,6 +379,7 @@ class CreateDebugFileTest(APITestCase):
 
         assert created
         assert dif is not None
+        assert dif.file is not None
         assert dif.file.type == "project.dif"
         assert "Content-Type" in dif.file.headers
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
@@ -415,7 +431,7 @@ class CreateDebugFileTest(APITestCase):
             dif, created = self.create_dif_from_fileobj(BytesIO(content))
 
         assert created
-        assert dif.file_id is None
+        assert dif.file is None
         assert dif.storage_path is not None
         assert dif.checksum == checksum
         assert dif.content_type == "application/x-mach-binary"
@@ -423,7 +439,7 @@ class CreateDebugFileTest(APITestCase):
         assert dif.get_file().read() == content
 
     @patch("sentry.models.debugfile.get_session")
-    def test_exclusive_objectstore_dif_is_idempotent(self, get_session) -> None:
+    def test_exclusive_objectstore_dif_is_idempotent(self, get_session: MagicMock) -> None:
         content = b"objectstore-dif-content"
         get_session.return_value.put.return_value = "storage-path"
 
@@ -439,7 +455,7 @@ class CreateDebugFileTest(APITestCase):
     @patch("sentry.models.debugfile.ProjectDebugFile.objects.create")
     @patch("sentry.models.debugfile.get_session")
     def test_exclusive_objectstore_dif_cleans_up_after_database_error(
-        self, get_session, create
+        self, get_session: MagicMock, create: MagicMock
     ) -> None:
         get_session.return_value.put.return_value = "storage-path"
         create.side_effect = RuntimeError
@@ -456,7 +472,7 @@ class CreateDebugFileTest(APITestCase):
     @patch("sentry.utils.retries.time.sleep")
     @patch("sentry.models.debugfile.get_session")
     def test_exclusive_objectstore_write_failure_does_not_create_file(
-        self, get_session, sleep
+        self, get_session: MagicMock, sleep: MagicMock
     ) -> None:
         get_session.return_value.put.side_effect = RuntimeError
         with (
@@ -471,7 +487,9 @@ class CreateDebugFileTest(APITestCase):
         assert not File.objects.filter(type="project.dif").exists()
 
     @patch("sentry.models.debugfile.create_dif_from_file", side_effect=RuntimeError)
-    def test_create_debug_file_cleans_up_legacy_file_after_create_error(self, create_dif) -> None:
+    def test_create_debug_file_cleans_up_legacy_file_after_create_error(
+        self, create_dif: MagicMock
+    ) -> None:
         with tempfile.NamedTemporaryFile() as file:
             file.write(b"debug symbols")
             file.flush()
@@ -513,6 +531,7 @@ class CreateDebugFileTest(APITestCase):
         assert created
         assert dif.file_id is not None
         assert dif.storage_path is None
+        assert dif.file is not None
         assert dif.file.getfile().read() == content
 
     @requires_objectstore
@@ -634,6 +653,45 @@ class CreateDebugFileTest(APITestCase):
         assert created1 and created2
         assert not ProjectDebugFile.objects.filter(id=dif1.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
+
+    def test_wasm_legacy_ids(self) -> None:
+        wasm_path = get_local_fixture_path("index.wasm")
+        obj = Archive.open(wasm_path)._get_object(0)
+        meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
+
+        file = self.create_file(name="index.wasm")
+        with open(wasm_path, "rb") as f:
+            file.putfile(f)
+
+        dif, created = create_dif_from_file(self.project, meta, file)
+
+        # Any `symbolic` version before 14.0.0a4 would've wrongly read the code ID
+        # as "10da03eb5d63d750faab0fb8e7cc12a1c3". We now save that as the legacy code ID.
+        #
+        # The legacy debug ID is the first 16 bytes of the legacy code ID.
+        assert dif.code_id == "da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.debug_id == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+        assert dif.wasm_legacy_code_id == "10da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.wasm_legacy_debug_id == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
+
+    @requires_objectstore
+    def test_wasm_legacy_ids_objectstore(self) -> None:
+        wasm_path = get_local_fixture_path("index.wasm")
+        obj = Archive.open(wasm_path)._get_object(0)
+        meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
+
+        with open(wasm_path, "rb") as f:
+            with self.feature("organizations:objectstore-debugfiles-write"):
+                dif, created = create_dif_from_fileobj(self.project, meta, f)
+
+        # Any `symbolic` version before 14.0.0a4 would've wrongly read the code ID
+        # as "10da03eb5d63d750faab0fb8e7cc12a1c3". We now save that as the legacy code ID.
+        #
+        # The legacy debug ID is the first 16 bytes of the legacy code ID.
+        assert dif.code_id == "da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.debug_id == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+        assert dif.wasm_legacy_code_id == "10da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.wasm_legacy_debug_id == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
 
 
 @debug_files_test_both_backends

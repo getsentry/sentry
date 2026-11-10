@@ -1,13 +1,12 @@
-import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
-
 import {colorComponentsToRGBA} from './colors/utils';
+import type {ColorChannels} from './flamegraph/flamegraphTheme';
+import type {ProfilingFormatterUnit} from './units/units';
 import {
   assertValidProfilingUnit,
   makeFormatter,
   makeTimelineFormatter,
 } from './units/units';
+import {Rect} from './speedscope';
 
 interface Series {
   fillColor: string;

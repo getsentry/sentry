@@ -47,7 +47,7 @@ export function FlamegraphAttachment({data}: {data: FlamegraphAttachmentData}) {
                   label: getTreeLabel(tree, index),
                 }))}
                 onChange={option => setSelectedTree(option.value)}
-                isClearable={false}
+                clearable={false}
               />
             </Container>
           )}

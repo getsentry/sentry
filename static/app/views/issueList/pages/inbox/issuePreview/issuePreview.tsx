@@ -48,21 +48,12 @@ import {
   groupEventApiOptions,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {
-  IssuePreviewHeaderActions,
-  OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
-import {
-  IssuePreviewSeerProvider,
-  useIssuePreviewSeer,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {
-  IssuePreviewSummary,
-  type IssueSummary,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
+import {IssuePreviewHeaderActions, OpenIssueButton} from './issuePreviewHeaderActions';
+import {IssuePreviewSeerProvider, useIssuePreviewSeer} from './issuePreviewSeer';
+import {IssuePreviewSummary, type IssueSummary} from './issuePreviewSummary';
 import {IssuePreviewTimeline} from './issuePreviewTimeline';
 
 interface IssuePreviewProps {
@@ -174,6 +165,8 @@ function IssuePreviewContent() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
+  const hasSeerContent =
+    previewSeer.state !== 'unavailable' && !!previewSeer.autofix.runState;
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
@@ -319,7 +312,13 @@ function IssuePreviewContent() {
           {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
-                <EventStackTrace event={event} group={group} projectSlug={project.slug} />
+                <EventStackTrace
+                  key={hasSeerContent ? 'seer' : 'default'}
+                  event={event}
+                  group={group}
+                  projectSlug={project.slug}
+                  initialCollapse={hasSeerContent || undefined}
+                />
               </ErrorBoundary>
             </Container>
           )}

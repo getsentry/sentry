@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import {useRenameDashboard} from 'sentry/views/dashboards/hooks/useRenameDashboard';
+import {useGetStarredDashboards} from './useGetStarredDashboards';
+import {useRenameDashboard} from './useRenameDashboard';
 
 describe('useRenameDashboard', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});

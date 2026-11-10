@@ -12,7 +12,8 @@ import {
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {setupMockPopup} from 'sentry/components/pipeline/testUtils';
 import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+
+import {AddIntegrationButton} from './addIntegrationButton';
 
 describe('AddIntegrationButton', () => {
   const provider = IntegrationProviderFixture();

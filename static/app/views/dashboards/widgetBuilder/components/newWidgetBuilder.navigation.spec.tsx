@@ -10,9 +10,10 @@ import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {WidgetBuilderV2} from './newWidgetBuilder';
 
 // Rendering the real Navigation component pulls in navigation-inference
 // logic that is slow and can exceed the default 5 second test timeout.
@@ -37,8 +38,6 @@ const organization = OrganizationFixture({
     'discover',
     'discover-basic',
     'discover-query',
-    'dashboards-basic',
-    'dashboards-edit',
   ],
 });
 
@@ -118,10 +117,6 @@ describe('NewWidgetBuilder navigation layout integration', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: [], start: 0, end: 0},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',

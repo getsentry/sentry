@@ -7,15 +7,6 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {
-  DatasetConfig,
-  SearchBarData,
-  SearchBarDataProviderProps,
-  WidgetBuilderSearchBarProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/events';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -29,6 +20,16 @@ import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/componen
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {usePreprodItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {mobileAppSizeResponseTransforms} from './utils/mobileAppSizeResponseTransforms';
+import type {
+  DatasetConfig,
+  SearchBarData,
+  SearchBarDataProviderProps,
+  WidgetBuilderSearchBarProps,
+} from './base';
+import {getTimeseriesSortOptions} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

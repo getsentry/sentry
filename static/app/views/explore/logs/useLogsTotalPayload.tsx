@@ -6,9 +6,10 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useLogsFrozenProjectIds} from 'sentry/views/explore/logs/logsFrozenContext';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {useLogsFrozenProjectIds} from './logsFrozenContext';
 
 type TotalPayloadResult = {
   data: Array<{'sum(payload_size)': number}>;

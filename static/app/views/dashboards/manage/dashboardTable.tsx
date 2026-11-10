@@ -5,24 +5,24 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconGroup} from '@sentry/icons/group';
 import {IconInput} from '@sentry/icons/input';
 import {IconStar} from '@sentry/icons/star';
+import {useMutation} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {updateDashboardPermissions} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
+import {showDashboardPermissionsError} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
   DataGrid,
@@ -32,11 +32,12 @@ import {
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -44,7 +45,6 @@ import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateD
 import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
 import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {
-  DashboardDetails,
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
@@ -52,7 +52,6 @@ import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
 type Props = {
-  api: Client;
   dashboards: DashboardListItem[] | undefined;
   isOnlyPrebuilt: boolean;
   location: Location;
@@ -214,8 +213,7 @@ function DashboardRowActions({
   );
 }
 
-function DashboardTable({
-  api,
+export function DashboardTable({
   organization,
   location,
   dashboards,
@@ -223,6 +221,21 @@ function DashboardTable({
   isLoading,
   isOnlyPrebuilt,
 }: Props) {
+  const {mutate: updateEditAccess} = useMutation({
+    mutationFn: (dashboard: DashboardListItem) =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+          path: {organizationIdOrSlug: organization.slug, dashboardId: dashboard.id},
+        }),
+        method: 'PUT',
+        data: {permissions: dashboard.permissions},
+      }),
+    onSuccess: () => {
+      onDashboardsChange();
+      toast.success(t('Dashboard Edit Access updated.'));
+    },
+    onError: showDashboardPermissionsError,
+  });
   const handleDuplicateDashboard = useDuplicateDashboard({
     onSuccess: onDashboardsChange,
   });
@@ -234,13 +247,7 @@ function DashboardTable({
       const dashboardCopy = cloneDeep(dashboard);
       dashboardCopy.permissions = newDashboardPermissions;
 
-      updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
-        (newDashboard: DashboardDetails) => {
-          onDashboardsChange();
-          addSuccessMessage(t('Dashboard Edit Access updated.'));
-          return newDashboard;
-        }
-      );
+      updateEditAccess(dashboardCopy);
     };
   const hasUserLastVisited = organization.features.includes(
     'dashboards-user-last-visited'
@@ -454,8 +461,6 @@ function DashboardTable({
     />
   );
 }
-
-export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.font.size.md};

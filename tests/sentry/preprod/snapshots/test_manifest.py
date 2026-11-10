@@ -7,8 +7,8 @@ from sentry.preprod.snapshots.manifest import (
 )
 
 
-def _meta(**kwargs: object) -> dict:
-    defaults: dict = {"content_hash": "abc123", "width": 100, "height": 200}
+def _meta(**kwargs: object) -> dict[str, object]:
+    defaults: dict[str, object] = {"content_hash": "abc123", "width": 100, "height": 200}
     defaults.update(kwargs)
     return defaults
 
@@ -121,7 +121,7 @@ class TestImageMetadataJsonSchema:
         jsonschema.validate(_meta(tags={"count": 42}), schema)
 
 
-def test_comparison_plan_round_trip():
+def test_comparison_plan_round_trip() -> None:
     from sentry.preprod.snapshots.manifest import (
         ChunkAssignment,
         ChunkCandidate,
@@ -154,7 +154,7 @@ def test_comparison_plan_round_trip():
     assert restored.non_diff_images["x.png"].status == "added"
 
 
-def test_chunk_result_round_trip():
+def test_chunk_result_round_trip() -> None:
     from sentry.preprod.snapshots.manifest import ChunkResult, ComparisonImageResult
 
     result = ChunkResult(chunk_index=3, images={"a.png": ComparisonImageResult(status="changed")})
@@ -163,7 +163,9 @@ def test_chunk_result_round_trip():
     assert restored.images["a.png"].status == "changed"
 
 
-def _reference_extras(metadata: ImageMetadata, exclude: set[str] | None = None) -> dict:
+def _reference_extras(
+    metadata: ImageMetadata, exclude: set[str] | None = None
+) -> dict[str, object]:
     schema_fields = frozenset(ImageMetadata.__fields__)
     skip = schema_fields | exclude if exclude else schema_fields
     return {k: v for k, v in metadata.dict().items() if k not in skip}

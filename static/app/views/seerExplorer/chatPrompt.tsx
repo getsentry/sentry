@@ -1,4 +1,4 @@
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block} from './types';
 
 /**
  * An "Ask Seer" question: shown in Explorer as Seer's, and sent with the user's reply.

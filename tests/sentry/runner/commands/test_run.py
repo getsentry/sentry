@@ -3,12 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.runner.commands import run
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-)
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 
 @pytest.mark.parametrize(

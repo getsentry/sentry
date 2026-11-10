@@ -30,18 +30,18 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
-import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
-import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+
+import {formatTooltipYAxisValue} from './formatters/formatTooltipYAxisValue';
+import {formatTooltipZAxisValue} from './formatters/formatTooltipZAxisValue';
+import {HeatMap} from './plottables/heatMap';
+import type {HeatMapPlottable} from './plottables/heatMapPlottable';
 import {
   HIDDEN_CATEGORY_AXIS,
   heatMapTimeAxis,
   heatMapValueAxis,
-} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/heatMapAxes';
-import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
-
-import {HeatMap} from './plottables/heatMap';
-import type {HeatMapPlottable} from './plottables/heatMapPlottable';
+} from './utils/heatMapAxes';
 import {HEATMAP_COLORS} from './settings';
 
 interface HeatMapWidgetVisualizationProps {

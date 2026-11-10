@@ -2,10 +2,12 @@ import {useCallback, useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {Confirm} from '@sentry/scraps/confirm';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -18,15 +20,14 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   changeProjectSlug,
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
@@ -42,7 +43,6 @@ import {consoles} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
@@ -63,7 +63,10 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
@@ -553,9 +556,10 @@ function SecurityTokenHeaderForm({
 }
 
 export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
+  const settingsV3 = useSettingsV3();
   const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
@@ -585,11 +589,11 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
         origin: 'settings',
       });
     } catch (err) {
-      addErrorMessage(tct('Error removing [project]', {project: project.slug}));
+      toast.error(tct('Error removing [project]', {project: project.slug}));
       throw err;
     }
 
-    addSuccessMessage(tct('[project] was successfully removed', {project: project.slug}));
+    toast.success(tct('[project] was successfully removed', {project: project.slug}));
     navigate(`/settings/${organization.slug}/projects/`);
   };
 
@@ -676,8 +680,11 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Project Settings')} projectSlug={project.slug} />
-      <SettingsPageHeader title={t('Project Settings')} />
+      <SentryDocumentTitle
+        title={getSettingsScopeTitle('project')}
+        projectSlug={project.slug}
+      />
+      <SettingsPageHeader title={settingsV3 ? t('General') : t('Project Settings')} />
       <ProjectPermissionAlert project={project} />
 
       <FormSearch route="/settings/:orgId/projects/:projectId/">
@@ -704,16 +711,17 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 <field.Select
                   value={field.state.value ?? null}
                   onChange={field.handleChange}
-                  options={platformOptions}
+                  options={platformOptions.map(option => ({
+                    ...option,
+                    disabled:
+                      option.value === project.platform &&
+                      !isPlatformAllowed({
+                        isSelfHosted,
+                        organization,
+                        platform: option.value,
+                      }),
+                  }))}
                   filterOption={platformFilter}
-                  isOptionDisabled={option =>
-                    option.value === project.platform &&
-                    !isPlatformAllowed({
-                      isSelfHosted,
-                      organization,
-                      platform: option.value,
-                    })
-                  }
                   disabled={disabled}
                 />
               </field.Layout.Row>
@@ -721,9 +729,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
-        {organization.features.includes('code-mappings-refactor') && (
-          <ConnectedRepositoriesPanel project={project} />
-        )}
+        <ConnectedRepositoriesPanel project={project} />
 
         <FieldGroup title={t('Email')}>
           <AutoSaveForm

@@ -1,4 +1,4 @@
-import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from './getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', () => {
   const matches = [

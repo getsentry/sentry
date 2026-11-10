@@ -31,7 +31,7 @@ from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.search.events.types import SnubaParams
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery, TableRequest
@@ -183,7 +183,7 @@ def test_top_event_conditions_match_case_when_ignoring_case() -> None:
 class TestProcessColumnValuesTruncation(TestCase):
     def test_truncates_long_strings(self) -> None:
         long_str = "x" * 100
-        final_data: list[dict] = [{}]
+        final_data: list[dict[str, object]] = [{}]
         RPCBase.process_column_values(
             _make_column_value([long_str]),
             final_data,
@@ -195,7 +195,7 @@ class TestProcessColumnValuesTruncation(TestCase):
 
     def test_no_truncation_without_param(self) -> None:
         long_str = "x" * 100
-        final_data: list[dict] = [{}]
+        final_data: list[dict[str, object]] = [{}]
         RPCBase.process_column_values(
             _make_column_value([long_str]),
             final_data,
@@ -209,7 +209,7 @@ class TestProcessColumnValuesTruncation(TestCase):
         av.val_int = 42
         column_value = MagicMock()
         column_value.results = [av]
-        final_data: list[dict] = [{}]
+        final_data: list[dict[str, object]] = [{}]
         RPCBase.process_column_values(
             column_value,
             final_data,
@@ -224,7 +224,7 @@ class TestProcessColumnValuesTruncation(TestCase):
         av.is_null = True
         column_value = MagicMock()
         column_value.results = [av]
-        final_data: list[dict] = [{}]
+        final_data: list[dict[str, object]] = [{}]
         RPCBase.process_column_values(
             column_value,
             final_data,
@@ -360,7 +360,7 @@ trace_id_test_cases = (
 )
 @pytest.mark.parametrize(trace_id_test_cases[0], trace_id_test_cases[1])
 @django_db_all
-def test_force_sampling_mode_in_table(dataset, query, mode):
+def test_force_sampling_mode_in_table(dataset: type[RPCBase], query: str, mode: int) -> None:
     owner = Factories.create_user()
     organization = Factories.create_organization(owner=owner)
 
@@ -557,7 +557,9 @@ def test_table_limit_by_builds_rpc_request() -> None:
     ],
 )
 @django_db_all
-def test_table_limit_by_rejects_invalid_input(limit_by, sampling_mode, match) -> None:
+def test_table_limit_by_rejects_invalid_input(
+    limit_by: LimitBy, sampling_mode: SAMPLING_MODES | None, match: str
+) -> None:
     owner = Factories.create_user()
     organization = Factories.create_organization(owner=owner)
     project = Factories.create_project(organization=organization)
@@ -771,7 +773,7 @@ def test_timeseries_groupby_rejects_hidden_remapped_virtual_context_attribute() 
 )
 @pytest.mark.parametrize(trace_id_test_cases[0], trace_id_test_cases[1])
 @django_db_all
-def test_force_sampling_mode_in_timeseries(dataset, query, mode):
+def test_force_sampling_mode_in_timeseries(dataset: type[RPCBase], query: str, mode: int) -> None:
     owner = Factories.create_user()
     organization = Factories.create_organization(owner=owner)
 

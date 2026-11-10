@@ -100,12 +100,27 @@ def test_trim_drops_changes_sentry_cannot_store() -> None:
     assert UpdateDetectorActionSerializer.trim(ACTION) == ACTION
 
 
-def test_trim_leaves_mismatched_keys_for_validation_to_reject() -> None:
+def test_accepts_settings_seer_relied_on_but_did_not_change() -> None:
+    action = {
+        **ACTION,
+        "before": {"timeWindowSeconds": 300, "aggregate": "p95(transaction.duration)"},
+        "changes": {"timeWindowSeconds": 900},
+    }
+
+    assert validated(action) is not None
+
+
+def test_trim_drops_long_text_from_unchanged_settings_too() -> None:
     action = {
         **ACTION,
         "before": {"query": "x" * 2_001, "timeWindowSeconds": 300},
         "changes": {"timeWindowSeconds": 900},
     }
 
-    assert UpdateDetectorActionSerializer.trim(action) == action
-    assert validated(action) is None
+    trimmed = UpdateDetectorActionSerializer.trim(action)
+
+    assert trimmed is not None
+    assert (trimmed["before"], trimmed["changes"]) == (
+        {"timeWindowSeconds": 300},
+        {"timeWindowSeconds": 900},
+    )

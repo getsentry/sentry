@@ -6,18 +6,19 @@ import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage} from 'sentry/serviceWorker/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useAskSeerHandoff} from './useAskSeerHandoff';
 
 const SUCCESS_VISIBLE_DURATION_MS = 25_000;
 const PROMPT_FEATURE = 'seer_autofix_sw_notification';
@@ -121,7 +122,7 @@ export function SeerEnableNotifications({status}: Props) {
                     },
                   } satisfies RequestMessage);
                 } catch (error) {
-                  addErrorMessage(error instanceof Error ? error.message : String(error));
+                  toast.error(error instanceof Error ? error.message : String(error));
                 }
               }}
             >

@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Protocol
 from unittest import mock
 from urllib.parse import quote as urlquote
 
@@ -17,6 +18,11 @@ from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.useremail import UserEmail
+
+
+class RedirectChainResponse(Protocol):
+    status_code: int
+    redirect_chain: list[tuple[str, int]]
 
 
 # TODO(dcramer): this is an integration test and repeats tests from
@@ -407,17 +413,18 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
         self.normal_user = self.create_user()
         self.normal_org = self.create_organization(owner=self.normal_user)
 
-    def is_logged_in_to_org(self, response, org):
+    def is_logged_in_to_org(self, response: RedirectChainResponse, org: Organization) -> bool:
         return response.status_code == 200 and response.redirect_chain == [
             (reverse("sentry-login"), 302),
             (f"/organizations/{org.slug}/issues/", 302),
         ]
 
-    def fetch_org_login_page(self, org):
-        return self.client.get(
+    def fetch_org_login_page(self, org: Organization) -> RedirectChainResponse:
+        response: RedirectChainResponse = self.client.get(
             reverse("sentry-auth-organization", args=[org.slug]),
             follow=True,
         )
+        return response
 
     def test_auto_login_demo_mode_disabled(self) -> None:
         with override_options(
