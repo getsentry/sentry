@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import replace
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -351,7 +352,7 @@ class UnmergeRecoveryTest(TestCase):
         assert self.group_hash.state == GroupHash.State.UNLOCKED
         assert client().get(owner_key(self.project.id, self.fingerprint)) is None
         with UnmergeCheckpoint(self.args) as checkpoint:
-            assert checkpoint.finished
+            assert checkpoint.phase == "complete"
 
     @patch("sentry.tasks.unmerge.truncate_denormalizations")
     @patch("sentry.tasks.unmerge.task_run_batch_query")
@@ -400,6 +401,65 @@ class UnmergeRecoveryTest(TestCase):
         truncate.assert_not_called()
         assert query.call_count == 2
         assert query.call_args.kwargs["state"] == arguments["last_event"]
+
+    def prepare_successive_batch(self) -> dict[str, Any]:
+        arguments = {
+            **self.args.dump_arguments(),
+            "batch_number": 1,
+            "last_event": {"timestamp": "old-cursor", "event_id": "b" * 32},
+            "locked_primary_hashes": [self.fingerprint],
+        }
+        with UnmergeCheckpoint(self.args) as parent:
+            parent.lock_hashes()
+            parent.begin_mutations()
+            parent.handoff(arguments)
+        return arguments
+
+    @patch("sentry.tasks.unmerge.truncate_denormalizations")
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_empty_final_batch_retries_before_lock_cleanup(
+        self, query: Mock, truncate: Mock
+    ) -> None:
+        arguments = self.prepare_successive_batch()
+        with (
+            patch(
+                "sentry.tasks.unmerge.publish_destination_first_seen",
+                side_effect=RedisConnectionError("completion interrupted"),
+            ),
+            pytest.raises(UnmergeBusy),
+        ):
+            unmerge(**arguments)
+        unmerge(**arguments)
+        assert query.call_count == 2
+        truncate.assert_not_called()
+        self.assert_cleanup_complete()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_empty_final_batch_resumes_sql_unlock(self, query: Mock) -> None:
+        arguments = self.prepare_successive_batch()
+        with (
+            patch.object(type(GroupHash.objects.all()), "update", side_effect=KeyboardInterrupt),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**arguments)
+        unmerge(**arguments)
+        query.assert_called_once()
+        self.assert_cleanup_complete()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_empty_final_batch_resumes_redis_release(self, query: Mock) -> None:
+        arguments = self.prepare_successive_batch()
+        with (
+            patch(
+                "sentry.issues.unmerge_recovery.release_hashes",
+                side_effect=RedisConnectionError("owner release interrupted"),
+            ),
+            pytest.raises(UnmergeBusy),
+        ):
+            unmerge(**arguments)
+        unmerge(**arguments)
+        query.assert_called_once()
+        self.assert_cleanup_complete()
 
     @patch("sentry.tasks.unmerge.truncate_denormalizations")
     @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))

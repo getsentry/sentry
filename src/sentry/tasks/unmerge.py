@@ -24,7 +24,6 @@ from sentry.issues.unmerge_recovery import (
     UnmergeBusy,
     UnmergeCheckpoint,
     UnmergeNeedsRecovery,
-    release_hashes,
     reserve_legacy_hashes,
 )
 from sentry.killswitches import killswitch_matches_context
@@ -700,9 +699,9 @@ def _unmerge(args: UnmergeArgs, checkpoint: UnmergeCheckpoint | None = None) -> 
 
         # Fetching event payloads is read-only and can be repeated after a worker
         # death. Do not truncate the source before that recovery boundary.
-        if checkpoint:
-            checkpoint.begin_mutations()
         if isinstance(args, InitialUnmergeArgs):
+            if checkpoint:
+                checkpoint.begin_mutations()
             truncate_denormalizations(project, source)
 
         # If there are no more events to process, we're done with the migration.
@@ -710,7 +709,8 @@ def _unmerge(args: UnmergeArgs, checkpoint: UnmergeCheckpoint | None = None) -> 
             publish_destination_first_seen(
                 project, [destination_id for destination_id, _ in args.destinations.values()]
             )
-            unlock_hashes(args.project_id, locked_primary_hashes)
+            if checkpoint is None:
+                unlock_hashes(args.project_id, locked_primary_hashes)
             for unmerge_key, (_, eventstream_state) in args.destinations.items():
                 logger.warning(
                     "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
@@ -718,10 +718,11 @@ def _unmerge(args: UnmergeArgs, checkpoint: UnmergeCheckpoint | None = None) -> 
                 if eventstream_state:
                     args.replacement.stop_snuba_replacement(eventstream_state)
             if checkpoint:
-                release_hashes(args.project_id, locked_primary_hashes, checkpoint.owner)
-                checkpoint.complete()
+                checkpoint.release_locks()
             return
 
+        if checkpoint and isinstance(args, SuccessiveUnmergeArgs):
+            checkpoint.begin_mutations()
         source_events = []
         destination_events: dict[str, list[GroupEvent]] = {}
 
