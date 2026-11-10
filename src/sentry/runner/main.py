@@ -1,6 +1,5 @@
 import importlib
 import importlib.util
-import keyword
 import logging
 import os
 import pkgutil
@@ -15,26 +14,27 @@ import sentry
 from sentry.runner import commands
 
 
-# Command `foo-bar` is the click command `foo_bar` (or `foo_bar_`, to not shadow
-# a keyword or builtin) in `sentry.runner.commands.foo_bar`. Finding it by
-# module name imports only that module: importing them all costs about a second.
+# Command `foo-bar` is the click command of that name in
+# `sentry/runner/commands/foo_bar.py`. Looking it up by module name imports only
+# that module: importing them all costs about a second.
 def _command_module(cmd_name: str) -> str | None:
     module = cmd_name.replace("-", "_")
-    if keyword.iskeyword(module):
-        module += "_"
     if not module.isidentifier():
         return None
     return f"{commands.__name__}.{module}"
 
 
-def _load_command(module_name: str) -> click.Command | None:
+def _module_commands(module_name: str) -> list[click.Command]:
     module = importlib.import_module(module_name)
-    attr = module_name.rpartition(".")[2]
-    command = getattr(module, attr, None) or getattr(module, f"{attr}_", None)
-    if isinstance(command, click.Command) and command.name:
-        if _command_module(command.name) == module_name:
-            return command
-    return None
+    # Check with issubclass(type(...)): isinstance() would evaluate lazy module
+    # attributes such as django.conf.settings.
+    return [
+        value
+        for value in vars(module).values()
+        if issubclass(type(value), click.Command)
+        and value.name
+        and _command_module(value.name) == module_name
+    ]
 
 
 # Set on the Sentry CLI we exec, so a second server `sentry` on PATH can't hand
@@ -70,18 +70,17 @@ class _SentryGroup(click.Group):
         names = set(self.commands)
         for info in pkgutil.iter_modules(commands.__path__):
             if not info.ispkg:
-                command = _load_command(f"{commands.__name__}.{info.name}")
-                if command is not None and command.name:
-                    names.add(command.name)
+                module = f"{commands.__name__}.{info.name}"
+                names.update(c.name for c in _module_commands(module) if c.name)
         return sorted(names)
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         if cmd_name not in self.commands:
             module = _command_module(cmd_name)
             if module is not None and importlib.util.find_spec(module) is not None:
-                command = _load_command(module)
-                if command is not None and command.name == cmd_name:
-                    self.add_command(command)
+                for command in _module_commands(module):
+                    if command.name == cmd_name:
+                        self.add_command(command)
         return super().get_command(ctx, cmd_name)
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:

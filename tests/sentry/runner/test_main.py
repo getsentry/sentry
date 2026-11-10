@@ -10,7 +10,7 @@ from click.shell_completion import _resolve_context
 from click.testing import CliRunner
 
 from sentry.runner import commands
-from sentry.runner.main import _FALLBACK_ENV, _load_command, _SentryGroup, cli
+from sentry.runner.main import _FALLBACK_ENV, _module_commands, _SentryGroup, cli
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def other_sentry(tmp_path: Path) -> Path:
     [m.name for m in pkgutil.iter_modules(commands.__path__) if not m.ispkg],
 )
 def test_every_command_module_has_its_command(module: str) -> None:
-    assert _load_command(f"{commands.__name__}.{module}") is not None
+    assert _module_commands(f"{commands.__name__}.{module}")
 
 
 def test_listed_commands_resolve_lazily() -> None:
