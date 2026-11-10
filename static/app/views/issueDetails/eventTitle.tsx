@@ -41,7 +41,7 @@ type EventNavigationProps = {
   style?: CSSProperties;
 };
 
-export const MIN_NAV_HEIGHT = 44;
+const MIN_NAV_HEIGHT = 44;
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();

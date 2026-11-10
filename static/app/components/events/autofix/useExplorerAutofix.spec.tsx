@@ -10,6 +10,7 @@ import type {Artifact, Block, ExplorerFilePatch} from 'sentry/views/seerExplorer
 import {DiffFileType, DiffLineType} from './types';
 import {
   collectPatches,
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   getPollInterval,
   hideErroredPrIteration,
@@ -26,6 +27,15 @@ import {
   type RootCauseArtifact,
   type SolutionArtifact,
 } from './useExplorerAutofix';
+
+const mockPostMessage = jest.fn(() => Promise.resolve());
+jest.mock('sentry/serviceWorker/client/serviceWorkerContext', () => ({
+  ...jest.requireActual('sentry/serviceWorker/client/serviceWorkerContext'),
+  useServiceWorker: () => ({
+    isServiceWorkerSupported: true,
+    controller: {postMessage: mockPostMessage},
+  }),
+}));
 
 function makeValidArtifact<T>(data: T): Artifact<T> {
   return {
@@ -643,6 +653,173 @@ describe('getOrderedAutofixSections', () => {
 
     expect(sections[sections.length - 1]!.status).toBe('processing');
   });
+  describe('single runs', () => {
+    function rootCause(headline: string, cause: string): Artifact {
+      return {key: 'single_run_root_cause', reason: 'found', data: {headline, cause}};
+    }
+
+    function makeSingleRun(
+      blocks: Block[],
+      overrides: Partial<ExplorerAutofixState> = {}
+    ): ExplorerAutofixState {
+      return {...makeState(blocks), feature_id: 'autofix_single_run', ...overrides};
+    }
+
+    it('builds root cause and code changes sections', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {role: 'user', metadata: {step: 'single_run'}}}),
+          makeBlock({artifacts: [rootCause('H', 'C')]}),
+          makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+        ])
+      );
+
+      expect(sections.map(s => s.step)).toEqual(['root_cause', 'code_changes']);
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
+    });
+
+    it('has only a root cause section without patches', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({artifacts: [rootCause('H', 'C')]}),
+        ])
+      );
+
+      expect(sections.map(s => s.step)).toEqual(['root_cause']);
+    });
+
+    it('uses the latest root cause', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({artifacts: [rootCause('Old', 'old')]}),
+          makeBlock({artifacts: [rootCause('New', 'new')]}),
+        ])
+      );
+
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'New', cause: 'new', five_whys: []},
+        })
+      );
+    });
+
+    it('keeps root cause processing while the run works without one', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([makeBlock({message: {metadata: {step: 'single_run'}}})], {
+          status: 'processing',
+        })
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['processing']);
+    });
+
+    it('keeps root cause processing while the run waits for the user', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([makeBlock({message: {metadata: {step: 'single_run'}}})], {
+          status: 'awaiting_user_input',
+        })
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['processing']);
+    });
+
+    it('shows an error when the run failed before a root cause', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([makeBlock({message: {metadata: {step: 'single_run'}}})], {
+          status: 'error',
+        })
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['error']);
+    });
+
+    it('shows an error on the root cause when the run failed after finding it', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+          ],
+          {status: 'error'}
+        )
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['error']);
+    });
+
+    it('shows an error on code changes when the run failed after editing', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+            makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          ],
+          {status: 'error'}
+        )
+      );
+
+      expect(sections.map(s => s.status)).toEqual(['completed', 'error']);
+    });
+
+    it('keeps code changes completed once a PR exists', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {role: 'user', metadata: {step: 'single_run'}}}),
+            makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+            makeBlock({message: {role: 'user', content: 'was this obvious?'}}),
+          ],
+          {
+            status: 'processing',
+            repo_pr_states: {
+              'org/repo': {repo_name: 'org/repo', pr_creation_status: 'completed'} as any,
+            },
+          }
+        )
+      );
+
+      expect(sections.find(s => s.step === 'code_changes')?.status).toBe('completed');
+    });
+
+    it('marks code changes processing while writing the first fix', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {role: 'user', metadata: {step: 'single_run'}}}),
+            makeBlock({merged_file_patches: [makePatch('org/repo', 'a.py')]}),
+          ],
+          {status: 'processing'}
+        )
+      );
+
+      expect(sections.find(s => s.step === 'code_changes')?.status).toBe('processing');
+    });
+
+    it('still adds the pull request section', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun(
+          [
+            makeBlock({message: {metadata: {step: 'single_run'}}}),
+            makeBlock({artifacts: [rootCause('H', 'C')]}),
+          ],
+          {
+            repo_pr_states: {
+              'org/repo': {repo_name: 'org/repo', pr_creation_status: 'completed'} as any,
+            },
+          }
+        )
+      );
+
+      expect(sections.map(s => s.step)).toEqual(['root_cause', 'pull_request']);
+    });
+  });
 });
 
 describe('isPrIterationBlock', () => {
@@ -889,6 +1066,32 @@ describe('useExplorerAutofix - polling state', () => {
     await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
     expect(result.current.isPolling).toBe(true);
     expect(result.current.isProcessing).toBe(false);
+  });
+});
+
+describe('useExplorerAutofix - startStep', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+
+  it('reports a single run start', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {run_id: 776, feature_id: 'autofix_single_run'},
+    });
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP), {
+      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
+    });
+    const run = await act(() => result.current.startStep('root_cause'));
+
+    expect(run).toEqual({runId: 776, isSingleRun: true});
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({data: expect.objectContaining({stepOptions: {}})})
+    );
   });
 });
 
@@ -1362,7 +1565,10 @@ describe('useExplorerAutofix - startStep errors', () => {
     // Resolves with the live run instead of throwing, so an awaiting caller stays
     // on its success path and does not undo the UI it just put into loading.
     await act(async () => {
-      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toEqual({
+        runId: 42,
+        isSingleRun: false,
+      });
     });
 
     expect(toast.error).not.toHaveBeenCalled();
@@ -1394,7 +1600,10 @@ describe('useExplorerAutofix - startStep errors', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
-      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toEqual({
+        runId: 42,
+        isSingleRun: false,
+      });
     });
 
     expect(toast.error).not.toHaveBeenCalled();

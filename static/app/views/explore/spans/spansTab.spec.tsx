@@ -68,9 +68,7 @@ const invalidAttributeValidationBody: EventValidationData = {
 };
 
 describe('SpansTabContent', () => {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['dashboards-edit']},
-  });
+  const {organization, project} = initializeOrg();
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);

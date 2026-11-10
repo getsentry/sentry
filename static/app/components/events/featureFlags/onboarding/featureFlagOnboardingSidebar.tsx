@@ -26,8 +26,8 @@ import {t, tct} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,8 +38,7 @@ import {FeatureFlagOtherPlatformOnboarding} from './featureFlagOtherPlatformOnbo
 
 export function useFeatureFlagOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 

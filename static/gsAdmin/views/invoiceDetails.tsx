@@ -1,4 +1,4 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
@@ -9,11 +9,9 @@ import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getCells} from 'sentry/utils/cells';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -34,23 +32,13 @@ export function InvoiceDetails() {
   const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const QUERY_KEY: ApiQueryKey = [
-    getApiUrl('/_admin/cells/$region/admin-invoices/$invoiceId/', {
-      path: {region, invoiceId},
-    }),
-    {
-      host: cellInfo ? cellInfo.locality_url : '',
-    },
-  ];
 
-  const {
-    data: invoice,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Invoice>(QUERY_KEY, {
-    staleTime: 0,
-  });
+  const queryOptions = apiOptions.as<Invoice>()(
+    '/_admin/cells/$region/admin-invoices/$invoiceId/',
+    {path: {region, invoiceId}, host: cellInfo ? cellInfo.locality_url : '', staleTime: 0}
+  );
+
+  const {data: invoice, isPending, isError, refetch} = useQuery(queryOptions);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -64,7 +52,11 @@ export function InvoiceDetails() {
   const isDeleted = customer.isDeleted;
 
   const updateCache = (updatedInvoice: Invoice) => {
-    setApiQueryData<Invoice>(queryClient, QUERY_KEY, updatedInvoice);
+    queryClient.setQueryData(queryOptions.queryKey, previous => ({
+      ...previous,
+      headers: previous?.headers ?? {},
+      json: updatedInvoice,
+    }));
   };
 
   const handleClose = async () => {

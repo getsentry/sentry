@@ -381,7 +381,6 @@ class AnomalyDetectionStoreDataTest(
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             time_window=1,
             threshold_type=AlertRuleThresholdType.BELOW,
-            threshold_period=1,
         )
         snuba_query = SnubaQuery.objects.get(id=alert_rule.snuba_query_id)
         result = fetch_historical_data(self.organization, snuba_query, ["count()"], self.project)

@@ -1,101 +1,182 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "sentry-test/reactTestingLibrary";
 
-import {ConfigStore} from 'sentry/stores/configStore';
+import { ConfigStore } from "sentry/stores/configStore";
 
-import {InvoiceComparison} from 'admin/views/invoiceComparison';
+import { InvoiceComparison } from "admin/views/invoiceComparison";
 
-const START = '2026-01-01T00:00:00.000Z';
-const END = '2026-01-02T00:00:00.000Z';
+const US_URL = "https://us.example.com/api/0/";
+const COMPARISON_URL = "/_admin/cells/us/invoice-comparison/";
+const DE_URL = "https://de.example.com/api/0/";
+const DE_COMPARISON_URL = "/_admin/cells/de/invoice-comparison/";
 
-function comparisonBody() {
+function comparisonBody({ rowsPage = 1, rowsTotalPages = 1 } = {}) {
   return {
-    rows: [],
+    rows: [
+      {
+        delta_cents: 100,
+        delta_pct: 0.1,
+        legacy_amount: 1000,
+        legacy_invoice_count: 1,
+        legacy_invoice_guid: null,
+        organization_id: 1,
+        organization_slug: "org-slug",
+        platform_amount: 1100,
+        platform_invoice_count: 1,
+        platform_invoice_guid: null,
+        status: "mismatch",
+      },
+    ],
     unmatched: [],
     summary: {
-      start: START,
-      end: END,
-      queried_at: END,
-      legacy_count: 0,
-      platform_count: 0,
-      over_threshold_count: 0,
-      over_threshold_pct: 0,
-      row_count: 0,
-      rows_page: 1,
-      rows_page_size: 50,
-      rows_total_pages: 1,
+      start: "2026-01-01T00:00:00+00:00",
+      end: "2026-01-02T00:00:00+00:00",
+      legacy_count: 1,
+      platform_count: 1,
+      over_threshold_count: 1,
+      over_threshold_pct: 1,
+      queried_at: "2026-01-02T00:00:00+00:00",
+      row_count: 1,
+      rows_page: rowsPage,
+      rows_page_size: 25,
+      rows_total_pages: rowsTotalPages,
       unmatched_org_count: 0,
       unmatched_page: 1,
-      unmatched_page_size: 50,
+      unmatched_page_size: 25,
       unmatched_total_pages: 1,
     },
   };
 }
 
-describe('InvoiceComparison', () => {
+function renderComparison(query: Record<string, string>) {
+  return render(<InvoiceComparison />, {
+    initialRouterConfig: {
+      location: { pathname: "/_admin/billing-platform/", query },
+      route: "/_admin/billing-platform/",
+    },
+  });
+}
+
+describe("InvoiceComparison", () => {
   beforeEach(() => {
-    ConfigStore.set('cells', [
-      {name: 'us', locality_url: 'https://us.test/api/0/'},
-      {name: 'de', locality_url: 'https://de.test/api/0/'},
-    ]);
-  });
-
-  afterEach(() => {
     MockApiClient.clearMockResponses();
+    ConfigStore.set("cells", [{ name: "us", locality_url: US_URL }]);
   });
 
-  it('queries the region named in the URL', async () => {
-    const usMock = MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/invoice-comparison/',
-      body: comparisonBody(),
-    });
-    const deMock = MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/invoice-comparison/',
+  it("loads the last 24h when the URL has no window", async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
       body: comparisonBody(),
     });
 
-    render(<InvoiceComparison />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/_admin/billing-platform/',
-          query: {start: START, end: END, region: 'de'},
-        },
-      },
-    });
+    renderComparison({ page_size: "25", rows_page: "1", unmatched_page: "1" });
 
-    await waitFor(() =>
-      expect(deMock).toHaveBeenCalledWith(
-        '/_admin/cells/de/invoice-comparison/',
-        expect.objectContaining({host: 'https://de.test/api/0/'})
-      )
-    );
-    expect(usMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', {name: /Region/})).toHaveTextContent('de');
+    expect(
+      await screen.findByRole("link", { name: "org-slug" }),
+    ).toBeInTheDocument();
+    const { start, end } = mock.mock.calls[0][1].query;
+    const windowMs = new Date(end).getTime() - new Date(start).getTime();
+    expect(windowMs).toBe(24 * 60 * 60 * 1000);
   });
 
-  it('persists the selected region to the URL', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/us/invoice-comparison/',
+  it("uses the window from the URL", async () => {
+    const start = "2026-01-01T00:00:00.000Z";
+    const end = "2026-01-02T00:00:00.000Z";
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
       body: comparisonBody(),
     });
-    MockApiClient.addMockResponse({
-      url: '/_admin/cells/de/invoice-comparison/',
-      body: comparisonBody(),
-    });
 
-    const {router} = render(<InvoiceComparison />, {
-      initialRouterConfig: {
-        location: {
-          pathname: '/_admin/billing-platform/',
-          query: {start: START, end: END},
-        },
-      },
-    });
+    renderComparison({ start, end });
 
-    await userEvent.click(screen.getByRole('button', {name: /Region/}));
-    await userEvent.click(screen.getByRole('option', {name: 'de'}));
-
-    await waitFor(() =>
-      expect(router.location.query).toEqual({start: START, end: END, region: 'de'})
+    expect(
+      await screen.findByRole("link", { name: "org-slug" }),
+    ).toBeInTheDocument();
+    expect(mock).toHaveBeenCalledWith(
+      COMPARISON_URL,
+      expect.objectContaining({
+        host: US_URL,
+        query: expect.objectContaining({ start, end }),
+      }),
     );
+  });
+
+  it("pins the default window into the URL when paginating", async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({ rowsTotalPages: 2 }),
+    });
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({ rowsPage: 2, rowsTotalPages: 2 }),
+      match: [MockApiClient.matchQuery({ rows_page: 2 })],
+    });
+
+    const { router } = renderComparison({});
+    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(router.location.query.rows_page).toBe("2");
+    expect(router.location.query.start).toEqual(expect.any(String));
+    expect(router.location.query.end).toEqual(expect.any(String));
+  });
+
+  describe("region", () => {
+    const start = "2026-01-01T00:00:00.000Z";
+    const end = "2026-01-02T00:00:00.000Z";
+
+    beforeEach(() => {
+      ConfigStore.set("cells", [
+        { name: "us", locality_url: US_URL },
+        { name: "de", locality_url: DE_URL },
+      ]);
+    });
+
+    it("queries the region named in the URL", async () => {
+      const usMock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+      const deMock = MockApiClient.addMockResponse({
+        url: DE_COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({ start, end, region: "de" });
+
+      await waitFor(() =>
+        expect(deMock).toHaveBeenCalledWith(
+          DE_COMPARISON_URL,
+          expect.objectContaining({ host: DE_URL }),
+        ),
+      );
+      expect(usMock).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: /Region/ })).toHaveTextContent(
+        "de",
+      );
+    });
+
+    it("persists the selected region to the URL", async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+      MockApiClient.addMockResponse({
+        url: DE_COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      const { router } = renderComparison({ start, end });
+
+      await userEvent.click(screen.getByRole("button", { name: /Region/ }));
+      await userEvent.click(screen.getByRole("option", { name: "de" }));
+
+      await waitFor(() =>
+        expect(router.location.query).toEqual({ start, end, region: "de" }),
+      );
+    });
   });
 });

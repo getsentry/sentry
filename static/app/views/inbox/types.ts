@@ -1,6 +1,21 @@
 import type {Avatar} from 'sentry/types/core';
 
-export type InboxSubjectType = 'issue' | 'notebook';
+export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
+
+export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
+
+export const INBOX_EVENT_TYPES = [
+  'issue.user_assigned',
+  'issue.team_assigned',
+  'issue.user_mentioned',
+  'issue.team_mentioned',
+  'issue.pr_ready_for_review',
+  'notebook.completed',
+  'notebook.mentioned',
+  'notebook.participant_added',
+] as const;
+
+export type InboxEventType = (typeof INBOX_EVENT_TYPES)[number];
 
 interface InboxIssueAssignedData {
   assignmentSource:
@@ -24,8 +39,6 @@ interface InboxEventDataByType {
   'notebook.mentioned': {blockId: string | null; commentId: string};
   'notebook.participant_added': Record<string, never>;
 }
-
-type InboxEventType = keyof InboxEventDataByType;
 
 type InboxSystemActor = {
   avatar: null;
@@ -74,3 +87,8 @@ export interface InboxItem {
 }
 
 export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
+
+export interface InboxFilters {
+  eventType: InboxEventType[];
+  subjectType: InboxSubjectType[];
+}

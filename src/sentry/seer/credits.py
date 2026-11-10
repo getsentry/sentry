@@ -61,8 +61,10 @@ SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
 
 
 def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
-    """Whether the organization has enough Seer credits to run the operation."""
-    if not features.has("organizations:seer-credit-checks", organization):
+    """Whether the organization is token-billed and has enough Seer credits to run the operation."""
+    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
+        "organizations:token-billed-seer-enabled", organization
+    ):
         return True
 
     config = SEER_OPERATIONS[operation]

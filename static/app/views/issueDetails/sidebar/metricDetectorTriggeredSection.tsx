@@ -11,6 +11,7 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -19,10 +20,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -60,6 +60,7 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
@@ -178,6 +179,12 @@ function getFormattedEvaluatedValue({
   return `${value.toLocaleString()}${unitSuffix}`;
 }
 
+const timePeriodParsers = {
+  statsPeriod: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+};
+
 /**
  * Once the open period loads, this hook will set the time range to visibly center the open period.
  * If the URL already has a time period, this hook will do nothing
@@ -199,12 +206,12 @@ function useZoomTimeRangeToOpenPeriod({
   const navigate = useNavigate();
 
   const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
-    const hasTimePeriod =
-      defined(location.query.statsPeriod) ||
-      defined(location.query.start) ||
-      defined(location.query.end);
+    const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+      timePeriodParsers,
+      location
+    );
 
-    if (hasTimePeriod) {
+    if (statsPeriod !== null || start !== null || end !== null) {
       return;
     }
 
@@ -451,28 +458,14 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         sectionKey="triggered_condition"
         actions={
-          <Flex gap="xs">
-            <FeedbackButton
-              variant="secondary"
-              aria-label={t('Give feedback on metric issues')}
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('Tell us what you think about this metric issue.'),
-                tags: {
-                  'feedback.source': 'metric_issue_details',
-                  'feedback.owner': 'aci',
-                },
-              }}
+          isOpenPeriodLoading ? null : (
+            <OpenInDestinationButton
+              snubaQuery={snubaQuery}
+              projectId={projectId}
+              start={startDate}
+              end={endDate}
             />
-            {!isOpenPeriodLoading && (
-              <OpenInDestinationButton
-                snubaQuery={snubaQuery}
-                projectId={projectId}
-                start={startDate}
-                end={endDate}
-              />
-            )}
-          </Flex>
+          )
         }
       >
         <KeyValueTableCard

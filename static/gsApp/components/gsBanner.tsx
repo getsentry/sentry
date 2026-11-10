@@ -14,7 +14,6 @@ import {openModal} from '@sentry/scraps/modal';
 import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {batchedPromptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
@@ -25,8 +24,8 @@ import {showIntercom} from 'sentry/utils/intercom';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {withApi} from 'sentry/utils/withApi';
 
 import {openTrialEndingModal} from 'getsentry/actionCreators/modal';
 import type {EventType} from 'getsentry/components/addEventsCTA';
@@ -229,12 +228,12 @@ function NoticeModal({
 }
 
 type Props = {
-  api: Client;
   organization: Organization;
   subscription: Subscription;
 };
 
-function GSBanner({api, organization, subscription}: Props) {
+function GSBanner({organization, subscription}: Props) {
+  const api = useApi();
   // assume dismissed until we've checked the backend
   const [deactivatedMemberDismissed, setDeactivatedMemberDismissed] = useState(true);
   const [productTrialDismissed, setProductTrialDismissed] = useState<
@@ -273,7 +272,7 @@ function GSBanner({api, organization, subscription}: Props) {
       // if there is a current guide active, delay Pendo until it's done
       // if no current active guide, can just start Pendo
       // TODO: should delay Pendo if there is any popup at all that's blocking and not just guides
-      const guideIsActive = !!GuideStore.state.currentGuide;
+      const guideIsActive = !!GuideStore.getState().currentGuide;
       window.pendo.initialize({
         guides: {
           delay: guideIsActive,
@@ -642,7 +641,7 @@ function GSBanner({api, organization, subscription}: Props) {
   return productTrialAlerts ?? null;
 }
 
-export default withApi(withSubscription(GSBanner, {noLoader: true}));
+export default withSubscription(GSBanner, {noLoader: true});
 
 function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
   const invertedTheme = useInvertedTheme();

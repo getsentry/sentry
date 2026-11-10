@@ -30,10 +30,13 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
+    BROKEN_GRACE_PERIOD,
     SUBSCRIPTION_STATUS_MAX_AGE,
     SubscriptionError,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
+    recheck_broken_subscription,
+    schedule_broken_subscription_rechecks,
     subscription_checker,
     update_subscription_in_snuba,
 )
@@ -91,6 +94,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         aggregate: Any = None,
         time_window: Any = None,
         query_extra: Any = None,
+        date_updated: Any = None,
     ) -> Any:
         if status is None:
             status = self.expected_status
@@ -119,6 +123,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             project=self.project,
             type="something",
             query_extra=query_extra,
+            date_updated=date_updated or timezone.now(),
         )
 
     def test_no_subscription(self) -> None:
@@ -153,19 +158,89 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
-    def test_already_created_unresolvable_entity_key(self) -> None:
+    def test_broken_query(self) -> None:
         sub = self.create_subscription(
-            QuerySubscription.Status.CREATING, subscription_id=uuid4().hex, query="status:400"
+            QuerySubscription.Status.CREATING,
+            query="issue:INVALID-1",
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
         )
-        with (
-            patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba,
-            pytest.raises(SubscriptionError),
-        ):
+        with patch("sentry.snuba.tasks.sentry_sdk.capture_exception") as capture_exception:
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        assert sub.subscription_id is None
+        tags = {"action": "create", "dataset": "events", "error_type": "InvalidIssueSearchQuery"}
+        self.metrics.incr.assert_any_call("snuba.subscriptions.marked_broken", tags=tags)
+        capture_exception.assert_called_once()
+        assert isinstance(capture_exception.call_args[0][0], SubscriptionError)
+        assert capture_exception.call_args[1]["tags"] == tags
+
+    def test_broken_query_within_grace_period(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query="issue:INVALID-1")
+        with patch("sentry.snuba.tasks.sentry_sdk.capture_exception") as capture_exception:
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.CREATING.value
+        capture_exception.assert_not_called()
+        assert "snuba.subscriptions.marked_broken" not in [
+            c.args[0] for c in self.metrics.incr.call_args_list
+        ]
+
+    def test_broken_query_concurrent_edit_restarts_grace_period(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+
+        def edit_concurrently(subscription: QuerySubscription) -> str:
+            QuerySubscription.objects.filter(id=subscription.id).update(date_updated=timezone.now())
+            raise SubscriptionError("invalid")
+
+        with patch("sentry.snuba.tasks._create_in_snuba", side_effect=edit_concurrently):
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.CREATING.value
+
+    def test_already_created_broken_query(self) -> None:
+        subscription_id = uuid4().hex
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            subscription_id=subscription_id,
+            query="status:400",
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+        assert (
+            QuerySubscription.objects.get_from_cache(subscription_id=subscription_id).id == sub.id
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
             create_subscription_in_snuba(sub.id)
         delete_from_snuba.assert_not_called()
         self.metrics.incr.assert_any_call(
             "snuba.subscriptions.entity_key_unresolved", tags={"action": "create"}
         )
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        assert sub.subscription_id is None
+        # The consumer relies on this lookup missing to clean up the Snuba subscription.
+        with pytest.raises(QuerySubscription.DoesNotExist):
+            QuerySubscription.objects.get_from_cache(subscription_id=subscription_id)
+
+    def test_broken_query_does_not_overwrite_concurrent_status(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+
+        def delete_concurrently(subscription: QuerySubscription) -> str:
+            QuerySubscription.objects.filter(id=subscription.id).update(
+                status=QuerySubscription.Status.DELETING.value
+            )
+            raise SubscriptionError("invalid")
+
+        with patch("sentry.snuba.tasks._create_in_snuba", side_effect=delete_concurrently):
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DELETING.value
 
     def test_status_join(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
@@ -337,6 +412,26 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id not in (None, subscription_id)
+
+    def test_broken_query(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=subscription_id,
+            query="issue:INVALID-1",
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            update_subscription_in_snuba(sub.id)
+        delete_from_snuba.assert_called_once()
+        assert delete_from_snuba.call_args[0][1] == subscription_id
+        self.metrics.incr.assert_any_call(
+            "snuba.subscriptions.marked_broken",
+            tags={"action": "update", "dataset": "events", "error_type": "InvalidIssueSearchQuery"},
+        )
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        assert sub.subscription_id is None
 
     def test_eap_rpc_query_count(self) -> None:
         with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
@@ -1309,3 +1404,78 @@ class SubscriptionCheckerTest(TestCase):
                 sub_new = QuerySubscription.objects.get(id=sub_new.id)
                 assert sub_new.status == status.value
                 assert sub_new.subscription_id is None
+
+
+class RecheckBrokenSubscriptionTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metrics(self) -> object:
+        with patch("sentry.snuba.tasks.metrics") as self.metrics:
+            yield
+
+    def create_subscription(
+        self, status: QuerySubscription.Status, query: str
+    ) -> QuerySubscription:
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset=Dataset.Events.value,
+            aggregate="count()",
+            query=query,
+            time_window=60,
+            resolution=60,
+        )
+        return QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=status.value,
+            project=self.project,
+            type="something",
+        )
+
+    def test_still_broken(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "issue:INVALID-1")
+        recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        self.metrics.incr.assert_called_once_with("snuba.subscriptions.broken.verified")
+
+    def test_recovered(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.BROKEN, "hello")
+        with self.tasks():
+            recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+        self.metrics.incr.assert_any_call("snuba.subscriptions.broken.recovered")
+
+    def test_not_broken(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.ACTIVE, "issue:INVALID-1")
+        recheck_broken_subscription(sub.id)
+        sub.refresh_from_db()
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        self.metrics.incr.assert_not_called()
+
+
+class ScheduleBrokenSubscriptionRechecksTest(TestCase):
+    @patch("sentry.snuba.tasks.recheck_broken_subscription")
+    def test_dispatches_broken(self, mock_recheck: Mock) -> None:
+        snuba_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset=Dataset.Events.value,
+            aggregate="count()",
+            query="hello",
+            time_window=60,
+            resolution=60,
+        )
+        broken = QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.BROKEN.value,
+            project=self.project,
+            type="something",
+        )
+        QuerySubscription.objects.create(
+            snuba_query=snuba_query,
+            status=QuerySubscription.Status.ACTIVE.value,
+            project=self.project,
+            type="something",
+        )
+        schedule_broken_subscription_rechecks()
+        mock_recheck.delay.assert_called_once_with(broken.id)

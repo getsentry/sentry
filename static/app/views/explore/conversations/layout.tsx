@@ -4,7 +4,7 @@ import {Outlet} from 'react-router';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';

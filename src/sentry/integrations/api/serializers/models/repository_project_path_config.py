@@ -1,10 +1,11 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.api.serializers.models.integration import (
     IntegrationProviderInfo,
     serialize_provider,
@@ -18,18 +19,26 @@ from sentry.users.services.user import RpcUser
 
 
 class RepositoryProjectPathConfigSerializerResponse(TypedDict):
-    id: str
-    projectId: str
-    projectSlug: str
-    repoId: str
-    repoName: str
-    integrationId: str | None
-    provider: IntegrationProviderInfo | None
-    stackRoot: str
-    sourceRoot: str
-    defaultBranch: str | None
-    automaticallyGenerated: bool
-    hasCodeOwner: bool
+    id: Annotated[str, ApiDescription("ID of the code mapping")]
+    projectId: Annotated[str, ApiDescription("ID of the project")]
+    projectSlug: Annotated[str, ApiDescription("Slug of the project")]
+    repoId: Annotated[str, ApiDescription("ID of the repository")]
+    repoName: Annotated[str, ApiDescription("Name of the repository")]
+    integrationId: Annotated[str | None, ApiDescription("ID of the repository's integration")]
+    provider: Annotated[
+        IntegrationProviderInfo | None, ApiDescription("Provider of the repository's integration")
+    ]
+    stackRoot: Annotated[str, ApiDescription("Stack trace path prefix that the mapping replaces")]
+    sourceRoot: Annotated[
+        str, ApiDescription("Repository path prefix that replaces the stack root")
+    ]
+    defaultBranch: Annotated[str | None, ApiDescription("Branch to link source files on")]
+    automaticallyGenerated: Annotated[
+        bool, ApiDescription("Whether Sentry created the mapping automatically")
+    ]
+    hasCodeOwner: Annotated[
+        bool, ApiDescription("Whether the mapping has a CODEOWNERS file linked")
+    ]
 
 
 @register(RepositoryProjectPathConfig)

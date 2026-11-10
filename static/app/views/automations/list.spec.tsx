@@ -332,6 +332,25 @@ describe('AutomationsList', () => {
       await screen.findByText('My Automation');
       expect(mockAutomationCreatedBy).toHaveBeenCalled();
     });
+
+    it('pushes the query without the cursor when searching', async () => {
+      const {router} = render(<AutomationsList />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/automations/', query: {cursor: '0:25:0', sort: 'name'}},
+        },
+      });
+      await screen.findByText('Automation 1');
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'created_by:me{enter}'
+      );
+      await waitFor(() =>
+        expect(router.location.query).toEqual({query: 'created_by:me', sort: 'name'})
+      );
+      expect(router.historyAction).toBe('PUSH');
+    });
   });
 
   describe('bulk actions', () => {

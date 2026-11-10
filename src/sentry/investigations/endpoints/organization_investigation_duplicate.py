@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
@@ -55,9 +56,11 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
         No request body is required. Returns the new notebook. Requires an authenticated user.
         Requires the organizations:investigations feature and open organization membership.
         """
-        viewer_id = require_authenticated_user(request)
+        require_authenticated_user(request)
         try:
-            duplicate = duplicate_investigation(investigation=investigation, user_id=viewer_id)
+            duplicate = duplicate_investigation(
+                investigation=investigation, creator=get_creator_reference(request)
+            )
         except Exception as error:
             response = service_error(error)
             if response is not None:

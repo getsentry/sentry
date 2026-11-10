@@ -26,6 +26,7 @@ export type ActionKindApplyProps<A> = KindProps<A> & {
   finishing: boolean;
   message: string | null;
   onApply: () => void;
+  onLinkClick: (link: string) => void;
   onRecheck: () => void;
   rechecking: boolean;
 };

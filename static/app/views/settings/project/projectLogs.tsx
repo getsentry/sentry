@@ -4,7 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';

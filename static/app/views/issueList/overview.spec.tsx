@@ -5,7 +5,6 @@ import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
@@ -19,7 +18,6 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
@@ -105,18 +103,6 @@ describe('IssueList', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: tags,
@@ -146,7 +132,7 @@ describe('IssueList', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -212,20 +198,6 @@ describe('IssueList', () => {
     });
 
     it('loads with a query in URL', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [
-          SearchFixture({
-            id: '123',
-            name: 'Assigned to Me',
-            isPinned: false,
-            isGlobal: true,
-            query: 'assigned:me',
-            type: 0,
-          }),
-        ],
-      });
-
       render(<IssueListOverview />, {
         organization,
 
@@ -267,7 +239,7 @@ describe('IssueList', () => {
       });
     });
 
-    it('does not request derived data when the progress UI flag is disabled', async () => {
+    it('does not request derived data when the issue inbox flag is disabled', async () => {
       render(<IssueListOverview />, {
         organization,
         initialRouterConfig,
@@ -905,30 +877,8 @@ describe('IssueList', () => {
     });
   });
 
-  describe('project low trends queue alert', () => {
-    beforeEach(() => {
-      act(() => ProjectsStore.reset());
-    });
-
-    it('does not render event processing alert', async () => {
-      act(() => ProjectsStore.loadInitialData([project]));
-
-      render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe('new view page', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [],
-      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture(),

@@ -47,8 +47,7 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
     def setUp(self) -> None:
         super().setUp()
         message = get_test_message(self.project.id)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
 
         self.occurrence = result[0]
@@ -244,8 +243,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
     def setUp(self) -> None:
         super().setUp()
         message = get_test_message(self.project.id)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
 
         occurrence = result[0]
@@ -266,8 +264,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         # set up second project and occurrence
         project2 = self.create_project(organization=self.organization)
         message = get_test_message(project2.id, fingerprint="new-fingerprint")
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
         assert occurrence2 is not None
@@ -291,8 +288,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         # set up second project and occurrence
         project2 = self.create_project(organization=self.organization)
         message = get_test_message(project2.id, fingerprint="new-fingerprint")
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
         assert occurrence2 is not None
@@ -316,8 +312,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
         # fingerprint as the occurrence from the first project.
         project2 = self.create_project(organization=self.organization)
         message = get_test_message(project2.id)
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
         occurrence2 = result[0]
         assert occurrence2 is not None
@@ -341,8 +336,7 @@ class StatusChangeBulkGetGroupsFromFingerprintsTest(IssueOccurrenceTestBase):
 
     def test_bulk_get_single_project_multiple_hash(self) -> None:
         message = get_test_message(self.project.id, fingerprint=["new-fingerprint"])
-        with self.feature("organizations:profile-file-io-main-thread-ingest"):
-            result = _process_message(message)
+        result = _process_message(message)
         assert result is not None
 
         other_occurrence = result[0]

@@ -1,28 +1,28 @@
-import {Fragment, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
-import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import { Fragment, useEffect, useState } from "react";
+import styled from "@emotion/styled";
+import { keepPreviousData, skipToken, useQuery } from "@tanstack/react-query";
+import { parseAsString, useQueryState } from "nuqs";
 
-import {Alert} from '@sentry/scraps/alert';
-import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Input} from '@sentry/scraps/input';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
+import { Alert } from "@sentry/scraps/alert";
+import { Tag, type TagProps } from "@sentry/scraps/badge";
+import { Button } from "@sentry/scraps/button";
+import { CompactSelect } from "@sentry/scraps/compactSelect";
+import { Input } from "@sentry/scraps/input";
+import { Flex, Grid, Stack } from "@sentry/scraps/layout";
+import { Link } from "@sentry/scraps/link";
+import { OverlayTrigger } from "@sentry/scraps/overlayTrigger";
+import { Text } from "@sentry/scraps/text";
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getCells} from 'sentry/utils/cells';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import { LoadingIndicator } from "sentry/components/loadingIndicator";
+import { Panel } from "sentry/components/panels/panel";
+import { PanelBody } from "sentry/components/panels/panelBody";
+import { PanelHeader } from "sentry/components/panels/panelHeader";
+import { apiOptions } from "sentry/utils/api/apiOptions";
+import { getCells } from "sentry/utils/cells";
+import { useLocation } from "sentry/utils/useLocation";
+import { useNavigate } from "sentry/utils/useNavigate";
 
-type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
+type RowStatus = "match" | "mismatch" | "legacy_only" | "platform_only";
 
 type Row = {
   delta_cents: number;
@@ -58,7 +58,7 @@ type Summary = {
   unmatched_total_pages: number;
 };
 
-type UnmatchedSide = 'legacy_only' | 'platform_only';
+type UnmatchedSide = "legacy_only" | "platform_only";
 
 type UnmatchedRow = {
   amount: number;
@@ -76,11 +76,11 @@ type ComparisonResponse = {
   unmatched: UnmatchedRow[];
 };
 
-const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
-  match: 'success',
-  mismatch: 'warning',
-  legacy_only: 'danger',
-  platform_only: 'danger',
+const STATUS_VARIANT: Record<RowStatus, TagProps["variant"]> = {
+  match: "success",
+  mismatch: "warning",
+  legacy_only: "danger",
+  platform_only: "danger",
 };
 
 function formatDollars(cents: number | null) {
@@ -88,7 +88,7 @@ function formatDollars(cents: number | null) {
     return <em>—</em>;
   }
   const dollars = cents / 100;
-  return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+  return `$${dollars.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // Render a dollar amount, deep-linking to the admin invoice detail page when
@@ -116,7 +116,7 @@ function formatPercent(pct: number | null) {
     // No legacy baseline — sorts to top of the list.
     return <em>∞</em>;
   }
-  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+  return `${(pct * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
 // `formatPercent` renders ``null`` as ``∞`` because for ``delta_pct`` rows
@@ -130,7 +130,7 @@ function formatPercentOrNA(pct: number | null | undefined) {
   if (pct === null || pct === undefined) {
     return <em>N/A</em>;
   }
-  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+  return `${(pct * 100).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
 // Same deploy-window-race rationale as `formatPercentOrNA`: the type
@@ -148,7 +148,7 @@ function formatCountOrNA(n: number | null | undefined) {
 // `datetime-local` inputs use the user's local timezone with no offset
 // in the string (e.g. "2026-05-26T22:30"). Format a Date for that field.
 function toDatetimeLocalValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, "0");
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
     `T${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -178,7 +178,7 @@ function firstQueryValue(value: unknown): string | undefined {
   if (Array.isArray(value)) {
     return value[0];
   }
-  return typeof value === 'string' ? value : undefined;
+  return typeof value === "string" ? value : undefined;
 }
 
 function parsePageParam(value: unknown): number {
@@ -197,9 +197,9 @@ function parsePageSizeParam(value: unknown): number {
 function utcIsoToDatetimeLocalValue(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) {
-    return '';
+    return "";
   }
-  const pad = (n: number) => String(n).padStart(2, '0');
+  const pad = (n: number) => String(n).padStart(2, "0");
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
     `T${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -215,19 +215,29 @@ export function InvoiceComparison() {
   // the displayed paginator state, so refresh / share-link reproduces the
   // exact view. Local state only tracks what the user is typing in the
   // date inputs before they click Run.
-  const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
-  const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
+  const [queryRegion, setQueryRegion] = useQueryState("region", parseAsString);
+  const cell = cells.find((c) => c.name === queryRegion) ?? cells[0] ?? null;
   const queryStart = firstQueryValue(location.query.start);
   const queryEnd = firstQueryValue(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
+  // Without a window in the URL (first visit, or a link that only carries
+  // pagination params) query the last 24h so the tables load without waiting
+  // on Run. Frozen at mount so paginating doesn't shift the window.
+  const [defaultWindow] = useState(() => ({
+    start: localInputToUtcIso(hoursAgoLocal(24)),
+    end: localInputToUtcIso(nowLocal()),
+  }));
+  const windowStart = queryStart ?? defaultWindow.start;
+  const windowEnd = queryEnd ?? defaultWindow.end;
+
   const [startInput, setStartInput] = useState(() =>
-    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
+    utcIsoToDatetimeLocalValue(windowStart),
   );
   const [endInput, setEndInput] = useState(() =>
-    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
+    utcIsoToDatetimeLocalValue(windowEnd),
   );
 
   // Keep the date inputs in sync with the URL on back/forward and in-app
@@ -244,23 +254,23 @@ export function InvoiceComparison() {
     }
   }, [queryStart, queryEnd]);
 
-  const enabled = Boolean(queryStart && queryEnd && cell);
-  const {data, isPending, isError, error, isPlaceholderData} = useQuery({
-    ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
-      path: enabled && cell ? {region: cell.name} : skipToken,
-      host: cell?.locality_url,
-      query: enabled
-        ? {
-            start: queryStart,
-            end: queryEnd,
-            rows_page: rowsPage,
-            unmatched_page: unmatchedPage,
-            rows_page_size: pageSize,
-            unmatched_page_size: pageSize,
-          }
-        : undefined,
-      staleTime: 0,
-    }),
+  const { data, isPending, isError, error, isPlaceholderData } = useQuery({
+    ...apiOptions.as<ComparisonResponse>()(
+      "/_admin/cells/$region/invoice-comparison/",
+      {
+        path: cell ? { region: cell.name } : skipToken,
+        host: cell?.locality_url,
+        query: {
+          start: windowStart,
+          end: windowEnd,
+          rows_page: rowsPage,
+          unmatched_page: unmatchedPage,
+          rows_page_size: pageSize,
+          unmatched_page_size: pageSize,
+        },
+        staleTime: 0,
+      },
+    ),
     // Keep the previously-rendered page visible while paginating or
     // changing page size, so the tables and summary don't unmount and
     // collapse the layout to a spinner between requests.
@@ -278,9 +288,9 @@ export function InvoiceComparison() {
       navigate(
         {
           pathname: location.pathname,
-          query: {...location.query, page_size: String(pageSize)},
+          query: { ...location.query, page_size: String(pageSize) },
         },
-        {replace: true}
+        { replace: true },
       );
     }
   }, [rawPageSize, pageSize, navigate, location.pathname, location.query]);
@@ -306,8 +316,8 @@ export function InvoiceComparison() {
     }
     if (Object.keys(fixes).length > 0) {
       navigate(
-        {pathname: location.pathname, query: {...location.query, ...fixes}},
-        {replace: true}
+        { pathname: location.pathname, query: { ...location.query, ...fixes } },
+        { replace: true },
       );
     }
   }, [
@@ -325,10 +335,17 @@ export function InvoiceComparison() {
   // tests for the contract.
   const rows = data?.rows ?? [];
 
-  const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
+  // Pin the window being shown into the URL so a refresh or shared link
+  // after paginating doesn't fall back to a fresh default window.
+  const setPage = (key: "rows_page" | "unmatched_page", page: number) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, [key]: String(page)},
+      query: {
+        ...location.query,
+        start: windowStart,
+        end: windowEnd,
+        [key]: String(page),
+      },
     });
   };
 
@@ -340,9 +357,11 @@ export function InvoiceComparison() {
       pathname: location.pathname,
       query: {
         ...location.query,
+        start: windowStart,
+        end: windowEnd,
         page_size: String(size),
-        rows_page: '1',
-        unmatched_page: '1',
+        rows_page: "1",
+        unmatched_page: "1",
       },
     });
   };
@@ -360,8 +379,8 @@ export function InvoiceComparison() {
         ...location.query,
         start: localInputToUtcIso(startInput),
         end: localInputToUtcIso(endInput),
-        rows_page: '1',
-        unmatched_page: '1',
+        rows_page: "1",
+        unmatched_page: "1",
         page_size: String(pageSize),
       },
     });
@@ -370,19 +389,21 @@ export function InvoiceComparison() {
   return (
     <Fragment>
       <p>
-        Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
-        <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
-        window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). <strong>Legacy invoices</strong> (count and dollar total) are scoped to
-        orgs that have invoices on both sides — legacy-only orgs haven't been onboarded to
-        the platform yet, so counting them would inflate the parity tallies with orgs that
-        can't be expected to match. <strong>Platform invoices</strong> reflect every{' '}
-        <code>PlatformInvoice</code> in the window; in production milestone-1 those are
-        equivalent to both-sided since <code>InvoicerService</code> only generates
-        platform invoices for orgs with a <code>Contract</code> (which already have a
-        legacy counterpart). The first table compares the both-sided orgs, sorted by
-        absolute % delta (relative to legacy), largest first. The second table lists
-        one-sided orgs by absolute amount so you can see who hasn't been onboarded yet.
+        Per-org totals comparing legacy <code>Invoice</code> and shadow{" "}
+        <code>PlatformInvoice</code> records <strong>generated</strong> in the
+        selected window (filtered on <code>date_added</code>, your local time —
+        converted to UTC on submit). <strong>Legacy invoices</strong> (count and
+        dollar total) are scoped to orgs that have invoices on both sides —
+        legacy-only orgs haven't been onboarded to the platform yet, so counting
+        them would inflate the parity tallies with orgs that can't be expected
+        to match. <strong>Platform invoices</strong> reflect every{" "}
+        <code>PlatformInvoice</code> in the window; in production milestone-1
+        those are equivalent to both-sided since <code>InvoicerService</code>{" "}
+        only generates platform invoices for orgs with a <code>Contract</code>{" "}
+        (which already have a legacy counterpart). The first table compares the
+        both-sided orgs, sorted by absolute % delta (relative to legacy),
+        largest first. The second table lists one-sided orgs by absolute amount
+        so you can see who hasn't been onboarded yet.
       </p>
 
       <Panel>
@@ -392,12 +413,12 @@ export function InvoiceComparison() {
             <Stack gap="xs">
               <FieldLabel>Region</FieldLabel>
               <CompactSelect
-                trigger={triggerProps => (
+                trigger={(triggerProps) => (
                   <OverlayTrigger.Button {...triggerProps} prefix="Region" />
                 )}
-                value={cell?.name ?? ''}
-                options={cells.map(c => ({label: c.name, value: c.name}))}
-                onChange={opt => setQueryRegion(opt.value)}
+                value={cell?.name ?? ""}
+                options={cells.map((c) => ({ label: c.name, value: c.name }))}
+                onChange={(opt) => setQueryRegion(opt.value)}
               />
             </Stack>
             <Stack gap="xs">
@@ -406,7 +427,7 @@ export function InvoiceComparison() {
                 id="start"
                 type="datetime-local"
                 value={startInput}
-                onChange={e => setStartInput(e.target.value)}
+                onChange={(e) => setStartInput(e.target.value)}
               />
             </Stack>
             <Stack gap="xs">
@@ -415,21 +436,21 @@ export function InvoiceComparison() {
                 id="end"
                 type="datetime-local"
                 value={endInput}
-                onChange={e => setEndInput(e.target.value)}
+                onChange={(e) => setEndInput(e.target.value)}
               />
             </Stack>
             <Stack gap="xs">
               <FieldLabel>Results per page</FieldLabel>
               <CompactSelect
-                trigger={triggerProps => (
+                trigger={(triggerProps) => (
                   <OverlayTrigger.Button {...triggerProps} prefix="Per page" />
                 )}
                 value={String(pageSize)}
-                options={PAGE_SIZE_OPTIONS.map(n => ({
+                options={PAGE_SIZE_OPTIONS.map((n) => ({
                   label: String(n),
                   value: String(n),
                 }))}
-                onChange={opt => setPageSize(Number(opt.value))}
+                onChange={(opt) => setPageSize(Number(opt.value))}
               />
             </Stack>
             <Button variant="primary" onClick={onSubmit} disabled={!cell}>
@@ -439,7 +460,7 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {cell && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>
@@ -447,7 +468,7 @@ export function InvoiceComparison() {
             Failed to load comparison
             {(error as any)?.responseJSON?.detail
               ? `: ${(error as any).responseJSON.detail}`
-              : ''}
+              : ""}
             .
           </Alert>
         </Alert.Container>
@@ -458,7 +479,10 @@ export function InvoiceComparison() {
           <Panel>
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
-              <Grid columns={{zero: 'repeat(2, 1fr)', '2xl': 'repeat(3, 1fr)'}} gap="xl">
+              <Grid
+                columns={{ zero: "repeat(2, 1fr)", "2xl": "repeat(3, 1fr)" }}
+                gap="xl"
+              >
                 <Stack>
                   <Text size="sm" variant="muted">
                     Legacy invoices
@@ -477,12 +501,12 @@ export function InvoiceComparison() {
                 </Stack>
                 <Stack>
                   <Text size="sm" variant="muted">
-                    {'>1% diff'}
+                    {">1% diff"}
                   </Text>
                   <Text size="lg" bold>
                     {formatPercentOrNA(data.summary.over_threshold_pct)}
                     <TruncatedNote size="sm" variant="muted">
-                      ({formatCountOrNA(data.summary.over_threshold_count)} of{' '}
+                      ({formatCountOrNA(data.summary.over_threshold_count)} of{" "}
                       {formatCountOrNA(data.summary.row_count)})
                     </TruncatedNote>
                   </Text>
@@ -493,7 +517,8 @@ export function InvoiceComparison() {
 
           <Panel>
             <PanelHeader>
-              Rows (sorted by |delta|, biggest first) — queried {data.summary.queried_at}
+              Rows (sorted by |delta|, biggest first) — queried{" "}
+              {data.summary.queried_at}
             </PanelHeader>
             <PanelBody>
               <Paginator
@@ -501,7 +526,7 @@ export function InvoiceComparison() {
                 totalPages={data.summary.rows_total_pages}
                 total={data.summary.row_count}
                 pageSize={data.summary.rows_page_size}
-                onChange={p => setPage('rows_page', p)}
+                onChange={(p) => setPage("rows_page", p)}
               />
               <Table>
                 <thead>
@@ -522,11 +547,13 @@ export function InvoiceComparison() {
                       </td>
                     </tr>
                   )}
-                  {rows.map(row => (
+                  {rows.map((row) => (
                     <tr key={row.organization_id}>
                       <td>
                         {row.organization_slug ? (
-                          <Link to={`/_admin/customers/${row.organization_slug}/`}>
+                          <Link
+                            to={`/_admin/customers/${row.organization_slug}/`}
+                          >
                             {row.organization_slug}
                           </Link>
                         ) : (
@@ -538,7 +565,7 @@ export function InvoiceComparison() {
                           cents={row.legacy_amount}
                           guid={row.legacy_invoice_guid}
                           region={cell?.name}
-                        />{' '}
+                        />{" "}
                         <Text size="sm" variant="muted">
                           ({row.legacy_invoice_count})
                         </Text>
@@ -548,7 +575,7 @@ export function InvoiceComparison() {
                           cents={row.platform_amount}
                           guid={row.platform_invoice_guid}
                           region={cell?.name}
-                        />{' '}
+                        />{" "}
                         <Text size="sm" variant="muted">
                           ({row.platform_invoice_count})
                         </Text>
@@ -556,7 +583,9 @@ export function InvoiceComparison() {
                       <RightCell>{formatPercent(row.delta_pct)}</RightCell>
                       <RightCell>{formatDollars(row.delta_cents)}</RightCell>
                       <td>
-                        <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
+                        <Tag variant={STATUS_VARIANT[row.status]}>
+                          {row.status}
+                        </Tag>
                       </td>
                     </tr>
                   ))}
@@ -566,14 +595,16 @@ export function InvoiceComparison() {
           </Panel>
 
           <Panel>
-            <PanelHeader>Unmatched orgs (one side only, sorted by |amount|)</PanelHeader>
+            <PanelHeader>
+              Unmatched orgs (one side only, sorted by |amount|)
+            </PanelHeader>
             <PanelBody>
               <Paginator
                 page={data.summary.unmatched_page}
                 totalPages={data.summary.unmatched_total_pages}
                 total={data.summary.unmatched_org_count}
                 pageSize={data.summary.unmatched_page_size}
-                onChange={p => setPage('unmatched_page', p)}
+                onChange={(p) => setPage("unmatched_page", p)}
               />
               <Table>
                 <thead>
@@ -592,11 +623,13 @@ export function InvoiceComparison() {
                       </td>
                     </tr>
                   )}
-                  {data.unmatched.map(row => (
+                  {data.unmatched.map((row) => (
                     <tr key={`${row.side}-${row.organization_id}`}>
                       <td>
                         {row.organization_slug ? (
-                          <Link to={`/_admin/customers/${row.organization_slug}/`}>
+                          <Link
+                            to={`/_admin/customers/${row.organization_slug}/`}
+                          >
                             {row.organization_slug}
                           </Link>
                         ) : (
@@ -643,9 +676,14 @@ function Paginator({
   // so the table doesn't look like it's missing its header.
   if (totalPages <= 1) {
     return (
-      <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
+      <Flex
+        justify="between"
+        align="center"
+        padding="md lg"
+        borderBottom="primary"
+      >
         <Text size="sm" variant="muted">
-          {total === 0 ? 'No rows' : `${total} row${total === 1 ? '' : 's'}`}
+          {total === 0 ? "No rows" : `${total} row${total === 1 ? "" : "s"}`}
         </Text>
       </Flex>
     );
@@ -653,13 +691,22 @@ function Paginator({
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
   return (
-    <Flex justify="between" align="center" padding="md lg" borderBottom="primary">
+    <Flex
+      justify="between"
+      align="center"
+      padding="md lg"
+      borderBottom="primary"
+    >
       <Text size="sm" variant="muted">
-        {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()} · page{' '}
-        {page} of {totalPages}
+        {start.toLocaleString()}–{end.toLocaleString()} of{" "}
+        {total.toLocaleString()} · page {page} of {totalPages}
       </Text>
       <Flex gap="xs">
-        <Button size="xs" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+        <Button
+          size="xs"
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+        >
           Prev
         </Button>
         <Button
@@ -674,27 +721,27 @@ function Paginator({
   );
 }
 
-const FieldLabel = styled('label')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
+const FieldLabel = styled("label")`
+  font-size: ${(p) => p.theme.font.size.sm};
+  color: ${(p) => p.theme.tokens.content.secondary};
 `;
 
 const TruncatedNote = styled(Text)`
   margin-left: 8px;
 `;
 
-const Table = styled('table')`
+const Table = styled("table")`
   width: 100%;
   border-collapse: collapse;
   th,
   td {
     padding: 8px 12px;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    border-bottom: 1px solid ${(p) => p.theme.tokens.border.primary};
     text-align: left;
   }
   th {
     font-weight: 600;
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${(p) => p.theme.tokens.background.secondary};
   }
 `;
 
@@ -702,13 +749,13 @@ const Table = styled('table')`
 // specificity (0,1,1) which would otherwise beat these single-class
 // selectors. Emotion's && doubles the class to (0,2,0) so the right-align
 // wins. See https://emotion.sh/docs/styled#styling-any-component.
-const RightHeader = styled('th')`
+const RightHeader = styled("th")`
   && {
     text-align: right;
   }
 `;
 
-const RightCell = styled('td')`
+const RightCell = styled("td")`
   && {
     text-align: right;
   }

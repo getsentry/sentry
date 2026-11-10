@@ -10,10 +10,10 @@ import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -294,10 +294,7 @@ export function DashboardBreadcrumbTitle({
   // endpoint refuses, so offering it at all would only be something to explain.
   const canDelete =
     !isPrebuiltDashboard && isPersisted && hasEditAccess && defined(onDelete);
-  const canViewRevisions =
-    Boolean(dashboard.id) &&
-    !isPrebuiltDashboard &&
-    organization.features.includes('dashboards-edit');
+  const canViewRevisions = Boolean(dashboard.id) && !isPrebuiltDashboard;
   const handleToggleFavorite = async () => {
     const nextIsFavorited = !isFavorited;
     setIsFavorited(nextIsFavorited);

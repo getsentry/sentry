@@ -8,11 +8,13 @@ from django.utils import timezone
 from rest_framework.response import Response
 
 from sentry.onboarding.agentic_progress.model import (
+    ConnectExtra,
     ProgressUpdate,
     RunOrigin,
     RunStatus,
     Stage,
     StageStatus,
+    apply_update,
 )
 from sentry.onboarding.agentic_progress.service import OnboardingProgressService
 from sentry.testutils.cases import APITestCase
@@ -24,6 +26,26 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(self.user)
         self.service = OnboardingProgressService()
+
+    def test_initialize_without_reporting_code(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        payload = {"clientRunId": str(uuid4()), "origin": "onboarding"}
+        response = self.client.post(path, payload)
+        assert response.status_code == 201, response.content
+        assert "onboardingCode" not in response.data
+        run = self.service.get(
+            run_id=response.data["runId"],
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        assert run is not None
+        assert run.token_hash is None
+        resumed = self.client.post(path, payload)
+        assert resumed.status_code == 201
+        assert resumed.data["runId"] == run.run_id
 
     def test_run_origin(self) -> None:
         index_path = reverse(
@@ -213,6 +235,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,
@@ -236,6 +259,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         expired = replace(run, expires_at=timezone.now() - timedelta(seconds=1))
         self.service.redis.set(
             self.service._state_key(run.run_id),
@@ -248,7 +272,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.status_code == 410
         assert response.data == {"detail": "Onboarding run has expired"}
 
-    def _post_status(self, token: str) -> Response:
+    def _post_status(self, token: str, **overrides: object) -> Response:
         path = reverse(
             "sentry-api-0-organization-agentic-onboarding-status",
             args=[self.organization.slug],
@@ -264,6 +288,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                     "runToken": token,
                     "stage": "connect_mcp",
                     "status": "completed",
+                    **overrides,
                 },
             )
             return response
@@ -397,6 +422,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "origin": run.origin,
                 "stage": "create_project",
                 "status": status_value,
+                "connection_method": None,
             }
             for status_value in ["active", "waiting", "failed", "completed", "completed"]
         ] + [
@@ -407,6 +433,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 "origin": skipped_run.origin,
                 "stage": "check_stack_trace_quality",
                 "status": "skipped",
+                "connection_method": None,
             }
         ]
 
@@ -418,6 +445,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             onboarding_code="abcdefghij",
             origin=RunOrigin.ONBOARDING,
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,
@@ -461,4 +489,127 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "run_id": run.run_id,
             "origin": run.origin,
             "status": "completed",
+            "connection_method": None,
         }
+
+    def _assert_connect_stage_records_method(self, stage_name: str, expected_method: str) -> None:
+        _, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-status",
+            args=[self.organization.slug],
+        )
+        with (
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service",
+                return_value=self.service,
+            ),
+            patch("sentry.api.endpoints.organization_agentic_onboarding.metrics") as mock_metrics,
+        ):
+            response = self.client.post(
+                path,
+                {
+                    "schemaVersion": 1,
+                    "runToken": token,
+                    "stage": stage_name,
+                    "status": "completed",
+                    "extra": {"method": expected_method},
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stages"][0]["status"] == "completed"
+        assert response.data["stages"][0]["extra"] == {"method": expected_method}
+        mock_metrics.incr.assert_called_once_with(
+            "agentic_onboarding.connect_stage_input",
+            tags={"input": stage_name},
+        )
+
+    def test_connect_agent_alias_records_cli_method(self) -> None:
+        self._assert_connect_stage_records_method("connect_agent", "cli")
+
+    def test_connect_mcp_records_mcp_method(self) -> None:
+        self._assert_connect_stage_records_method("connect_mcp", "mcp")
+
+    def test_connect_stage_rejects_unknown_method(self) -> None:
+        _, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        assert token is not None
+        response = self._post_status(token, stage="connect_mcp", extra={"method": "browser"})
+
+        assert response.status_code == 400
+
+    def test_connect_stage_rejects_unknown_extra_fields(self) -> None:
+        _, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        assert token is not None
+        response = self._post_status(
+            token, stage="connect_mcp", extra={"method": "cli", "unknown": True}
+        )
+
+        assert response.status_code == 400
+
+    def test_reader_handles_stored_connect_extra(self) -> None:
+        # Seed a run with ConnectExtra directly in Redis to verify deserialization
+        # works independently of what the endpoint currently accepts on write.
+        run, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        seeded_run = apply_update(
+            run,
+            ProgressUpdate(
+                stage=Stage.CONNECT_MCP,
+                status=StageStatus.COMPLETED,
+                extra=ConnectExtra(method="cli"),
+            ),
+            timezone.now(),
+        )
+        self.service.redis.set(
+            self.service._state_key(run.run_id),
+            self.service._serialize(seeded_run),
+            ex=300,
+        )
+
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-status",
+            args=[self.organization.slug],
+        )
+        service_path = (
+            "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service"
+        )
+        with (
+            patch(service_path, return_value=self.service),
+            patch("sentry.analytics.record") as record_analytics,
+        ):
+            response = self.client.post(
+                path,
+                {
+                    "schemaVersion": 1,
+                    "runToken": token,
+                    "stage": "check_stack_trace_quality",
+                    "status": "completed",
+                    "runStatus": "completed",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        connection_methods = [
+            call.args[0].serialize().get("connection_method")
+            for call in record_analytics.call_args_list
+        ]
+        assert all(method == "cli" for method in connection_methods)

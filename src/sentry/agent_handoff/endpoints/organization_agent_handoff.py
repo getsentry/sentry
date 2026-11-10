@@ -1,23 +1,26 @@
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
-from sentry.agent_handoff.codes import issue_handoff
+from sentry.agent_handoff.applications import get_handoff_application
+from sentry.agent_handoff.codes import HandoffContext, HandoffFlow, issue_handoff
+from sentry.agent_handoff.flows import get_flow
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
-from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -46,6 +49,43 @@ HANDOFF_SCOPES = (
 )
 
 
+class AgentHandoffRequest(TypedDict):
+    flow: str
+    context: HandoffContext
+    disable_ip_pinning: bool
+
+
+class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
+    flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
+    disable_ip_pinning = serializers.BooleanField(default=False)
+
+    # DRF reserves Serializer.context for rendering metadata.
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        return {
+            **super().get_fields(),
+            "context": serializers.JSONField(required=False, allow_null=True, default=None),
+        }
+
+    def validate(self, attrs: AgentHandoffRequest) -> AgentHandoffRequest:
+        context_serializer = get_flow(HandoffFlow(attrs["flow"])).get_context_serializer()
+        if context_serializer is None:
+            if attrs["context"] is not None:
+                raise serializers.ValidationError(
+                    {"context": ["Context is not supported for this flow."]}
+                )
+
+            return attrs
+
+        serializer = context_serializer(data=attrs["context"], context=self.context)
+        try:
+            # The enclosing serializer owns error-key casing for nested fields.
+            context = serializer.run_validation(serializer.initial_data)
+        except serializers.ValidationError as error:
+            raise serializers.ValidationError({"context": error.detail}) from error
+
+        return {**attrs, "context": context}
+
+
 class AgentHandoffResponse(TypedDict):
     prompt: str
     guideUrl: str
@@ -53,7 +93,7 @@ class AgentHandoffResponse(TypedDict):
 
 
 class AgentHandoffPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"GET": ["org:read"], "POST": ["org:read"]}
 
 
 @extend_schema(tags=["Organizations"])
@@ -84,7 +124,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
 
     @extend_schema(
         operation_id="Create a private agent onboarding prompt",
-        request=None,
+        request=AgentHandoffRequestSerializer,
         responses={201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse)},
     )
     def post(
@@ -98,32 +138,33 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         if organization_context.member is None:
             return Response({"detail": "Organization membership is required."}, status=403)
 
-        client_id = options.get("onboarding.agent-handoff.client-id")
-        application = ApiApplication.objects.filter(
-            client_id=client_id, status=ApiApplicationStatus.active
-        ).first()
-        if (
-            not client_id
-            or client_id not in options.get("oauth.setup-code.allowed-client-ids")
-            or application is None
-            or not application.is_public
-            or (
-                application.requires_org_level_access
-                and not set(HANDOFF_SCOPES).issubset(application.scopes)
-            )
-        ):
+        serializer = AgentHandoffRequestSerializer(
+            data=request.data, context={"user_id": user.id, "organization_id": organization.id}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        application = get_handoff_application(HANDOFF_SCOPES)
+        if application is None:
             return Response({"detail": "Agent onboarding is not configured."}, status=503)
 
+        values = serializer.validated_data
+        flow = HandoffFlow(values["flow"])
         issued = issue_handoff(
+            flow=flow,
+            context=values["context"],
             user_id=user.id,
             organization_id=organization.id,
             application_id=application.id,
             scope_list=HANDOFF_SCOPES,
+            ip_address=request.META["REMOTE_ADDR"],
+            disable_ip_pinning=serializer.validated_data["disable_ip_pinning"],
         )
-        # Fragments are withheld from HTTP requests, including access logs and previews.
-        guide_url = f"{absolute_uri('/onboard/')}#{issued.code}"
+        guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
-            "prompt": f"Follow these instructions to get started with Sentry:\n{guide_url}",
+            "prompt": (
+                f"Fetch and follow the instructions at {guide_url}. "
+                f"Your secret token is `{issued.code}`."
+            ),
             "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),
         }

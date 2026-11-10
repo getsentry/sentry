@@ -58,9 +58,7 @@ function Wrapper({children}: {children: ReactNode}) {
 jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     const project = ProjectFixture({
@@ -431,26 +429,8 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
-  it('picks one aggregate per chart without multi aggregate charts', async () => {
-    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
-
-    const section = screen.getByTestId('section-visualizes');
-
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    expect(within(section).queryByText('Percentiles')).not.toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
-    await waitFor(() =>
-      expect(chartYAxesFromRouter(router)).toEqual([['p50(span.duration)']])
-    );
-    expect(within(section).queryByRole('option')).not.toBeInTheDocument();
-  });
-
   it('plots aggregates selected together on one chart', async () => {
     const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-multi-aggregate-charts'],
-      }),
       additionalWrapper: Wrapper,
     });
 
@@ -509,10 +489,6 @@ describe('ExploreToolbar', () => {
 
   it('resets the aggregates when the selection is cleared', async () => {
     const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-multi-aggregate-charts'],
-      }),
       additionalWrapper: Wrapper,
     });
 
@@ -1226,7 +1202,7 @@ describe('ExploreToolbar', () => {
 
   describe('conditional aggregates', () => {
     const organizationWithDashboardFeatures = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents'],
+      features: ['incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';

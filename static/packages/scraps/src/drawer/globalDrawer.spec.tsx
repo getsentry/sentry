@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import {createRef, Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {
@@ -120,6 +120,62 @@ describe('GlobalDrawer', () => {
     await waitFor(() =>
       expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
     );
+  });
+
+  it('closes on an outside mousedown whose target is a text node', async () => {
+    const shouldCloseOnInteractOutside = jest.fn(() => true);
+    render(
+      <GlobalDrawer>
+        <DrawerControl options={{shouldCloseOnInteractOutside}} />
+      </GlobalDrawer>,
+      {wrapper}
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
+    expect(await screen.findByText('Details content')).toBeInTheDocument();
+
+    const textNode = document.createTextNode('Outside text');
+    document.body.append(textNode);
+    fireEvent.mouseDown(textNode);
+    textNode.remove();
+
+    expect(shouldCloseOnInteractOutside).toHaveBeenCalledWith(document.body);
+    await waitFor(() =>
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    );
+  });
+
+  it('closes on an outside mousedown whose target is the document', async () => {
+    render(
+      <GlobalDrawer>
+        <DrawerControl />
+      </GlobalDrawer>,
+      {wrapper}
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
+    expect(await screen.findByText('Details content')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document);
+
+    await waitFor(() =>
+      expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
+    );
+  });
+
+  it('respects shouldCloseOnInteractOutside for a document mousedown', async () => {
+    const shouldCloseOnInteractOutside = jest.fn(() => false);
+    render(
+      <GlobalDrawer>
+        <DrawerControl options={{shouldCloseOnInteractOutside}} />
+      </GlobalDrawer>,
+      {wrapper}
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
+    expect(await screen.findByText('Details content')).toBeInTheDocument();
+
+    fireEvent.mouseDown(document);
+
+    expect(shouldCloseOnInteractOutside).toHaveBeenCalledWith(document.documentElement);
+    expect(screen.getByRole('complementary', {name: 'Details'})).toBeInTheDocument();
   });
 
   it('keeps passive drawers open during outside interaction and navigation', async () => {

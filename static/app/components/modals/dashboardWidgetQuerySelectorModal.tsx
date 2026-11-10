@@ -10,13 +10,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {Client} from 'sentry/api';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {withApi} from 'sentry/utils/withApi';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
 
@@ -26,15 +23,11 @@ export type DashboardWidgetQuerySelectorModalOptions = {
   widget: Widget;
 };
 
-type Props = ModalRenderProps &
-  DashboardWidgetQuerySelectorModalOptions & {
-    api: Client;
-    organization: Organization;
-    selection: PageFilters;
-  };
+type Props = ModalRenderProps & DashboardWidgetQuerySelectorModalOptions;
 
 function DashboardWidgetQuerySelectorModal(props: Props) {
-  const {organization, widget, selection, Body, Header, dashboardFilters} = props;
+  const {organization, widget, Body, Header, dashboardFilters} = props;
+  const {selection} = usePageFilters();
 
   const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
@@ -133,4 +126,4 @@ export const modalCss = css`
   margin: 70px auto;
 `;
 
-export default withApi(withPageFilters(DashboardWidgetQuerySelectorModal));
+export default DashboardWidgetQuerySelectorModal;

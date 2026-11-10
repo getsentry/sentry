@@ -841,7 +841,6 @@ describe('Threads', () => {
 
       it('renders suspect commits', async () => {
         const user = UserFixture();
-        user.options.prefersIssueDetailsStreamlinedUI = true;
         ConfigStore.set('user', user);
         const group = GroupFixture();
         const committers = [

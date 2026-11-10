@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconFlag} from '@sentry/icons/flag';
 import {useQuery, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -19,7 +20,6 @@ import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,6 +35,7 @@ import {KeyRow} from './keyRow';
 export default function ProjectKeys() {
   const params = useParams<{projectId: string}>();
   const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const api = useApi({persistInFlight: true});
@@ -52,7 +53,7 @@ export default function ProjectKeys() {
       orgSlug: organization.slug,
       projSlug: project.slug,
       query: {
-        cursor: decodeScalar(location.query.cursor),
+        cursor: cursor || undefined,
         per_page: 5,
       },
     }),
