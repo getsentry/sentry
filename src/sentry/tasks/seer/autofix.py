@@ -33,6 +33,7 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
+    is_seer_token_based_billing_onboarding_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -45,13 +46,17 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
-def _clear_free_autofix_cohort_configuration(organization: Organization) -> None:
+def _clear_free_autofix_cohort_configuration(
+    organization: Organization, is_token_billed: bool
+) -> None:
     if not organization.get_option("agentic-triage-free-cohort", False):
         return
 
-    SeerProjectRepository.objects.filter(
-        project_repository__project__organization_id=organization.id
-    ).delete()
+    # Token-billed orgs use every linked repo, so these rows only hold optional per-repo config.
+    if not is_token_billed:
+        SeerProjectRepository.objects.filter(
+            project_repository__project__organization_id=organization.id
+        ).delete()
     organization.delete_option("agentic-triage-free-cohort")
 
 
@@ -255,7 +260,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
     sentry_sdk.set_attribute("organization_slug", organization.slug)
-    _clear_free_autofix_cohort_configuration(organization)
+    is_token_billed = is_seer_token_based_billing_onboarding_enabled(organization)
+    _clear_free_autofix_cohort_configuration(organization, is_token_billed)
 
     # Set org-level options
     organization.update_option(
@@ -319,7 +325,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated
-    cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
+    if not is_token_billed:
+        cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
 
     logger.info(
         "Task: configure_seer_for_existing_org completed",
