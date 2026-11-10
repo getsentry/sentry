@@ -18,6 +18,12 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 
 import {AutofixSection} from './autofixSection';
 
+const mockOpenSeerExplorer = jest.fn();
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
+  useSeerExplorerContext: () => ({openSeerExplorer: mockOpenSeerExplorer}),
+}));
+
 jest.mock('sentry/utils/cells');
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -262,6 +268,88 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Open Autofix'})).not.toBeInTheDocument();
+  });
+
+  describe('single runs', () => {
+    const singleRunBody = {
+      autofix: {
+        run_id: 776,
+        feature_id: 'autofix_single_run',
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+        blocks: [
+          {
+            id: 'block-1',
+            message: {content: 'done', role: 'assistant', metadata: {step: 'single_run'}},
+            timestamp: new Date().toISOString(),
+            artifacts: [
+              {
+                key: 'single_run_root_cause',
+                reason: 'found',
+                data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    beforeEach(() => {
+      mockOpenSeerExplorer.mockClear();
+    });
+
+    it('opens the Explorer panel on Open Autofix', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+      expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+    });
+
+    it('opens the Explorer panel when Start Analysis starts a single run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        method: 'POST',
+        body: {run_id: 776, sentry_run_id: 'abc', feature_id: 'autofix_single_run'},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
+
+      await waitFor(() =>
+        expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 'abc'})
+      );
+    });
+
+    it('does not open the Explorer panel when the start is a step run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      const post = MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        method: 'POST',
+        body: {run_id: 5, sentry_run_id: 'abc', feature_id: null},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
+
+      await waitFor(() => expect(post).toHaveBeenCalled());
+      expect(mockOpenSeerExplorer).not.toHaveBeenCalled();
+    });
   });
 
   it('renders solution artifact', async () => {

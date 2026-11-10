@@ -2,7 +2,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StatusCheckRules} from './statusCheckRules';
 
@@ -95,5 +95,40 @@ describe('StatusCheckRules', () => {
     expect(
       screen.getByText('Enable status checks above to configure rules.')
     ).toBeInTheDocument();
+  });
+
+  it('replaces the URL with the new rule expanded when a rule is created', async () => {
+    mockRepositories();
+    const project = DetailedProjectFixture({options: {}});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: project,
+    });
+
+    const {router} = render(<StatusCheckRules />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {...initialRouterConfig.location, query: {other: 'kept'}},
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Create Status Check Rule'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({
+        other: 'kept',
+        expanded: expect.any(String),
+      })
+    );
+    expect(router.historyAction).toBe('REPLACE');
   });
 });

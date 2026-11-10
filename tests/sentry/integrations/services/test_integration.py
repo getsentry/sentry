@@ -5,10 +5,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
+from django.test import override_settings
 from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.linear.client import LINEAR_TOKEN_URL
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
@@ -32,6 +34,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class BaseIntegrationServiceTest(TestCase):
@@ -674,8 +677,352 @@ class StartGracePeriodForProviderTest(TestCase):
 
 
 @all_silo_test
+@override_settings(LINEAR_CLIENT_ID="sentry-app-id", LINEAR_CLIENT_SECRET="sentry-app-secret")
 @freeze_time("2025-01-01T05:22:00Z")
 class GetAccessTokenTest(TestCase):
+    def create_linear(self, **metadata: Any) -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            provider="linear",
+            external_id="workspace-id",
+            metadata={
+                "refresh_token": "linear-refresh-token",
+                "workspace_id": "workspace-id",
+                "access_token": "linear-token",
+                "expires_at": "2025-01-01T06:22:00+00:00",
+                **metadata,
+            },
+        )
+
+    def mock_linear_token(self) -> None:
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            match=[
+                matchers.urlencoded_params_matcher(
+                    {
+                        "grant_type": "refresh_token",
+                        "refresh_token": "linear-refresh-token",
+                        "client_id": "sentry-app-id",
+                        "client_secret": "sentry-app-secret",
+                    }
+                )
+            ],
+            json={
+                "access_token": "linear-token-2",
+                "refresh_token": "linear-refresh-token-2",
+                "expires_in": 3600,
+                "token_type": "Bearer",
+                "scope": "read write",
+            },
+        )
+
+    def age_past_forced_refresh_reuse_window(self, integration: Integration) -> None:
+        """Make the stored credentials look older than FORCED_REFRESH_REUSE_WINDOW."""
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=integration.id).update(
+                date_updated=datetime(2025, 1, 1, 5, 21, tzinfo=timezone.utc)
+            )
+
+    @responses.activate
+    def test_linear_reuses_valid_token(self) -> None:
+        integration = self.create_linear()
+        assert self.get_token(integration) == RpcAccessToken(
+            token="linear-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_linear_renews_before_expiry_and_persists_token(self) -> None:
+        integration = self.create_linear(expires_at="2025-01-01T05:25:00+00:00")
+        self.mock_linear_token()
+
+        token = self.get_token(integration)
+
+        assert token == RpcAccessToken(
+            token="linear-token-2", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert self.get_token(integration) == token
+        assert len(responses.calls) == 1
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.metadata["access_token"] == "linear-token-2"
+        assert integration.metadata["refresh_token"] == "linear-refresh-token-2"
+        assert "client_secret" not in integration.metadata
+        assert integration.metadata["workspace_id"] == "workspace-id"
+        assert "linear-token-2" not in repr(token)
+
+    @responses.activate
+    def test_linear_replaces_rejected_unexpired_token(self) -> None:
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+        self.mock_linear_token()
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is not None
+        assert token.token == "linear-token-2"
+        assert self.get_token(integration) == token
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_linear_concurrent_forced_refreshes_reuse_replaced_token(self) -> None:
+        # Tool calls holding the same rejected token force refreshes one after another;
+        # only the first one rotates the credentials.
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+        self.mock_linear_token()
+
+        first = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+        second = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert first is not None
+        assert first.token == "linear-token-2"
+        assert second == first
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_reuses_stored_token(self, mock_acquire: MagicMock) -> None:
+        # Another caller's refresh holds the lock longer than the wait, but the stored
+        # token is still valid, so the waiter hands it out instead of failing.
+        integration = self.create_linear()
+
+        assert self.get_token(integration) == RpcAccessToken(
+            token="linear-token", expires_at=datetime(2025, 1, 1, 6, 22, tzinfo=timezone.utc)
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_forced_refresh_reuses_recent_replacement(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        # The lock holder just replaced the rejected token; a forcing waiter that timed
+        # out on the lock reuses the replacement instead of reporting a failed refresh.
+        integration = self.create_linear()
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is not None
+        assert token.token == "linear-token"
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_forced_refresh_without_replacement_fails(
+        self, mock_acquire: MagicMock
+    ) -> None:
+        # The stored credentials predate the reuse window, so they're the ones the
+        # forcing caller saw rejected; without the lock there's nothing safe to hand out.
+        integration = self.create_linear()
+        self.age_past_forced_refresh_reuse_window(integration)
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id,
+            organization_id=self.organization.id,
+            force_refresh=True,
+        )
+
+        assert token is None
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
+    def test_linear_lock_timeout_with_expiring_token_fails(self, mock_acquire: MagicMock) -> None:
+        # The stored token is about to expire (that's what the lock holder is fixing),
+        # so the waiter can't use it and reports the token unavailable.
+        integration = self.create_linear(expires_at="2025-01-01T05:25:00+00:00")
+
+        assert self.get_token(integration) is None
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_linear_missing_expiry_obtains_new_token(self) -> None:
+        integration = self.create_linear(expires_at=None)
+        self.mock_linear_token()
+        token = self.get_token(integration)
+        assert token is not None
+        assert token.token == "linear-token-2"
+
+    @responses.activate
+    def test_linear_token_failure_returns_none(self) -> None:
+        integration = self.create_linear(expires_at="2025-01-01T00:00:00+00:00")
+        responses.add(responses.POST, LINEAR_TOKEN_URL, status=401)
+        assert self.get_token(integration) is None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.metadata["access_token"] == "linear-token"
+        assert integration.metadata["refresh_token"] == "linear-refresh-token"
+        assert integration.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    def test_linear_revoked_grant_requires_reauthorization(self) -> None:
+        integration = self.create_linear(expires_at=None)
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            status=400,
+            json={"error": "invalid_grant"},
+        )
+
+        assert self.get_token(integration) is None
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert self.get_token(integration) is None
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_linear_next_refresh_uses_rotated_refresh_token(self) -> None:
+        integration = self.create_linear(expires_at=None)
+        self.mock_linear_token()
+        assert self.get_token(integration) is not None
+        self.age_past_forced_refresh_reuse_window(integration)
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            match=[
+                matchers.urlencoded_params_matcher(
+                    {
+                        "grant_type": "refresh_token",
+                        "refresh_token": "linear-refresh-token-2",
+                        "client_id": "sentry-app-id",
+                        "client_secret": "sentry-app-secret",
+                    }
+                )
+            ],
+            json={
+                "access_token": "linear-token-3",
+                "refresh_token": "linear-refresh-token-3",
+                "expires_in": 86400,
+                "token_type": "Bearer",
+                "scope": "read write",
+            },
+        )
+
+        token = integration_service.get_access_token(
+            integration_id=integration.id, organization_id=self.organization.id, force_refresh=True
+        )
+
+        assert token is not None
+        assert token.token == "linear-token-3"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.metadata["refresh_token"] == "linear-refresh-token-3"
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    def test_linear_cannot_refresh_another_organizations_install(self) -> None:
+        integration = self.create_linear()
+        assert (
+            integration_service.get_access_token(
+                integration_id=integration.id,
+                organization_id=self.create_organization().id,
+                force_refresh=True,
+            )
+            is None
+        )
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_linear_does_not_overwrite_concurrent_reauthorization(self) -> None:
+        integration = self.create_linear(expires_at=None)
+
+        def replace_credentials(request: Any) -> tuple[int, dict[str, str], str]:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                Integration.objects.filter(id=integration.id).update(
+                    metadata={
+                        "access_token": "reauthorized-token",
+                        "refresh_token": "reauthorized-refresh-token",
+                    },
+                    date_updated=datetime(2025, 1, 1, 5, 22, 1, tzinfo=timezone.utc),
+                )
+            return (
+                200,
+                {"Content-Type": "application/json"},
+                '{"access_token":"stale-token","refresh_token":"stale-refresh-token","expires_in":3600,"token_type":"Bearer","scope":"read write"}',
+            )
+
+        responses.add_callback(responses.POST, LINEAR_TOKEN_URL, callback=replace_credentials)
+        assert self.get_token(integration) is None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.metadata == {
+            "access_token": "reauthorized-token",
+            "refresh_token": "reauthorized-refresh-token",
+        }
+
+    @responses.activate
+    def test_linear_revoked_old_grant_does_not_disable_concurrent_reauthorization(self) -> None:
+        integration = self.create_linear(expires_at=None)
+
+        def reauthorize_during_refresh(request: Any) -> tuple[int, dict[str, str], str]:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                Integration.objects.filter(id=integration.id).update(
+                    metadata={
+                        "access_token": "reauthorized-token",
+                        "refresh_token": "reauthorized-refresh-token",
+                    },
+                    date_updated=datetime(2025, 1, 1, 5, 22, 1, tzinfo=timezone.utc),
+                )
+            return (400, {"Content-Type": "application/json"}, '{"error":"invalid_grant"}')
+
+        responses.add_callback(
+            responses.POST, LINEAR_TOKEN_URL, callback=reauthorize_during_refresh
+        )
+
+        assert self.get_token(integration) is None
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.metadata["refresh_token"] == "reauthorized-refresh-token"
+
+    @responses.activate
+    def test_linear_unstamped_reauthorization_is_not_disabled(self) -> None:
+        integration = self.create_linear(expires_at=None)
+
+        def reauthorize_without_bumping_stamp(request: Any) -> tuple[int, dict[str, str], str]:
+            # A writer that replaces the credentials without bumping date_updated
+            # (e.g. a queryset update) must still be visible to the disable guard.
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                Integration.objects.filter(id=integration.id).update(
+                    metadata={
+                        "access_token": "reauthorized-token",
+                        "refresh_token": "reauthorized-refresh-token",
+                    },
+                )
+            return (400, {"Content-Type": "application/json"}, '{"error":"invalid_grant"}')
+
+        responses.add_callback(
+            responses.POST, LINEAR_TOKEN_URL, callback=reauthorize_without_bumping_stamp
+        )
+
+        assert self.get_token(integration) is None
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.refresh_from_db()
+        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.metadata["refresh_token"] == "reauthorized-refresh-token"
+
     def create_github(self, expires_at: str = "2025-01-01T06:22:00") -> Integration:
         return self.create_integration(
             organization=self.organization,

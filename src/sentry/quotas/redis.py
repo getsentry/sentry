@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable
 from time import time
 
-import rb
-from sentry_redis_tools.clients import RedisCluster
 from sentry_sdk import traces
 
 from sentry import options
@@ -18,12 +16,7 @@ from sentry.quotas.base import (
     QuotaGroupBy,
     QuotaScope,
 )
-from sentry.utils.redis import (
-    get_dynamic_cluster_from_options,
-    is_instance_rb_cluster,
-    is_instance_redis_cluster,
-    validate_dynamic_cluster,
-)
+from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
 
 
 class RedisQuota(Quota):
@@ -33,30 +26,13 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options: object):
-        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
-            "SENTRY_QUOTA_OPTIONS", options
-        )
-
-        # Based on the `is_redis_cluster` flag, self.cluster is set two one of
-        # the following two objects:
-        #  - false: `cluster` is a `RBCluster`. Call `get_local_client_for_key`
-        #    on the cluster to resolve a client to run a script or query a key.
-        #  - true: `cluster` is a `RedisCluster`. It automatically dispatches to
-        #    the correct node and can be used as a client directly.
+        _, self.cluster, options = get_dynamic_cluster_from_options("SENTRY_QUOTA_OPTIONS", options)
 
         super().__init__(**options)
         self.namespace = "quota"
 
     def validate(self) -> None:
-        validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
-
-    def __get_redis_client(self, routing_key: str) -> RedisCluster | rb.RoutingClient:
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            return self.cluster.get_local_client_for_key(routing_key)
-        else:
-            raise AssertionError("unreachable")
+        validate_dynamic_cluster(self.cluster)
 
     def __get_redis_key(
         self,
@@ -186,8 +162,7 @@ class RedisQuota(Quota):
         if not quotas:
             return
 
-        client = self.__get_redis_client(str(project.organization_id))
-        pipe = client.pipeline()
+        pipe = self.cluster.pipeline()
 
         for quota in quotas:
             if quota.window is None:

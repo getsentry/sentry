@@ -38,8 +38,8 @@ import {t, tct} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,8 +50,7 @@ import {FeedbackOnboardingLayout} from './feedbackOnboardingLayout';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.FEEDBACK_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {openDrawer} = useDrawer();

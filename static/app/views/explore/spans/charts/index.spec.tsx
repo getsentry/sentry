@@ -8,6 +8,8 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -32,14 +34,16 @@ jest.mock('echarts-for-react/lib/core', () => {
       (event: Record<string, unknown>, instance: Record<string, unknown>) => void
     >;
     option: {
-      series: Array<{data?: Array<[number, number]>}>;
+      series: Array<{data?: Array<{value: [number, number]}>}>;
       brush?: unknown;
     };
   }) {
     return (
       <div>
         <output aria-label="Chart values">
-          {JSON.stringify(option.series.map(series => series.data))}
+          {JSON.stringify(
+            option.series.map(series => series.data?.map(point => point.value))
+          )}
         </output>
         <button
           onClick={() => {
@@ -95,14 +99,19 @@ describe('ExploreCharts', () => {
       },
     });
 
-    function SelectableChart() {
+    function SelectableChart({
+      resultForRange,
+    }: {
+      resultForRange?: (datetime: PageFilters['datetime']) => SortedTimeSeries;
+    }) {
+      const {selection} = usePageFilters();
       return (
         <SpansQueryParamsProvider>
           <ChartSelectionProvider>
             <ExploreCharts
               extrapolate
               query=""
-              timeseriesResult={timeseriesResult}
+              timeseriesResult={resultForRange?.(selection.datetime) ?? timeseriesResult}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
@@ -146,6 +155,86 @@ describe('ExploreCharts', () => {
         })
       );
       expect(screen.queryByText('Compare Attribute Breakdowns')).not.toBeInTheDocument();
+    });
+
+    it('shows a loading state after zooming until the zoomed data arrives', async () => {
+      const pendingResult = timeseriesResultFixture({isPending: true, isLoading: true});
+      const zoomedResult = timeseriesResultFixture({
+        data: {
+          'count(span.duration)': [
+            TimeSeriesFixture({
+              yAxis: 'count(span.duration)',
+              values: [{timestamp: 1729796460000, value: 5}],
+            }),
+          ],
+        },
+      });
+      const {rerender} = render(
+        <SelectableChart
+          resultForRange={datetime => (datetime.start ? pendingResult : timeseriesResult)}
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/explore/traces/'},
+          },
+        }
+      );
+
+      const unzoomedChart = await screen.findByLabelText('Chart values');
+      await userEvent.click(screen.getByRole('button', {name: 'Select chart range'}));
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(unzoomedChart).not.toBeInTheDocument();
+
+      rerender(
+        <SelectableChart
+          resultForRange={datetime => (datetime.start ? zoomedResult : timeseriesResult)}
+        />
+      );
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796460000,5]]]'
+      );
+    });
+
+    it('shows a loading state when the date selection changes', async () => {
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          datetime: {
+            start: '2024-10-24T19:00:00',
+            end: '2024-10-24T19:06:00',
+            period: null,
+            utc: null,
+          },
+        })
+      );
+      const pendingResult = timeseriesResultFixture({isPending: true, isLoading: true});
+      render(
+        <SelectableChart
+          resultForRange={datetime =>
+            datetime.period === '30d' ? pendingResult : timeseriesResult
+          }
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/explore/traces/'},
+          },
+        }
+      );
+
+      const zoomedChart = await screen.findByLabelText('Chart values');
+
+      act(() => {
+        PageFiltersStore.updateDateTime({
+          period: '30d',
+          start: null,
+          end: null,
+          utc: null,
+        });
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(zoomedChart).not.toBeInTheDocument();
     });
 
     it('opens the breakdown menu and restores direct zoom when leaving the tab', async () => {
@@ -584,14 +673,18 @@ describe('ExploreCharts', () => {
 
     function renderCharts({
       acceptedEvents = [],
+      asyncDelay,
       droppedEvents = [],
       organizationFeatures = features,
       query = '',
+      timeseriesResult = timeseriesResultFixture(),
     }: {
       acceptedEvents?: OutcomeRow[];
+      asyncDelay?: Promise<void>;
       droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
       query?: string;
+      timeseriesResult?: SortedTimeSeries;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -600,6 +693,7 @@ describe('ExploreCharts', () => {
           droppedEvents,
           acceptedEvents,
         },
+        asyncDelay,
       });
 
       render(
@@ -608,7 +702,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query={query}
-              timeseriesResult={timeseriesResultFixture()}
+              timeseriesResult={timeseriesResult}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
@@ -623,6 +717,39 @@ describe('ExploreCharts', () => {
 
       return request;
     }
+
+    it('waits for the dropped data before drawing the chart', async () => {
+      let resolveDroppedData!: () => void;
+      const asyncDelay = new Promise<void>(resolve => {
+        resolveDroppedData = resolve;
+      });
+      renderCharts({
+        asyncDelay,
+        droppedEvents: [OutcomeRowFixture()],
+        timeseriesResult: timeseriesResultFixture({
+          data: {
+            'count(span.duration)': [
+              TimeSeriesFixture({
+                yAxis: 'count(span.duration)',
+                values: [{timestamp: 1729796400000, value: 10}],
+              }),
+            ],
+          },
+        }),
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart values')).not.toBeInTheDocument();
+
+      await act(async () => {
+        resolveDroppedData();
+        await asyncDelay;
+      });
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796400000,10]],[[0,0]]]'
+      );
+    });
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});

@@ -6,6 +6,11 @@ from typing import Annotated, TypedDict, cast
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.models.exploresavedquery import (
+    ExploreSavedQueryChangedReasonType,
+    ExploreSavedQueryDatasetType,
+    QueryResponseType,
+)
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import has_user
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -24,6 +29,32 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 DATASET_SOURCES = dict(DatasetSourcesTypes.as_choices())
+
+
+class DiscoverExploreQueryResponseOptional(TypedDict, total=False):
+    environment: Annotated[
+        list[str], ApiDescription("Names of the environments the query filters by")
+    ]
+    query: Annotated[list[QueryResponseType], ApiDescription("Queries shown in Explore")]
+    statsPeriod: Annotated[str, ApiDescription("Relative time range of the query, such as 14d")]
+    start: Annotated[str, ApiDescription("Start of the absolute time range (ISO 8601)")]
+    end: Annotated[str, ApiDescription("End of the absolute time range (ISO 8601)")]
+    interval: Annotated[str, ApiDescription("Resolution of the time series")]
+
+
+class DiscoverExploreQueryResponse(DiscoverExploreQueryResponseOptional):
+    id: Annotated[str, ApiDescription("ID of the Explore query")]
+    name: Annotated[str, ApiDescription("Name of the Explore query")]
+    projects: Annotated[list[int], ApiDescription("IDs of the projects the query covers")]
+    dataset: Annotated[ExploreSavedQueryDatasetType, ApiDescription("Dataset the query reads")]
+    expired: Annotated[
+        bool, ApiDescription("Whether the query's time range is outside the retention period")
+    ]
+    isPrebuilt: Annotated[bool, ApiDescription("Whether Sentry provides the query")]
+    changedReason: Annotated[
+        ExploreSavedQueryChangedReasonType | None,
+        ApiDescription("Parts of the Discover query dropped by the migration. Null when none were"),
+    ]
 
 
 class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
@@ -56,7 +87,7 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     topEvents: Annotated[int, ApiDescription("Number of top events' time series to show")]
     interval: Annotated[str, ApiDescription("Resolution of the time series")]
     exploreQuery: Annotated[
-        dict[str, object] | None,
+        DiscoverExploreQueryResponse | None,
         ApiDescription("Explore query this saved query was migrated to. Null when there's none"),
     ]
     lastVisited: Annotated[
@@ -292,6 +323,8 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
 
         if attrs.get("explore_query") is not None:
-            data["exploreQuery"] = cast(dict[str, object] | None, attrs.get("explore_query"))
+            data["exploreQuery"] = cast(
+                DiscoverExploreQueryResponse | None, attrs.get("explore_query")
+            )
 
         return data

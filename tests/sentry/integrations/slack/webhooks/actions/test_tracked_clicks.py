@@ -68,6 +68,45 @@ class TrackedClickTest(BaseEventTest):
             user_id=self.user.id,
         )
 
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+    def test_records_click_on_tracked_view_pr_button(
+        self, mock_record_engagement: MagicMock
+    ) -> None:
+        tracking = SlackActionTracking(
+            notification_uuid=self.tracking.notification_uuid,
+            source=NotificationSource.SEER_AUTOFIX_UPDATE,
+        )
+        resp = self.post_webhook_block_kit(
+            action_data=[
+                {
+                    "type": "button",
+                    "action_id": encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR,
+                        organization_id=self.organization.id,
+                        project_id=self.project.id,
+                        suffix="123",
+                        tracking=tracking,
+                    ),
+                    "text": {"type": "plain_text", "text": "View PR (#123)"},
+                    "url": "https://github.com/org/repo/pull/123",
+                }
+            ]
+        )
+        assert resp.status_code == 200, resp.content
+
+        mock_record_engagement.assert_called_once_with(
+            NotificationTrackingContext(
+                source=NotificationSource.SEER_AUTOFIX_UPDATE,
+                provider="slack",
+                category=NotificationCategory.SEER,
+                notification_uuid=tracking.notification_uuid,
+                organization_id=self.organization.id,
+            ),
+            mechanism=NotificationEngagementMechanism.PROVIDER_CALLBACK,
+            link=SlackAction.SEER_AUTOFIX_VIEW_PR,
+            user_id=self.user.id,
+        )
+
     @override_options(TRACKED_SOURCES)
     def test_ignores_untracked_button(self, mock_record_engagement: MagicMock) -> None:
         self._click(self.action_id)

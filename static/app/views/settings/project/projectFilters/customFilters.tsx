@@ -10,6 +10,7 @@ import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -23,7 +24,6 @@ import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -63,15 +63,22 @@ const MAX_VISIBLE_VALUES = 3;
 const MAX_TOOLTIP_VALUES = 10;
 const VALUE_TOOLTIP_WIDTH = 360;
 
-// Values laid out for a tooltip: one per line, left aligned, since a centered
-// pattern that wraps is hard to read.
+// A value laid out for a tooltip: left aligned, since a centered pattern that
+// wraps is hard to read. It fills the tooltip width so that a long pattern
+// without spaces breaks at the edge instead of running past it.
+function ValueText({value}: {value: string}) {
+  return (
+    <Text monospace size="sm" align="left" display="block">
+      {value}
+    </Text>
+  );
+}
+
 function ValueList({values, total}: {total: number; values: string[]}) {
   return (
-    <Stack align="start" gap="xs">
+    <Stack gap="xs">
       {values.map((value, index) => (
-        <Text key={index} monospace size="sm" align="left">
-          {value}
-        </Text>
+        <ValueText key={index} value={value} />
       ))}
       {total > values.length && (
         <Text size="sm" variant="muted" align="left">
@@ -92,7 +99,7 @@ function ValueTag({value}: {value: string}) {
     <Tag variant="muted">
       <InfoText
         mode="overflowOnly"
-        title={<ValueList values={[value]} total={1} />}
+        title={<ValueText value={value} />}
         maxWidth={VALUE_TOOLTIP_WIDTH}
         monospace
         size="sm"

@@ -6,9 +6,9 @@ The source code is open, but the system is designed for Sentry and is not intend
 
 ## Development in Sentry
 
-The package source lives in [src](./src). Component stories remain in the app.
+The package source lives in [src](./src). Component docs (`.mdx`) sit next to their components and render in the app's Scraps viewer; `.npmignore` and the build config keep them out of the published package.
 
-Move components and their tests into `src` as they become isolated. The [Scraps contribution guide](../../app/components/core/overview/contributing.mdx) covers component contributions and the Figma process for changing design tokens.
+Move components, their tests, and their docs into `src` as they become isolated. The [Scraps contribution guide](../../app/components/core/overview/contributing.mdx) covers component contributions and the Figma process for changing design tokens.
 
 Run package checks from the repository root:
 
