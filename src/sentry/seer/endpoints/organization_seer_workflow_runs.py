@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal, TypedDict
 
 from django.db.models import F, Prefetch, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
+from pydantic import ValidationError
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -26,15 +28,21 @@ from sentry.notebooks.access import has_investigations_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+    SEER_CRON_WORKFLOW_STRATEGIES,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
+    SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
+from sentry.seer.workflows.breached_metrics import MetricBreachTrigger
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.safe import get_path
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowRunCreateSerializer(serializers.Serializer):
@@ -99,10 +107,33 @@ SeerWorkflowExecutionResponse = (
 )
 
 
+class MonitorTriggerResponse(TypedDict):
+    type: Literal["monitor"]
+    detectorId: str
+    environment: str | None
+    eventId: str
+    groupId: str
+    groupShortId: str | None
+    observedAt: datetime
+    occurrenceId: str
+    projectId: str
+
+
+class CronTriggerResponse(TypedDict):
+    # TODO: Include triggeredAt (parsed from trigger_key) once cron strategies such as
+    # AGENTIC_TRIAGE_V2 start creating runs.
+    type: Literal["cron"]
+
+
+# Discriminated by `type`; add new trigger variants to this union.
+TriggerResponse = MonitorTriggerResponse | CronTriggerResponse
+
+
 class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     configId: str
     strategy: str
+    trigger: TriggerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
@@ -185,7 +216,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
           and each failed execution carries its own ``error``.
 
         Missing error details use code ``unknown``. Historical rows without lifecycle
-        tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
+        tracking retain a null status. ``trigger`` describes what started the run, discriminated
+        by ``type``: ``monitor`` (detector, event, occurrence, issue, and project;
+        the detector may have since been deleted) or ``cron`` (scheduled run). It is
+        null for other runs. ``seerRunId`` is the linked Seer UUID or null.
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
         The same investigation can be linked to multiple executions.
@@ -269,6 +303,7 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
         "strategy": getattr(run, "strategy"),
+        "trigger": serialize_trigger(run),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
@@ -286,6 +321,33 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
             "error": serialize_workflow_error(error) if error is not None else None,
         }
     return {**result, "status": status}
+
+
+def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
+    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation."""
+    strategy = getattr(run, "strategy")
+    if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
+        return {"type": "cron"}
+    if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
+        run.extras, "snapshot", "inputs"
+    ):
+        try:
+            inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
+            trigger = MetricBreachTrigger.parse_obj(inputs)
+            return {
+                "type": "monitor",
+                "detectorId": str(trigger.detector_id),
+                "environment": trigger.environment,
+                "eventId": trigger.event_id,
+                "groupId": str(trigger.group_id),
+                "groupShortId": trigger.group_short_id,
+                "observedAt": trigger.observed_at,
+                "occurrenceId": trigger.occurrence_id,
+                "projectId": str(trigger.project_id),
+            }
+        except ValidationError:
+            logger.exception("seer.workflow_run.invalid_trigger", extra={"run_id": run.id})
+    return None
 
 
 def serialize_workflow_execution(

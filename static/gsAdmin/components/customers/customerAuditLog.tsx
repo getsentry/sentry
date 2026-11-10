@@ -2,6 +2,17 @@ import {DateTime} from 'sentry/components/dateTime';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
+const SIMULATE_LLM_USAGE_EVENT = 'Org: Simulate LLM usage';
+
+function auditNote(row: any): React.ReactNode {
+  const data = row.data ?? {};
+  if (row.eventType === SIMULATE_LLM_USAGE_EVENT) {
+    const usage = `Simulated $${Number(data.cost_usd).toFixed(2)} of ${data.feature} usage in project ${data.project_id} (call ${data.litellm_call_id})`;
+    return data.notes ? `${usage}: ${data.notes}` : usage;
+  }
+  return data.notes ?? '—';
+}
+
 type Props = {
   orgSlug: string;
   targetId: string;
@@ -38,7 +49,7 @@ export function CustomerAuditLog({orgSlug, targetId}: Props) {
         <SimpleTable.RowCell key="ticket">
           {row.ticketId ? <a href={row.ticketId}>Ticket</a> : '—'}
         </SimpleTable.RowCell>,
-        <SimpleTable.RowCell key="notes">{row.data?.notes ?? '—'}</SimpleTable.RowCell>,
+        <SimpleTable.RowCell key="notes">{auditNote(row)}</SimpleTable.RowCell>,
       ]}
     />
   );

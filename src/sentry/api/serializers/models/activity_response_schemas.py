@@ -52,11 +52,7 @@ _SEER_PULL_REQUESTS: dict[str, Any] = {
                 "type": "object",
                 "description": "The pull request",
                 "properties": {
-                    "pr_number": {
-                        # The action log model's dict[str, str | ...] turns it into a string.
-                        "anyOf": [{"type": "integer"}, {"type": "string"}],
-                        "description": "Number of the pull request",
-                    },
+                    "pr_number": {"type": "integer", "description": "Number of the pull request"},
                     "pr_url": {"type": "string", "description": "URL of the pull request"},
                 },
             },
@@ -140,9 +136,6 @@ _DESCRIPTIONS = {
     "current_release_version": "Latest release when the issue was resolved, for semver releases",
     "age": "Hours without events after which the issue resolved",
     "commit": "The commit that resolves the issue",
-    "fingerprints": "Fingerprints that were unmerged",
-    "destination_id": "ID of the issue the events moved to",
-    "source_id": "ID of the issue the events moved from",
     "eventCount": "Number of events reprocessed",
     "oldGroupId": "ID of the issue the events were reprocessed from",
     "newGroupId": "ID of the issue the events were reprocessed into",
@@ -382,11 +375,7 @@ def group_activity_schema() -> dict[str, Any]:
     branches = []
     for name, (activity_type, action) in sorted(_variant_actions().items()):
         data: dict[str, Any]
-        if name in ("unmerge_source", "unmerge_destination") and activity_type is not None:
-            # GroupActionLogEntrySerializer returns the stored IDs; only ActivitySerializer
-            # swaps them for the serialized issue.
-            data = {"anyOf": [overrides[name], _model_data_schema(activity_type, action)]}
-        elif name in overrides:
+        if name in overrides:
             data = overrides[name]
         elif activity_type is None:
             data = to_response_schema(

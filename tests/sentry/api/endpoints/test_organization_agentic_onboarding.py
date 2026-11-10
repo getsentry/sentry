@@ -27,6 +27,26 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         self.login_as(self.user)
         self.service = OnboardingProgressService()
 
+    def test_initialize_without_reporting_code(self) -> None:
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-run-index",
+            args=[self.organization.slug],
+        )
+        payload = {"clientRunId": str(uuid4()), "origin": "onboarding"}
+        response = self.client.post(path, payload)
+        assert response.status_code == 201, response.content
+        assert "onboardingCode" not in response.data
+        run = self.service.get(
+            run_id=response.data["runId"],
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+        )
+        assert run is not None
+        assert run.token_hash is None
+        resumed = self.client.post(path, payload)
+        assert resumed.status_code == 201
+        assert resumed.data["runId"] == run.run_id
+
     def test_run_origin(self) -> None:
         index_path = reverse(
             "sentry-api-0-organization-agentic-onboarding-run-index",
@@ -215,6 +235,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,
@@ -238,6 +259,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
+        assert token == "abcdefghij"
         expired = replace(run, expires_at=timezone.now() - timedelta(seconds=1))
         self.service.redis.set(
             self.service._state_key(run.run_id),
@@ -423,6 +445,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             onboarding_code="abcdefghij",
             origin=RunOrigin.ONBOARDING,
         )
+        assert token == "abcdefghij"
         self.service.update(
             token=token,
             user_id=self.user.id,
@@ -469,7 +492,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             "connection_method": None,
         }
 
-    def _assert_connect_stage_records_counter(self, stage_name: str) -> None:
+    def _assert_connect_stage_records_method(self, stage_name: str, expected_method: str) -> None:
         _, token = self.service.create_or_resume(
             user_id=self.user.id,
             organization_id=self.organization.id,
@@ -494,36 +517,53 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                     "runToken": token,
                     "stage": stage_name,
                     "status": "completed",
+                    "extra": {"method": expected_method},
                 },
             )
 
         assert response.status_code == 200, response.content
         assert response.data["stages"][0]["status"] == "completed"
+        assert response.data["stages"][0]["extra"] == {"method": expected_method}
         mock_metrics.incr.assert_called_once_with(
             "agentic_onboarding.connect_stage_input",
             tags={"input": stage_name},
         )
 
-    def test_connect_agent_alias_increments_counter(self) -> None:
-        self._assert_connect_stage_records_counter("connect_agent")
+    def test_connect_agent_alias_records_cli_method(self) -> None:
+        self._assert_connect_stage_records_method("connect_agent", "cli")
 
-    def test_connect_mcp_increments_counter(self) -> None:
-        self._assert_connect_stage_records_counter("connect_mcp")
+    def test_connect_mcp_records_mcp_method(self) -> None:
+        self._assert_connect_stage_records_method("connect_mcp", "mcp")
 
-    def test_connect_stage_rejects_extra(self) -> None:
+    def test_connect_stage_rejects_unknown_method(self) -> None:
         _, token = self.service.create_or_resume(
             user_id=self.user.id,
             organization_id=self.organization.id,
             client_run_id=str(uuid4()),
             onboarding_code="abcdefghij",
         )
-        response = self._post_status(token, stage="connect_mcp", extra={"method": "cli"})
+        assert token is not None
+        response = self._post_status(token, stage="connect_mcp", extra={"method": "browser"})
+
+        assert response.status_code == 400
+
+    def test_connect_stage_rejects_unknown_extra_fields(self) -> None:
+        _, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        assert token is not None
+        response = self._post_status(
+            token, stage="connect_mcp", extra={"method": "cli", "unknown": True}
+        )
 
         assert response.status_code == 400
 
     def test_reader_handles_stored_connect_extra(self) -> None:
-        # Seed a run that already has ConnectExtra stored (as will exist once PR B ships).
-        # Proves that PR A's reader doesn't turn such runs into 404s.
+        # Seed a run with ConnectExtra directly in Redis to verify deserialization
+        # works independently of what the endpoint currently accepts on write.
         run, token = self.service.create_or_resume(
             user_id=self.user.id,
             organization_id=self.organization.id,
