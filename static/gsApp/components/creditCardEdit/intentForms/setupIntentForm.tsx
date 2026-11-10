@@ -9,10 +9,10 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
-import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import type {SetupIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
-export function SetupIntentForm(props: IntentFormProps) {
+export function SetupIntentForm(props: SetupIntentFormProps) {
   const {
     organization,
     location: ftcConsentLocation,
