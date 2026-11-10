@@ -1,5 +1,6 @@
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {Text} from '@sentry/scraps/text';
 
 import {StructuredData} from 'sentry/components/structuredEventData';
@@ -39,7 +40,19 @@ function getOutputLabel(output: ToolOutputData): string {
   }
 }
 
-function ToolOutputContent({output}: {output: ToolOutputData}) {
+interface ToolOutputProps {
+  value: unknown;
+  /** Renders the output's strings, both text output and strings within JSON. */
+  renderString?: (value: string) => React.ReactNode;
+}
+
+function ToolOutputContent({
+  output,
+  renderString,
+}: {
+  output: ToolOutputData;
+  renderString?: ToolOutputProps['renderString'];
+}) {
   switch (output.kind) {
     case 'array':
     case 'object':
@@ -47,7 +60,7 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
         <Text as="div" size="sm" monospace>
           <StructuredData
             value={output.value}
-            config={STRUCTURED_DATA_CONFIG}
+            config={{...STRUCTURED_DATA_CONFIG, renderString}}
             maxDefaultDepth={MAX_DEFAULT_DEPTH}
             autoCollapseLimit={AUTO_COLLAPSE_LIMIT}
             initialExpandedPaths={[
@@ -66,7 +79,7 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
       }
       return (
         <Text as="div" wrap="pre-wrap" wordBreak="break-word">
-          {output.value}
+          {renderString?.(output.value) ?? output.value}
         </Text>
       );
     case 'number':
@@ -81,16 +94,17 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
   }
 }
 
-export function ToolOutput({value}: {value: unknown}) {
+export function ToolOutput({value, renderString}: ToolOutputProps) {
   const output = parseToolOutput(value);
   const label = getOutputLabel(output);
   if (output.kind === 'missing') {
     return <Text variant="muted">{label}</Text>;
   }
-  const copyText =
+  const copyText = stripAnnotations(
     typeof output.value === 'string'
       ? output.value
-      : JSON.stringify(output.value, null, 2);
+      : JSON.stringify(output.value, null, 2)
+  );
 
   return (
     <Stack gap="sm" minWidth="0">
@@ -112,7 +126,7 @@ export function ToolOutput({value}: {value: unknown}) {
         minWidth="0"
         overflow="auto"
       >
-        <ToolOutputContent output={output} />
+        <ToolOutputContent output={output} renderString={renderString} />
       </Container>
     </Stack>
   );

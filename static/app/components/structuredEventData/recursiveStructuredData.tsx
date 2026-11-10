@@ -16,7 +16,7 @@ type Config = {
   renderBoolean?: (value: unknown) => React.ReactNode;
   renderNull?: (value: unknown) => React.ReactNode;
   renderObjectKeys?: (value: string) => string;
-  renderString?: (value: string) => string;
+  renderString?: (value: string) => React.ReactNode;
 };
 
 interface Props {
@@ -129,7 +129,7 @@ export function RecursiveStructuredData({
               withOnlyFormattedText={withOnlyFormattedText}
             />
             {'"'}
-            <LinkHint meta={meta} value={stringValue} />
+            <LinkHint meta={meta} value={value} />
           </ValueString>
         </Fragment>
       );
