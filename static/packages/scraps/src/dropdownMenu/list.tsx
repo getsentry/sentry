@@ -13,16 +13,14 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import type {AriaMenuOptions} from '@react-aria/menu';
-import {useMenu, useMenuTrigger} from '@react-aria/menu';
+import {useMenu} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
-import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Key, Node} from '@react-types/shared';
 
-import {Container, Stack} from '@sentry/scraps/layout';
-import {useResolveLinkHref} from '@sentry/scraps/link/linkBehaviorContext';
+import {Stack} from '@sentry/scraps/layout';
 import {
   calculateMenuMinHeight,
   Header,
@@ -36,9 +34,7 @@ import {
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-import {useOverlay} from '@sentry/scraps/useOverlay';
 import {
-  DEFAULT_VIRTUALIZE_THRESHOLD,
   estimateRowHeight,
   flattenSections,
   useVirtualCollection,
@@ -56,15 +52,9 @@ import type {
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSearch} from './search';
 import {DropdownMenuSection} from './section';
+import {DropdownSubmenu} from './submenu';
 import {useSafetyTriangle} from './useSafetyTriangle';
-import {
-  countMenuItems,
-  filterMenuItems,
-  getDisabledKeys,
-  getMenuItemKey,
-  isMenuSection,
-  removeHiddenItemsAndSetHref,
-} from './utils';
+import {getMenuItemKey} from './utils';
 
 export interface DropdownMenuListProps
   extends
@@ -384,7 +374,7 @@ function DropdownMenuRows({
   );
 }
 
-function DropdownMenuList({
+export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
@@ -662,185 +652,6 @@ function DropdownMenuList({
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
-  );
-}
-
-export type DropdownMenuContentProps = Omit<
-  DropdownMenuListProps,
-  'searchState' | 'isVirtualized'
-> & {
-  items: MenuItemProps[];
-  search?: DropdownMenuSearchOptions;
-};
-
-export function DropdownMenuContent({
-  items,
-  disabledKeys,
-  size,
-  search,
-  virtualizeThreshold,
-  ...props
-}: DropdownMenuContentProps) {
-  // Updated in a transition by the search field, see `DropdownMenuSearch`.
-  const [searchValue, setSearchValue] = useState('');
-  // A submenu renders inside its parent menu's context, so it inherits the
-  // parent's threshold unless it sets its own.
-  const {virtualizeThreshold: inheritedVirtualizeThreshold} =
-    useContext(DropdownMenuContext);
-  const resolveHref = useResolveLinkHref();
-  const activeItems = useMemo(
-    () => removeHiddenItemsAndSetHref(items, resolveHref),
-    [items, resolveHref]
-  );
-  const visibleItems = useMemo(
-    () =>
-      search && searchValue ? filterMenuItems(activeItems, searchValue) : activeItems,
-    [activeItems, search, searchValue]
-  );
-  // Counts the items before a search filters them, so a menu keeps
-  // virtualizing while it is searched: the matches of a long menu can still be
-  // too many to render at once.
-  const activeItemCount = useMemo(() => countMenuItems(activeItems), [activeItems]);
-  const resolvedVirtualizeThreshold = virtualizeThreshold ?? inheritedVirtualizeThreshold;
-  const isVirtualized =
-    activeItemCount > (resolvedVirtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
-  const defaultDisabledKeys = useMemo(
-    () => getDisabledKeys(visibleItems),
-    [visibleItems]
-  );
-  return (
-    <DropdownMenuList
-      {...props}
-      size={size}
-      disabledKeys={disabledKeys ?? defaultDisabledKeys}
-      items={visibleItems}
-      isVirtualized={isVirtualized}
-      virtualizeThreshold={resolvedVirtualizeThreshold}
-      searchState={
-        search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
-      }
-    >
-      {(item: MenuItemProps) => {
-        const {onAction: _onAction, ...itemProps} = item;
-
-        if (isMenuSection(item)) {
-          return (
-            <Section key={item.key} title={item.label} items={item.children}>
-              {sectionItem => {
-                const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
-
-                return (
-                  <Item size={size} {...sectionItemProps} key={sectionItem.key}>
-                    {sectionItem.label}
-                  </Item>
-                );
-              }}
-            </Section>
-          );
-        }
-        return (
-          <Item size={size} {...itemProps} key={item.key}>
-            {item.label}
-          </Item>
-        );
-      }}
-    </DropdownMenuList>
-  );
-}
-
-interface DropdownSubmenuProps extends Pick<
-  DropdownMenuListProps,
-  'closeOnSelect' | 'disableTextSelection' | 'onClose' | 'size'
-> {
-  items: MenuItemProps[];
-  node: Node<MenuItemProps>;
-  state: TreeState<MenuItemProps>;
-  isVirtualized?: boolean;
-  rowProps?: VirtualRowProps;
-}
-
-function DropdownSubmenu({
-  items,
-  node,
-  isVirtualized,
-  rowProps,
-  state,
-  closeOnSelect,
-  disableTextSelection,
-  onClose,
-  size,
-}: DropdownSubmenuProps) {
-  const {rootOverlayState} = useContext(DropdownMenuContext);
-  const submenu = node.value?.submenu;
-  const options = typeof submenu === 'object' ? submenu : {};
-  const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
-  const {
-    isOpen,
-    state: overlayState,
-    triggerRef,
-    triggerProps: {ref: setTriggerElement},
-    overlayProps,
-    overlayRef,
-  } = useOverlay({
-    isOpen: state.selectionManager.isSelected(node.key),
-    onClose: rootOverlayState?.close,
-    disableTrigger: isDisabled,
-    position: options.position ?? 'right-start',
-    offset: -4,
-    preventOverflowOptions: {
-      boundary: document.body,
-      crossAxis: true,
-    },
-  });
-  const {menuTriggerProps, menuProps} = useMenuTrigger(
-    {type: 'menu', isDisabled},
-    {...overlayState, focusStrategy: 'first'},
-    triggerRef
-  );
-  const isFocused = state.selectionManager.focusedKey === node.key;
-  return (
-    <Container as="li" display="contents" role="presentation">
-      <DropdownMenuItem
-        menuItemRef={useCallback(
-          element => {
-            setTriggerElement(element);
-            if (element && !isOpen && isFocused && rootOverlayState?.isOpen) {
-              element.focus();
-            }
-          },
-          [isOpen, isFocused, rootOverlayState, setTriggerElement]
-        )}
-        id={menuTriggerProps.id}
-        aria-haspopup={menuTriggerProps['aria-haspopup']}
-        aria-expanded={isOpen}
-        aria-controls={menuTriggerProps['aria-controls']}
-        submenuRef={isOpen ? overlayRef : undefined}
-        renderAs="div"
-        node={node}
-        isVirtualized={isVirtualized}
-        rowProps={rowProps}
-        state={state}
-        closeOnSelect={false}
-      />
-      {isOpen && (
-        <DropdownMenuContent
-          onClose={onClose}
-          closeOnSelect={closeOnSelect}
-          disableTextSelection={disableTextSelection}
-          menuTitle={options.title}
-          emptyMessage={options.emptyMessage}
-          maxHeight={options.maxHeight}
-          maxWidth={options.maxWidth}
-          search={options.search}
-          size={size}
-          {...menuProps}
-          items={items}
-          autoFocus={false}
-          overlayState={overlayState}
-          overlayPositionProps={overlayProps}
-        />
-      )}
-    </Container>
   );
 }
 
