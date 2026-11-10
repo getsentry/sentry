@@ -1804,7 +1804,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1863,7 +1863,7 @@ describe('SeerExplorerContent', () => {
         .mockReturnValue({...defaultHookReturn, sendMessage});
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1899,7 +1899,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1932,7 +1932,7 @@ describe('SeerExplorerContent', () => {
         ProjectFixture({id: '2', slug: 'second', isMember: false}),
       ]);
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1953,7 +1953,7 @@ describe('SeerExplorerContent', () => {
 
     it('leaves out the screen capture where the page has structured context', async () => {
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -1978,7 +1978,7 @@ describe('SeerExplorerContent', () => {
       // A pinned project that isn't loaded, e.g. one from a stale URL.
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [99]}));
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2008,7 +2008,7 @@ describe('SeerExplorerContent', () => {
         })
       );
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
@@ -2038,7 +2038,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         statusCode: 400,
         body: {source: 'Investigation context is too large.'},
@@ -2063,7 +2063,7 @@ describe('SeerExplorerContent', () => {
         .spyOn(useSeerExplorerModule, 'useSeerExplorer')
         .mockReturnValue({...defaultHookReturn, isPolling: true, sendMessage});
       const createMock = MockApiClient.addMockResponse({
-        url: `/organizations/${investigationsOrganization.slug}/notebooks/`,
+        url: `/organizations/${investigationsOrganization.slug}/investigations/`,
         method: 'POST',
         body: {id: '4567'},
       });
