@@ -26,6 +26,7 @@ const seerFeatures = ['seer-explorer'];
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
@@ -534,6 +535,37 @@ describe('SeerExplorerSidebarLayout', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
     );
+    expect(splitOrientation()).toBeUndefined();
+  });
+
+  it('keeps the sidebar open across a reload', async () => {
+    mockWideScreen(true);
+    const {unmount} = renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    unmount();
+
+    renderSidebar(orgWithSidebar);
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('horizontal');
+  });
+
+  it('keeps the sidebar closed across a reload after closing it', async () => {
+    mockWideScreen(true);
+    const {unmount} = renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+    await waitFor(() =>
+      expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
+    );
+    unmount();
+
+    renderSidebar(orgWithSidebar);
+
+    expect(await screen.findByText('main app content')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument();
     expect(splitOrientation()).toBeUndefined();
   });
 

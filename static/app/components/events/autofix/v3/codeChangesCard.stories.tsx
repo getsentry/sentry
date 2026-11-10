@@ -152,7 +152,7 @@ function makeAutofix(
     isPolling: false,
     isProcessing: false,
     // Async no-ops — none of these are invoked by the static examples below.
-    startStep: () => Promise.resolve(0),
+    startStep: () => Promise.resolve({runId: 0, isSingleRun: false}),
     createPR: () => Promise.resolve(),
     reset: noop,
     triggerCodingAgentHandoff: () => Promise.resolve(),

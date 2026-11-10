@@ -19,7 +19,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -39,7 +39,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
             )
         )
 
-    @with_feature("organizations:seer-credit-checks")
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -56,6 +56,19 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         response = self.get_success_response(self.organization.slug, operation="autofix_solution")
 
         assert response.data == {"hasEnoughCredits": True}
+
+    @with_feature("organizations:seer-credit-checks")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_get_returns_has_enough_credits_when_not_token_billed(
+        self, mock_check_seer_credits: MagicMock
+    ) -> None:
+        response = self.get_success_response(self.organization.slug, operation="autofix_solution")
+
+        assert response.data == {"hasEnoughCredits": True}
+        mock_check_seer_credits.assert_not_called()
 
     def test_get_returns_400_when_operation_missing(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)

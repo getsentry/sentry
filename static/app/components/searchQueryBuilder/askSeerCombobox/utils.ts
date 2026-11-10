@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
@@ -101,7 +102,12 @@ export function getExpandedProjectIds(
   returnedProjectIds: number[] | null | undefined,
   selectedProjectIds: number[]
 ): number[] | undefined {
-  if (!returnedProjectIds || returnedProjectIds.length === 0) {
+  // The API resolves -1 to every accessible project, so Seer can't broaden it.
+  if (
+    !returnedProjectIds ||
+    returnedProjectIds.length === 0 ||
+    selectedProjectIds.includes(ALL_ACCESS_PROJECTS)
+  ) {
     return undefined;
   }
   const selectedSet = new Set(selectedProjectIds);

@@ -17,7 +17,9 @@ import {
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation} from 'getsentry/types';
-import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';
+import BillingInformationView, {
+  BillingInformation,
+} from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts
 // TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
@@ -61,6 +63,20 @@ describe('Subscription > BillingInformation', () => {
       method: 'POST',
     });
     organization.features = [];
+  });
+
+  it('renders an error with retry when the customer response is empty', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(<BillingInformationView />, {organization});
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 
   it('renders an error for non-billing roles', async () => {

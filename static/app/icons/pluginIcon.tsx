@@ -18,6 +18,7 @@ import heroku from 'sentry-logos/logo-heroku.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
+import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
@@ -71,6 +72,7 @@ const PLUGIN_ICONS = {
   jira,
   jira_server: jiraserver,
   jumpcloud,
+  linear,
   msteams,
   opsgenie,
   pagerduty,

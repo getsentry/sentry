@@ -61,6 +61,7 @@ import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
 import {SendWeeklyEmailAction} from 'admin/components/sendWeeklyEmailAction';
 import {SetContractPackageAction} from 'admin/components/setContractPackageAction';
+import {triggerSimulateLlmUsageModal} from 'admin/components/simulateLlmUsageAction';
 import {SponsorshipAction} from 'admin/components/sponsorshipAction';
 import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
@@ -911,6 +912,18 @@ export function CustomerDetails() {
                 subscription,
               });
             },
+          },
+          {
+            key: 'simulateLlmUsage',
+            name: 'Simulate LLM usage',
+            help: 'Record LLM usage without calling an LLM. test_paid usage is billed, so refund it afterwards.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerSimulateLlmUsageModal({
+                orgId,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'deleteBillingMetricHistory',
