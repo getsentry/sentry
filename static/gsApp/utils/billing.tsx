@@ -673,7 +673,9 @@ export function getProductIcon(product: AddOnCategory) {
  * Returns true if the subscription can use pay-as-you-go.
  */
 export function supportsPayg(subscription: Subscription) {
-  return subscription.planDetails.allowOnDemand && subscription.supportsOnDemand;
+  return Boolean(
+    subscription.planDetails?.allowOnDemand && subscription.supportsOnDemand
+  );
 }
 
 /**
@@ -730,6 +732,12 @@ export function shouldShowBillingInformation(
   organization: Organization
 ): boolean {
   if (!hasBillingAccess(organization) || subscription.isSelfServePartner) {
+    return false;
+  }
+
+  // Some subscription payloads (e.g. for members disabled by the member limit)
+  // omit planDetails, and eligibility cannot be determined without it.
+  if (!subscription.planDetails) {
     return false;
   }
 
