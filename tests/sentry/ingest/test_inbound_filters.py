@@ -18,8 +18,9 @@ from sentry.ingest.inbound_filters import (
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
     get_global_generic_filters,
+    transaction_name_pattern_error,
 )
-from sentry.models.custominboundfilter import LegacyFilter
+from sentry.models.custominboundfilter import ConditionOperator, LegacyFilter
 from sentry.models.project import Project
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -1080,3 +1081,19 @@ def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(
         ],
     }
     assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])
+
+
+@pytest.mark.parametrize(
+    ("operator", "value", "error"),
+    [
+        ("does_not_contain", "/", None),
+        ("does_not_start_with", "/{a,b}[", None),
+        ("contains", "/", "This pattern matches every transaction. Make it more specific."),
+    ],
+)
+def test_transaction_name_pattern_error_with_negated_operators(
+    operator: str, value: str, error: str | None
+) -> None:
+    # A negated value is escaped like a literal one, and a negation of a value that
+    # matches every name drops nothing.
+    assert transaction_name_pattern_error(ConditionOperator(operator), value) == error

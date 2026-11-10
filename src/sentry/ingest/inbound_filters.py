@@ -10,6 +10,7 @@ from rest_framework import serializers
 
 from sentry.ingest import legacy_filter_lists
 from sentry.ingest.legacy_filter_lists import FilterTypes as FilterTypes
+from sentry.ingest.relay_glob import MAX_GLOB_COMPLEXITY, InvalidGlobPattern, parse_glob
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
     IP_OPERATORS,
@@ -776,6 +777,41 @@ def get_supported_operators(condition_type: ConditionType) -> list[ConditionOper
     matchers = [spec] if isinstance(spec, _ConditionMatcher) else list(spec.values())
     operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
     return [operator for operator in ConditionOperator if operator in operators]
+
+
+TRANSACTION_NAME_MATCHES_EVERYTHING = (
+    "This pattern matches every transaction. Make it more specific."
+)
+
+
+def transaction_name_pattern_error(operator: ConditionOperator | None, value: str) -> str | None:
+    """
+    Why a `transaction_name` condition may not compare the name to `value` with
+    `operator`, or None if it may: Relay cannot parse the pattern, the pattern is too
+    complex, or it matches nearly every name. Literal operators escape their values, so
+    only a match-everything value, e.g. an empty one, fails for them. A negated operator
+    with such a value matches no name, which drops nothing, so it is allowed.
+    """
+    negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
+    positive = negated or operator
+    if positive is None or positive is ConditionOperator.GLOB:
+        pattern = value
+    else:
+        pattern = _text_glob(positive, value)
+
+    try:
+        shape = parse_glob(pattern)
+    except InvalidGlobPattern as e:
+        return f"{value} is not a valid pattern. {e}"
+
+    if shape.complexity > MAX_GLOB_COMPLEXITY:
+        return (
+            f"{value} has too many `{{}}` alternatives. Their counts multiplied together can "
+            f"be at most {MAX_GLOB_COMPLEXITY}."
+        )
+    if not shape.specific and negated is None:
+        return TRANSACTION_NAME_MATCHES_EVERYTHING
+    return None
 
 
 @dataclass(frozen=True)
