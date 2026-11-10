@@ -25,6 +25,7 @@ const PROVIDER_POPULARITY: Record<string, number> = {
   rippling: 6,
   auth0: 7,
   jumpcloud: 8,
+  oidc: 9,
 };
 
 type Props = {
