@@ -628,9 +628,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.set_enabled(enabled)
 
                 if rename:
-                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
-                    extras.name = serializer.validated_data["name"]
-                    update.set_extras(extras)
+                    update.set_name(serializer.validated_data["name"])
 
                 if project_ids is not None:
                     # Narrowing an all-projects config drops future projects the caller may
