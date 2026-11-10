@@ -488,7 +488,9 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             data={"upsert": False, **monitor.get_audit_log_data()},
         )
 
-        assert get_detector_for_monitor(monitor) is not None
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert detector.created_by_id == self.user.id
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_monitors
 

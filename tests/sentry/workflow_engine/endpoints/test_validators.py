@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
@@ -13,8 +14,10 @@ from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupTypeRegistry
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataSourceValidator,
@@ -190,6 +193,28 @@ class DetectorValidatorTest(BaseValidatorTest):
             },
             "config": {"detection_type": AlertRuleDetectionType.STATIC.value},
         }
+
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
+    def test_create_with_org_auth_token(self, mock_audit: mock.MagicMock) -> None:
+        with assume_test_silo_mode_of(OrgAuthToken):
+            token = self.create_org_auth_token(
+                name="ci token",
+                token_hashed="abc123",
+                organization_id=self.project.organization_id,
+                scope_list=["org:ci"],
+            )
+        context = {
+            **self.context,
+            "request": self.make_request(auth=AuthenticatedToken.from_token(token)),
+        }
+        validator = MockDetectorValidator(data=self.valid_data, context=context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector = Detector.objects.get(id=detector.id)
+        assert detector.created_by_id is None
+        assert detector.created_by_service_account_id is None
+        assert detector.created_by_org_auth_token_id == token.id
 
     # TODO - Refactor into multiple tests - basically where there are comment blocks
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")

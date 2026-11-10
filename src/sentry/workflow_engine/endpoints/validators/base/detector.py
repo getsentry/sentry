@@ -8,8 +8,9 @@ from rest_framework import serializers
 
 from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.auth.principal import acting_user_id, has_user
+from sentry.auth.principal import has_user
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.utils.audit import create_audit_entry
@@ -343,7 +344,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
-                created_by_id=acting_user_id(request.user),
+                **get_creator_reference(request),
             )
 
             try:

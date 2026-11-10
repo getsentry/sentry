@@ -16,6 +16,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import audit_log, quotas
 from sentry.api.fields.actor import OwnerActorField
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
@@ -391,6 +392,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             downtime_threshold=validated_data["downtime_threshold"],
             assertion=validated_data.get("assertion", None),
             response_capture_enabled=validated_data.get("response_capture_enabled", True),
+            creator=get_creator_reference(self.context["request"]),
             **method_headers_body,
         )
 
