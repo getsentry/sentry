@@ -27,7 +27,10 @@ SET_COMPRESSION = re.compile(
 # Table storage parameters are set with RunSQL and can't be expressed on
 # models, so the squashed state never has them. Only ignore the ones we've opted
 # into, so any new storage parameter still shows up as drift.
-TABLE_STORAGE_PARAMS = re.compile(r"^\)\nWITH \(([^;]*)\);$", re.M)
+TABLE_STORAGE_PARAMS = re.compile(
+    r"^(CREATE TABLE (\S+) \(\n(?:[ \t].*\n)*)\)\nWITH \(([^;]*)\);$",
+    re.M,
+)
 IGNORED_TABLE_STORAGE_PARAMS = frozenset(
     ("autovacuum_analyze_scale_factor", "autovacuum_analyze_threshold")
 )
@@ -42,11 +45,18 @@ def _remove_set_compression(s: str) -> str:
 
 
 def _table_storage_params_replacement(m: re.Match[str]) -> str:
-    names = {param.split("=", 1)[0] for param in m[1].split(", ")}
-    if names <= IGNORED_TABLE_STORAGE_PARAMS:
-        return ");"
-    else:
-        return m[0]
+    create_table, table, params = m[1], m[2], m[3]
+    # norm() only ends a CREATE TABLE block on a `);` line, so always close it
+    # and report the remaining params as their own statement.
+    ret = f"{create_table});"
+    kept = [
+        param
+        for param in params.split(", ")
+        if param.split("=", 1)[0] not in IGNORED_TABLE_STORAGE_PARAMS
+    ]
+    if kept:
+        ret += f"\n\nALTER TABLE {table} SET ({', '.join(kept)});"
+    return ret
 
 
 def _remove_table_storage_params(s: str) -> str:
