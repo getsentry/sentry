@@ -17,6 +17,10 @@ if TYPE_CHECKING:
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
+# Let API clients like the CLI and MCP tell billing 402s apart without parsing detail text.
+SEER_OUT_OF_CREDITS_CODE = "seer_out_of_credits"
+SEER_OUT_OF_QUOTA_CODE = "seer_out_of_quota"
+
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
     scope_map = {

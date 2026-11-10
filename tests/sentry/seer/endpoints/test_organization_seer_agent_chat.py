@@ -517,7 +517,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 402
         assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer."
+            "detail": "Your organization does not have enough credits left for you to message Seer.",
+            "code": "seer_out_of_credits",
         }
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
@@ -959,7 +960,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 402
         assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer."
+            "detail": "Your organization does not have enough credits left for you to message Seer.",
+            "code": "seer_out_of_credits",
         }
         mock_client_class.assert_not_called()
 
@@ -1000,7 +1002,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 402
         assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer."
+            "detail": "Your organization does not have enough credits left for you to message Seer.",
+            "code": "seer_out_of_credits",
         }
         mock_client_class.assert_not_called()
 
