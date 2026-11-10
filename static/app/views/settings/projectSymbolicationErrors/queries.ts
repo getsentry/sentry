@@ -205,32 +205,6 @@ export function causeTimeseriesOptions({organization, project}: ProjectQueryPara
   };
 }
 
-/** Events per day with at least one symbolication failure. */
-export function failedEventsTimeseriesOptions({
-  organization,
-  project,
-}: ProjectQueryParams) {
-  return {
-    ...apiOptions.as<EventsStats>()(
-      '/organizations/$organizationIdOrSlug/events-stats/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          dataset: 'processing_errors',
-          yAxis: 'count_unique(event_id)',
-          query: SYMBOLICATION_ERROR_TYPES_QUERY,
-          statsPeriod: STATS_PERIOD,
-          interval: STATS_INTERVAL,
-          project: project.id,
-          referrer: REFERRER,
-        },
-        staleTime: STALE_TIME,
-      }
-    ),
-    retry: false,
-  };
-}
-
 /** Every error event of the project per day. */
 export function totalEventsTimeseriesOptions({
   organization,

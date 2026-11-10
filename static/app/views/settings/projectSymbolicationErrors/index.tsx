@@ -5,7 +5,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -33,7 +33,6 @@ import {
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -43,7 +42,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 import {FIXES, getSymbolicationErrorInfo, STATS_PERIOD} from './constants';
 import {
   causeTimeseriesOptions,
-  failedEventsTimeseriesOptions,
   failureTrendsOptions,
   issueVolumesOptions,
   issueVolumeTrendsOptions,
@@ -143,34 +141,6 @@ function toCausePlottables(
       alias: t('Other Events'),
       color: totalColor,
       stack: 'all',
-    }),
-  ];
-}
-
-/**
- * The share of events per day without a symbolication failure. A day without
- * events has no value.
- */
-function toSuccessRatePlottables(
-  failed: EventsStats | undefined,
-  total: EventsStats | undefined
-): Plottable[] {
-  if (!failed || !total) {
-    return [];
-  }
-  const failedByDay = new Map(
-    toPoints(failed).map(point => [point.timestamp, point.value])
-  );
-  const values = toPoints(total).map(point => ({
-    timestamp: point.timestamp,
-    value:
-      point.value > 0
-        ? Math.max(0, 1 - (failedByDay.get(point.timestamp) ?? 0) / point.value)
-        : null,
-  }));
-  return [
-    new Line(toTimeSeries('success_rate()', 'percentage', values), {
-      alias: t('Events without failures'),
     }),
   ];
 }
@@ -500,7 +470,6 @@ function SymbolicationErrors() {
   const [cursor] = useQueryState('cursor', parseAsString);
   const timeseries = useQuery(causeTimeseriesOptions({organization, project}));
   const causeColors = useCauseColors(timeseries.data);
-  const failedEvents = useQuery(failedEventsTimeseriesOptions({organization, project}));
   const totalEvents = useQuery(totalEventsTimeseriesOptions({organization, project}));
 
   return (
@@ -512,32 +481,19 @@ function SymbolicationErrors() {
         )}
       />
       <Stack gap="xl">
-        <Grid columns="repeat(2, minmax(0, 1fr))" gap="xl">
-          <ChartWidget
-            title={t('Symbolication failures by cause')}
-            project={project}
-            plottables={toCausePlottables(
-              causeSeries(timeseries.data),
-              causeColors,
-              totalEvents.data,
-              theme.tokens.dataviz.semantic.other
-            )}
-            isPending={timeseries.isPending}
-            isError={timeseries.isError}
-            onRetry={timeseries.refetch}
-          />
-          <ChartWidget
-            title={t('Events without symbolication failures')}
-            project={project}
-            plottables={toSuccessRatePlottables(failedEvents.data, totalEvents.data)}
-            isPending={failedEvents.isPending || totalEvents.isPending}
-            isError={failedEvents.isError || totalEvents.isError}
-            onRetry={() => {
-              failedEvents.refetch();
-              totalEvents.refetch();
-            }}
-          />
-        </Grid>
+        <ChartWidget
+          title={t('Symbolication failures by cause')}
+          project={project}
+          plottables={toCausePlottables(
+            causeSeries(timeseries.data),
+            causeColors,
+            totalEvents.data,
+            theme.tokens.dataviz.semantic.other
+          )}
+          isPending={timeseries.isPending}
+          isError={timeseries.isError}
+          onRetry={timeseries.refetch}
+        />
         <FailuresTable
           project={project}
           cursor={cursor ?? undefined}
