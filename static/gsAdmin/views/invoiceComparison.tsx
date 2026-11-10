@@ -221,12 +221,20 @@ export function InvoiceComparison() {
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
+  // Without a window in the URL (first visit, or a link that only carries
+  // pagination params) query the last 24h so the tables load without waiting
+  // on Run. Frozen at mount so paginating doesn't shift the window.
+  const [defaultWindow] = useState(() => ({
+    start: localInputToUtcIso(hoursAgoLocal(24)),
+    end: localInputToUtcIso(nowLocal()),
+  }));
+  const windowStart = queryStart ?? defaultWindow.start;
+  const windowEnd = queryEnd ?? defaultWindow.end;
+
   const [startInput, setStartInput] = useState(() =>
-    queryStart ? utcIsoToDatetimeLocalValue(queryStart) : hoursAgoLocal(24)
+    utcIsoToDatetimeLocalValue(windowStart)
   );
-  const [endInput, setEndInput] = useState(() =>
-    queryEnd ? utcIsoToDatetimeLocalValue(queryEnd) : nowLocal()
-  );
+  const [endInput, setEndInput] = useState(() => utcIsoToDatetimeLocalValue(windowEnd));
 
   // Keep the date inputs in sync with the URL on back/forward and in-app
   // navigation that changes start/end (e.g. opening a shared link). When the
@@ -242,21 +250,18 @@ export function InvoiceComparison() {
     }
   }, [queryStart, queryEnd]);
 
-  const enabled = Boolean(queryStart && queryEnd && cell);
   const {data, isPending, isError, error, isPlaceholderData} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
-      path: enabled && cell ? {region: cell.name} : skipToken,
+      path: cell ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
-      query: enabled
-        ? {
-            start: queryStart,
-            end: queryEnd,
-            rows_page: rowsPage,
-            unmatched_page: unmatchedPage,
-            rows_page_size: pageSize,
-            unmatched_page_size: pageSize,
-          }
-        : undefined,
+      query: {
+        start: windowStart,
+        end: windowEnd,
+        rows_page: rowsPage,
+        unmatched_page: unmatchedPage,
+        rows_page_size: pageSize,
+        unmatched_page_size: pageSize,
+      },
       staleTime: 0,
     }),
     // Keep the previously-rendered page visible while paginating or
@@ -323,10 +328,17 @@ export function InvoiceComparison() {
   // tests for the contract.
   const rows = data?.rows ?? [];
 
+  // Pin the window being shown into the URL so a refresh or shared link
+  // after paginating doesn't fall back to a fresh default window.
   const setPage = (key: 'rows_page' | 'unmatched_page', page: number) => {
     navigate({
       pathname: location.pathname,
-      query: {...location.query, [key]: String(page)},
+      query: {
+        ...location.query,
+        start: windowStart,
+        end: windowEnd,
+        [key]: String(page),
+      },
     });
   };
 
@@ -338,6 +350,8 @@ export function InvoiceComparison() {
       pathname: location.pathname,
       query: {
         ...location.query,
+        start: windowStart,
+        end: windowEnd,
         page_size: String(size),
         rows_page: '1',
         unmatched_page: '1',
@@ -439,7 +453,7 @@ export function InvoiceComparison() {
         </PanelBody>
       </Panel>
 
-      {enabled && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
+      {cell && isPending && <LoadingIndicator>Comparing…</LoadingIndicator>}
 
       {isError && (
         <Alert.Container>
