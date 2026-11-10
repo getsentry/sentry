@@ -145,11 +145,6 @@ class TestNotebookEvents:
                 {"seerRunId": "123"},
             ),
             (
-                "notebook.mentioned",
-                NotebookMentionedData(summary="Mentioned you", comment_id=123),
-                {"commentId": "123", "blockId": None},
-            ),
-            (
                 "notebook.user_mentioned",
                 NotebookMentionedData(summary="Mentioned you", comment_id=123),
                 {"commentId": "123", "blockId": None},
