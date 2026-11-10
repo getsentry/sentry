@@ -1,6 +1,9 @@
+import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {ClassifierDataset} from './types';
 
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
@@ -14,6 +17,10 @@ export function getClassifierDetailPath(organizationSlug: string, classifierId: 
 
 export function getNewClassifierPath(organizationSlug: string) {
   return `${getClassifiersPath(organizationSlug)}new/`;
+}
+
+export function getDatasetLabel(dataset: ClassifierDataset) {
+  return dataset === 'conversation' ? t('Conversations') : t('Spans');
 }
 
 export function getEnvironmentsFilter(environments: readonly string[]) {
