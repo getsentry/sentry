@@ -19,6 +19,7 @@ const DATA_OFFSET = 0xe100;
 const ANNOTATION_RE = /^\uFDD0([\uE100-\uE17F]*)\uFDD1([^\uFDD0-\uFDD2]*)\uFDD2/;
 // Also matches the marks of an annotation that was cut, like a missing separator.
 const MARKS_RE = /\uFDD0[\uE100-\uE17F]*\uFDD1?|[\uFDD1\uFDD2]/g;
+const STRAY_MARK_RE = /^(?:\uFDD0[\uE100-\uE17F]*\uFDD1?|[\uFDD1\uFDD2])/;
 const ANY_MARK_RE = /[\uFDD0-\uFDD2]/;
 
 export interface AnnotationToken {
@@ -72,25 +73,33 @@ export function truncateAnnotated(text: string, maxLength: number): string {
 
 export function splitAnnotations(text: string): AnnotationSegment[] {
   const segments: AnnotationSegment[] = [];
+  // Plain text between annotations, which can hold the marks of one that was cut.
+  let plain = '';
   let rest = text;
   while (rest) {
     const start = rest.indexOf(OPEN);
     if (start === -1) {
-      segments.push(stripAnnotations(rest));
+      plain += rest;
       break;
     }
-    const match = ANNOTATION_RE.exec(rest.slice(start));
-    if (!match) {
-      // A stray mark, so the rest isn't annotated.
-      segments.push(stripAnnotations(rest));
-      break;
+    plain += rest.slice(0, start);
+    rest = rest.slice(start);
+    const match = ANNOTATION_RE.exec(rest);
+    if (match) {
+      if (plain) {
+        segments.push(stripAnnotations(plain));
+        plain = '';
+      }
+      const [raw, data = '', annotated = ''] = match;
+      segments.push({data: decode(data), text: annotated});
+      rest = rest.slice(raw.length);
+    } else {
+      // Skip the marks of an annotation that was cut, and keep looking after them.
+      rest = rest.slice(STRAY_MARK_RE.exec(rest)?.[0].length ?? OPEN.length);
     }
-    if (start > 0) {
-      segments.push(rest.slice(0, start));
-    }
-    const [raw, data = '', annotated = ''] = match;
-    segments.push({data: decode(data), text: annotated});
-    rest = rest.slice(start + raw.length);
+  }
+  if (plain) {
+    segments.push(stripAnnotations(plain));
   }
   return segments;
 }
@@ -110,16 +119,19 @@ export const annotationExtension: TokenizerAndRendererExtension = {
   name: 'annotation',
   level: 'inline',
   start(src: string): number | undefined {
-    const idx = src.indexOf(OPEN);
+    const idx = src.search(ANY_MARK_RE);
     return idx === -1 ? undefined : idx;
   },
   tokenizer(src: string): Tokens.Generic | undefined {
     const match = ANNOTATION_RE.exec(src);
-    if (!match) {
-      return undefined;
+    if (match) {
+      const [raw, data = '', text = ''] = match;
+      return {type: 'annotation', raw, data: decode(data), text};
     }
-    const [raw, data = '', text = ''] = match;
-    return {type: 'annotation', raw, data: decode(data), text};
+    // The marks of an annotation that was cut, like by a paragraph break, become
+    // an empty annotation, so they don't show up as text.
+    const stray = STRAY_MARK_RE.exec(src);
+    return stray ? {type: 'annotation', raw: stray[0], data: '', text: ''} : undefined;
   },
   // Rendering to HTML keeps just the text.
   renderer(token: Tokens.Generic): string {
