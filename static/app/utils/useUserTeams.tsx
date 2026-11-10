@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -32,7 +33,7 @@ function buildUserTeamsApiOptions(orgSlug: string) {
  * ```
  */
 export function useUserTeams(): UseTeamsResult {
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const storeState = useLegacyStore(TeamStore);
 
   // Wait until the store has loaded to start fetching
