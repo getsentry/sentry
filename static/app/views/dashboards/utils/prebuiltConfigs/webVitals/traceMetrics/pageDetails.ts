@@ -3,7 +3,8 @@ import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 import {
   INTERACTIONS_FIELD,
@@ -140,7 +141,7 @@ export const WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard
       vital: 'lcp',
       id: 'lcp-samples-table',
       title: t('LCP Samples'),
-      extraFields: [SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT],
+      extraFields: [TraceMetricKnownFieldKey.BROWSER_WEB_VITAL_LCP_ELEMENT],
       tableWidths: [-1, -1, 200, -1, -1, -1, -1],
       layout: {y: 6, w: 5, h: 2, x: 0, minH: 2},
     }),

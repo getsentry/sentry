@@ -38,6 +38,7 @@ export enum TraceMetricKnownFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
   BROWSER_NAVIGATION_TYPE = 'browser.navigation.type',
+  BROWSER_WEB_VITAL_LCP_ELEMENT = 'browser.web_vital.lcp.element',
   USER_GEO_SUBREGION = 'user.geo.subregion',
   USER_ID = 'user.id',
   USER_EMAIL = 'user.email',
