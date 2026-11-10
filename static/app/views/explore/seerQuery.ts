@@ -5,16 +5,15 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {
-  AggregateField,
-  WritableAggregateField,
-} from 'sentry/views/explore/queryParams/aggregateField';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import type {AggregateField, WritableAggregateField} from './queryParams/aggregateField';
+import {isGroupBy} from './queryParams/groupBy';
+import {Mode} from './queryParams/mode';
 import {
   type BaseVisualize,
   isVisualize,
-} from 'sentry/views/explore/queryParams/visualize';
+  serializeVisualizes,
+} from './queryParams/visualize';
 
 type SeerVisualization = AskSeerSearchQuery['visualizations'][number];
 
@@ -123,9 +122,9 @@ export function getSeerWritableAggregateFields({
   visualizes: readonly BaseVisualize[];
   fallbackVisualizes?: readonly BaseVisualize[];
 }): WritableAggregateField[] {
-  const existingVisualizes = currentAggregateFields
-    .filter(isVisualize)
-    .map(visualize => visualize.serialize());
+  const existingVisualizes = serializeVisualizes(
+    currentAggregateFields.filter(isVisualize)
+  );
   const visualizesToUse = visualizes.length
     ? visualizes
     : existingVisualizes.length

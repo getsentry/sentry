@@ -1,6 +1,6 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -12,7 +12,8 @@ import {
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
 } from 'sentry/utils/discover/types';
-import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
+
+import {ResultsChartContainer} from './resultsChart';
 
 describe('Discover > ResultsChart', () => {
   const features = ['discover-basic'];
@@ -185,7 +186,7 @@ describe('Discover > ResultsChart', () => {
         ],
         body: {
           meta: {dataset: 'errors', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture({category: 'error'})],
+          droppedEvents: [OutcomeRowFixture({category: 'error'})],
           acceptedEvents: [],
         },
       });
@@ -243,7 +244,7 @@ describe('Discover > ResultsChart', () => {
       renderChart(DiscoverDatasets.ERRORS);
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
-      await userEvent.click(screen.getByRole('option', {name: 'Dropped Data'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Dropped Errors'}));
 
       expect(screen.getByLabelText('Chart layers')).toBeInTheDocument();
     });

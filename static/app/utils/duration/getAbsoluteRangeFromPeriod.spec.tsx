@@ -1,4 +1,4 @@
-import {getAbsoluteRangeFromPeriod} from 'sentry/utils/duration/getAbsoluteRangeFromPeriod';
+import {getAbsoluteRangeFromPeriod} from './getAbsoluteRangeFromPeriod';
 
 describe('getAbsoluteRangeFromPeriod', () => {
   const now = new Date('2026-09-03T12:00:00.000Z').getTime();

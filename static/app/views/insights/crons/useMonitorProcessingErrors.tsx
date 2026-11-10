@@ -4,11 +4,9 @@ import {deleteMonitorProcessingErrorByType} from 'sentry/actionCreators/monitors
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {makeMonitorErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
-import type {
-  CheckinProcessingError,
-  ProcessingErrorType,
-} from 'sentry/views/insights/crons/types';
+
+import {makeMonitorErrorsQueryKey} from './components/processingErrors/utils';
+import type {CheckinProcessingError, ProcessingErrorType} from './types';
 
 interface UseMonitorProcessingErrorsOptions {
   monitorSlug: string;

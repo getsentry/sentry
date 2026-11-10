@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
@@ -17,6 +16,8 @@ import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilin
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getOverride} from 'sentry/overrideRegistry';
+import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
+import {SentryPictureInPictureProvider} from 'sentry/scrapsProviders/pictureInPicture';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -52,17 +53,19 @@ export function OrganizationLayout() {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
       <OrganizationContainer>
-        <SeerExplorerSessionsProvider>
-          <SeerExplorerChatStateProvider>
-            <PictureInPictureProvider>
-              <GlobalDrawer>
-                <SeerExplorerContextProvider>
-                  <AppLayout organization={organization} />
-                </SeerExplorerContextProvider>
-              </GlobalDrawer>
-            </PictureInPictureProvider>
-          </SeerExplorerChatStateProvider>
-        </SeerExplorerSessionsProvider>
+        <SentryOverlayProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerChatStateProvider>
+              <SentryPictureInPictureProvider>
+                <GlobalDrawer>
+                  <SeerExplorerContextProvider>
+                    <AppLayout organization={organization} />
+                  </SeerExplorerContextProvider>
+                </GlobalDrawer>
+              </SentryPictureInPictureProvider>
+            </SeerExplorerChatStateProvider>
+          </SeerExplorerSessionsProvider>
+        </SentryOverlayProvider>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
@@ -112,7 +115,7 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation pageBannerHeight={pageBannerHeight} />
-          <SeerExplorerSidebarLayout>
+          <SeerExplorerSidebarLayout pageBannerHeight={pageBannerHeight}>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack
               id="main"

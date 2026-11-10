@@ -213,6 +213,9 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
     Does not publish the GroupAction to a GroupActionLogEntry.
     """
 
+    if activity.type == ActivityType.NOTE.value:
+        return CommentAction(comment_id=activity.id)
+
     # Ignore certain Activities that don't make sense to translate to GroupActions.
     if activity.type in ACTIVITY_TYPES_WITH_NO_ACTION:
         return None
@@ -247,10 +250,6 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
         # Translate from Activity data structure to GroupAction data structure.
         kwargs = kwargs.copy()  # Avoid mutating existing dict
         kwargs["counterpart_group_ids"] = [datum["id"] for datum in kwargs.get("issues", [])]
-
-    if activity.type == ActivityType.NOTE.value:
-        kwargs = kwargs.copy()  # Avoid mutating existing dict
-        kwargs["comment_id"] = activity.id
 
     # Pydantic lets you pass in whatever kwargs you want. If a kwarg matches some field,
     # Pydantic will set it - else Pydantic just ignores it.

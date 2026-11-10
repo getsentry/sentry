@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {Evaluation} from 'sentry/views/insights/pages/agents/utils/evaluation';
-import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
+import type {Evaluation} from './evaluation';
+import {useInvalidEvaluationDetection} from './useInvalidEvaluationDetection';
 
 describe('useInvalidEvaluationDetection', () => {
   let captureSpy: jest.SpyInstance;
@@ -18,7 +18,7 @@ describe('useInvalidEvaluationDetection', () => {
 
   it('does not report readable evaluations', () => {
     const evaluation: Evaluation = {
-      input: {state: 'text', questions: []},
+      input: {state: [{parts: [{kind: 'text', text: 'text'}]}], questions: []},
       answers: [{kind: 'boolean', key: 'authIssue', probability: 0.97}],
       rawInput: '[]',
       rawOutput: '[]',

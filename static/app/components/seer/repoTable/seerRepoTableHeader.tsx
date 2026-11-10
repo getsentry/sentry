@@ -7,12 +7,8 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {
@@ -122,7 +118,7 @@ export function SeerRepoTableHeader({
   const handleBulkCodeReview = async (enabledCodeReview: boolean) => {
     const repositoryIds = selectedIds === 'all' ? knownIds : selectedIds;
     setIsBulkUpdating(true);
-    addLoadingMessage(
+    toast.loading(
       tn(
         'Updating code review for %s repository…',
         'Updating code review for %s repositories…',
@@ -131,7 +127,7 @@ export function SeerRepoTableHeader({
     );
     try {
       await mutateRepositorySettings({enabledCodeReview, repositoryIds});
-      addSuccessMessage(
+      toast.success(
         tn(
           'Code review updated for %s repository',
           'Code review updated for %s repositories',
@@ -139,13 +135,14 @@ export function SeerRepoTableHeader({
         )
       );
     } catch {
-      addErrorMessage(
+      toast.error(
         tn(
           'Failed to update code review for %s repository',
           'Failed to update code review for %s repositories',
           repositoryIds.length
         )
       );
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsBulkUpdating(false);
     }
@@ -226,16 +223,16 @@ export function SeerRepoTableHeader({
     }
 
     setIsBulkUpdating(true);
-    addLoadingMessage(t('Updating triggers…'));
+    toast.loading(t('Updating triggers…'));
 
     const results = await Promise.allSettled(promises);
     const hasError = results.some(r => r.status === 'rejected');
     setIsBulkUpdating(false);
 
     if (hasError) {
-      addErrorMessage(t('Failed to update triggers'));
+      toast.error(t('Failed to update triggers'));
     } else {
-      addSuccessMessage(t('Triggers updated'));
+      toast.success(t('Triggers updated'));
     }
   };
 

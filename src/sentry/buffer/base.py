@@ -106,6 +106,7 @@ class Buffer(Service):
         filters: dict[str, Any] | None,
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
+        **kwargs: Any,
     ) -> None:
         from sentry.models.group import Group
 

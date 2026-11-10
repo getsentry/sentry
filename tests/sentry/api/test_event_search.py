@@ -1,6 +1,8 @@
 import datetime
 import os
+from collections.abc import Collection, Sequence
 from datetime import timedelta
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,6 +10,7 @@ from django.test import SimpleTestCase
 from django.utils import timezone
 
 from sentry.api.event_search import (
+    MAX_REGEX_FILTERS_PER_QUERY,
     MAX_REGEX_PATTERN_LENGTH,
     AggregateFilter,
     AggregateKey,
@@ -26,7 +29,12 @@ from sentry.api.event_search import (
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import (
+    IncompatibleMetricsQuery,
+    InvalidFunctionArgumentQuery,
+    InvalidSearchQuery,
+    SearchQueryParseError,
+)
 from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     WILDCARD_OPERATOR_MAP,
@@ -40,16 +48,18 @@ fixture_path = "fixtures/search-syntax"
 abs_fixtures_path = os.path.join(MODULE_ROOT, os.pardir, os.pardir, fixture_path)
 
 
-def register_fixture_tests(cls, skipped):
+def register_fixture_tests(cls: type[object], skipped: Collection[str]) -> None:
     """
     Registers test fixtures onto a class with a run_test_case method
     """
 
-    def assign_test_case(name, tests):
+    def assign_test_case(name: str, tests: list[dict[str, Any]]) -> None:
         if name in skipped:
             return
 
-        def runner(self):
+        def runner(
+            self: Any,
+        ) -> None:
             for case in tests:
                 self.run_test_case(name, case)
 
@@ -63,7 +73,9 @@ def register_fixture_tests(cls, skipped):
         assign_test_case(name, tests)
 
 
-def result_transformer(result):
+def result_transformer(
+    result: list[dict[str, Any]],
+) -> list[Any]:
     """
     This is used to translate the expected token results from the format used
     in the JSON test data (which is more close to the lossless frontend AST) to
@@ -74,7 +86,7 @@ def result_transformer(result):
     done in the SearchVisitor.
     """
 
-    def node_visitor(token):
+    def node_visitor(token: dict[str, Any]) -> Any:
         if token["type"] == "spaces":
             return None
 
@@ -211,7 +223,7 @@ SHARED_CONFIG_OPTIONS = {
 }
 
 
-def build_config(additional_config):
+def build_config(additional_config: dict[str, object] | None) -> SearchConfig:
     if not additional_config:
         return default_config
 
@@ -236,7 +248,7 @@ class ParseSearchQueryTest(SimpleTestCase):
     See the `assign_test_case` function.
     """
 
-    def run_test_case(self, name, case):
+    def run_test_case(self, name: str, case: dict[str, Any]) -> None:
         expected = None
         expect_error = None
 
@@ -1212,7 +1224,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         (r"\*\*\*aaa\*\*\*", r"***aaa***"),
     ],
 )
-def test_search_value(raw, result) -> None:
+def test_search_value(raw: str, result: str) -> None:
     search_value = SearchValue(raw)
     assert search_value.value == result
 
@@ -1231,7 +1243,7 @@ def test_search_value(raw, result) -> None:
         "transaction.duration:<1.0",
     ],
 )
-def test_search_filter_to_query_string(query) -> None:
+def test_search_filter_to_query_string(query: str) -> None:
     """
     Does a round trip (from query string to tokens and back to query string)
     """
@@ -1253,12 +1265,14 @@ def test_search_filter_to_query_string(query) -> None:
         (datetime.datetime(2023, 10, 15, 11, 12, 13), "2023-10-15T11:12:13"),
     ],
 )
-def test_search_value_to_query_string(value, expected_query_string) -> None:
+def test_search_value_to_query_string(value: object, expected_query_string: str) -> None:
     """
     Test turning a QueryValue back to a string usable in a query string
     """
 
-    search_value = SearchValue(value)
+    search_value = SearchValue(
+        cast("str | float | datetime.datetime | Sequence[float] | Sequence[str] | None", value)
+    )
     actual = search_value.to_query_string()
 
     assert actual == expected_query_string
@@ -1285,12 +1299,16 @@ def test_search_value_to_query_string(value, expected_query_string) -> None:
         pytest.param("Case*", "prefix", "case", id="prefix is lower cased"),
     ],
 )
-def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value) -> None:
+def test_search_value_classify_and_format_wildcard(
+    value: object, expected_kind: str, expected_value: object
+) -> None:
     """
     Test classifying the wildcard type into one of prefix/suffix/infix/other
     and formatting the value according to the classification results.
     """
-    search_value = SearchValue(value)
+    search_value = SearchValue(
+        cast("str | float | datetime.datetime | Sequence[float] | Sequence[str] | None", value)
+    )
     kind, wildcard = search_value.classify_and_format_wildcard()
     assert (kind, wildcard) == (expected_kind, expected_value)
 
@@ -1306,7 +1324,7 @@ def test_search_value_classify_and_format_wildcard(value, expected_kind, expecte
         pytest.param("c*o_m%p\\*lex", "c%o\\_m\\%p*lex", id="complex"),
     ],
 )
-def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse) -> None:
+def test_translate_wildcard_as_clickhouse_pattern(pattern: str, clickhouse: str) -> None:
     assert translate_wildcard_as_clickhouse_pattern(pattern) == clickhouse
 
 
@@ -1318,7 +1336,7 @@ def test_translate_wildcard_as_clickhouse_pattern(pattern, clickhouse) -> None:
         pytest.param("\\_"),
     ],
 )
-def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern) -> None:
+def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern: str) -> None:
     with pytest.raises(InvalidSearchQuery):
         assert translate_wildcard_as_clickhouse_pattern(pattern)
 
@@ -1342,7 +1360,7 @@ def test_invalid_translate_wildcard_as_clickhouse_pattern(pattern) -> None:
         pytest.param("flags[foo:bar,number]:0", "flags[foo:bar,number]", "0"),
     ],
 )
-def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
+def test_handles_special_character_in_tags_and_flags(query: str, key: str, value: str) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "=", SearchValue(value))]
 
@@ -1366,7 +1384,7 @@ def test_handles_special_character_in_tags_and_flags(query, key, value) -> None:
         pytest.param("has:flags[foo:bar,number]", "flags[foo:bar,number]"),
     ],
 )
-def test_handles_has_tags_and_flags(query, key) -> None:
+def test_handles_has_tags_and_flags(query: str, key: str) -> None:
     parsed = parse_search_query(query)
     assert parsed == [SearchFilter(SearchKey(key), "!=", SearchValue(""))]
 
@@ -1381,7 +1399,7 @@ def test_handles_has_tags_and_flags(query, key) -> None:
         pytest.param("\\*test\\*", WILDCARD_OPERATOR_MAP["contains"], "*\\*test\\**"),
     ],
 )
-def test_gen_wildcard_value(value, wildcard_op, expected) -> None:
+def test_gen_wildcard_value(value: str, wildcard_op: str, expected: str) -> None:
     assert gen_wildcard_value(value, wildcard_op) == expected
 
 
@@ -1455,7 +1473,7 @@ def test_gen_wildcard_value(value, wildcard_op, expected) -> None:
         ),
     ],
 )
-def test_handles_contains_wildcard_op_translations(query, expected) -> None:
+def test_handles_contains_wildcard_op_translations(query: str, expected: str) -> None:
     filters = parse_search_query(query)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
@@ -1533,7 +1551,7 @@ def test_handles_contains_wildcard_op_translations(query, expected) -> None:
         ),
     ],
 )
-def test_handles_starts_with_wildcard_op_translations(query, expected) -> None:
+def test_handles_starts_with_wildcard_op_translations(query: str, expected: str) -> None:
     filters = parse_search_query(query)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
@@ -1560,7 +1578,7 @@ regex_config = SearchConfig.create_from(default_config, allow_regex=True)
     ],
 )
 def test_parses_regex_op_without_rewriting_the_pattern(
-    query, expected_operator, expected_value
+    query: str, expected_operator: str, expected_value: str
 ) -> None:
     filters = parse_search_query(query, config=regex_config)
     assert len(filters) == 1
@@ -1580,7 +1598,7 @@ def test_parses_regex_op_without_rewriting_the_pattern(
         pytest.param(r"span.op://https?://example\.com///", id="embedded and trailing slashes"),
     ],
 )
-def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
+def test_round_trips_a_regex_op_through_to_query_string(query: str) -> None:
     filters = parse_search_query(query, config=regex_config)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
@@ -1602,10 +1620,45 @@ def test_round_trips_a_regex_op_through_to_query_string(query) -> None:
         ),
     ],
 )
-def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
+def test_rejects_an_invalid_regex_pattern(query: str, expected_message: str) -> None:
     with pytest.raises(InvalidSearchQuery) as err:
         parse_search_query(query, config=regex_config)
     assert str(err.value) == expected_message
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        pytest.param(r"\p{L}{100}", id="repeated unicode class"),
+        pytest.param(
+            r"(?s)(?:\p{L}|\p{N}|\p{P}){350}Z", id="repeated alternation of unicode classes"
+        ),
+    ],
+)
+def test_rejects_a_regex_pattern_when_it_compiles_too_large(pattern: str) -> None:
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert str(err.value) == (
+        "message: Regex is too complex. Try fewer repetitions or narrower character classes."
+    )
+
+
+def test_parses_regex_filters_when_a_query_has_the_maximum_count() -> None:
+    query = " ".join(f"message://^{i}//" for i in range(MAX_REGEX_FILTERS_PER_QUERY))
+
+    filters = parse_search_query(query, config=regex_config)
+
+    assert len(filters) == MAX_REGEX_FILTERS_PER_QUERY
+
+
+def test_rejects_regex_filters_when_a_query_has_more_than_the_maximum_count() -> None:
+    query = " OR ".join(f"message://^{i}//" for i in range(MAX_REGEX_FILTERS_PER_QUERY + 1))
+
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(query, config=regex_config)
+
+    assert str(err.value) == f"Queries are limited to {MAX_REGEX_FILTERS_PER_QUERY} regex filters."
 
 
 def test_parses_a_regex_value_on_an_array_includes_key_as_its_array_attribute() -> None:
@@ -1844,7 +1897,7 @@ def test_parses_a_long_literal_that_starts_with_the_regex_delimiter(query: str) 
         ),
     ],
 )
-def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
+def test_handles_ends_with_wildcard_op_translations(query: str, expected: str) -> None:
     filters = parse_search_query(query)
     assert len(filters) == 1
     assert isinstance(filters[0], SearchFilter)
@@ -1928,7 +1981,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
         ),
     ],
 )
-def test_array_includes_filter(query, expected) -> None:
+def test_array_includes_filter(query: str, expected: list[SearchFilter]) -> None:
     assert parse_search_query(query) == expected
 
 
@@ -1938,7 +1991,7 @@ def test_array_includes_filter(query, expected) -> None:
         pytest.param("frame_filenames[*]:", id="rejects_empty_value"),
     ],
 )
-def test_array_includes_filter_rejects_invalid_input(query) -> None:
+def test_array_includes_filter_rejects_invalid_input(query: str) -> None:
     with pytest.raises(InvalidSearchQuery):
         parse_search_query(query)
 
@@ -1970,5 +2023,39 @@ def test_array_includes_filter_rejects_invalid_input(query) -> None:
         ),
     ],
 )
-def test_array_includes_filter_passes_through_comparison_operators(query, expected) -> None:
+def test_array_includes_filter_passes_through_comparison_operators(
+    query: str, expected: list[SearchFilter]
+) -> None:
     assert parse_search_query(query) == expected
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param("timestamp:>yesterday", id="invalid date"),
+        pytest.param("transaction.duration:>abc", id="invalid number"),
+        pytest.param("user.email:", id="empty value"),
+        pytest.param("is:foo", id="unsupported is"),
+    ],
+)
+def test_rejects_an_invalid_query_as_a_search_query_parse_error(query: str) -> None:
+    with pytest.raises(SearchQueryParseError):
+        parse_search_query(query)
+
+
+def test_rejects_an_incomplete_parse_as_a_search_query_parse_error() -> None:
+    with pytest.raises(SearchQueryParseError) as err:
+        parse_search_query("user.email:foo)")
+
+    assert err.value.extra == {"idx": 15}
+
+
+def test_keeps_an_invalid_function_argument_raised_while_parsing() -> None:
+    error = InvalidFunctionArgumentQuery(
+        "foo is invalid for parameter 1 in p75.", function="p75", argument="foo"
+    )
+    with patch("sentry.api.event_search.SearchVisitor.visit", side_effect=error):
+        with pytest.raises(InvalidFunctionArgumentQuery) as err:
+            parse_search_query("p75(foo):>1")
+
+    assert err.value is error

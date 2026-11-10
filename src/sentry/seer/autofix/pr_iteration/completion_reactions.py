@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from scm.manager import SourceCodeManager
 from sentry_sdk import traces
 
-from sentry import features
 from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -81,9 +80,6 @@ def react_to_completed_iteration(
     def record(outcome: str, amount: int = 1) -> None:
         outcomes[outcome] += amount
         _record_completion_reaction(outcome, amount)
-
-    if not features.has("organizations:autofix-pr-iteration-manual", organization=organization):
-        return outcomes
 
     if state.status != "completed":
         return outcomes

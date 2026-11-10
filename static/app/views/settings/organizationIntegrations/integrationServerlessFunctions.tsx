@@ -1,23 +1,26 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
   OrganizationIntegration,
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegrations/integrationServerlessRow';
+
+import {IntegrationServerlessRow} from './integrationServerlessRow';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'minmax(200px, 2fr)'},
+  {key: 'layerStatus', width: 'minmax(max-content, 1fr)'},
+  {key: 'enabled', width: 'minmax(max-content, 0.5fr)'},
+];
 
 export function IntegrationServerlessFunctions({
   integration,
@@ -26,18 +29,20 @@ export function IntegrationServerlessFunctions({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const queryKey: ApiQueryKey = [
-    getApiUrl(
-      '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
-      {
-        path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
-      }
-    ),
-  ];
-  const {data: serverlessFunctions = [], isSuccess} = useApiQuery<ServerlessFunction[]>(
-    queryKey,
-    {staleTime: 0}
+  const queryOptions = apiOptions.as<ServerlessFunction[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
+    {
+      path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
+      staleTime: 0,
+    }
   );
+  const {
+    data: serverlessFunctions = [],
+    isError,
+    isPending,
+    isSuccess,
+    refetch,
+  } = useQuery(queryOptions);
 
   useEffect(() => {
     if (isSuccess) {
@@ -60,67 +65,57 @@ export function IntegrationServerlessFunctions({
           )}
         </Alert>
       </Alert.Container>
-      <Panel>
-        <StyledPanelHeader disablePadding hasButtons>
-          <NameHeader>{t('Name')}</NameHeader>
-          <LayerStatusWrapper>{t('Layer Status')}</LayerStatusWrapper>
-          <EnableHeader>{t('Enabled')}</EnableHeader>
-        </StyledPanelHeader>
-        <StyledPanelBody>
-          {serverlessFunctions.map((serverlessFn, i) => (
+      <SimpleTable
+        aria-label={t('Serverless Functions')}
+        columns={COLUMNS}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Layer Status')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Enabled')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isPending ? (
+          <SimpleTable.Loading />
+        ) : isError ? (
+          <SimpleTable.Error
+            message={t('Error loading serverless functions')}
+            onRetry={refetch}
+          />
+        ) : serverlessFunctions.length === 0 ? (
+          <SimpleTable.Empty>{t('No serverless functions found')}</SimpleTable.Empty>
+        ) : (
+          serverlessFunctions.map((serverlessFn, i) => (
             <IntegrationServerlessRow
               key={serverlessFn.name}
               serverlessFunction={serverlessFn}
               integration={integration}
               onUpdate={(update: Partial<ServerlessFunction>) => {
-                setApiQueryData<ServerlessFunction[]>(
-                  queryClient,
-                  queryKey,
-                  existingServerlessFunctions => {
-                    if (!existingServerlessFunctions) {
-                      return;
-                    }
-                    const newServerlessFunctions = [...existingServerlessFunctions];
-                    const updatedFunction = {
-                      ...newServerlessFunctions[i]!,
-                      ...update,
-                    };
-                    newServerlessFunctions[i] = updatedFunction;
-                    return newServerlessFunctions;
+                queryClient.setQueryData(queryOptions.queryKey, previous => {
+                  const existingServerlessFunctions = previous?.json;
+
+                  if (!existingServerlessFunctions) {
+                    return previous;
                   }
-                );
+                  const newServerlessFunctions = [...existingServerlessFunctions];
+                  const updatedFunction = {
+                    ...newServerlessFunctions[i]!,
+                    ...update,
+                  };
+                  newServerlessFunctions[i] = updatedFunction;
+                  return {
+                    ...previous,
+                    headers: previous?.headers ?? {},
+                    json: newServerlessFunctions,
+                  };
+                });
               }}
             />
-          ))}
-        </StyledPanelBody>
-      </Panel>
+          ))
+        )}
+      </SimpleTable>
     </Fragment>
   );
 }
-
-const StyledPanelHeader = styled(PanelHeader)`
-  padding: ${p => p.theme.space.xl};
-  display: grid;
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr;
-  grid-template-areas: 'function-name layer-status enable-switch';
-`;
-
-const HeaderText = styled('div')`
-  flex: 1;
-`;
-
-const StyledPanelBody = styled(PanelBody)``;
-
-const NameHeader = styled(HeaderText)`
-  grid-area: function-name;
-`;
-
-const LayerStatusWrapper = styled(HeaderText)`
-  grid-area: layer-status;
-`;
-
-const EnableHeader = styled(HeaderText)`
-  grid-area: enable-switch;
-`;

@@ -1,8 +1,12 @@
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+
+import {t} from 'sentry/locale';
+
+import {ViewedCheckbox} from './viewedCheckbox';
 
 export function SnapshotCardFrame({
   children,
@@ -29,13 +33,35 @@ export function SnapshotCardFrame({
   );
 }
 
-export function SnapshotGroupHeader({name}: {name: string}) {
+export function SnapshotGroupHeader({
+  name,
+  isViewed = false,
+  onToggleViewed,
+}: {
+  name: string;
+  isViewed?: boolean | 'indeterminate';
+  onToggleViewed?: () => void;
+}) {
   return (
-    <Container padding="lg xl" borderBottom="secondary" background="primary">
-      <Heading as="h3" size="md">
+    <Flex
+      align="center"
+      justify="between"
+      gap="md"
+      padding="lg xl"
+      borderBottom={isViewed === true ? undefined : 'secondary'}
+      background="primary"
+    >
+      <Heading as="h3" size="md" ellipsis>
         {name}
       </Heading>
-    </Container>
+      {onToggleViewed && (
+        <ViewedCheckbox
+          checked={isViewed}
+          onChange={onToggleViewed}
+          aria-label={t('All in %s viewed', name)}
+        />
+      )}
+    </Flex>
   );
 }
 

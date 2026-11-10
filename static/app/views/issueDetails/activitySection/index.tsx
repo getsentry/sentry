@@ -5,8 +5,8 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
@@ -14,15 +14,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
-import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
-import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+import {
+  buildActivityFeedItems,
+  type DisplayedActivityFeedItem,
+} from './activityLineItem/activityFeedItem';
+import {isActivityNote} from './activityLineItem/note';
+import {ActivityFeed} from './activityFeed';
+import {ActivityNoteInput} from './activityNoteInput';
+import {useMutateActivity} from './useMutateActivity';
 
 interface ActivitySectionProps {
   group: Group;
@@ -34,14 +38,16 @@ interface ActivitySectionProps {
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  /** Prepared feed rows. Defaults to building rows from the issue activity. */
+  items?: DisplayedActivityFeedItem[];
   minHeight?: number;
   onActivityChange?: (activity: GroupActivity[]) => void;
+  placeholder?: string;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
    * - `standalone`: full input, no collapse
    */
-  placeholder?: string;
   variant?: 'sidebar' | 'standalone';
 }
 
@@ -50,6 +56,7 @@ export function ActivitySection({
   activities: providedActivities,
   filterComments,
   onActivityChange,
+  items,
   variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
@@ -67,14 +74,14 @@ export function ActivitySection({
     try {
       const result = await createComment(data);
       trackAnalytics('issue_details.comment_created', {organization});
-      addSuccessMessage(t('Comment posted'));
+      toast.success(t('Comment posted'));
       onActivityChange?.([result, ...activities]);
     } catch (error) {
       const detail =
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : null;
-      addErrorMessage(
+      toast.error(
         detail ? tct('Error: [msg]', {msg: detail}) : t('Unable to post comment')
       );
       throw error;
@@ -85,7 +92,7 @@ export function ActivitySection({
     const commentId = item.commentId;
     await deleteComment(commentId);
     trackAnalytics('issue_details.comment_deleted', {organization});
-    addSuccessMessage(t('Comment removed'));
+    toast.success(t('Comment removed'));
     onActivityChange?.(
       activities.filter(
         activity => !isActivityNote(activity) || activity.commentId !== commentId
@@ -98,7 +105,7 @@ export function ActivitySection({
       const commentId = item.commentId;
       const result = await updateComment(commentId, data);
       trackAnalytics('issue_details.comment_updated', {organization});
-      addSuccessMessage(t('Comment updated'));
+      toast.success(t('Comment updated'));
       onActivityChange?.(
         activities.map(activity =>
           isActivityNote(activity) && activity.commentId === commentId
@@ -107,7 +114,7 @@ export function ActivitySection({
         )
       );
     } catch (error) {
-      addErrorMessage(t('Unable to update comment'));
+      toast.error(t('Unable to update comment'));
       throw error;
     }
   }
@@ -128,10 +135,12 @@ export function ActivitySection({
     },
   };
 
-  const displayedActivities = buildActivityFeedItems({
-    activities,
-    filterComments,
-  });
+  const displayedActivities =
+    items ??
+    buildActivityFeedItems({
+      activities,
+      filterComments,
+    });
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 

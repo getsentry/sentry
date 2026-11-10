@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from snuba_sdk import Direction, Granularity, Limit, Offset
@@ -29,7 +30,7 @@ from sentry.utils.dates import parse_stats_period
 class MetricsQueryBuilder:
     AVG_DURATION_METRIC = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
 
-    def __init__(self):
+    def __init__(self) -> None:
         now = datetime.now()
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
@@ -96,7 +97,7 @@ class MetricsQueryBuilder:
         self.interval = interval
         return self
 
-    def to_metrics_query_dict(self):
+    def to_metrics_query_dict(self) -> dict[str, Any]:
         return {
             "org_id": self.org_id,
             "project_ids": self.project_ids,
@@ -556,7 +557,7 @@ def test_series_and_totals_validation() -> None:
         ),
     ],
 )
-def test_granularity_validation(stats_period, interval, error_message) -> None:
+def test_granularity_validation(stats_period: str, interval: str, error_message: str) -> None:
     period_t = parse_stats_period(stats_period)
     assert period_t is not None
     interval_t = parse_stats_period(interval)
@@ -605,7 +606,7 @@ def test_validate_metric_field_mri() -> None:
         ),
     ],
 )
-def test_validate_interval(select, interval, series) -> None:
+def test_validate_interval(select: list[MetricField] | None, interval: int, series: bool) -> None:
     metrics_query = MetricsQueryBuilder().with_include_series(series)
     if select:
         metrics_query = metrics_query.with_select(select)
@@ -671,8 +672,11 @@ def test_ensure_interval_set_to_granularity_in_performance_queries() -> None:
     ],
 )
 def test_start_end_interval_greater_than_interval_is_successful(
-    start_time_delta, granularity, interval, expected_granularity
-):
+    start_time_delta: timedelta,
+    granularity: int,
+    interval: int,
+    expected_granularity: int,
+) -> None:
     metrics_query = (
         MetricsQueryBuilder()
         .with_select([MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")])
@@ -683,6 +687,7 @@ def test_start_end_interval_greater_than_interval_is_successful(
     # We set the start time with a different value from default in order to have the start and end interval greater
     # than the specified interval (e.g., if you have an interval of 2 hours and the difference between start and end is
     # less than 2 hours, it doesn't make sense to query the data).
+    assert metrics_query.end is not None
     metrics_query.start = metrics_query.end - start_time_delta
 
     metrics_query_dict = metrics_query.to_metrics_query_dict()

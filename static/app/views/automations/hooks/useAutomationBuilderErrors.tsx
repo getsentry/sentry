@@ -14,6 +14,7 @@ export function useAutomationBuilderErrors() {
       if (!(errorId in prev)) {
         return prev;
       }
+      // oxlint-disable-next-line react/todo
       const {[errorId]: _removedError, ...remainingErrors} = prev;
       return remainingErrors;
     });

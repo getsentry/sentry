@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   useSearchQueryBuilderAI,
@@ -89,7 +90,12 @@ export function useSelectedProjectIds(): number[] {
     ) {
       return pageFilters.selection.projects;
     }
-    return projects.filter(p => p.isMember).map(p => parseInt(p.id, 10));
+    const memberProjectIds = projects
+      .filter(p => p.isMember)
+      .map(p => parseInt(p.id, 10));
+    // Users on no project team can still browse every project in open-membership
+    // orgs, and the search agent rejects an empty project list.
+    return memberProjectIds.length > 0 ? memberProjectIds : [ALL_ACCESS_PROJECTS];
   }, [pageFilters.selection.projects, projects]);
 }
 
@@ -104,7 +110,8 @@ export function useSelectedProjectIdsForMutation(): Array<number | string> {
     ) {
       return pageFilters.selection.projects;
     }
-    return projects.filter(p => p.isMember).map(p => p.id);
+    const memberProjectIds = projects.filter(p => p.isMember).map(p => p.id);
+    return memberProjectIds.length > 0 ? memberProjectIds : [ALL_ACCESS_PROJECTS];
   }, [pageFilters.selection.projects, projects]);
 }
 

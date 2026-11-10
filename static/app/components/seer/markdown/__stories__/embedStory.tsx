@@ -1,7 +1,7 @@
 import type {ComponentProps, ReactNode} from 'react';
 import {Fragment} from 'react';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Kbd} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';

@@ -5,7 +5,6 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import pick from 'lodash/pick';
 
-import {ProjectsBadge} from '@sentry/scraps/badge';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -13,6 +12,7 @@ import {Link} from '@sentry/scraps/link';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -25,6 +25,7 @@ import {MissingProjectMembership} from 'sentry/components/projects/missingProjec
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -153,8 +154,6 @@ export function ProjectDetail() {
     hasEveryAccess(['alerts:write'], {organization}) ||
     projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
 
-  const createMonitorQuery = new URLSearchParams({project: params.projectId}).toString();
-
   const projectActions: MenuItemProps[] = [
     {
       key: 'view-all-issues',
@@ -169,7 +168,10 @@ export function ProjectDetail() {
       key: 'create-monitor',
       label: t('Create Monitor'),
       leadingItems: <IconSiren size="md" />,
-      to: `${makeMonitorCreatePathname(organization.slug)}?${createMonitorQuery}`,
+      to: {
+        pathname: makeMonitorCreatePathname(organization.slug),
+        query: {project: projectId},
+      },
       disabled: !canCreateAlert,
       tooltip: canCreateAlert
         ? undefined
@@ -184,6 +186,11 @@ export function ProjectDetail() {
       label: t('Project Settings'),
       leadingItems: <IconSettings size="md" />,
       to: `/settings/${params.orgId}/projects/${params.projectId}/`,
+      onAction: () =>
+        trackAnalytics('settings.entry_point_clicked', {
+          organization,
+          entry_point: 'project_details_menu',
+        }),
     },
   ];
 

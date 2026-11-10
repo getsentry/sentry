@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.urls import reverse
@@ -17,7 +17,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class ExampleIntegrationTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -77,7 +77,7 @@ class ExampleIntegrationTest(APITestCase):
     @patch(
         "sentry.api.endpoints.organization_pipeline.initialize_integration_pipeline",
     )
-    def test_initialize_via_api(self, mock_init) -> None:
+    def test_initialize_via_api(self, mock_init: MagicMock) -> None:
         pipeline = self._init_pipeline_in_session()
         pipeline.set_api_mode()
         mock_init.return_value = pipeline

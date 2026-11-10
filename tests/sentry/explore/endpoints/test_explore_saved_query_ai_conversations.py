@@ -54,7 +54,8 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["dataset"] == "ai_conversations"
         assert response.data["name"] == "My conversations query"
-        assert response.data["range"] == "24h"
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "24h"
         assert response.data["environment"] == ["production"]
         assert response.data["query"] == [
             {
@@ -234,7 +235,8 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["name"] == "Updated name"
-        assert response.data["range"] == "7d"
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
         assert response.data["dataset"] == "ai_conversations"
         assert response.data["query"] == [
             {

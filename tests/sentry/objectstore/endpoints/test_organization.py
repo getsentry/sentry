@@ -14,7 +14,6 @@ from rest_framework.test import APIRequestFactory
 
 from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint, stream_response
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.response import close_streaming_response
@@ -65,13 +64,13 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         client = Client(
             self.get_endpoint_url(), connection_kwargs={"headers": self.get_auth_headers()}
         )
-        session = client.session(Usecase("test"), org=self.organization.id)
+        session = client.session(Usecase("attachments"), org=self.organization.id)
         return session
 
-    def test_health(self) -> None:
+    def test_rejects_non_object_paths(self) -> None:
         url = self.get_endpoint_url() + "health"
         res = requests.get(url, headers=self.get_auth_headers())
-        res.raise_for_status()
+        assert res.status_code == 404
 
     def test_full_cycle(self) -> None:
         session = self.get_session()
@@ -110,7 +109,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
         compressed = ctx.compress(data)
 
         auth_headers = self.get_auth_headers()
-        base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
+        base_url = f"{self.get_endpoint_url()}v1/objects/attachments/org={self.organization.id}/"
 
         # Upload with explicit zstd Content-Encoding so objectstore stores it compressed
         post_resp = requests.post(
@@ -161,7 +160,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
             },
             stream=True,
         )
-        assert_status_code(get_resp, 206)
+        assert get_resp.status_code == 206, get_resp.content
         assert get_resp.headers.get("Content-Encoding") == "zstd"
         assert get_resp.headers.get("Content-Length") == str(range_end + 1)
         assert get_resp.headers.get("Content-Range") == (f"bytes 0-{range_end}/{len(compressed)}")
@@ -176,7 +175,7 @@ class ObjectstoreEndpointTest(TransactionTestCase):
                 "Range": f"bytes=0-{range_end}",
             },
         )
-        assert_status_code(get_resp, 200)
+        assert get_resp.status_code == 200, get_resp.content
         assert get_resp.headers.get("Content-Encoding") is None
         assert get_resp.headers.get("Content-Length") is None
         assert get_resp.headers.get("Content-Range") is None
@@ -229,18 +228,6 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         )
         return path
 
-    def test_health(self) -> None:
-        config = asdict(test_region)
-        config["address"] = self.live_server.url
-        with override_cells([Cell(**config)]):
-            with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
-                response = self.client.get(
-                    self.get_endpoint_url() + "health",
-                    follow=True,
-                )
-                assert response.status_code == 200
-                close_streaming_response(response)
-
     def test_full_cycle(self) -> None:
         config = asdict(test_region)
         config["address"] = self.live_server.url
@@ -248,7 +235,9 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
 
         with override_cells([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
-                base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
+                base_url = (
+                    f"{self.get_endpoint_url()}v1/objects/attachments/org={self.organization.id}/"
+                )
 
                 response = self.client.post(
                     base_url,
@@ -257,7 +246,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     content_type="application/octet-stream",
                     follow=True,
                 )
-                assert_status_code(response, 201)
+                assert response.status_code == 201, response.content
                 object_key = json.loads(close_streaming_response(response))["key"]
                 assert object_key is not None
 
@@ -266,7 +255,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 assert close_streaming_response(response) == b"test data"
 
                 response = self.client.put(
@@ -276,7 +265,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 new_key = json.loads(close_streaming_response(response))["key"]
                 assert new_key == object_key
 
@@ -285,7 +274,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 assert close_streaming_response(response) == b"new data"
 
                 response = self.client.delete(
@@ -293,7 +282,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 204)
+                assert response.status_code == 204, response.content
                 close_streaming_response(response)
 
                 response = self.client.get(
@@ -301,7 +290,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 404)
+                assert response.status_code == 404, response.content
                 close_streaming_response(response)
 
     def test_roundtrip_compressed(self) -> None:
@@ -315,7 +304,9 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
 
         with override_cells([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
-                base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
+                base_url = (
+                    f"{self.get_endpoint_url()}v1/objects/attachments/org={self.organization.id}/"
+                )
 
                 response = self.client.post(
                     base_url,
@@ -325,7 +316,7 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     content_type="application/octet-stream",
                     follow=True,
                 )
-                assert_status_code(response, 201)
+                assert response.status_code == 201, response.content
                 object_key = json.loads(close_streaming_response(response))["key"]
                 assert object_key is not None
 
@@ -334,17 +325,41 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                     HTTP_AUTHORIZATION=auth_header,
                     follow=True,
                 )
-                assert_status_code(response, 200)
+                assert response.status_code == 200, response.content
                 assert close_streaming_response(response) == data
 
 
 class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
-    def test_query_string_forwarded_verbatim(self) -> None:
-        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
-        query = (
-            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
-        )
-        request = APIRequestFactory().get(f"/v1/objects/test/org=1/key?{query}")
+    def test_rejects_invalid_paths(self) -> None:
+        invalid_paths = [
+            "",
+            "health",
+            "metrics",
+            "v1/objects",
+            "v1/objects/attachments",
+            "v1/objects//org=1/key",
+            "v1/objects/unknown/org=1/key",
+            "v1/objects:batch/unknown/org=1/",
+            "v1/other/attachments/org=1/key",
+            "v2/objects/attachments/org=1/key",
+            "/v1/objects/attachments/org=1/key",
+        ]
+
+        with patch("sentry.objectstore.endpoints.organization.requests.request") as mock_request:
+            for path in invalid_paths:
+                request = APIRequestFactory().get(f"/{path}")
+                response = ObjectstoreEndpoint()._proxy(Request(request), path)
+                assert response.status_code == 404, path
+
+        mock_request.assert_not_called()
+
+    def test_accepts_registered_usecases(self) -> None:
+        valid_paths = [
+            "v1/objects/attachments/org=1",
+            "v1/objects/attachments/org=1/",
+            "v1/objects/debug_files/org=1;project=2/key",
+            "v1/objects:batch/preprod_snapshots/org=1;project=2/",
+        ]
 
         fake_response = MagicMock()
         fake_response.status_code = 200
@@ -354,7 +369,29 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
             "sentry.objectstore.endpoints.organization.requests.request",
             return_value=fake_response,
         ) as mock_request:
-            ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+            for path in valid_paths:
+                request = APIRequestFactory().get(f"/{path}")
+                response = ObjectstoreEndpoint()._proxy(Request(request), path)
+                assert response.status_code == 200, path
+
+        assert mock_request.call_count == len(valid_paths)
+
+    def test_query_string_forwarded_verbatim(self) -> None:
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = APIRequestFactory().get(f"/v1/objects/attachments/org=1/key?{query}")
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_response.headers = requests.structures.CaseInsensitiveDict()
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            return_value=fake_response,
+        ) as mock_request:
+            ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/attachments/org=1/key")
 
         assert mock_request.call_args.kwargs["params"] == query
 
@@ -379,7 +416,7 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
         upstream_response.raw.read.side_effect = [full_object, b""]
 
         request = APIRequestFactory().get(
-            "/v1/objects/test/org=1/key",
+            "/v1/objects/attachments/org=1/key",
             HTTP_ACCEPT_ENCODING="identity",
             HTTP_IF_RANGE='"previous-etag"',
             HTTP_RANGE="bytes=0-21",
@@ -389,7 +426,9 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
             "sentry.objectstore.endpoints.organization.requests.request",
             side_effect=[head_response, upstream_response],
         ) as mock_request:
-            response = ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+            response = ObjectstoreEndpoint()._proxy(
+                Request(request), "v1/objects/attachments/org=1/key"
+            )
 
         head_request, object_request = mock_request.call_args_list
         assert head_request.args == ("HEAD",)
@@ -426,7 +465,7 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
         upstream_response.raw.read.side_effect = [encoded_range, b""]
 
         request = APIRequestFactory().get(
-            "/v1/objects/test/org=1/key",
+            "/v1/objects/attachments/org=1/key",
             HTTP_ACCEPT_ENCODING="zstd",
             HTTP_IF_RANGE='"current-etag"',
             HTTP_RANGE="bytes=0-12",
@@ -436,7 +475,9 @@ class ObjectstoreProxyRequestForwardingTest(TransactionTestCase):
             "sentry.objectstore.endpoints.organization.requests.request",
             side_effect=[head_response, upstream_response],
         ) as mock_request:
-            response = ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+            response = ObjectstoreEndpoint()._proxy(
+                Request(request), "v1/objects/attachments/org=1/key"
+            )
 
         head_request, object_request = mock_request.call_args_list
         assert head_request.args == ("HEAD",)

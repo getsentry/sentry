@@ -212,6 +212,10 @@ export type ExceptionType = {
 
 // This type is incomplete
 export type EventMetadata = {
+  /**
+   * Set when attachments of the event were dropped because the attachment quota was exceeded.
+   */
+  attachments_quota_exceeded?: boolean;
   current_level?: number;
   directive?: string;
   filename?: string;
@@ -301,7 +305,7 @@ export type EntrySpans = {
   type: EntryType.SPANS;
 };
 
-export type AggregateEntrySpans = {
+type AggregateEntrySpans = {
   data: AggregateSpanType[];
   type: EntryType.SPANS;
 };
@@ -807,33 +811,6 @@ export interface EventTransaction extends Omit<
   >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-}
-
-export interface AggregateEventTransaction extends Omit<
-  EventTransaction,
-  | 'crashFile'
-  | 'culprit'
-  | 'dist'
-  | 'dateReceived'
-  | 'errors'
-  | 'location'
-  | 'metadata'
-  | 'message'
-  | 'occurrence'
-  | 'type'
-  | 'size'
-  | 'user'
-  | 'eventID'
-  | 'fingerprints'
-  | 'id'
-  | 'projectID'
-  | 'tags'
-  | 'title'
-> {
-  count: number;
-  frequency: number;
-  total: number;
-  type: EventOrGroupType.AGGREGATE_TRANSACTION;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {

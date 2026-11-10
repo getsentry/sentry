@@ -4,14 +4,6 @@ import styled from '@emotion/styled';
 import {type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import {FilterKeyDetailsTooltip} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip';
-import {
-  DATE_OP_LABELS,
-  DATE_OPTIONS,
-  getLabelAndOperatorFromToken,
-  getValidOpsForFilter,
-  OP_LABELS,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
@@ -22,6 +14,15 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {type FieldDefinition} from 'sentry/utils/fields';
+
+import {FilterKeyDetailsTooltip} from './filterKeyDetailsTooltip';
+import {
+  DATE_OP_LABELS,
+  DATE_OPTIONS,
+  getLabelAndOperatorFromToken,
+  getValidOpsForFilter,
+  OP_LABELS,
+} from './utils';
 
 function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
   switch (token.filter) {
@@ -64,6 +65,11 @@ function FilterKeyOperatorLabel({
 
 function isNegationOperator(op: TermOperator) {
   return negationOperators.includes(op);
+}
+
+// A field can name its operators itself, see `FieldDefinition.operatorLabels`.
+function getOpLabel(op: TermOperator, fieldDefinition: FieldDefinition | null): string {
+  return fieldDefinition?.operatorLabels?.[op] ?? OP_LABELS[op] ?? op;
 }
 
 export function getOperatorInfo({
@@ -248,12 +254,12 @@ export function getOperatorInfo({
 
   return {
     operator,
-    label: <OpLabel>{OP_LABELS[operator] ?? operator}</OpLabel>,
+    label: <OpLabel>{getOpLabel(operator, fieldDefinition)}</OpLabel>,
     options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {
-        const optionOpLabel = OP_LABELS[op] ?? op;
+        const optionOpLabel = getOpLabel(op, fieldDefinition);
 
         return {
           value: op,

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -15,13 +16,17 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+import {
+  getInvestigationPath,
+  useInvestigationsEnabled,
+} from 'sentry/views/investigations/utils';
+
+import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
 
 interface OpenPeriodDisplayData {
   description: string;
@@ -46,11 +51,10 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
   }
 }
 
-// TODO(snigdha): make this work for the old UI
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams<{groupId: string}>();
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const groupId = useGroupId();
   const {
     data: response,
     isPending,
@@ -58,18 +62,18 @@ function IssueOpenPeriodsList() {
   } = useQuery({
     ...openPeriodsApiOptions({
       organization,
-      groupId: params.groupId,
-      cursor: location.query?.cursor,
+      groupId,
+      cursor: cursor ?? undefined,
       limit: 10,
     }),
     select: selectJsonWithHeaders,
   });
   const openPeriods = response?.json ?? [];
-  const investigationsEnabled = organization.features.includes('investigations');
+  const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
     period => ({
       type: 'metric_open_period',
-      ref: {groupId: params.groupId, openPeriodId: period.id},
+      ref: {groupId, openPeriodId: period.id},
     })
   );
   const {data: candidates} = useQuery({
@@ -97,7 +101,7 @@ function IssueOpenPeriodsList() {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
           <EventIdLink
-            to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
+            to={`/organizations/${organization.slug}/issues/${groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
           </EventIdLink>
@@ -109,9 +113,7 @@ function IssueOpenPeriodsList() {
         end: endDate ? <DateTime date={endDate} /> : undefined,
         investigation:
           activity.type === 'opened' && candidate?.status === 'view' ? (
-            <Link
-              to={`/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`}
-            >
+            <Link to={getInvestigationPath(organization.slug, candidate.investigationId)}>
               <Flex as="span" align="center" gap="xs">
                 <IconSeer size="xs" />
                 {candidate.investigationId}

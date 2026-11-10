@@ -56,6 +56,7 @@ for cmd in map(
         "sentry.runner.commands.files.files",
         "sentry.runner.commands.help.help",
         "sentry.runner.commands.init.init",
+        "sentry.runner.commands.impact.impact",
         "sentry.runner.commands.migrations.migrations",
         "sentry.runner.commands.migrate_debugfiles_to_objectstore.migrate_debugfiles_to_objectstore",
         "sentry.runner.commands.repair.repair",

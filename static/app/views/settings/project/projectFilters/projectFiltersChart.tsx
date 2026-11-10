@@ -22,6 +22,10 @@ type Props = {
   project: Project;
 };
 
+// The stats endpoint returns its groups in no fixed order, so the series are sorted
+// by total before the palette is applied. Colors are assigned by rank, so they stay
+// the same for the same data, and the biggest contributor ends up at the bottom of
+// the stack.
 function formatData(rawData: UsageSeries | undefined, theme: Theme) {
   if (!rawData?.groups?.length) {
     return [];
@@ -46,10 +50,16 @@ function formatData(rawData: UsageSeries | undefined, theme: Theme) {
     }
   }
 
-  const fallbackColor = theme.colors.gray200;
-  const statOpsColors = theme.chart.getColorPalette(valuesByName.size);
+  const sortedSeries = Array.from(valuesByName, ([name, values]) => ({
+    name,
+    values,
+    total: values.reduce((sum, value) => sum + value, 0),
+  })).sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 
-  return Array.from(valuesByName, ([name, values], index) => ({
+  const fallbackColor = theme.colors.gray200;
+  const statOpsColors = theme.chart.getColorPalette(sortedSeries.length);
+
+  return sortedSeries.map(({name, values}, index) => ({
     seriesName: startCase(name),
     color: statOpsColors[index] ?? fallbackColor,
     data: rawData.intervals.map((interval, i) => ({

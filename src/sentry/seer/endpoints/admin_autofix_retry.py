@@ -21,7 +21,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import PIPELINE_ORDER
 from sentry.seer.models import SeerRun
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class SeerAdminAutofixRetryEndpoint(Endpoint):
                 results.append(_skipped(run_id, "Autofix run not found"))
                 continue
             with viewer_context_scope(
-                ViewerContext(organization_id=organization.id, actor_type=ActorType.SYSTEM)
+                ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization.id)
             ):
                 results.append(_retry_run(organization, run_id))
         return Response({"results": results})

@@ -138,9 +138,12 @@ export function useMetricDetectorAnomalyThresholds({
 
     const lineColor = theme.colors.red400;
 
+    // Threshold series are silent so their areas don't block hovering the open
+    // periods drawn beneath them
     return [
       createLineSeries({
         name: UPPER_THRESHOLD_SERIES_NAME,
+        silent: true,
         data: upperBoundData,
         lineStyle: {
           color: lineColor,
@@ -163,6 +166,7 @@ export function useMetricDetectorAnomalyThresholds({
       }),
       createLineSeries({
         name: LOWER_THRESHOLD_SERIES_NAME,
+        silent: true,
         data: lowerBoundData,
         lineStyle: {
           color: lineColor,

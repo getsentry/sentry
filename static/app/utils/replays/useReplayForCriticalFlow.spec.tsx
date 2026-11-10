@@ -1,7 +1,8 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {registerOverride} from 'sentry/overrideRegistry';
-import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
+
+import {useReplayForCriticalFlow} from './useReplayForCriticalFlow';
 
 describe('useReplayForCriticalFlow', () => {
   it('delegates to the registered hook implementation', () => {

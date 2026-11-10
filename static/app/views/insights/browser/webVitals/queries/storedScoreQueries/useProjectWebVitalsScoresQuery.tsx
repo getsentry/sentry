@@ -23,11 +23,11 @@ export const useProjectWebVitalsScoresQuery = ({
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
+  if (browserTypes?.length) {
+    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const result = useSpans(

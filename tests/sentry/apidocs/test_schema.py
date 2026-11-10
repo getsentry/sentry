@@ -1,4 +1,5 @@
 import pytest
+from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
 
 from sentry.api.base import Endpoint
@@ -24,7 +25,7 @@ def test_simple() -> None:
         permission_classes = ()
 
         @extend_schema(operation_id=op_id)
-        def get(self, request, *args, **kwargs):
+        def get(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
             pass
 
     schema = generate_schema("foo", view=ExampleEndpoint)
@@ -35,7 +36,7 @@ def test_description() -> None:
     class ExampleEndpoint(Endpoint):
         permission_classes = ()
 
-        def get(self, request, *args, **kwargs):
+        def get(self, request: HttpRequest, *args: object, **kwargs: object) -> None:
             """
 
             Operation ID
@@ -49,19 +50,19 @@ def test_description() -> None:
             """
 
         @extend_schema(operation_id="Ignore Docstring")
-        def post(self, request):
+        def post(self, request: HttpRequest) -> None:
             """
             Autoschema Description
             Extended Lines
             """
 
-        def put(self, request):
+        def put(self, request: HttpRequest) -> None:
             """
             Autoschema Description
             """
 
         # Should not result in an error when generating a schema
-        def delete(self, request):
+        def delete(self, request: HttpRequest) -> None:
             pass
 
     schema = generate_schema("foo", view=ExampleEndpoint)

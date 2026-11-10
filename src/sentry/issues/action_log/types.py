@@ -11,10 +11,13 @@ from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
 import orjson
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from sentry.issues.impact.types import ImpactCitation
 
 # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
-SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
+# `int` comes first so pydantic keeps pr_number an int; with `str` first it coerced it to one.
+SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, int | str]]
 
 
 class GroupActorType(IntEnum):
@@ -87,6 +90,7 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
     FIRST_SEEN = 34
+    IMPACT_ASSESSMENT = 35
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -172,7 +176,8 @@ ACTION_TYPES_WITH_COMMIT_DATA = {
     GroupActionType.SET_RESOLVED_IN_RELEASE.value,
 }
 
-COMMENT_MUTATION_ACTION_TYPES = {
+COMMENT_ACTION_TYPES = {
+    GroupActionType.COMMENT.value,
     GroupActionType.COMMENT_EDIT.value,
     GroupActionType.COMMENT_DELETE.value,
 }
@@ -207,6 +212,24 @@ class GroupAction(BaseModel, abc.ABC):
       translate it into a fixed shape when publishing rather than storing it as-is.
     - Document anything the type doesn't say: which model an ID refers to, units, and what
       ``None`` means.
+
+    Avoid adding a second timestamp for when the action happened (``occurred_at``,
+    ``happened_at``, etc.):
+
+    - The log is ordered by ``date_added``, and that order is canonical. A second timestamp
+      can disagree with that order, and every consumer then has to special-case it instead of
+      just reading ``date_added``.
+    - ``date_added`` can lag the real event, especially when the outbox isn't flushed on
+      commit (see ``GroupActionLogEntry.date_added``). That lag is only visible when
+      compared against some other record of the event's time; out-of-order entries are
+      visible to every consumer. Prefer correct order over precise wall-clock time.
+    - Prefer publishing with the default flush on commit: it's cheap, keeps ``date_added``
+      accurate, and keeps derived data up to date. If the event already happened and its
+      true time matters, backfill the entry with that ``date_added`` (see ``backfill.py``)
+      instead of adding a separate timestamp. Backfill is cheap too; don't avoid it for
+      performance reasons.
+    - Timestamps that describe something other than when this action occurred are fine, e.g.
+      ``IgnoreAction.ignore_until``.
 
     Evolving a subclass:
 
@@ -260,7 +283,8 @@ class GroupAction(BaseModel, abc.ABC):
 
     def json_dict(self) -> dict[str, Any]:
         """The action as JSON-safe data for storage; unlike dict(), datetimes become ISO 8601."""
-        return orjson.loads(self.json())
+        data = orjson.loads(self.json())
+        return data
 
 
 class ViewAction(GroupAction):
@@ -354,7 +378,9 @@ class SetPriorityAction(GroupAction):
 
 
 class MergeIntoOtherAction(GroupAction):
-    user_visible = True
+    # Hidden since merging moves this entry onto the surviving group, where it would only
+    # point back at that group. MergeFromOtherAction represents the merge there.
+    user_visible = False
     counterpart_group_id: int
 
     @classmethod
@@ -372,16 +398,12 @@ class MergeFromOtherAction(GroupAction):
 
 
 class DeleteAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.DELETE
 
 
 class BookmarkAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.BOOKMARK
@@ -394,8 +416,10 @@ class SentryActorRef(BaseModel):
 
 
 class CommentAction(GroupAction):
-    user_visible = True
-    comment_id: int
+    """Comment creation. Current content lives in the Activity NOTE row."""
+
+    comment_id: int  # Activity NOTE ID
+    # Historical payloads include content; new producers may omit it.
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -405,8 +429,12 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
-    user_visible = True
+    """Comment edit. The ID kind distinguishes historical GAL references from comments."""
+
     comment_id: int
+    # Missing in historical payloads: comment_id refers to the original COMMENT GAL row.
+    # "comment" means the comment's own ID (currently Activity NOTE), independent of any creation event.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -416,8 +444,11 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
-    user_visible = True
+    """Comment deletion. The referenced comment may no longer exist."""
+
     comment_id: int
+    # Same reference semantics as CommentEditAction; omitted means the original GAL row.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -425,16 +456,12 @@ class CommentDeleteAction(GroupAction):
 
 
 class SubscribeAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SUBSCRIBE
 
 
 class UnsubscribeAction(GroupAction):
-    user_visible = True
-
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.UNSUBSCRIBE
@@ -458,7 +485,9 @@ class TriggerAutofixAction(GroupAction):
 
 
 class CreateExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     provider: str
     external_issue_key: str
 
@@ -468,7 +497,9 @@ class CreateExternalIssueAction(GroupAction):
 
 
 class LinkExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     provider: str
     external_issue_key: str
 
@@ -488,7 +519,9 @@ class UnlinkExternalIssueAction(GroupAction):
 
 
 class CreatePlatformExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     service_type: str
     display_name: str
     web_url: str
@@ -499,7 +532,9 @@ class CreatePlatformExternalIssueAction(GroupAction):
 
 
 class LinkPlatformExternalIssueAction(GroupAction):
-    user_visible = True
+    # Hidden while the CREATE_ISSUE Activity is still written, since its mirrored
+    # CreateIssueAction already represents this.
+    user_visible = False
     service_type: str
     display_name: str
     web_url: str
@@ -521,7 +556,6 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 
 
 class AutofixPrCreatedAction(GroupAction):
-    user_visible = True
     run_id: str | None = None
     # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     pull_requests: list[dict[str, object]]
@@ -543,8 +577,6 @@ class ResolvedInPullRequestAction(GroupAction):
 class RootCauseIdentifiedAction(GroupAction):
     """Seer (or a human) identified the root cause of an issue."""
 
-    user_visible = True
-
     run_id: str | None = None
     summary: str | None = None
 
@@ -555,8 +587,6 @@ class RootCauseIdentifiedAction(GroupAction):
 
 class AutofixCodingCompleteAction(GroupAction):
     """Seer finished writing a fix (code ready, PR not yet created)."""
-
-    user_visible = True
 
     run_id: str | None = None
 
@@ -613,6 +643,19 @@ class PullRequestUnlinkedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_UNLINKED
+
+
+class ImpactAssessmentAction(GroupAction):
+    user_visible = True
+
+    score: float | None = Field(default=None, ge=0, le=100)
+    description: str
+    citations: list[ImpactCitation]
+    source_event_id: str
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.IMPACT_ASSESSMENT
 
 
 class GroupActionLogPayload(TypedDict):
@@ -690,7 +733,6 @@ class SetResolvedInCommitAction(GroupAction):
 
 
 class DeployAction(GroupAction):
-    user_visible = True
     deploy_id: int
     version: str
     environment: str
@@ -701,7 +743,6 @@ class DeployAction(GroupAction):
 
 
 class NewProcessingIssuesAction(GroupAction):
-    user_visible = True
     reprocessing_active: bool
     # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     issues: list[dict[str, str | dict[str, str]]]

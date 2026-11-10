@@ -152,7 +152,12 @@ class AuthOrganizationConfigEndpointTest(APITestCase):
         superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.login_as(superuser, superuser=True)
 
-        response = self.get_success_response(organization.slug)
+        with mock.patch(
+            "sentry.organizations.services.organization.impl.get_active_resource_ids",
+            side_effect=AssertionError("Login configuration does not need resource IDs"),
+        ) as resources:
+            response = self.get_success_response(organization.slug)
+        resources.assert_not_called()
 
         assert response.data["memberAuthenticated"] is True
         assert response.data["warnings"] == []

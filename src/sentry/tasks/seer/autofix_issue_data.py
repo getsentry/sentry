@@ -13,19 +13,14 @@ from taskbroker_client.retry import Retry
 from sentry import features
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.ratelimits import backend as ratelimiter
-from sentry.seer.models import SeerApiError
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
-from sentry.seer.signed_seer_api import (
-    LlmGenerateRequest,
-    SeerViewerContext,
-    make_llm_generate_request,
-)
+from sentry.seer.oneshot import run_oneshot
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -34,24 +29,12 @@ MAX_REVIEWS_PER_ORG_PER_RUN = 20
 ISSUES_PER_JUDGE_TASK = 10
 ORG_STAGGER_SPREAD_DURATION = timedelta(hours=1)
 
-SYSTEM_PROMPT = """Agentic triage reviews software issues and may trigger Autofix to investigate
-and open a pull request. Your job is to identify issues where opening a pull request would be
-wasteful because the issue cannot be fixed in the relevant codebase.
-
-An issue is fixable when it can reasonably be resolved with one or two pull requests to the
-relevant codebase. It is not_fixable when it cannot. Choose uncertain only when the supplied
-evidence is insufficient to decide. Use only the supplied issue and event evidence. Do not
-assume an attempted fix, pull request, or prior automated decision.
-
-Return only a JSON object matching this shape, with a concise one-to-two-sentence reason:
-{"verdict":"fixable|not_fixable|uncertain","confidence":"high|medium|low","reason":"..."}
-"""
-
 
 class JudgeResponse(BaseModel):
     verdict: Literal["fixable", "not_fixable", "uncertain"]
     confidence: Literal["high", "medium", "low"]
     reason: str = Field(min_length=1, max_length=2048)
+    model: str = Field(min_length=1)
 
 
 def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
@@ -138,13 +121,6 @@ def schedule_judging_for_org(organization_id: int, *args: Any, **kwargs: Any) ->
         )
 
 
-def _parse_response(content: str) -> JudgeResponse:
-    value = content.strip()
-    if value.startswith("```json") and value.endswith("```"):
-        value = value[7:-3].strip()
-    return JudgeResponse.parse_obj(json.loads(value))
-
-
 @instrumented_task(
     name="sentry.tasks.seer.autofix_issue_data.judge",
     namespace=seer_tasks,
@@ -177,44 +153,19 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
         metrics.incr("autofix_issue_data.judge.skipped", tags={"reason": "stale_event"})
         return
 
-    body = LlmGenerateRequest(
-        provider="anthropic",
-        model="opus",
-        referrer="sentry.autofix_issue_data.judge",
-        prompt=json.dumps(
-            {
-                key: value
-                for key, value in issue_data.raw_issue_data.items()
-                if key not in {"status", "reason"}
-            }
-        ),
-        system_prompt=SYSTEM_PROMPT,
-        temperature=0.0,
-        max_tokens=1000,
-        timeout=25,
-        reasoning="high",
-        conversation_id=None,
-    )
     with viewer_context_scope(
         ViewerContext(
-            organization_id=issue_data.organization_id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=issue_data.organization_id
         )
     ):
-        response = make_llm_generate_request(
-            body,
-            timeout=30,
-            viewer_context=SeerViewerContext(organization_id=issue_data.organization_id),
+        result = JudgeResponse.parse_obj(
+            run_oneshot(
+                "autofix_issue_data_judge",
+                {"issue_data": issue_data.raw_issue_data},
+                issue_data.organization,
+                timeout=30,
+            )
         )
-    if response.status >= 400:
-        raise SeerApiError("Seer autofix issue data judge request failed", response.status)
-
-    response_data = response.json()
-    content = response_data.get("content")
-    model = response_data.get("model")
-    if not isinstance(content, str) or not isinstance(model, str):
-        raise ValueError("Seer autofix issue data judge returned an invalid response")
-    result = _parse_response(content)
     reviewed_at = timezone.now()
 
     updated = SeerAutofixIssueData.objects.filter(
@@ -227,7 +178,7 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
             "verdict": result.verdict,
             "confidence": result.confidence,
             "reason": result.reason,
-            "model": model,
+            "model": result.model,
             "prompt_version": "2",
             "reviewed_at": reviewed_at.isoformat(),
             "reviewed_event_id": event_id,

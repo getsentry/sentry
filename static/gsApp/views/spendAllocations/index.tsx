@@ -5,13 +5,13 @@ import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -46,7 +46,7 @@ import type {SpendAllocation} from './components/types';
 import {EnableSpendAllocations} from './enableSpendAllocations';
 import {ProjectAllocationsTable} from './projectAllocationsTable';
 import {RootAllocationCard} from './rootAllocationCard';
-import {BigNumUnits} from './utils';
+import {BigNumUnits, getRequestErrorMessage} from './utils';
 
 type Props = {
   subscription: Subscription;
@@ -237,9 +237,14 @@ export function SpendAllocationsRoot({subscription}: Props) {
         },
       });
       await fetchSpendAllocations();
-    } catch (err: any) {
+    } catch (err) {
       setShouldRetry(false);
-      setErrors(err.responseJSON.detail);
+      setErrors(
+        getRequestErrorMessage(
+          err,
+          t('Unable to create spend allocation. Please try again.')
+        )
+      );
     }
   };
 

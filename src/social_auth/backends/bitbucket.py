@@ -11,9 +11,13 @@ stored in extra_data field, check OAuthBackend class for details on how to
 extend it.
 """
 
+from collections.abc import Mapping
+from typing import Any, cast
+
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.utils import json
 from social_auth.backends import BaseOAuth1, OAuthBackend
+from social_auth.models import UserSocialAuth
 from social_auth.utils import dsa_urlopen
 
 # Bitbucket configuration
@@ -37,23 +41,26 @@ class BitbucketBackend(OAuthBackend):
         ("last_name", "last_name"),
     ]
 
-    def get_user_details(self, response):
+    def get_user_details(self, response: Mapping[str, Any]) -> dict[str, Any]:
         """Return user details from Bitbucket account"""
         return {
             "username": response.get("username"),
             "email": response.get("email"),
-            "fullname": " ".join((response.get("first_name"), response.get("last_name"))),
+            "fullname": " ".join(
+                cast("tuple[str, str]", (response.get("first_name"), response.get("last_name")))
+            ),
             "first_name": response.get("first_name"),
             "last_name": response.get("last_name"),
         }
 
-    def get_user_id(self, details, response):
+    def get_user_id(self, details: Mapping[str, Any], response: Mapping[str, Any]) -> str:
         """Return the user id, Bitbucket only provides username as a unique
         identifier"""
-        return response["username"]
+        username = response["username"]
+        return username
 
     @classmethod
-    def tokens(cls, instance):
+    def tokens(cls, instance: UserSocialAuth) -> dict[str, Any]:
         """Return the tokens needed to authenticate the access to any API the
         service might provide. Bitbucket uses a pair of OAuthToken consisting
         on a oauth_token and oauth_token_secret.
@@ -77,7 +84,7 @@ class BitbucketAuth(BaseOAuth1):
     SETTINGS_SECRET_NAME = "BITBUCKET_CONSUMER_SECRET"
     DEFAULT_SCOPE = ["webhook", "repository", "issue"]
 
-    def user_data(self, access_token):
+    def user_data(self, access_token: str, *args: Any, **kwargs: Any) -> dict[str, Any] | None:
         """Return user data provided"""
         # Bitbucket has a bit of an indirect route to obtain user data from an
         # authenticated query: First obtain the user's email via an

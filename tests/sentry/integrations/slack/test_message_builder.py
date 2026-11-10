@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -17,7 +18,6 @@ from sentry.integrations.slack.message_builder.issues import (
     build_actions,
     format_release_tag,
     get_context,
-    get_option_groups,
     get_tags,
 )
 from sentry.integrations.slack.message_builder.routing import encode_action_id
@@ -45,7 +45,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -382,7 +382,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.save(update_fields=["flags"])
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
         assert origin.legacy_rule_id is not None
         assert origin.workflow_id is not None
 
@@ -459,7 +459,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_group_block_with_workflow_only(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        rule_origin = create_notification_origin(rule)
+        rule_origin = create_workflow_notification_origin_for_rule(rule)
         workflow_id = rule_origin.workflow_id
         assert workflow_id is not None
         origin = NotificationOrigin(
@@ -533,25 +533,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
         )
-
-    @patch(
-        "sentry.integrations.slack.message_builder.issues.get_option_groups",
-        wraps=get_option_groups,
-    )
-    def test_build_group_block_prune_duplicate_assignees(
-        self, mock_get_option_groups: MagicMock
-    ) -> None:
-        user2 = self.create_user()
-        self.create_member(user=user2, organization=self.organization)
-        team2 = self.create_team(organization=self.organization, members=[self.user, user2])
-        project2 = self.create_project(organization=self.organization, teams=[self.team, team2])
-        group = self.create_group(project=project2)
-
-        SlackIssuesMessageBuilder(group).build()
-
-        team_option_groups, member_option_groups = mock_get_option_groups(group)
-        assert len(team_option_groups["options"]) == 2
-        assert len(member_option_groups["options"]) == 2
 
     def test_build_group_attachment_issue_alert(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
@@ -771,6 +752,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         # suggested user/suspect commit for user with name
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             user2.update(name="Scooby Doo")
+        assert commit.author is not None
         commit.author.update(name=user2.name)
         expected_blocks = build_test_message_blocks(
             teams={self.team},
@@ -1083,7 +1065,9 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "", True)
 
-    def _assert_message_actions_list(self, actions, expected):
+    def _assert_message_actions_list(
+        self, actions: Sequence[MessageAction], expected: dict[str, Any]
+    ) -> None:
         actions_dict = [
             {"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions
         ]
@@ -1323,7 +1307,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
         group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
 
-        context = get_context(group, [create_notification_origin(rule)])
+        context = get_context(group, [create_workflow_notification_origin_for_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
@@ -1331,7 +1315,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
         # filter users affected by env
         rule.update(environment_id=env.id)
-        context = get_context(group, [create_notification_origin(rule)])
+        context = get_context(group, [create_workflow_notification_origin_for_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
@@ -1339,9 +1323,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
     def test_get_tags(self) -> None:
         # don't use default tags. if we don't pass in tags to get_tags, we don't return any
-        tags = get_tags(
-            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
-        )
+        tags = get_tags(self.endpoint_regression_issue.get_latest_event())
         assert not tags
 
 
@@ -1352,7 +1334,10 @@ class SlackAppUpdateNudgeBlockTest(TestCase):
             group,
             has_mentions_read_scope=has_mentions_read_scope,
         ).get_slack_app_update_nudge_block()
-        return block["elements"][0]["text"]
+        text = block["elements"][0]["text"]
+        if not isinstance(text, str):
+            raise TypeError("Nudge block text is not a string")
+        return text
 
     def test_updated_app_has_app_mentions_scope(self) -> None:
         # app_mentions:read present -> app is up to date.

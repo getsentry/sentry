@@ -2,14 +2,15 @@ import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -49,7 +50,7 @@ def get_request_attribution(request: HttpRequest | Request) -> dict[str, str | b
     }
 
 
-def signal_first_checkin(project: Project, monitor: Monitor):
+def signal_first_checkin(project: Project, monitor: Monitor) -> None:
     if not project.flags.has_cron_checkins:
         # Backfill users that already have cron monitors
         check_and_signal_first_monitor_created(project, None, False)
@@ -64,28 +65,44 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         )
 
 
-def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
+def check_and_signal_first_monitor_created(
+    project: Project, user: object | None, from_upsert: bool
+) -> None:
     set_project_flag_and_signal(
         project, "has_cron_monitors", first_cron_monitor_created, user=user, from_upsert=from_upsert
     )
 
 
-def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: Monitor, request):
+def signal_monitor_created(
+    project: Project,
+    user: object | None,
+    from_upsert: bool,
+    monitor: Monitor,
+    request: Request | None,
+) -> None:
     cron_monitor_created.send_robust(
         project=project, user=user, from_upsert=from_upsert, sender=Project
     )
     check_and_signal_first_monitor_created(project, user, from_upsert)
 
-    create_audit_log = create_system_audit_entry if from_upsert else create_audit_entry
-    kwargs = {
-        "organization": project.organization,
-        **({"request": request} if not from_upsert else {}),
-        "target_object": monitor.id,
-        "event": audit_log.get_event_id("MONITOR_ADD"),
-        "data": {"upsert": from_upsert, **monitor.get_audit_log_data()},
-    }
-
-    create_audit_log(**kwargs)
+    event = audit_log.get_event_id("MONITOR_ADD")
+    data = {"upsert": from_upsert, **monitor.get_audit_log_data()}
+    if from_upsert:
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=monitor.id,
+            event=event,
+            data=data,
+        )
+    else:
+        assert request is not None
+        create_audit_entry(
+            organization=project.organization,
+            request=request,
+            target_object=monitor.id,
+            event=event,
+            data=data,
+        )
 
 
 def get_monitor_environment_ids(monitor: Monitor, environments: Sequence[Environment]) -> list[int]:
@@ -108,7 +125,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
-    monitor_config: dict | None, status: int, date_added: datetime | None
+    monitor_config: dict[str, Any] | None, status: int, date_added: datetime | None
 ) -> datetime | None:
     if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
@@ -328,7 +345,9 @@ def fetch_associated_groups(
         ).select_related("project")
         for group in groups_queryset:
             for trace_id in group_id_data[group.id]:
-                trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
+                trace_groups[trace_id].append(
+                    {"id": group.id, "shortId": cast("str", group.qualified_short_id)}
+                )
 
     return trace_groups
 
@@ -350,6 +369,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
                     owner_team_id=monitor.owner_team_id,
+                    enabled=monitor.status == ObjectStatus.ACTIVE,
                     config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
@@ -367,7 +387,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
     return None
 
 
-def ensure_cron_detector_deletion(monitor: Monitor):
+def ensure_cron_detector_deletion(monitor: Monitor) -> None:
     with atomic_transaction(using=router.db_for_write(DataSource)):
         try:
             data_source = DataSource.objects.get(
@@ -389,15 +409,3 @@ def ensure_cron_detector_deletion(monitor: Monitor):
         data_source.delete()
         if detector:
             detector.delete()
-
-
-def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
-    try:
-        with in_test_hide_transaction_boundary():
-            return Detector.objects.get(
-                datasource__type=DATA_SOURCE_CRON_MONITOR,
-                datasource__source_id=str(monitor.id),
-                datasource__organization_id=monitor.organization_id,
-            )
-    except Detector.DoesNotExist:
-        return None

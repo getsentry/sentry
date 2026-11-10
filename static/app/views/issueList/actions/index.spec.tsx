@@ -27,7 +27,7 @@ import {
   IssueSelectionProvider,
   useIssueSelectionActions,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
+import {DEFAULT_QUERY, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const organization = OrganizationFixture();
 
@@ -35,6 +35,7 @@ const defaultProps = {
   allResultsVisible: false,
   query: '',
   queryCount: 15,
+  sort: IssueSortOptions.DATE,
   projectId: 'project-slug',
   selection: {
     projects: [1],
@@ -167,15 +168,35 @@ describe('IssueListActions', () => {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+
+        expect(screen.getByText('3 issues on this page selected.')).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByText('Select the first 1,000 issues that match this search query.')
+        );
+        expect(
+          screen.getByText(
+            'Selected up to the first 1,000 issues that match this search query.'
+          )
+        ).toBeInTheDocument();
       });
 
-      it('bulk resolves', async () => {
+      it('bulk resolves with the current search filters and sort', async () => {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
 
-        render(<WrappedComponent queryCount={1500} />);
+        render(
+          <WrappedComponent
+            queryCount={1500}
+            sort={IssueSortOptions.FREQ}
+            selection={{
+              projects: [1],
+              environments: ['production'],
+              datetime: {start: null, end: null, period: '24h', utc: true},
+            }}
+          />
+        );
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(
@@ -193,6 +214,11 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: ['production'],
+              statsPeriod: '24h',
+              utc: true,
+              sort: IssueSortOptions.FREQ,
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
@@ -229,6 +255,10 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: [],
+              utc: true,
+              sort: IssueSortOptions.DATE,
             },
             data: {priority: 'high'},
           })
@@ -246,6 +276,9 @@ describe('IssueListActions', () => {
         await userEvent.click(
           screen.getByText(/Select all 15 issues that match this search query/)
         );
+        expect(
+          screen.getByText('Selected all 15 issues that match this search query.')
+        ).toBeInTheDocument();
       });
 
       it('bulk resolves', async () => {
@@ -275,6 +308,10 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: {
               project: [1],
+              query: '',
+              environment: [],
+              utc: true,
+              sort: IssueSortOptions.DATE,
             },
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
@@ -538,6 +575,62 @@ describe('IssueListActions', () => {
     });
   });
 
+  describe('copy', () => {
+    beforeEach(() => {
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+      GroupStore.loadInitialData([
+        GroupFixture({
+          id: '1',
+          shortId: 'PROJ-1',
+          permalink: 'https://sentry.io/organizations/org-slug/issues/1/',
+        }),
+        GroupFixture({
+          id: '2',
+          shortId: 'PROJ-2',
+          permalink: 'https://sentry.io/organizations/org-slug/issues/2/',
+        }),
+        GroupFixture({id: '3', shortId: 'PROJ-3'}),
+      ]);
+    });
+
+    it('copies selected issue IDs', async () => {
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Issue IDs'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('PROJ-1\nPROJ-2');
+    });
+
+    it('copies selected issue links', async () => {
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Copy Issue Links'})
+      );
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'https://sentry.io/organizations/org-slug/issues/1/\nhttps://sentry.io/organizations/org-slug/issues/2/'
+      );
+    });
+
+    it('disables copy when all issues in the query are selected', async () => {
+      render(<WrappedComponent queryCount={1500} />);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(
+        screen.getByText(/Select the first 1,000 issues that match this search query/)
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      expect(screen.getByRole('menuitemradio', {name: /Copy Issue IDs/})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   describe('performance issues', () => {
     it('disables options that are not supported for performance issues', async () => {
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
@@ -599,7 +692,6 @@ describe('IssueListActions', () => {
 
     describe('bulk action performance issues', () => {
       const orgWithPerformanceIssues = OrganizationFixture({
-        features: ['performance-issues'],
         access: ['event:admin'],
       });
 
@@ -609,9 +701,14 @@ describe('IssueListActions', () => {
           method: 'DELETE',
         });
 
-        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
-          organization: orgWithPerformanceIssues,
-        });
+        render(
+          <WrappedComponent
+            query={DEFAULT_QUERY}
+            queryCount={100}
+            sort={IssueSortOptions.FREQ}
+          />,
+          {organization: orgWithPerformanceIssues}
+        );
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -639,6 +736,7 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               query: DEFAULT_QUERY + ' issue.category:error',
+              sort: IssueSortOptions.FREQ,
             }),
           })
         );
@@ -655,9 +753,14 @@ describe('IssueListActions', () => {
           .spyOn(GroupStore, 'get')
           .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
 
-        render(<WrappedComponent query={DEFAULT_QUERY} queryCount={100} />, {
-          organization: orgWithPerformanceIssues,
-        });
+        render(
+          <WrappedComponent
+            query={DEFAULT_QUERY}
+            queryCount={100}
+            sort={IssueSortOptions.FREQ}
+          />,
+          {organization: orgWithPerformanceIssues}
+        );
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
@@ -682,6 +785,7 @@ describe('IssueListActions', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               query: DEFAULT_QUERY + ' issue.category:error',
+              sort: IssueSortOptions.FREQ,
             }),
           })
         );

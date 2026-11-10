@@ -13,7 +13,6 @@ from hashlib import md5
 from random import Random
 from typing import Any, cast
 from unittest import mock
-from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
@@ -286,8 +285,6 @@ def get_shared_context(
     event: BaseEvent,
 ) -> dict[str, Any]:
     rules = get_rules([origin], org, project, group.type)
-    snooze_alert = len(rules) > 0
-    snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
     return {
         "rule": rules[0],
         "rules": rules,
@@ -299,8 +296,6 @@ def get_shared_context(
         #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
         "link": get_group_settings_link(group, None, rules, 1337),
         "tags": event.tags,
-        "snooze_alert": snooze_alert,
-        "snooze_alert_url": absolute_uri(snooze_alert_url),
     }
 
 
@@ -485,8 +480,8 @@ def alert(request: HttpRequest) -> HttpResponse:
     origin = NotificationOrigin(
         label="An example rule",
         environment_id=None,
-        workflow_id=None,
-        legacy_rule_id=1,
+        workflow_id=1,
+        legacy_rule_id=None,
     )
     notification_reason = (
         random.randint(0, 1) > 0
@@ -528,8 +523,8 @@ def digest(request: HttpRequest) -> HttpResponse:
         i: NotificationOrigin(
             label=f"Rule #{i}",
             environment_id=None,
-            workflow_id=None,
-            legacy_rule_id=i,
+            workflow_id=i,
+            legacy_rule_id=None,
         )
         for i in range(1, random.randint(2, 4))
     }
@@ -631,10 +626,6 @@ def digest(request: HttpRequest) -> HttpResponse:
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
     context["show_replay_links"] = True
-    context["snooze_alert"] = True
-    context["snooze_alert_urls"] = {
-        rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details
-    }
 
     add_unsubscribe_link(context)
 

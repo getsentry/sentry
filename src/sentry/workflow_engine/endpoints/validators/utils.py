@@ -13,7 +13,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.api.permissions import enforce_scope
-from sentry.issues import grouptype
+from sentry.auth.access import Access
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.actor import Actor
@@ -21,9 +21,11 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
-from sentry.workflow_engine.types import DetectorId, WorkflowId
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorId, DetectorType, WorkflowId
 
 logger = logging.getLogger(__name__)
 
@@ -36,21 +38,11 @@ ORGANIZATION_WORKFLOW_WRITE_SCOPES = ("org:write", "org:admin", "alerts:write")
 def is_system_created_detector(detector: Detector) -> bool:
     # Lazy imports to avoid circular imports: grouptype imports from validators/base
     # which imports from this module.
-    from sentry.grouping.grouptype import ErrorGroupType
     from sentry.issue_detection.performance_detection import PERFORMANCE_WFE_DETECTOR_TYPES
 
     return (
-        detector.type in (ErrorGroupType.slug, IssueStreamGroupType.slug)
+        detector.type in (DetectorType.ERROR, DetectorType.ISSUE_STREAM)
         or detector.type in PERFORMANCE_WFE_DETECTOR_TYPES
-    )
-
-
-def can_edit_system_created_detectors(request: Request, detector: Detector) -> bool:
-    if detector.type == IssueStreamGroupType.slug:
-        return False
-
-    return request.access.has_any_project_scope(
-        detector.linked_project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
     )
 
 
@@ -79,18 +71,29 @@ def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     )
 
 
+def can_edit_detector_with_access(detector: Detector, access: Access) -> bool:
+    """Like can_edit_detector, for callers that have an Access instead of a request."""
+    if is_system_created_detector(detector):
+        # Check this first, because the all-projects issue stream detector has no project.
+        if detector.type == DetectorType.ISSUE_STREAM:
+            return False
+        if not access.has_any_project_scope(
+            detector.linked_project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
+        ):
+            return False
+
+    return access.has_any_project_scope(
+        detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
+
+
 def can_edit_detector(detector: Detector, request: Request) -> bool:
     """
     Determine if the requesting user has access to detector edit. If the request does not have the "alerts:write"
     permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
     in their request.
     """
-    if is_system_created_detector(detector) and not can_edit_system_created_detectors(
-        request, detector
-    ):
-        return False
-
-    return can_edit_user_created_detectors(request, detector.linked_project)
+    return can_edit_detector_with_access(detector, request.access)
 
 
 def can_delete_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
@@ -183,7 +186,10 @@ def validate_detectors_exist_and_have_permissions(
 def validate_workflows_exist(
     workflow_ids: list[int], organization: Organization
 ) -> QuerySet[Workflow]:
-    workflows = Workflow.objects.filter(organization=organization, id__in=workflow_ids)
+    # Users should not be able to reference the ids of hidden workflows
+    workflows = Workflow.objects.filter(
+        organization=organization, id__in=workflow_ids, type__in=VISIBLE_WORKFLOW_TYPES
+    )
     found_workflow_ids = set(workflows.values_list("id", flat=True))
     missing_workflow_ids = set(workflow_ids) - found_workflow_ids
 
@@ -376,10 +382,13 @@ def connect_detectors_to_workflows(
             return detector_workflows_to_add
 
         if update:
+            # Since users do not receive hidden workflow ids through the API,
+            # these connections need to be left untouched
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     detector_id=detector_id,
                     detector__in=Detector.objects.by_organization(organization.id),
+                    workflow__type__in=VISIBLE_WORKFLOW_TYPES,
                 )
             )
             new_workflow_ids = set(workflow_ids) - {
@@ -481,7 +490,7 @@ def log_alerting_quota_hit(
     metrics.incr("workflow_engine.quota.limit_hit", tags={"object_type": object_type})
 
 
-def validate_json_schema(value: Any, schema: Any) -> Any:
+def validate_json_schema[T](value: T, schema: Any) -> T:
     try:
         validate(value, schema)
     except JsonValidationError as e:
@@ -513,9 +522,9 @@ def remove_items_by_api_input(
 
 def get_unknown_detector_type_error(bad_value: str, organization: Organization) -> str:
     available_types = [
-        gt.slug
-        for gt in grouptype.registry.get_visible(organization)
-        if gt.detector_settings is not None and gt.detector_settings.validator is not None
+        detector_type
+        for detector_type in get_visible_detector_types(organization)
+        if detector_settings_registry.get(detector_type).validator is not None
     ]
     available_types.sort()
 

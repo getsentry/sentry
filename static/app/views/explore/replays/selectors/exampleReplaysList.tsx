@@ -3,12 +3,12 @@ import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';

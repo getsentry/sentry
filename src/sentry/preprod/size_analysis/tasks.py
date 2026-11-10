@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -269,7 +269,7 @@ def compare_preprod_artifact_size_analysis(
 
             try:
                 artifact_type_name = PreprodArtifact.ArtifactType(
-                    artifact.artifact_type
+                    cast(int, artifact.artifact_type)
                 ).name.lower()
             except (ValueError, AttributeError, TypeError):
                 artifact_type_name = "unknown"

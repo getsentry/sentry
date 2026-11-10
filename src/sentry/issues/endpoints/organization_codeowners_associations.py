@@ -1,29 +1,85 @@
+from typing import Annotated, TypedDict
+
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
-    OrganizationIntegrationsLoosePermission,
+    OrganizationIntegrationsPermission,
 )
-from sentry.api.validators.project_codeowners import build_codeowners_associations
+from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
 
+class CodeOwnersProjectAssociationsResponse(TypedDict):
+    associations: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Sentry user or team for each owner in the CODEOWNERS file, keyed by the owner's name in the file"
+        ),
+    ]
+    errors: Annotated[
+        CodeOwnersErrors,
+        ApiDescription("Owners in the CODEOWNERS file that couldn't be associated, by reason"),
+    ]
+
+
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
-    permission_classes = (OrganizationIntegrationsLoosePermission,)
+    permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationCodeownersAssociations",
+        summary="List Code Owner Associations",
+        description=(
+            "Return CODEOWNERS associations for projects the authenticated user is a member of. "
+            "Specify `project` to filter the results."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "project",
+                type=str,
+                many=True,
+                description=(
+                    "Filter by project ID or slug. Specify multiple values to include multiple projects. "
+                    "Use `-1` to include all accessible projects."
+                ),
+            ),
+            OpenApiParameter(
+                "provider", type=str, description="Filter associations by integration provider."
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationCodeOwnersAssociationsResponse",
+                dict[str, CodeOwnersProjectAssociationsResponse],
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[dict[str, CodeOwnersProjectAssociationsResponse]]:
         """
         Returns all ProjectCodeOwners associations for an organization as a dict with projects as keys
         e.g. {"projectSlug": {associations: {...}, errors: {...}}, ...]

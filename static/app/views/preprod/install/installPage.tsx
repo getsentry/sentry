@@ -12,8 +12,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import {InstallDetailsContent} from 'sentry/views/preprod/components/installDetailsContent';
-import {BuildInstallHeader} from 'sentry/views/preprod/install/buildInstallHeader';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+
+import {BuildInstallHeader} from './buildInstallHeader';
 
 export default function InstallPage() {
   const {artifactId} = useParams<{artifactId: string}>();

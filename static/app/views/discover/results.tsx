@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -24,7 +25,6 @@ import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {Banner} from 'sentry/components/banner';
-import {Confirm} from 'sentry/components/confirm';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -49,8 +49,7 @@ import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -64,7 +63,6 @@ import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {generateQueryWithTag, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -78,16 +76,22 @@ import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {useGlobalAlerts, type AddAlert} from 'sentry/views/app/globalAlerts';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {
-  DEFAULT_EVENT_VIEW,
-  DEFAULT_EVENT_VIEW_MAP,
-} from 'sentry/views/discover/results/data';
-import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
-import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
-import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
-import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
-import {Tags} from 'sentry/views/discover/results/tags';
-import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './results/data';
+import {ResultsChartContainer} from './results/resultsChart';
+import {ResultsHeader} from './results/resultsHeader';
+import {ResultsSearchQueryBuilder} from './results/resultsSearchQueryBuilder';
+import {SampleDataAlert} from './results/sampleDataAlert';
+import {Tags} from './results/tags';
+import {getDatasetFromLocationOrSavedQueryDataset} from './savedQuery/datasets';
 import {
   getSavedQueryDataset,
   getSavedQueryWithDataset,
@@ -97,23 +101,15 @@ import {
   handleResetHomepageQuery,
   handleUpdateHomepageQuery,
   handleUpdateQuery as handleUpdateSavedQuery,
-} from 'sentry/views/discover/savedQuery/utils';
-import Table from 'sentry/views/discover/table';
+} from './savedQuery/utils';
+import {Table} from './table';
 import {
   canCreateAlerts,
   generateTitle,
   getCreateAlertFromViewUrl,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
-} from 'sentry/views/discover/utils';
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getExploreUrl} from 'sentry/views/explore/utils';
-import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+} from './utils';
 
 type Props = {
   addAlert: AddAlert;
@@ -408,7 +404,6 @@ export class Results extends Component<Props, State> {
         trackAiQueryOutcome({
           dataset: 'errors',
           mode,
-          referrer: 'errors',
           resultCount: totals,
           organization,
           runId: aiQueryRunId,
@@ -420,7 +415,6 @@ export class Results extends Component<Props, State> {
         trackAiQueryOutcome({
           dataset: 'errors',
           mode,
-          referrer: 'errors',
           resultCount: 0,
           organization,
           runId: aiQueryRunId,
@@ -911,7 +905,7 @@ function TransactionsDatasetDeprecationBanner({
         datetime: {
           start: savedQuery.exploreQuery.start ?? null,
           end: savedQuery.exploreQuery.end ?? null,
-          period: savedQuery.exploreQuery.range ?? null,
+          period: savedQuery.exploreQuery.statsPeriod ?? null,
           utc: selection.datetime.utc ?? null,
         },
       },
@@ -1065,6 +1059,13 @@ function TagsTable({
   );
 }
 
+export function makeDiscoverHomepageOptions(organization: Organization) {
+  return apiOptions.as<SavedQuery>()(
+    '/organizations/$organizationIdOrSlug/discover/homepage/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+  );
+}
+
 function DiscoverContextMenu({
   organization,
   eventView,
@@ -1084,19 +1085,13 @@ function DiscoverContextMenu({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const homepageQueryKey = useMemo(
-    (): ApiQueryKey => [
-      getApiUrl('/organizations/$organizationIdOrSlug/discover/homepage/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    [organization.slug]
-  );
+  const homepageOptions = makeDiscoverHomepageOptions(organization);
+  const homepageQueryKey = homepageOptions.queryKey;
 
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
 
-  const {data: homepageQuery} = useApiQuery<SavedQuery | undefined>(homepageQueryKey, {
-    staleTime: 0,
+  const {data: homepageQuery} = useQuery({
+    ...homepageOptions,
     enabled: hasDiscoverQueryFeature,
   });
 
@@ -1130,9 +1125,8 @@ function DiscoverContextMenu({
             organization,
             source: analyticsEventSource,
           });
-          setApiQueryData(queryClient, homepageQueryKey, undefined);
+          await queryClient.resetQueries({queryKey: homepageQueryKey, exact: true});
           if (isHomepage) {
-            setSavedQuery(undefined);
             const nextEventView = EventView.fromNewQueryWithLocation(
               DEFAULT_EVENT_VIEW,
               location
@@ -1159,7 +1153,11 @@ function DiscoverContextMenu({
             source: analyticsEventSource,
           });
           if (updatedHomepageQuery) {
-            setApiQueryData(queryClient, homepageQueryKey, updatedHomepageQuery);
+            queryClient.setQueryData(homepageQueryKey, previous => ({
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: updatedHomepageQuery,
+            }));
             if (isHomepage) {
               setSavedQuery(updatedHomepageQuery);
             }
@@ -1374,31 +1372,29 @@ function SaveQueryButton({
     });
   }
 
-  if (organization.features.includes('dashboards-edit')) {
-    items.push({
-      key: 'add-to-dashboard',
-      label: t('Dashboard widget'),
-      textValue: t('Dashboard widget'),
-      disabled: deprecatingTransactionsDataset,
-      tooltip: deprecationTooltip,
-      onAction: () => {
-        handleAddQueryToDashboard({
-          organization,
-          location,
-          eventView,
-          query: savedQuery,
-          yAxis,
-          widgetType: hasDatasetSelector(organization)
-            ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
-              SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
-                getSavedQueryDataset(organization, location, savedQuery)
-              ]
-            : undefined,
-          source: DashboardWidgetSource.DISCOVERV2,
-        });
-      },
-    });
-  }
+  items.push({
+    key: 'add-to-dashboard',
+    label: t('Dashboard widget'),
+    textValue: t('Dashboard widget'),
+    disabled: deprecatingTransactionsDataset,
+    tooltip: deprecationTooltip,
+    onAction: () => {
+      handleAddQueryToDashboard({
+        organization,
+        location,
+        eventView,
+        query: savedQuery,
+        yAxis,
+        widgetType: hasDatasetSelector(organization)
+          ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre...
+            SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+              getSavedQueryDataset(organization, location, savedQuery)
+            ]
+          : undefined,
+        source: DashboardWidgetSource.DISCOVERV2,
+      });
+    },
+  });
 
   return (
     <DropdownMenu
@@ -1496,28 +1492,33 @@ function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQu
   const {organization, location} = props;
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const queryKey = useMemo(
-    (): ApiQueryKey => [
-      getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          queryId: decodeScalar(location.query.id)!,
-        },
-      }),
-    ],
+  const savedQueryOptions = useMemo(
+    () =>
+      apiOptions.as<SavedQuery>()(
+        '/organizations/$organizationIdOrSlug/discover/saved/$queryId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            queryId: decodeScalar(location.query.id)!,
+          },
+          staleTime: 0,
+        }
+      ),
     [organization, location.query.id]
   );
-  const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
-    queryKey,
-    {
-      enabled: Boolean(location.query.id),
-      staleTime: 0,
-    }
-  );
+  const queryKey = savedQueryOptions.queryKey;
+  const {data, isError, isFetching, refetch} = useQuery({
+    ...savedQueryOptions,
+    enabled: Boolean(location.query.id),
+  });
 
   const setSavedQuery = useCallback(
     (newQuery?: SavedQuery) => {
-      setApiQueryData(queryClient, queryKey, newQuery);
+      queryClient.setQueryData(queryKey, previous =>
+        newQuery === undefined
+          ? previous
+          : {...previous, headers: previous?.headers ?? {}, json: newQuery}
+      );
       queryClient.refetchQueries({queryKey});
     },
     [queryClient, queryKey]

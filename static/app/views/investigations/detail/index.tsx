@@ -1,129 +1,162 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
-import {IconChat} from '@sentry/icons/chat';
+import {Fragment} from 'react';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconStack} from '@sentry/icons/stack';
-import {useDebouncer} from '@tanstack/react-pacer';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
-import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {DateTime} from 'sentry/components/dateTime';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct, tn} from 'sentry/locale';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
-  investigationListQueryOptions,
-  investigationOrchestrationQueryOptions,
-  investigationTitleGenerationQueryOptions,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
-  useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
-import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
-import {
-  InvestigationCell,
-  isBlockWorking,
-  shouldDisplayInvestigationBlock,
-  shouldPollInvestigationBlocks,
-} from 'sentry/views/investigations/detail/cell';
-import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
-import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
-import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
-import {
-  InvestigationHypotheses,
-  shouldPollInvestigationRun,
-} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
-import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
-import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {useInvestigationAskSeer} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import {
+  getInvestigationPath,
+  getInvestigationsPath,
+} from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+import {InvestigationAccess} from './investigationAccess';
+import {InvestigationPageContent} from './investigationPageContent';
+import {useInvestigationDetail} from './useInvestigationDetail';
+import {useInvestigationTitle} from './useInvestigationTitle';
 
-const STATUS_TAG_VARIANT = {
-  running: 'info',
-  awaitingInput: 'warning',
-  failed: 'danger',
-  complete: 'success',
-  cancelled: 'muted',
-} as const;
+function InvestigationDetailPageInner({
+  investigation,
+}: {
+  investigation: InvestigationDetail;
+}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const {copy} = useCopyToClipboard();
+  const title = useInvestigationTitle(investigation);
+  const {getLLMContext} = useLLMContext();
+  const askSeer = useInvestigationAskSeer();
+  const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
+    onSuccess: duplicate => {
+      toast.success(t('Investigation duplicated.'));
+      navigate(getInvestigationPath(organization.slug, duplicate.id));
+    },
+    onError: () => toast.error(t('Unable to duplicate investigation.')),
+  });
+  const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
+    onMutate: () => title.cancelPendingRename(),
+    onSuccess: () => {
+      queryClient.removeQueries({
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
+          .queryKey,
+        exact: true,
+      });
+      toast.success(t('Investigation deleted.'));
+      navigate(getInvestigationsPath(organization.slug));
+    },
+    onError: () => toast.error(t('Unable to delete investigation.')),
+  });
 
-function FeatureDisabledPage() {
   return (
-    <Stack flex={1} padding="2xl 3xl">
-      <FeatureDisabled
-        features="organizations:investigations"
-        featureName={t('Investigations')}
+    <Fragment>
+      <SentryDocumentTitle title={title.displayedTitle} orgSlug={organization.slug} />
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: title.displayedTitle,
+          trailingActions: {
+            type: 'menu',
+            items: [
+              ...(askSeer
+                ? [
+                    {
+                      key: 'ask-seer',
+                      label: t('Ask Seer'),
+                      onAction: () =>
+                        askSeer({
+                          prompt: t(
+                            'What would you like to know about this investigation?'
+                          ),
+                          // This node with everything beneath it, so the
+                          // hypotheses and blocks on screen come along.
+                          context: getLLMContext(true).nodes[0],
+                        }),
+                    },
+                  ]
+                : []),
+              {
+                key: 'copy-link',
+                label: t('Copy link'),
+                onAction: () =>
+                  copy(
+                    `${window.location.origin}${getInvestigationPath(
+                      organization.slug,
+                      investigation.id
+                    )}`,
+                    {successMessage: t('Investigation link copied.')}
+                  ),
+              },
+              {
+                key: 'duplicate',
+                label: t('Duplicate'),
+                onAction: () => duplicateMutation.mutate(investigation),
+              },
+              {
+                key: 'delete',
+                label: t('Delete'),
+                priority: 'danger',
+                onAction: () =>
+                  openConfirmModal({
+                    message: t('Are you sure you want to delete this investigation?'),
+                    priority: 'danger',
+                    confirmText: t('Delete'),
+                    onConfirm: () => deleteMutation.mutate(investigation),
+                  }),
+              },
+            ],
+            triggerLabel: t('Investigation actions'),
+            triggerIcon: <IconEllipsis />,
+          },
+        }}
+        items={[
+          {
+            type: 'link',
+            label: t('Investigations'),
+            to: getInvestigationsPath(organization.slug),
+            leadingGraphic: <IconStack size="md" />,
+          },
+        ]}
       />
-    </Stack>
+      <InvestigationPageContent investigation={investigation} title={title} />
+    </Fragment>
   );
 }
 
-function ClosedMembershipPage() {
-  return (
-    <Stack flex={1} padding="2xl 3xl">
-      <Alert.Container>
-        <Alert variant="warning">
-          {t('Investigations are only available to organizations with open membership.')}
-        </Alert>
-      </Alert.Container>
-    </Stack>
-  );
-}
+const InvestigationDetailPage = registerLLMContext(
+  'investigation',
+  InvestigationDetailPageInner
+);
 
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
-  const organization = useOrganization();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organization.slug,
-    investigationId
-  );
   const {
     data: investigation,
     error,
     isError,
     isPending,
-  } = useQuery({
-    ...detailOptions,
-    refetchInterval: query => {
-      const data = query.state.data?.json;
-      // A live agentic run keeps this polling too: the notebook fills in as the
-      // agent writes blocks, and `orchestration` is what gates the hypothesis
-      // row, so a stale copy would leave the row hidden or showing a run that
-      // has since finished.
-      const orchestrationActive =
-        data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
-      return orchestrationActive ||
-        shouldPollInvestigationBlocks(data?.blocks ?? []) ||
-        isTitleGenerationActive(data?.titleGeneration?.status)
-        ? 2000
-        : false;
-    },
-  });
+  } = useInvestigationDetail(investigationId);
 
   if (isPending && !investigation) {
     return <LoadingIndicator />;
@@ -139,488 +172,17 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
     return null;
   }
 
-  return <InvestigationPageContent investigation={investigation} />;
+  return <InvestigationDetailPage investigation={investigation} />;
 }
-
-function InvestigationPageContent({investigation}: {investigation: InvestigationDetail}) {
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const {copy} = useCopyToClipboard();
-  const composerRef = useRef<HTMLDivElement>(null);
-  const activityRef = useRef<HTMLElement>(null);
-  const {data: comments} = useInvestigationComments(investigation.id);
-  const commentCount = comments?.json.length ?? 0;
-  const hasMoreComments =
-    parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
-  const {openBlockComments} = useBlockCommentsDrawer(investigation.id);
-  const [draftTitle, setDraftTitle] = useState<string | null>(null);
-  const persistedTitle = useRef(investigation.title);
-  const titleGenerationSettledFor = useRef<string | null>(null);
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organization.slug,
-    investigation.id
-  );
-  const titleGenerationQuery = useQuery({
-    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
-    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
-    refetchInterval: query =>
-      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
-  });
-  const generatedTitlePreview =
-    draftTitle === null &&
-    investigation.title === DEFAULT_INVESTIGATION_TITLE &&
-    isTitleGenerationActive(titleGenerationQuery.data?.status)
-      ? titleGenerationQuery.data?.preview
-      : null;
-  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
-  const {data: orchestration} = useQuery({
-    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
-    enabled: Boolean(investigation.orchestration),
-  });
-  const runStatus =
-    investigation.orchestration && orchestration
-      ? getSeerStatusBlock(orchestration)
-      : null;
-
-  useEffect(() => {
-    const status = titleGenerationQuery.data?.status;
-    if (isTitleGenerationActive(status)) {
-      if (titleGenerationSettledFor.current === investigation.id) {
-        titleGenerationSettledFor.current = null;
-      }
-      return;
-    }
-    if (
-      (status === 'completed' || status === 'failed') &&
-      titleGenerationSettledFor.current !== investigation.id
-    ) {
-      titleGenerationSettledFor.current = investigation.id;
-      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      void queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({
-          organizationSlug: organization.slug,
-        }).queryKey,
-      });
-    }
-  }, [
-    detailOptions.queryKey,
-    investigation.id,
-    organization.slug,
-    queryClient,
-    titleGenerationQuery.data?.status,
-  ]);
-
-  const renameMutation = useRenameInvestigationMutation(
-    organization.slug,
-    investigation.id,
-    {
-      onSuccess: updated => {
-        persistedTitle.current = updated.title;
-      },
-      onError: () => addErrorMessage(t('Unable to rename investigation.')),
-    }
-  );
-  const renameDebouncer = useDebouncer(
-    (nextTitle: string) => {
-      const title = nextTitle.trim();
-      if (title && title !== persistedTitle.current) {
-        renameMutation.mutate(title);
-      }
-    },
-    {wait: 500, onUnmount: debouncer => debouncer.flush()}
-  );
-
-  useEffect(() => {
-    if (draftTitle === null) {
-      persistedTitle.current = investigation.title;
-    }
-  }, [draftTitle, investigation.title]);
-  const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
-    onSuccess: duplicate => {
-      addSuccessMessage(t('Investigation duplicated.'));
-      navigate(getInvestigationPath(organization.slug, duplicate.id));
-    },
-    onError: () => addErrorMessage(t('Unable to duplicate investigation.')),
-  });
-  const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
-    onMutate: () => renameDebouncer.cancel(),
-    onSuccess: () => {
-      queryClient.removeQueries({
-        queryKey: detailOptions.queryKey,
-        exact: true,
-      });
-      addSuccessMessage(t('Investigation deleted.'));
-      navigate(`/organizations/${organization.slug}/explore/investigations/`);
-    },
-    onError: () => addErrorMessage(t('Unable to delete investigation.')),
-  });
-  function handleTitleChange(nextTitle: string) {
-    setDraftTitle(nextTitle);
-    updateInvestigationCache(
-      queryClient,
-      organization.slug,
-      investigation.id,
-      current => ({...current, title: nextTitle})
-    );
-    renameDebouncer.maybeExecute(nextTitle);
-  }
-
-  function handleTitleBlur() {
-    renameDebouncer.cancel();
-    if (draftTitle === null) {
-      return;
-    }
-    const title = draftTitle.trim();
-    if (title) {
-      if (title !== draftTitle) {
-        setDraftTitle(title);
-        updateInvestigationCache(
-          queryClient,
-          organization.slug,
-          investigation.id,
-          current => ({...current, title})
-        );
-      }
-      if (title !== persistedTitle.current) {
-        renameMutation.mutate(title);
-      }
-      return;
-    }
-    setDraftTitle(null);
-    updateInvestigationCache(
-      queryClient,
-      organization.slug,
-      investigation.id,
-      current => ({...current, title: persistedTitle.current})
-    );
-  }
-
-  const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
-  const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
-  const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
-      ? summaryBlock
-      : undefined;
-  const visibleNotebookCells = notebookCells.filter(block =>
-    shouldDisplayInvestigationBlock(block)
-  );
-  const source = getInvestigationSource(investigation);
-
-  return (
-    <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
-      <Stack flex={1}>
-        <TopBar.Slot
-          name="breadcrumbs"
-          title={{
-            type: 'page-title',
-            label: displayedTitle,
-            trailingActions: {
-              type: 'menu',
-              items: [
-                {
-                  key: 'copy-link',
-                  label: t('Copy link'),
-                  onAction: () =>
-                    copy(
-                      `${window.location.origin}${getInvestigationPath(
-                        organization.slug,
-                        investigation.id
-                      )}`,
-                      {successMessage: t('Investigation link copied.')}
-                    ),
-                },
-                {
-                  key: 'duplicate',
-                  label: t('Duplicate'),
-                  onAction: () => duplicateMutation.mutate(investigation),
-                },
-                {
-                  key: 'delete',
-                  label: t('Delete'),
-                  priority: 'danger',
-                  onAction: () =>
-                    openConfirmModal({
-                      message: t('Are you sure you want to delete this investigation?'),
-                      priority: 'danger',
-                      confirmText: t('Delete'),
-                      onConfirm: () => deleteMutation.mutate(investigation),
-                    }),
-                },
-              ],
-              triggerLabel: t('Investigation actions'),
-              triggerIcon: <IconEllipsis />,
-            },
-          }}
-          items={[
-            {
-              type: 'link',
-              label: t('Investigations'),
-              to: `/organizations/${organization.slug}/explore/investigations/`,
-              leadingGraphic: <IconStack size="md" />,
-            },
-          ]}
-        />
-        <Container as="header" width="100%" padding="xl xl 3xl">
-          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
-            <Grid
-              columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
-              align="center"
-              gap="md"
-            >
-              <NotebookTitleInput
-                aria-label={t('Investigation title')}
-                value={displayedTitle}
-                onChange={event => handleTitleChange(event.target.value)}
-                onBlur={handleTitleBlur}
-                maxLength={200}
-                aria-busy={renameMutation.isPending}
-              />
-              {runStatus ? (
-                <Flex align="center" gap="md" wrap="nowrap">
-                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                    {runStatus.statusLabel}
-                  </Tag>
-                  {orchestration ? (
-                    <InvestigationRunTimer orchestration={orchestration} />
-                  ) : null}
-                </Flex>
-              ) : null}
-            </Grid>
-            <Flex align="center" justify="between" gap="md" wrap="wrap">
-              <Flex align="center" gap="sm" wrap="wrap">
-                {source.groupId ? (
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/issues/${source.groupId}/`
-                    )}
-                  >
-                    {source.monitorName ?? t('View issue')}
-                  </Link>
-                ) : (
-                  <Text variant="muted">
-                    {formatSourceType(investigation.sourceType)}
-                  </Text>
-                )}
-                <MetaDivider />
-                <Text variant="muted">
-                  {tct('Last update: [date]', {
-                    date: <DateTime date={investigation.dateUpdated} year />,
-                  })}
-                </Text>
-                {investigation.status === 'archived' && commentCount === 0 ? null : (
-                  <Fragment>
-                    <MetaDivider />
-                    <Button
-                      size="zero"
-                      variant="link"
-                      icon={<IconChat size="xs" />}
-                      onClick={() => {
-                        if (investigation.status === 'archived') {
-                          activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
-                          return;
-                        }
-                        composerRef.current?.scrollIntoView?.({
-                          block: 'center',
-                          behavior: 'smooth',
-                        });
-                        composerRef.current?.focus({preventScroll: true});
-                      }}
-                    >
-                      {hasMoreComments
-                        ? t('%s+ comments', commentCount)
-                        : commentCount > 0
-                          ? tn('%s comment', '%s comments', commentCount)
-                          : t('Comment')}
-                    </Button>
-                  </Fragment>
-                )}
-                <InvestigationViewers
-                  investigationId={investigation.id}
-                  separator={<MetaDivider />}
-                />
-              </Flex>
-              <FeedbackButton
-                feedbackOptions={{
-                  formTitle: t('Give feedback on this investigation'),
-                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
-                  tags: {
-                    'feedback.source': 'investigation',
-                    'feedback.owner': 'ml-ai',
-                    'investigation.id': investigation.id,
-                    'investigation.source_type': investigation.sourceType,
-                    ...(investigation.template
-                      ? {'investigation.template': investigation.template.key}
-                      : {}),
-                  },
-                }}
-              >
-                {t('Give feedback')}
-              </FeedbackButton>
-            </Flex>
-          </Stack>
-        </Container>
-        <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
-          <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
-              {/*
-               * Only an agentic investigation has hypotheses, and `orchestration`
-               * being present is the only thing that says one is: it is null for
-               * manual and template investigations, whose orchestration endpoint
-               * 404s.
-               */}
-              {investigation.orchestration ? (
-                <InvestigationHypotheses
-                  investigationId={investigation.id}
-                  phase={investigation.orchestration.phase}
-                  status={investigation.orchestration.status}
-                />
-              ) : null}
-
-              <InvestigationSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
-
-              {visibleSummaryBlock ? (
-                <InvestigationCell
-                  block={visibleSummaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                  onComment={openBlockComments}
-                />
-              ) : null}
-
-              {visibleNotebookCells.map(block => (
-                <InvestigationCell
-                  key={block.id}
-                  block={block}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                  onComment={openBlockComments}
-                />
-              ))}
-              {isAwaitingReportCell(investigation) ? (
-                <InvestigationCellPlaceholder />
-              ) : null}
-              <InvestigationActivity
-                investigation={investigation}
-                composerRef={composerRef}
-                ref={activityRef}
-              />
-              <Container height="128px" flexShrink={0} aria-hidden />
-            </Stack>
-          </Layout.Main>
-        </Layout.Body>
-      </Stack>
-    </SentryDocumentTitle>
-  );
-}
-
-// Seer reaches the reporting phase once it is done with the hypotheses, but the
-// report arrives as cells on a later poll. Until then the notebook stands in a
-// placeholder cell, unless a cell is already running — that one shows its own.
-function isAwaitingReportCell(investigation: InvestigationDetail) {
-  const {orchestration} = investigation;
-  if (orchestration?.status !== 'processing' || orchestration.phase !== 'reporting') {
-    return false;
-  }
-  // Only a cell Seer is working on rules this out, because that cell is already
-  // showing a placeholder of its own. A cell that finished, failed or was
-  // cancelled is done, and more are still coming.
-  return !(investigation.blocks ?? []).some(isBlockWorking);
-}
-
-function isTitleGenerationActive(status: string | null | undefined) {
-  return status === 'pending' || status === 'running';
-}
-
-function getInvestigationPath(organizationSlug: string, investigationId: string) {
-  return normalizeUrl(
-    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
-  );
-}
-
-function getRecord(value: unknown, key: string): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const field: unknown = (value as Record<string, unknown>)[key];
-  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
-}
-
-function getString(value: Record<string, unknown> | null, key: string): string | null {
-  const field = value?.[key];
-  return typeof field === 'string' && field ? field : null;
-}
-
-// A breached metric investigation references the metric issue it was started
-// from, and snapshots that issue's monitor. Older investigations may predate the
-// snapshot, but still carry the issue reference.
-function getInvestigationSource(investigation: InvestigationDetail) {
-  const {source} = investigation;
-  return {
-    groupId: getString(getRecord(source, 'ref'), 'groupId'),
-    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
-  };
-}
-
-function formatSourceType(sourceType: string) {
-  if (sourceType === 'metric_open_period') {
-    return t('Breached metric');
-  }
-  if (sourceType === 'manual') {
-    return t('Manual investigation');
-  }
-  return sourceType.replaceAll('_', ' ');
-}
-
-const NotebookTitleInput = styled(Input)`
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  color: ${p => p.theme.tokens.content.primary};
-  background: transparent;
-  border-color: transparent;
-  border-radius: ${p => p.theme.radius.sm};
-  box-shadow: none;
-  font-size: ${p => p.theme.font.size['2xl']};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.25;
-
-  &:hover,
-  &:focus {
-    background: ${p => p.theme.tokens.background.secondary};
-    border-color: ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const MetaDivider = styled('span')`
-  height: 16px;
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
-`;
 
 export default function InvestigationDetailView() {
-  const organization = useOrganization();
   const {investigationId} = useParams<{investigationId: string}>();
 
   return (
     <AnalyticsArea name="investigations.details" overrideParent>
-      <Feature
-        organization={organization}
-        features="organizations:investigations"
-        renderDisabled={() => <FeatureDisabledPage />}
-      >
-        {organization.openMembership ? (
-          <InvestigationBootstrapPage investigationId={investigationId} />
-        ) : (
-          <ClosedMembershipPage />
-        )}
-      </Feature>
+      <InvestigationAccess>
+        <InvestigationBootstrapPage investigationId={investigationId} />
+      </InvestigationAccess>
     </AnalyticsArea>
   );
 }

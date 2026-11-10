@@ -24,7 +24,8 @@ import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getFormat, getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
+
+import {formatSpanEvidenceToMarkdown} from './spanEvidenceMarkdown';
 
 // Simple store for active thread ID from the UI with subscription support
 let _activeThreadId: number | undefined;
@@ -389,9 +390,9 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
 
   useHotkeys([
     {
-      match: 'mod+alt+c',
+      hotkey: 'Mod+Alt+C',
       callback: handleCopyIssueDetailsAsMarkdown,
-      skipPreventDefault: NODE_ENV === 'development',
+      options: {preventDefault: NODE_ENV !== 'development'},
     },
   ]);
 };

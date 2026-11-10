@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -12,6 +12,7 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     OrganizationAIConversationsEndpoint,
 )
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
+from sentry.models.project import Project
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
@@ -154,7 +155,7 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     compiled = compile_conversation_query(f"conversation.totalCost:{operator}0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     _, expected, _ = resolver.resolve_query(
-        f"sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):{operator}0"
+        f"sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens):{operator}0"
     )
     assert having == expected
 
@@ -235,7 +236,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
         )
 
-    def do_request(self, query=None, **kwargs):
+    def do_request(self, query: dict[str, Any] | None = None, **kwargs: Any) -> Any:
         query = query or {}
 
         return self.client.get(
@@ -251,6 +252,46 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_no_project(self) -> None:
         response = self.do_request()
         assert response.status_code == 404
+
+    def test_rejects_time_range_older_than_30_days(self) -> None:
+        now = before_now().replace(microsecond=0)
+        cases = [
+            ({"statsPeriod": "31d"}, "statsPeriod cannot be longer than 30 days"),
+            ({"statsPeriod": "90d"}, "statsPeriod cannot be longer than 30 days"),
+            ({"timeframe": "90d"}, "timeframe cannot be longer than 30 days"),
+            (
+                {"statsPeriodStart": "60d", "statsPeriodEnd": "40d"},
+                "statsPeriodStart cannot be longer than 30 days",
+            ),
+            (
+                {"start": (now - timedelta(days=31)).isoformat(), "end": now.isoformat()},
+                "start time cannot be older than 30 days",
+            ),
+        ]
+        for time_range, detail in cases:
+            response = self.do_request({"project": [self.project.id], **time_range})
+            assert response.status_code == 400, time_range
+            assert response.data == {"detail": detail}, time_range
+
+    def test_accepts_30_day_stats_period(self) -> None:
+        response = self.do_request({"project": [self.project.id], "statsPeriod": "30d"})
+        assert response.status_code == 200, response.data
+
+    def test_default_range_is_30_days(self) -> None:
+        # The test client adds a 29d statsPeriod to EAP requests; turn that off to hit the
+        # API's 90d default.
+        with (
+            patch(
+                "sentry.testutils.helpers.eap.apply_eap_default_stats_period",
+                side_effect=lambda query, **kwargs: query,
+            ),
+            patch.object(Spans, "get_resolver", wraps=Spans.get_resolver) as get_resolver,
+        ):
+            response = self.do_request({"project": [self.project.id]})
+
+        assert response.status_code == 200, response.data
+        snuba_params = get_resolver.call_args.args[0]
+        assert snuba_params.end - snuba_params.start <= timedelta(days=30)
 
     def test_no_conversations(self) -> None:
         """Test endpoint returns empty list when there are no spans with gen_ai.conversation.id"""
@@ -352,7 +393,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert query["selected_columns"] == [
             "gen_ai.conversation.id",
             "max(timestamp)",
-            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+            "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens) as total_cost",
         ]
         assert query["orderby"] == ["-total_cost", "gen_ai.conversation.id"]
         assert query["query_string"] == (
@@ -792,7 +833,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == "Hello, I need help"
         assert conversation["lastOutput"] == last_response_text
 
-    def _store_minimal_conversation(self, conversation_id: str, timestamp) -> None:
+    def _store_minimal_conversation(self, conversation_id: str, timestamp: datetime) -> None:
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=timestamp,
@@ -881,7 +922,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
     def test_conversation_spanning_multiple_traces(self) -> None:
         """Test a conversation with spans across multiple traces"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=29).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex
@@ -1858,7 +1899,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["llmCalls"] == 1
         assert conversation["flow"] == ["Test Agent"]
 
-    def _store_conversation_span(self, conversation_id, timestamp, project=None):
+    def _store_conversation_span(
+        self, conversation_id: str, timestamp: datetime, project: Project | None = None
+    ) -> None:
         """Store one minimal ai_client span so a conversation shows up in the list."""
         self.store_ai_span(
             conversation_id=conversation_id,

@@ -1,4 +1,5 @@
-from typing import cast
+from collections.abc import Mapping
+from typing import TypedDict, cast
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -13,11 +14,18 @@ from sentry.models.organization import Organization
 from sentry.utils.console_platforms import organization_has_console_platform_access
 
 
-def normalize_symbol_source(key, source):
+class NormalizedSymbolSource(TypedDict):
+    sentry_key: str
+    id: str
+    name: str
+    hidden: bool
+
+
+def normalize_symbol_source(key: str, source: Mapping[str, object]) -> NormalizedSymbolSource:
     return {
         "sentry_key": key,
-        "id": source["id"],
-        "name": source["name"],
+        "id": cast(str, source["id"]),
+        "name": cast(str, source["name"]),
         "hidden": bool(source.get("hidden")),
     }
 
@@ -29,10 +37,10 @@ class BuiltinSymbolSourcesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization: Organization, **kwargs) -> Response:
+    def get(self, request: Request, organization: Organization, **kwargs: object) -> Response:
         platform = request.GET.get("platform")
 
-        sources = []
+        sources: list[NormalizedSymbolSource] = []
         for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
             source_platforms: list[str] | None = cast("list[str] | None", source.get("platforms"))
 

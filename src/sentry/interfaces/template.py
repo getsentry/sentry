@@ -1,5 +1,8 @@
 __all__ = ("Template",)
 
+from collections.abc import Mapping, Sequence
+from typing import Any, Self
+
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import get_context
 
@@ -32,7 +35,7 @@ class Template(Interface):
     score = 1100
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
         for key in (
             "abs_path",
             "filename",
@@ -45,7 +48,7 @@ class Template(Interface):
 
         return super().to_python(data)
 
-    def to_string(self, event) -> str:
+    def to_string(self, event: Any) -> str:
         context = get_context(
             lineno=self.lineno,
             context_line=self.context_line,
@@ -57,13 +60,15 @@ class Template(Interface):
 
         return "\n".join(result)
 
-    def get_traceback(self, event, context):
+    def get_traceback(self, event: Any, context: Sequence[tuple[int, str | None]]) -> str:
         result = [event.message, "", f'File "{self.filename}", line {self.lineno}', ""]
         result.extend([n[1].strip("\n") if n[1] else "" for n in context])
 
         return "\n".join(result)
 
-    def get_api_context(self, is_public=False, platform=None):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
         return {
             "lineNo": self.lineno,
             "filename": self.filename,
@@ -75,7 +80,12 @@ class Template(Interface):
             ),
         }
 
-    def get_api_meta(self, meta, is_public=False, platform=None):
+    def get_api_meta(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         return {
             "": meta.get(""),
             "lineNo": meta.get("lineno"),

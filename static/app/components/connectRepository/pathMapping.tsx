@@ -59,6 +59,10 @@ export function PathMapping({
       {showSummary && editing && <Container borderTop="muted" />}
       {editing && (
         <PathMappingEdit
+          // TODO(scttcper): Remove once TanStack Form's useFieldGroup handles `fields`
+          // changes; until then deleting a row above leaves the editor on a stale index.
+          // https://github.com/TanStack/form/issues/1648
+          key={fields}
           form={form}
           fields={fields}
           providerKey={providerKey}

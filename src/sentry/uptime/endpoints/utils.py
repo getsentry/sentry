@@ -77,7 +77,8 @@ def authorize_and_map_uptime_detector_subscription_ids(
     if set(detector_ids_ints) != validated_detector_ids:
         raise ValueError("Invalid detector ids provided")
 
-    sub_id_formatter = lambda sub_id: uuid.UUID(sub_id).hex
+    def sub_id_formatter(sub_id: str) -> str:
+        return uuid.UUID(sub_id).hex
 
     subscription_id_to_detector_id = {
         sub_id_formatter(detector_data[1]): detector_data[0]

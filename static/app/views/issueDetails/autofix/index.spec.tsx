@@ -8,8 +8,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import GroupAutofix from 'sentry/views/issueDetails/autofix';
-import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
+
+import {AutofixPanelProvider} from './context';
 
 describe('GroupAutofix', () => {
   const group = GroupFixture();
@@ -72,10 +73,6 @@ describe('GroupAutofix', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/integrations/coding-agents/`,
       body: {integrations: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgSlug}/${project.slug}/autofix-repos/`,
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${orgSlug}/${project.slug}/seer/repos/`,

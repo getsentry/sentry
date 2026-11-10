@@ -1,10 +1,7 @@
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
-import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
-import {StyledTabPanels} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
-import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {
@@ -13,6 +10,10 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+
+import {AggregatesTab} from './aggregatesTab';
+import {StyledTabPanels} from './metricInfoTabStyles';
+import {SamplesTab} from './samplesTab';
 
 interface MetricInfoTabsProps {
   traceMetric: TraceMetric;
@@ -37,9 +38,16 @@ export function MetricInfoTabs({
       }}
       size="md"
     >
-      <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
+      <Stack
+        height="100%"
+        minHeight="0"
+        paddingRight="xl"
+        paddingLeft="xl"
+        paddingBottom="md"
+        paddingTop="md"
+      >
         {visualize.visible ? (
-          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center">
+          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center" flexShrink={0}>
             <TabList variant="floating">
               <TabList.Item
                 key={Mode.SAMPLES}
@@ -58,7 +66,7 @@ export function MetricInfoTabs({
           </Grid>
         ) : null}
         {visualize.visible ? (
-          <Container height="312px">
+          <Container flex="1" minHeight="0">
             <StyledTabPanels>
               <TabPanels.Item key={Mode.AGGREGATE}>
                 <AggregatesTab
@@ -75,7 +83,7 @@ export function MetricInfoTabs({
             </StyledTabPanels>
           </Container>
         ) : null}
-      </Container>
+      </Stack>
     </TabStateProvider>
   );
 }

@@ -1,4 +1,4 @@
-import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
+import {formatSecondsToClock} from './formatSecondsToClock';
 
 describe('getDuration()', () => {
   it('should format durations', () => {

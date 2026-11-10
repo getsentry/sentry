@@ -1,7 +1,7 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
-import {hasUnresolvedTraceMetric} from 'sentry/views/dashboards/widgetBuilder/utils/hasUnresolvedTraceMetric';
+import {hasUnresolvedTraceMetric} from './hasUnresolvedTraceMetric';
 
 describe('hasUnresolvedTraceMetric', () => {
   it('is true when an aggregate carries no metric', () => {
@@ -39,6 +39,22 @@ describe('hasUnresolvedTraceMetric', () => {
       queries: [
         WidgetQueryFixture({
           aggregates: ['sum(value,test_metric,distribution,none)', 'equation|1 + 1'],
+        }),
+      ],
+    });
+
+    expect(hasUnresolvedTraceMetric(widget)).toBe(false);
+  });
+
+  it('ignores the web vital score formulas, which resolve their metrics on the backend', () => {
+    const widget = WidgetFixture({
+      queries: [
+        WidgetQueryFixture({
+          aggregates: [
+            'count(value,browser.web_vital.ttfb,distribution,millisecond)',
+            'performance_score(measurements.score.total)',
+            'opportunity_score(measurements.score.total)',
+          ],
         }),
       ],
     });

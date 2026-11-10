@@ -3,10 +3,9 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -90,11 +89,11 @@ function OrganizationApiKeyForm({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage('Saved changes');
+      toast.success('Saved changes');
       handleCancel();
     },
     onError: () => {
-      addErrorMessage('Unable to save changes. Please try again.');
+      toast.error('Unable to save changes. Please try again.');
     },
   });
   const defaultValues: ApiKeyFormValues = {
@@ -133,26 +132,27 @@ function OrganizationApiKeyForm({
         </form.AppField>
         <form.AppField name="scope_list">
           {field => (
-            <field.Layout.Stack label={t('Scopes')} required>
-              <Flex align="center" gap="sm">
-                <Container flexGrow={1}>
-                  <MultipleCheckbox
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    name={field.name}
+            <field.CheckboxGroup value={field.state.value} onChange={field.handleChange}>
+              {({Item}) => (
+                <field.Layout.Stack label={t('Scopes')} required>
+                  <Grid
+                    columns={{
+                      zero: '1fr',
+                      xl: 'repeat(2, 1fr)',
+                      '3xl': 'repeat(3, 1fr)',
+                      '4xl': 'repeat(4, 1fr)',
+                    }}
+                    gap="md"
                   >
                     {API_ACCESS_SCOPES.map(scope => (
-                      <MultipleCheckbox.Item value={scope} key={scope}>
+                      <Item value={scope} key={scope}>
                         {scope}
-                      </MultipleCheckbox.Item>
+                      </Item>
                     ))}
-                  </MultipleCheckbox>
-                </Container>
-                <Flex flexShrink={0}>
-                  <field.Meta.Status />
-                </Flex>
-              </Flex>
-            </field.Layout.Stack>
+                  </Grid>
+                </field.Layout.Stack>
+              )}
+            </field.CheckboxGroup>
           )}
         </form.AppField>
         <form.AppField name="allowed_origins">

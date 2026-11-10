@@ -1,8 +1,6 @@
 import type moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
-import type {EventsStatsData} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {EventView, LocationQuery} from 'sentry/utils/discover/eventView';
 
 export type TrendView = EventView & {
@@ -71,14 +69,7 @@ export enum TrendParameterLabel {
   SPANS_RESOURCE = 'Spans (resource)',
 }
 
-type TrendStat = {
-  data: EventsStatsData;
-  order: number;
-};
-
-export type TrendsStats = Record<string, TrendStat>;
-
-export type TrendsTransaction = {
+type TrendsTransaction = {
   aggregate_range_1: number;
   aggregate_range_2: number;
   count: number;
@@ -99,12 +90,6 @@ export type TrendsTransaction = {
 export type TrendsDataEvents = {
   data: TrendsTransaction[];
   meta: any;
-};
-
-export type TrendsData = {
-  events: TrendsDataEvents;
-  projects: Project[];
-  stats: TrendsStats;
 };
 
 export type NormalizedTrendsTransaction = TrendsTransaction & {

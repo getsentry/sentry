@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -7,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
-def test_anonymous(client) -> None:
+def test_anonymous(client: APIClient) -> None:
     response = client.get(reverse("sentry-api-index"))
     assert response.status_code == 200
     assert response.data["version"] == "0"
@@ -47,3 +48,11 @@ class ApiIndexTest(APITestCase):
         assert response.data["version"] == "0"
         assert response.data["auth"]["scopes"] == token.get_scopes()
         assert response.data["user"]["id"] == str(self.user.id)
+
+    def test_token_auth_returns_stored_scopes(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+        url = reverse("sentry-api-index")
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        assert response.status_code == 200
+        # Deprecated scope translations (org:read -> dashboard:*) are not reported.
+        assert response.data["auth"]["scopes"] == ["org:read"]

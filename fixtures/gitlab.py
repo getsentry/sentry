@@ -18,7 +18,7 @@ WEBHOOK_TOKEN = f"{EXTERNAL_ID}:{WEBHOOK_SECRET}"
 class GitLabTestCase(APITestCase):
     provider = IntegrationProviderSlug.GITLAB.value
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = Integration.objects.create(

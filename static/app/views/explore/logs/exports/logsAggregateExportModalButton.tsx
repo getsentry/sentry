@@ -2,17 +2,19 @@ import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
 import {AGGREGATE_EXPORT_MAX_ROWS} from 'sentry/views/explore/logs/constants';
-import {
-  LogsExportModalButton,
-  useLogsQueryInfo,
-} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import type {OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
-import {getLogsAggregatesFields} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {
+  getLogsAggregatesFields,
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  LOGS_AGGREGATES_TRACE_FIELD,
+} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+
+import {LogsExportModalButton, useLogsQueryInfo} from './logsExportModalButton';
 
 type LogsAggregateExportModalButtonProps = {
   isLoading: boolean;
@@ -31,10 +33,27 @@ export function LogsAggregateExportModalButton({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
+  const fields = getLogsAggregatesFields(groupBys, visualizes);
   const queryInfo = useLogsQueryInfo({
-    field: getLogsAggregatesFields(groupBys, visualizes),
+    field: fields,
     sort: aggregateSortBys.map(formatExportSort),
   });
+
+  // The aggregates query also fetches sample trace fields for the row menu.
+  // JSONL writes every key on the row, so drop those unless they are a column
+  // the table is already showing.
+  const sampleFields = new Set<string>([
+    LOGS_AGGREGATES_TRACE_FIELD,
+    LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  ]);
+  const exportedTableData = tableData.map(
+    row =>
+      Object.fromEntries(
+        Object.entries(row).filter(
+          ([key]) => fields.includes(key) || !sampleFields.has(key)
+        )
+      ) as OurLogsAggregateResponseItem
+  );
 
   // Only when there's neither a next nor a previous page are the loaded rows the entire
   // result set, letting the export run locally in the browser. On any page of a paginated
@@ -52,7 +71,7 @@ export function LogsAggregateExportModalButton({
       queryInfo={queryInfo}
       supportsAllColumns={false}
       supportsLocalDownload
-      tableData={tableData}
+      tableData={exportedTableData}
       title={t('Log Aggregates Export')}
     />
   );

@@ -4,8 +4,10 @@ from unittest.mock import MagicMock, patch
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
@@ -18,23 +20,23 @@ class InviteRequestBase(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-detail"
 
     @cached_property
-    def org(self):
+    def org(self) -> Organization:
         return self.create_organization(owner=self.user)
 
     @cached_property
-    def team(self):
+    def team(self) -> Team:
         return self.create_team(organization=self.org)
 
     @cached_property
-    def member(self):
+    def member(self) -> OrganizationMember:
         return self.create_member(organization=self.org, user=self.create_user(), role="member")
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OrganizationMember:
         return self.create_member(organization=self.org, user=self.create_user(), role="manager")
 
     @cached_property
-    def invite_request(self):
+    def invite_request(self) -> OrganizationMember:
         return self.create_member(
             email="test@example.com",
             organization=self.org,
@@ -43,7 +45,7 @@ class InviteRequestBase(APITestCase):
         )
 
     @cached_property
-    def request_to_join(self):
+    def request_to_join(self) -> OrganizationMember:
         return self.create_member(
             email="example@gmail.com",
             organization=self.org,

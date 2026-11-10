@@ -63,7 +63,7 @@ UPDATE_PROJECT_OWNERSHIP = [
                 ],
             },
         },
-        status_codes=["202"],
+        status_codes=["200"],
         response_only=True,
     )
 ]

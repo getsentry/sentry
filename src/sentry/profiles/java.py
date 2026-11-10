@@ -1,7 +1,6 @@
 from typing import Any
 
-from symbolic.proguard import ProguardMapper
-
+from sentry.lang.java.processing import fixup_frame_in_app
 from sentry.profiles.utils import Profile, is_android_trace_format, is_jvm_frame
 
 JAVA_BASE_TYPES = {
@@ -71,7 +70,7 @@ def format_signature(types: tuple[list[str], str] | None) -> str:
     return signature
 
 
-def byte_code_type_to_java_type(byte_code_type: str, mapper: ProguardMapper | None = None) -> str:
+def byte_code_type_to_java_type(byte_code_type: str) -> str:
     if not byte_code_type:
         return ""
 
@@ -83,13 +82,9 @@ def byte_code_type_to_java_type(byte_code_type: str, mapper: ProguardMapper | No
         if byte_code_type[-1] != ";":
             return byte_code_type
         obfuscated = byte_code_type[1:-1].replace("/", ".")
-        if mapper:
-            mapped = mapper.remap_class(obfuscated)
-            if mapped:
-                return mapped
         return obfuscated
     elif token == "[":
-        return f"{byte_code_type_to_java_type(byte_code_type[1:], mapper)}[]"
+        return f"{byte_code_type_to_java_type(byte_code_type[1:])}[]"
     else:
         return byte_code_type
 
@@ -97,9 +92,7 @@ def byte_code_type_to_java_type(byte_code_type: str, mapper: ProguardMapper | No
 # deobfuscate_signature will parse and deobfuscate a signature
 # returns a tuple where the first element is the list of the function
 # parameters and the second one is the return type
-def deobfuscate_signature(
-    signature: str, mapper: ProguardMapper | None = None
-) -> tuple[list[str], str] | None:
+def deobfuscate_signature(signature: str) -> tuple[list[str], str] | None:
     if not signature:
         return None
 
@@ -109,10 +102,10 @@ def deobfuscate_signature(
 
     parameter_java_types = []
     for parameter_type in parameter_types:
-        new_class = byte_code_type_to_java_type(parameter_type, mapper)
+        new_class = byte_code_type_to_java_type(parameter_type)
         parameter_java_types.append(new_class)
 
-    return_java_type = byte_code_type_to_java_type(return_type, mapper)
+    return_java_type = byte_code_type_to_java_type(return_type)
     return parameter_java_types, return_java_type
 
 
@@ -188,6 +181,11 @@ def _apply_jvm_frame_to_sample_v2_frame(f: dict[str, Any], frame: dict[str, Any]
 
 
 def merge_jvm_frames_with_android_methods(frames: list[dict[str, Any]], profile: Profile) -> None:
+    release_package = profile.get("transaction_metadata", {}).get("app.identifier")
+
+    for f in frames:
+        fixup_frame_in_app(f, release_package)
+
     if is_android_trace_format(profile):
         methods = profile["profile"]["methods"]
         for f in frames:

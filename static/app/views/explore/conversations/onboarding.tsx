@@ -1,9 +1,10 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconBot} from '@sentry/icons/bot';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconUser} from '@sentry/icons/user';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -38,7 +39,6 @@ import {
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -46,7 +46,6 @@ import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -55,8 +54,6 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
   getAgentSetupPrompt,
@@ -74,46 +71,10 @@ import {
   PulsingIndicator,
   SubTitle,
   useOnboardingProject,
+  useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
-function useConversationSpanWaiter(project: Project) {
-  const {selection} = usePageFilters();
-  const [shouldRefetch, setShouldRefetch] = useState(true);
-
-  const request = useSpans(
-    {
-      search: 'has:gen_ai.conversation.id',
-      fields: ['id'],
-      limit: 1,
-      enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
-      pageFilters: {
-        ...selection,
-        projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
-      },
-    },
-    Referrer.ONBOARDING
-  );
-
-  const hasEvents = Boolean(request.data?.length);
-
-  useEffect(() => {
-    if (hasEvents && shouldRefetch) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setShouldRefetch(false);
-    }
-  }, [hasEvents, shouldRefetch]);
-
-  return request;
-}
+import {Referrer} from './utils/referrers';
 
 function ConversationWaitingIndicator({
   project,
@@ -122,7 +83,11 @@ function ConversationWaitingIndicator({
   onDismiss: () => void;
   project: Project;
 }) {
-  const spanRequest = useConversationSpanWaiter(project);
+  const spanRequest = useSpanWaiter({
+    project,
+    search: 'has:gen_ai.conversation.id',
+    referrer: Referrer.ONBOARDING,
+  });
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
@@ -564,11 +529,15 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
   AgentIntegration.EVE,
   AgentIntegration.FLUE,
   AgentIntegration.MASTRA,
+  AgentIntegration.PI,
 ]);
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
   const location = useLocation();
@@ -587,12 +556,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const {
     deploymentTarget,
     integrationDeploymentTarget,
-    isCloudflareTarget,
     isPhpPlatform,
     isPythonPlatform,
     platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions,
   } = useAgentOnboardingOptions({
     platform: project?.platform,
     platformInfo: currentPlatform,
@@ -651,7 +620,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 
   const selectedIntegration =
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
-  const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
+  const jsPackageName =
+    agentMonitoringDocs.sdkImportSpecifier?.(docParams) ?? '@sentry/node';
 
   const setsConversationIdAutomatically =
     INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);
@@ -679,13 +649,17 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   return (
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
-        {!projectAgentIntegration && (
+        {showPlatformOptions && (
           <Flex gap="lg" align="center" justify="between" wrap="wrap">
             <Flex gap="sm" align="center" wrap="wrap">
               <Text>{t('Set up')}</Text>
               <PlatformOptionDropdown
                 platformOptions={platformOptions}
-                connectors={{deploymentTarget: t('on')}}
+                // Framework projects only render the runtime selector, which then
+                // directly follows "with".
+                connectors={
+                  projectAgentIntegration ? undefined : {deploymentTarget: t('on')}
+                }
                 onChange={(option, value) => {
                   trackAnalytics('conversations.onboarding.interaction', {
                     organization,
@@ -703,10 +677,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             </Flex>
           </Flex>
         )}
-        {!projectAgentIntegration && <Separator orientation="horizontal" />}
+        {showPlatformOptions && <Separator orientation="horizontal" />}
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
-          key={selectedIntegration}
+          // Remount when the integration or runtime changes so the stepper doesn't
+          // carry over stale per-step state from the previous selection.
+          key={`${selectedIntegration}-${deploymentTarget}`}
           initialStep={decodeInteger(location.query.guidedStep)}
           onStepChange={step => {
             navigate({

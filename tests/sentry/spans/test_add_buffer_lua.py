@@ -57,7 +57,7 @@ def eval_add_buffer_script(
     metrics_sample_rate: int = 1,
 ) -> list[Any]:
     sha = client.script_load(add_buffer_script.script)
-    return client.execute_command(
+    response: list[Any] = client.execute_command(
         "EVALSHA",
         sha,
         1,
@@ -73,6 +73,7 @@ def eval_add_buffer_script(
         metrics_sample_rate,
         *span_ids,
     )
+    return response
 
 
 def _metrics_table(result: list[Any]) -> dict[bytes, int]:

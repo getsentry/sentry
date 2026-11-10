@@ -7,6 +7,7 @@ from sentry import audit_log, features, options
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -36,6 +37,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -115,9 +117,10 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return actions, action_filter
 
-    def validate_config(self, value: Any) -> bool:
+    def validate_config[T](self, value: T) -> T:
         schema = Workflow.config_schema
-        return validate_json_schema(value, schema)
+        validate_json_schema(value, schema)
+        return value
 
     def validate_triggers(self, value: InputData) -> InputData:
         if "workflow" in self.context:
@@ -130,12 +133,21 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             self._validate_action_filter_ownership(value)
 
         for action_filter in value:
-            for action in action_filter["actions"]:
+            for index, action in enumerate(action_filter["actions"]):
+                action_id = action.get("id")
+                if "workflow" not in self.context and action_id is not None:
+                    raise serializers.ValidationError(
+                        "Action IDs cannot be specified when creating an alert."
+                    )
+
                 action_validator = BaseActionValidator(data=action, context=self.context)
                 action_validator.is_valid(raise_exception=True)
 
-                # update because the validated data does not contain "id" for updates
-                action.update(action_validator.validated_data)
+                validated_action = action_validator.validated_data
+                # Preserve existing action IDs for updates.
+                if action_id is not None:
+                    validated_action["id"] = action_id
+                action_filter["actions"][index] = validated_action
 
         return value
 
@@ -214,12 +226,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         instance = None
 
         # Determine if this is an update or create operation
-        if input_id:
+        if input_id is not None:
             instance = Action.objects.get(id=input_id)
             instance.update(**input_data)
             return instance
 
-        return Action.objects.create(**input_data)
+        return BaseActionValidator(context=self.context).create(input_data)
 
     def update_or_create_actions(
         self,
@@ -379,7 +391,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         """
         org = self.context["organization"]
         assert isinstance(org, Organization)
-        workflow_count = Workflow.objects.filter(organization_id=org.id).count()
+
+        # hidden workflows do not count towards user limit
+        workflow_count = Workflow.objects.filter(
+            organization_id=org.id, type__in=VISIBLE_WORKFLOW_TYPES
+        ).count()
+
         if features.has("organizations:more-workflows", org):
             max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:
@@ -390,7 +407,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             log_alerting_quota_hit(
                 object_type="workflow",
                 organization=org,
-                actor=request.user if request.user.is_authenticated else None,
+                actor=request.user if has_user(request.user) else None,
             )
             raise serializers.ValidationError(
                 f"You may not exceed {max_workflows} workflows per organization."
@@ -429,7 +446,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
-                created_by_id=request.user.id,
+                created_by_id=acting_user_id(request.user),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
             )

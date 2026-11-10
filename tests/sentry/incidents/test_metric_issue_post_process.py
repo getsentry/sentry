@@ -10,7 +10,7 @@ from sentry.services import eventstore
 from sentry.tasks.post_process import post_process_group
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -23,7 +23,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         super().setUp()
         self.critical_action, self.warning_action = self.create_metric_issue_workflow(self.detector)
 
-    def create_metric_issue_workflow(self, detector: Detector):
+    def create_metric_issue_workflow(self, detector: Detector) -> tuple[Action, Action]:
         # create the canonical workflow for a metric issue
         workflow = self.create_workflow()
         self.create_detector_workflow(detector=detector, workflow=workflow)
@@ -86,7 +86,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             warning_action,
         )
 
-    def call_post_process_group(self, occurrence):
+    def call_post_process_group(self, occurrence: IssueOccurrence) -> None:
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert stored_occurrence
         event = eventstore.backend.get_event_by_id(
@@ -105,7 +105,7 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
                 eventstream_type=EventStreamEventType.Generic.value,
             )
 
-    def get_group(self, occurrence):
+    def get_group(self, occurrence: IssueOccurrence) -> Group:
         stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
         assert stored_occurrence
         event = eventstore.backend.get_event_by_id(

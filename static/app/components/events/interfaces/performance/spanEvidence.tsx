@@ -3,7 +3,6 @@ import {IconSettings} from '@sentry/icons/settings';
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
@@ -18,6 +17,7 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
+import {SpanEvidenceTraceView} from './spanEvidenceTraceView';
 
 interface Props {
   event: EventTransaction;

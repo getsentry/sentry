@@ -1,12 +1,13 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps, Grid} from '@sentry/scraps/layout';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {TextOverflow} from 'sentry/components/textOverflow';
 import {defined} from 'sentry/utils/defined';
+
+import {Panel} from './panels/panel';
+import {QuestionTooltip} from './questionTooltip';
+import {TextOverflow} from './textOverflow';
 
 type ScoreCardProps = {
   title: React.ReactNode;
@@ -30,10 +31,16 @@ export function ScoreCard({
   return (
     <ScorePanel className={className}>
       <Flex wrap="wrap" align="center" justify="between">
-        <HeaderTitle>
+        <Grid
+          display="inline-grid"
+          align="center"
+          gap="md"
+          width="fit-content"
+          flow="column"
+        >
           <Title>{title}</Title>
           {help && <QuestionTooltip title={help} size="sm" position="top" />}
-        </HeaderTitle>
+        </Grid>
       </Flex>
 
       <ScoreWrapper>
@@ -65,14 +72,6 @@ export const ScorePanel = styled(Panel)`
   justify-content: space-between;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
   min-height: 96px;
-`;
-
-const HeaderTitle = styled('div')`
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  width: fit-content;
 `;
 
 export const Title = styled('div')`

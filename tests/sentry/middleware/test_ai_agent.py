@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
@@ -39,7 +40,7 @@ class AIAgentMiddlewareTest(TestCase):
         self.factory = RequestFactory()
         self.middleware = AIAgentMiddleware(get_response=lambda r: MagicMock(status_code=401))
 
-    def make_anonymous_request(self, path: str, **kwargs):
+    def make_anonymous_request(self, path: str, **kwargs: Any) -> Any:
         request = self.factory.get(path, **kwargs)
         request.user = AnonymousUser()
         request.auth = None
@@ -106,7 +107,7 @@ class AIAgentMiddlewareTest(TestCase):
         assert self.middleware(request).status_code == 401
 
     @patch("sentry.middleware.ai_agent.logger.info")
-    def test_logs_request(self, mock_logger: MagicMock):
+    def test_logs_request(self, mock_logger: MagicMock) -> None:
         request = self.make_anonymous_request(
             "/organizations/test-org/",
             HTTP_ACCEPT="text/markdown",

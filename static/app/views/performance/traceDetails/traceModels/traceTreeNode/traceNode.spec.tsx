@@ -134,13 +134,5 @@ describe('TraceNode', () => {
 
       expect(result).toBeDefined();
     });
-
-    it('should implement renderDetails returning null', () => {
-      const traceNode = new TraceNode(null, createMockTraceValue(), createMockExtra());
-
-      const result = traceNode.renderDetails({} as any);
-
-      expect(result).toBeNull();
-    });
   });
 });

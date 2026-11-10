@@ -1,18 +1,23 @@
 from __future__ import annotations
 
 import re
-from typing import Any
-from unittest.mock import patch
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import AbstractContextManager
+from typing import Any, Protocol, cast
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
 import pytest
+from django.test import Client
 from django.urls import reverse
-from sentry_relay.auth import generate_key_pair
+from sentry_relay.auth import PublicKey, SecretKey, generate_key_pair
 
 from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, RetentionSettings
 from sentry.testutils.helpers import Feature
@@ -22,7 +27,7 @@ from sentry.utils import safe
 _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 
 
-def _get_all_keys(config):
+def _get_all_keys(config: Mapping[str, object]) -> Iterator[str]:
     for key in config:
         yield key
         if key == "breakdownsV2":
@@ -30,49 +35,54 @@ def _get_all_keys(config):
             # e.g. span_ops
             continue
         if isinstance(config[key], dict):
-            for key in _get_all_keys(config[key]):
-                yield key
+            yield from _get_all_keys(cast(Mapping[str, object], config[key]))
 
 
-def assert_no_snakecase_key(config):
+def assert_no_snakecase_key(config: Mapping[str, object]) -> None:
     assert not {x for x in _get_all_keys(config) if "-" in x or "_" in x}
 
 
 @pytest.fixture
-def key_pair():
+def key_pair() -> tuple[SecretKey, PublicKey]:
     return generate_key_pair()
 
 
 @pytest.fixture
-def public_key(key_pair):
+def public_key(key_pair: tuple[SecretKey, PublicKey]) -> PublicKey:
     return key_pair[1]
 
 
 @pytest.fixture
-def private_key(key_pair):
+def private_key(key_pair: tuple[SecretKey, PublicKey]) -> SecretKey:
     return key_pair[0]
 
 
 @pytest.fixture
-def relay_id():
+def relay_id() -> str:
     return str(uuid4())
 
 
 @pytest.fixture
-def relay(relay_id, public_key):
+def relay(relay_id: str, public_key: PublicKey) -> Relay:
     return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)
-def setup_relay(default_project):
+def setup_relay(default_project: Project) -> None:
     default_project.update_option("sentry:scrub_ip_address", True)
 
 
+class CallEndpoint(Protocol):
+    def __call__(self, projects: list[int | str] | None = None) -> tuple[dict[str, Any], int]: ...
+
+
 @pytest.fixture
-def call_endpoint(client, relay, private_key, default_project):
+def call_endpoint(
+    client: Client, relay: Relay, private_key: SecretKey, default_project: Project
+) -> CallEndpoint:
     def inner(
-        projects=None,
-    ):
+        projects: list[int | str] | None = None,
+    ) -> tuple[dict[str, Any], int]:
         path = reverse("sentry-api-0-relay-projectconfigs")
 
         if projects is None:
@@ -94,14 +104,14 @@ def call_endpoint(client, relay, private_key, default_project):
 
 
 @pytest.fixture
-def add_org_key(default_organization, relay):
+def add_org_key(default_organization: Organization, relay: Relay) -> None:
     default_organization.update_option(
         "sentry:trusted-relays", [{"public_key": relay.public_key, "name": "main-relay"}]
     )
 
 
 @pytest.fixture
-def no_internal_networks():
+def no_internal_networks() -> Iterator[None]:
     """
     Disable is_internal_ip functionality (make all requests appear to be from external networks)
     """
@@ -111,8 +121,10 @@ def no_internal_networks():
 
 @django_db_all
 def test_internal_relays_should_receive_full_configs(
-    call_endpoint, default_project, default_projectkey
-):
+    call_endpoint: CallEndpoint,
+    default_project: Project,
+    default_projectkey: ProjectKey,
+) -> None:
     result, status_code = call_endpoint()
 
     assert status_code < 400
@@ -174,7 +186,7 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @django_db_all
-def test_parse_retentions(call_endpoint, default_project):
+def test_parse_retentions(call_endpoint: CallEndpoint, default_project: Project) -> None:
     with patch.multiple(
         "sentry.quotas.backend",
         get_retentions=lambda x: {
@@ -203,7 +215,9 @@ def test_parse_retentions(call_endpoint, default_project):
 
 
 @django_db_all
-def test_parse_retentions_with_transactions(call_endpoint, default_project):
+def test_parse_retentions_with_transactions(
+    call_endpoint: CallEndpoint, default_project: Project
+) -> None:
     with patch.multiple(
         "sentry.quotas.backend",
         get_retentions=lambda x: {
@@ -229,7 +243,7 @@ def test_parse_retentions_with_transactions(call_endpoint, default_project):
 
 
 @django_db_all
-def test_parse_trimming(call_endpoint, default_project):
+def test_parse_trimming(call_endpoint: CallEndpoint, default_project: Project) -> None:
     with patch.object(
         quotas.backend,
         "get_trimming_configs",
@@ -245,7 +259,7 @@ def test_parse_trimming(call_endpoint, default_project):
 
 
 @django_db_all
-def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
+def test_relays_dyamic_sampling(call_endpoint: CallEndpoint, default_project: Project) -> None:
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
@@ -277,8 +291,10 @@ def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
 
 @django_db_all
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
-    add_org_key, call_endpoint, no_internal_networks
-):
+    add_org_key: None,
+    call_endpoint: CallEndpoint,
+    no_internal_networks: None,
+) -> None:
     result, status_code = call_endpoint()
     assert status_code == 403
 
@@ -286,8 +302,11 @@ def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
 @django_db_all
 @patch("sentry.api.authentication.is_internal_relay")
 def test_external_relays_do_not_get_project_configuration(
-    is_internal_relay, call_endpoint, add_org_key, relay
-):
+    is_internal_relay: MagicMock,
+    call_endpoint: CallEndpoint,
+    add_org_key: None,
+    relay: Relay,
+) -> None:
     is_internal_relay.return_value = False
 
     result, status_code = call_endpoint()
@@ -296,14 +315,15 @@ def test_external_relays_do_not_get_project_configuration(
 
 @django_db_all
 def test_untrusted_external_relays_should_not_receive_configs(
-    call_endpoint, no_internal_networks
+    call_endpoint: CallEndpoint,
+    no_internal_networks: None,
 ) -> None:
     result, status_code = call_endpoint()
     assert status_code == 403
 
 
 @pytest.fixture
-def projectconfig_cache_set():
+def projectconfig_cache_set() -> Iterator[list[dict[str, Any]]]:
     calls: list[dict[str, Any]] = []
     with patch("sentry.relay.projectconfig_cache.backend.set_many", calls.append):
         yield calls
@@ -311,8 +331,11 @@ def projectconfig_cache_set():
 
 @django_db_all
 def test_relay_projectconfig_cache_full_config(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
-):
+    call_endpoint: CallEndpoint,
+    default_project: Project,
+    projectconfig_cache_set: list[dict[str, Any]],
+    task_runner: Callable[[], AbstractContextManager[None]],
+) -> None:
     """
     When a relay fetches a full config, that config should end up in Redis.
     """
@@ -335,7 +358,11 @@ def test_relay_projectconfig_cache_full_config(
 
 
 @django_db_all
-def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_runner) -> None:
+def test_relay_nonexistent_project(
+    call_endpoint: CallEndpoint,
+    projectconfig_cache_set: list[dict[str, Any]],
+    task_runner: Callable[[], AbstractContextManager[None]],
+) -> None:
     wrong_id = max(p.id for p in Project.objects.all()) + 1
 
     with task_runner():
@@ -350,8 +377,11 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
 
 @django_db_all
 def test_relay_disabled_project(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
-):
+    call_endpoint: CallEndpoint,
+    default_project: Project,
+    projectconfig_cache_set: list[dict[str, Any]],
+    task_runner: Callable[[], AbstractContextManager[None]],
+) -> None:
     default_project.update(status=ObjectStatus.PENDING_DELETION)
 
     wrong_id = default_project.id
@@ -367,7 +397,12 @@ def test_relay_disabled_project(
 
 
 @django_db_all
-def test_health_check_filters(call_endpoint, add_org_key, relay, default_project) -> None:
+def test_health_check_filters(
+    call_endpoint: CallEndpoint,
+    add_org_key: None,
+    relay: Relay,
+    default_project: Project,
+) -> None:
     """
     Test health check filter (aka ignoreTransactions)
     """

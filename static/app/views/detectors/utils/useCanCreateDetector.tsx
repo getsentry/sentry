@@ -2,9 +2,9 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
 
 import {detectorTypeIsUserCreateable} from './detectorTypeConfig';
+import {hasDetectorWriteAccess} from './permissions';
 
 export function useCanCreateDetector(detectorType: DetectorType | null) {
   const organization = useOrganization();

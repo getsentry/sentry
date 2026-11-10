@@ -16,12 +16,15 @@ import {
 
 import {Container} from '@sentry/scraps/layout';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
-import IssueListOverview from 'sentry/views/issueList/overview';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
+
+import IssueListOverview from './overview';
+import {IssueSortOptions} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -54,10 +57,6 @@ describe('IssueListOverview (actions)', () => {
       body: [groupStats],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
@@ -70,11 +69,6 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
       body: [{}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -95,7 +89,7 @@ describe('IssueListOverview (actions)', () => {
       body: [],
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -231,6 +225,60 @@ describe('IssueListOverview (actions)', () => {
       expect(await screen.findByText('Group 3')).toBeInTheDocument();
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
       expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
+    });
+
+    it('uses the list filters and default sort when resolving all matching issues', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1],
+        environments: ['production'],
+        datetime: {start: null, end: null, period: '24h', utc: true},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, group2],
+        headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1500'},
+      });
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(<OverviewInContainer />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {
+            pathname: '/organizations/org-slug/issues/',
+            query: {query: ''},
+          },
+        },
+      });
+      renderGlobalModal();
+
+      await screen.findByText('Group 1');
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(
+        screen.getByText('Select the first 1,000 issues that match this search query.')
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Bulk resolve issues'})
+      );
+
+      expect(updateIssueMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: {
+            query: '',
+            project: [1],
+            environment: ['production'],
+            statsPeriod: '24h',
+            utc: true,
+            sort: IssueSortOptions.RECOMMENDED,
+          },
+          data: {status: 'resolved', statusDetails: {}, substatus: null},
+        })
+      );
     });
 
     it('updates saved view counts after resolving and undoing', async () => {

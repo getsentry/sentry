@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest
@@ -38,11 +38,11 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.source_code_management.url import url_is_under
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -68,7 +68,7 @@ def _api_base_url(url: str) -> str:
     return f"https://{url}/api/v3"
 
 
-def get_user_info(url, access_token):
+def get_user_info(url: str, access_token: str) -> Any:
     with http.build_session() as session:
         resp = session.get(
             f"{_api_base_url(url)}/user",
@@ -202,7 +202,7 @@ class GitHubEnterpriseIntegration(
     def integration_id(self) -> int:
         return self.model.id
 
-    def get_client(self):
+    def get_client(self) -> GitHubEnterpriseApiClient:
         if not self.org_integration:
             raise IntegrationError("Organization Integration does not exist")
 
@@ -297,7 +297,7 @@ class GitHubEnterpriseIntegration(
         ]
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(f"https://{self.model.metadata['domain_name']}")
+        return url_is_under(url, f"https://{self.model.metadata['domain_name']}")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
@@ -316,8 +316,8 @@ class GitHubEnterpriseIntegration(
         _, source_path = parse_github_blob_url(repo.url, url)
         return source_path
 
-    def search_issues(self, query: str | None, **kwargs):
-        return self.get_client().search_issues(query)
+    def search_issues(self, query: str | None, **kwargs: Any) -> Any:
+        return self.get_client().search_issues(cast("str", query))
 
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
@@ -346,7 +346,7 @@ class GitHubEnterpriseIntegration(
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["domain_name", "installation_id", "account_type"]
 
-    def get_config_data(self):
+    def get_config_data(self) -> dict[str, Any]:
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
@@ -544,7 +544,7 @@ class GitHubEnterpriseIntegration(
             self.org_integration = org_integration
 
 
-class GHEInstallationConfigSerializer(CamelSnakeSerializer):
+class GHEInstallationConfigSerializer(CamelSnakeSerializer[dict[str, Any]]):
     url = URLField(required=True)
     id = CharField(required=True)
     name = CharField(required=True)
@@ -594,7 +594,7 @@ class GHEInstallationConfigApiStep:
         return PipelineStepResult.advance()
 
 
-class GHEAppInstallSerializer(CamelSnakeSerializer):
+class GHEAppInstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
     installation_id = CharField(required=False, allow_blank=True, default="")
 
 
@@ -686,7 +686,12 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     ) -> None:
         pass
 
-    def _get_ghe_installation_info(self, installation_data, access_token, installation_id):
+    def _get_ghe_installation_info(
+        self,
+        installation_data: Mapping[str, Any],
+        access_token: str,
+        installation_id: str,
+    ) -> dict[str, Any] | None:
         headers = {"Accept": GITHUB_API_ACCEPT_HEADER}
         headers.update(
             jwt.authorization_header(
@@ -785,7 +790,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             "idp_config": state["oauth_config_information"],
         }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

@@ -11,6 +11,7 @@ from sentry.db.models import (
 class ActionAlertRuleTriggerAction(DefaultFieldsModel):
     """
     A lookup model for Actions (new) and AlertRuleTriggerActions (legacy)
+    Keep historical IDs after native table retirement for compatibility serialization.
     """
 
     __relocation_scope__ = RelocationScope.Excluded

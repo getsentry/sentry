@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.db.pending_deletion import build_pending_deletion_key
@@ -103,7 +104,9 @@ class OrganizationRepositoryGetTest(APITestCase):
 
 
 class OrganizationRepositoryDeleteTest(APITestCase):
-    def assert_rename_pending_delete(self, response, repo, external_id=None):
+    def assert_rename_pending_delete(
+        self, response: Response, repo: Repository, external_id: str | None = None
+    ) -> None:
         assert response.data["status"] == "pending_deletion"
         assert response.data["name"] == "example"  # name displayed matches what the user expects
 

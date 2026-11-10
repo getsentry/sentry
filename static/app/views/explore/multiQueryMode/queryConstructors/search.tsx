@@ -9,11 +9,8 @@ import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {
-  Section,
-  SectionHeader,
-  SectionLabel,
-} from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
+
+import {Section, SectionHeader, SectionLabel} from './styles';
 
 type Props = {index: number; query: ReadableExploreQueryParts};
 
@@ -27,9 +24,9 @@ export function SearchBarSection({query, index}: Props) {
     initialQuery: query.query ?? '',
     onSearch: value => updateQuerySearch({query: value}),
     searchSource: 'explore',
-    caseInsensitive: query.caseInsensitive ? true : null,
+    caseInsensitive: query.caseInsensitive === '1',
     onCaseInsensitiveClick: (value: CaseInsensitive) => {
-      updateQuerySearch({caseInsensitive: value ? '1' : undefined});
+      updateQuerySearch({caseInsensitive: value ? '1' : '0'});
     },
   });
 

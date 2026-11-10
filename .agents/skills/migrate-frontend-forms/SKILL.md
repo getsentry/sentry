@@ -9,23 +9,24 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 ## Feature Mapping
 
-| Old System           | New System            | Notes                                                |
-| -------------------- | --------------------- | ---------------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveForm`        | Default behavior                                     |
-| `confirm`            | `confirm` prop        | `string \| ((value) => string \| undefined)`         |
-| `showHelpInTooltip`  | `variant="compact"`   | On layout components                                 |
-| `disabledReason`     | `disabled="reason"`   | String shows tooltip                                 |
-| `extraHelp`          | JSX in layout         | Render `<Text>` below field                          |
-| `getData`            | `mutationFn`          | Transform data in mutation function                  |
-| `mapFormErrors`      | Request error adapter | Explicit for regular forms; provided for auto-save   |
-| `saveMessage`        | `onSuccess`           | Show toast in mutation onSuccess callback            |
-| `formatMessageValue` | `onSuccess`           | Control toast content in onSuccess callback          |
-| `resetOnError`       | `onError`             | Call form.reset() in mutation onError                |
-| `saveOnBlur: false`  | `useScrapsForm`       | Use regular form with explicit Save button           |
-| (automatic)          | `form.reset()`        | Call after successful mutation if form stays on page |
-| `help`               | `hintText`            | On layout components                                 |
-| `label`              | `label`               | On layout components                                 |
-| `required`           | `required`            | On layout + Zod schema                               |
+| Old System           | New System                                | Notes                                                |
+| -------------------- | ----------------------------------------- | ---------------------------------------------------- |
+| `saveOnBlur: true`   | `AutoSaveForm`                            | Default behavior                                     |
+| `confirm`            | `confirm` prop                            | `string \| ((value) => string \| undefined)`         |
+| `showHelpInTooltip`  | `variant="compact"`                       | On layout components                                 |
+| `disabledReason`     | `disabled="reason"`                       | String shows tooltip                                 |
+| `extraHelp`          | JSX in layout                             | Render `<Text>` below field                          |
+| `getData`            | `mutationFn`                              | Transform data in mutation function                  |
+| `mapFormErrors`      | Request error adapter                     | Explicit for regular forms; provided for auto-save   |
+| `saveMessage`        | `onSuccess`                               | Show toast in mutation onSuccess callback            |
+| `formatMessageValue` | `onSuccess`                               | Control toast content in onSuccess callback          |
+| `resetOnError`       | `onError`                                 | Call form.reset() in mutation onError                |
+| `saveOnBlur: false`  | `useScrapsForm`                           | Use regular form with explicit Save button           |
+| (automatic)          | `form.reset()`                            | Call after successful mutation if form stays on page |
+| `help`               | `hintText`                                | On layout components                                 |
+| `label`              | `label`                                   | On layout components                                 |
+| `required`           | `required`                                | On layout + Zod schema                               |
+| Display-only content | `DisplayField.Row` / `DisplayField.Stack` | No registered input or form state                    |
 
 ## Feature Details
 
@@ -338,7 +339,7 @@ onSubmit: async ({value, formApi}) => {
     await mutation.mutateAsync(value);
   } catch (error) {
     if (!(error instanceof RequestError)) {
-      addErrorMessage(t('Unable to save changes.'));
+      toast.error(t('Unable to save changes.'));
       return;
     }
 
@@ -348,7 +349,7 @@ onSubmit: async ({value, formApi}) => {
     );
 
     if (!handled) {
-      addErrorMessage(t('Unable to save changes.'));
+      toast.error(t('Unable to save changes.'));
     }
   }
 },
@@ -385,7 +386,7 @@ The `saveMessage` showed a custom toast/alert after successful save. In the new 
 **New:**
 
 ```tsx
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 <AutoSaveForm
   name="fingerprintingRules"
@@ -395,7 +396,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
     mutationFn: data => fetchMutation({...}),
     onSuccess: () => {
       // Custom success message (equivalent to saveMessage)
-      addSuccessMessage(t('Changing fingerprint rules will apply to future events only.'));
+      toast.success(t('Changing fingerprint rules will apply to future events only.'));
     },
   }}
 >
@@ -422,13 +423,13 @@ mutationOptions={{
   mutationFn: data => fetchMutation({...}),
   onSuccess: () => {
     // Just show the message, no value (equivalent to formatMessageValue: false)
-    addSuccessMessage(t('Rules updated'));
+    toast.success(t('Rules updated'));
   },
 }}
 
 // Or if you want to show a formatted value:
 onSuccess: (data) => {
-  addSuccessMessage(t('Slug changed to %s', data.slug));
+  toast.success(t('Slug changed to %s', data.slug));
 },
 ```
 
@@ -591,6 +592,24 @@ return (
 
 A form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
 
+## Display-Only Information
+
+For dates, status text, or other content without an input, use `DisplayField.Row` or `DisplayField.Stack` from `@sentry/scraps/form`. Do not create an `AppField` or `AutoSaveForm` just to get a layout:
+
+```tsx
+<DisplayField.Row label={t('Created')}>
+  <Text>
+    <DateTime date={data.dateCreated} />
+  </Text>
+</DisplayField.Row>
+```
+
+Remove schema entries and default values that existed only to display this content. Preserve text styling with `<Text>` where needed. Use an existing `form.Subscribe` to calculate derived display values during render; do not copy them into form state with `form.setFieldValue`.
+
+`Row` matches the responsive field layout; `Stack` always stacks. These components use description-list semantics without a `<label>`, field context, or error-focus registration. Keep actual read-only inputs on `field.Input readOnly` inside `AppField` and `field.Layout.*` so they retain input association. Custom controls that handle form state still need `field.Base`.
+
+See the [form generation guide](../generate-frontend-forms/SKILL.md#display-only-information) for layout props and a subscription example.
+
 ## Preserving Form Search Functionality
 
 Sentry's SettingsSearch allows users to search for individual settings fields. When migrating forms, you must preserve this searchability by wrapping migrated forms with `FormSearch`.
@@ -600,7 +619,7 @@ Sentry's SettingsSearch allows users to search for individual settings fields. W
 `FormSearch` is a **build-time marker component** — it has zero runtime behavior and simply renders its children unchanged. Its `route` prop is read by a static extraction script to associate form fields with their navigation route, enabling them to appear in SettingsSearch results.
 
 ```tsx
-import {FormSearch} from 'sentry/components/core/form';
+import {FormSearch} from '@sentry/scraps/form';
 
 <FormSearch route="/settings/account/details/">
   <FieldGroup title={t('Account Details')}>
@@ -728,7 +747,8 @@ For a nullable number field, use `z.number().nullable()` in the form schema and 
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
 - [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
 - [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
-- [ ] Convert field config objects to JSX AppField components
+- [ ] Convert input field config objects to JSX AppField components
+- [ ] Convert display-only content to `DisplayField.Row` or `DisplayField.Stack`, without schema or form-state entries
 - [ ] Validate conditionally required fields on the rendered `AppField`, with a permissive form schema
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`

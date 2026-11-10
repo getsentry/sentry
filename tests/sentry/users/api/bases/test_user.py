@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from django.test import override_settings
 from rest_framework.views import APIView
@@ -7,6 +9,7 @@ from rest_framework.views import APIView
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer import agent_token
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
@@ -198,6 +201,13 @@ class BaseUserEndpointTest(DRFPermissionTestCase):
         with pytest.raises(ResourceDoesNotExist):
             self.endpoint.convert_args(self.make_request(), user_id="me")
 
+    def test_retrieves_me_service_account(self) -> None:
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=self.organization.id, name="deploy-bot"
+        )
+        with pytest.raises(ResourceDoesNotExist):
+            self.endpoint.convert_args(self.make_request(principal), user_id="me")
+
     def test_retrieves_me(self) -> None:
         user = self.create_user()
         _, kwargs = self.endpoint.convert_args(self.make_request(user), user_id="me")
@@ -207,6 +217,12 @@ class BaseUserEndpointTest(DRFPermissionTestCase):
         user = self.create_user()
         _, kwargs = self.endpoint.convert_args(self.make_request(user), user_id=user.id)
         assert kwargs["user"].id == user.id
+
+    def test_invalid_user_id(self) -> None:
+        user = self.create_user()
+        for user_id in ("abc", "99999999999999999999"):
+            with pytest.raises(ResourceDoesNotExist):
+                self.endpoint.convert_args(self.make_request(user), user_id=user_id)
 
 
 @no_silo_test

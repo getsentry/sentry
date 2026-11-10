@@ -2,7 +2,7 @@ import type {PropsWithChildren} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EmailVerificationModal from 'sentry/components/modals/emailVerificationModal';
+import EmailVerificationModal from './emailVerificationModal';
 
 describe('Email Verification Modal', () => {
   it('renders', () => {
@@ -18,11 +18,11 @@ describe('Email Verification Modal', () => {
       />
     );
     const message = screen.getByText(
-      'Please verify your email before taking this action',
+      'Please verify your primary email address before taking this action',
       {exact: false}
     );
     expect(message.parentElement).toHaveTextContent(
-      'Please verify your email before taking this action, or go to your email settings.'
+      'Please verify your primary email address before taking this action, or go to your email settings.'
     );
     expect(screen.getByTestId('email-settings-link')).toHaveAttribute(
       'href',
@@ -46,11 +46,11 @@ describe('Email Verification Modal', () => {
       />
     );
     const message = screen.getByText(
-      'Please verify your email before accepting the tenet',
+      'Please verify your primary email address before accepting the tenet',
       {exact: false}
     );
     expect(message.parentElement).toHaveTextContent(
-      `Please verify your email before ${actionMessage}, or go to your email settings.`
+      `Please verify your primary email address before ${actionMessage}, or go to your email settings.`
     );
   });
 });

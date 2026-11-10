@@ -6,7 +6,8 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+
+import {useCrossPlatformProject} from './useCrossPlatformProject';
 
 function initializePageFilters(projects: number[]) {
   PageFiltersStore.onInitializeUrlState(

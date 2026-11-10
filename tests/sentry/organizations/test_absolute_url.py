@@ -42,6 +42,8 @@ from sentry.organizations.absolute_url import customer_domain_path
         ("/checkout/acme/", "/checkout/"),
         ("/checkout/acme/?query=value", "/checkout/?query=value"),
         ("/organizations/new/", "/organizations/new/"),
+        ("/organizations/new-moray/issues/", "/issues/"),
+        ("/organizations/newco/", "/"),
         ("/organizations/albertos-apples/issues/", "/issues/"),
         ("/organizations/albertos-apples/issues/?_q=all#hash", "/issues/?_q=all#hash"),
         ("/acme/project-slug/getting-started/", "/getting-started/project-slug/"),

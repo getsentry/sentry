@@ -1,12 +1,10 @@
 from datetime import timedelta
-from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
@@ -18,12 +16,13 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -77,6 +76,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         self,
         group_type: int = MetricIssue.type_id,
         priority: int = DetectorPriorityLevel.HIGH,
+        fingerprint: str = "test-fingerprint",
     ) -> tuple[IssueOccurrence, GroupInfo]:
         event = self.store_event(
             data={"timestamp": timezone.now().isoformat()}, project_id=self.project.id
@@ -86,7 +86,7 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
             "id": "1",
             "project_id": self.project.id,
             "event_id": event.event_id,
-            "fingerprint": ["test-fingerprint"],
+            "fingerprint": [fingerprint],
             "issue_title": "Test Issue",
             "subtitle": "Test Subtitle",
             "resource_id": None,
@@ -111,163 +111,65 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert group_info.group.type == group_type
         return occurrence, group_info
 
-    def test_save_issue_occurrence_creates_incident_and_relationship(self) -> None:
-        """Test that save_issue_occurrence creates the relationship and incident"""
+    def test_ingestion_preserves_open_period_without_legacy_incident(self) -> None:
         _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
+        open_period = GroupOpenPeriod.objects.get(group=group_info.group)
+        assert open_period.date_ended is None
+        assert not IncidentGroupOpenPeriod.objects.exists()
 
-        open_period = GroupOpenPeriod.objects.get(group=group)
-        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        incident = Incident.objects.get(id=item.incident_id)
-        assert incident.status == IncidentStatus.CRITICAL.value
-        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
-        assert incident.date_closed is None
-        assert incident.subscription_id == self.query_subscription.id
-        assert item.incident_identifier == incident.identifier
+    def test_modern_detector_without_legacy_rule(self) -> None:
+        self.alert_rule_detector.delete()
+        self.alert_rule.delete()
+        _, group_info = self.save_issue_occurrence()
+        assert GroupOpenPeriod.objects.filter(group=group_info.group).exists()
+        assert not IncidentGroupOpenPeriod.objects.exists()
 
-    def test_save_issue_occurrence_no_relationship_for_non_metric_issues(self) -> None:
-        # Test that save_issue_occurrence doesn't create relationships for non-metric issues
+    def test_non_metric_issue(self) -> None:
         _, group_info = self.save_issue_occurrence(group_type=FeedbackGroup.type_id)
+        assert GroupOpenPeriod.objects.filter(group=group_info.group).exists()
+        assert not IncidentGroupOpenPeriod.objects.exists()
 
+    def test_priority_and_resolution_preserve_historical_mapping(self) -> None:
+        _, group_info = self.save_issue_occurrence()
         group = group_info.group
-        assert group is not None
-
         open_period = GroupOpenPeriod.objects.get(group=group)
-        assert not IncidentGroupOpenPeriod.objects.filter(group_open_period=open_period).exists()
+        mapping = self.create_incident_group_open_period(
+            incident_id=123,
+            incident_identifier=42,
+            group_open_period=open_period,
+        )
 
-    def test_updating_group_priority_updates_incident(self) -> None:
-        """Test that a group priority update synchronizes the legacy incident status."""
-        _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
-
-        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
-
-        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
-
-        _, group_info = self.save_issue_occurrence(priority=DetectorPriorityLevel.MEDIUM)
-        group = group_info.group
-        assert group is not None
-
-        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        incident = Incident.objects.get(id=item.incident_id)
-        assert incident.status == IncidentStatus.WARNING.value
-        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
-        assert incident.date_closed is None
-
-    def test_resolving_group_updates_incident(self) -> None:
-        """Test that save_issue_occurrence creates the relationship and incident"""
-        _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
-
+        self.save_issue_occurrence(priority=DetectorPriorityLevel.MEDIUM)
+        group.refresh_from_db()
+        assert group.priority == PriorityLevel.MEDIUM
+        assert GroupOpenPeriodActivity.objects.filter(
+            group_open_period=open_period,
+            type=OpenPeriodActivityType.STATUS_CHANGE,
+            value=PriorityLevel.MEDIUM,
+        ).exists()
         with self.tasks():
             update_status(group, self.mock_status_change_message)
-
-        open_period = GroupOpenPeriod.objects.get(group=group)
+        open_period.refresh_from_db()
+        group.refresh_from_db()
+        mapping.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
         assert open_period.date_ended is not None
-        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        incident = Incident.objects.get(id=item.incident_id)
-        assert incident.status == IncidentStatus.CLOSED.value
-        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
-        assert incident.date_closed == open_period.date_ended - timedelta(
-            seconds=self.snuba_query.time_window
-        )
+        assert mapping.incident_id == 123
+        assert mapping.incident_identifier == 42
 
-    def test_can_close_outstanding_incident(self) -> None:
-        """Test that we close incidents that are left open as a result of IGOP linkage bugs"""
-        four_minutes_ago = timezone.now() - timedelta(minutes=4)
-        three_minutes_ago = timezone.now() - timedelta(minutes=3)
+    def test_resolving_unmapped_period_preserves_open_period(self) -> None:
         _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
-
-        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
-
-        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
-
-        # replicate the following conditions in the DB: an open incident is tied to
-        # a closed open period, and a new open period is being passed to create_from_occurrence()
-        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        dummy_open_period = GroupOpenPeriod.objects.create(
-            group=group,
-            date_started=four_minutes_ago,
-            date_ended=three_minutes_ago,
-            project=self.project,
-        )
-        incident = Incident.objects.get(id=dummy_relationship.incident_id)
-        dummy_relationship.delete()
-        IncidentGroupOpenPeriod.objects.create(
-            incident_id=incident.id,
-            incident_identifier=incident.identifier,
-            group_open_period=dummy_open_period,
-        )
-
-        _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
-
-        incident.refresh_from_db()
-        assert IncidentGroupOpenPeriod.objects.count() == 2
-        assert incident.date_closed is not None
-        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        new_incident = Incident.objects.get(id=item.incident_id)
-        assert incident.status == IncidentStatus.CLOSED.value
-        assert new_incident.id != incident.id
-        assert new_incident.status == IncidentStatus.CRITICAL.value
-        assert new_incident.date_closed is None
-
-    def test_can_resolve_outstanding_incident(self) -> None:
-        """Test that we link and update an incident that was opened before the org started single processing on resolution"""
-        _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
-
-        assert GroupOpenPeriod.objects.filter(group=group, project=self.project).exists()
-
-        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
-
-        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        incident = Incident.objects.get(id=dummy_relationship.incident_id)
-
-        # this is a little hacky, but to emulate dual processing -> single processing I will
-        # just delete the IGOP relationship
-        IncidentGroupOpenPeriod.objects.all().delete()
-
         with self.tasks():
-            update_status(group, self.mock_status_change_message)
-
-        open_period = GroupOpenPeriod.objects.get(group=group)
+            update_status(group_info.group, self.mock_status_change_message)
+        open_period = GroupOpenPeriod.objects.get(group=group_info.group)
         assert open_period.date_ended is not None
-        item = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        assert item.incident_id == incident.id
-        incident.refresh_from_db()
-        assert incident.status == IncidentStatus.CLOSED.value
-        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
-        assert incident.date_closed == open_period.date_ended - timedelta(
-            seconds=self.snuba_query.time_window
-        )
+        assert not IncidentGroupOpenPeriod.objects.exists()
 
-    @mock.patch("sentry.models.group.logger")
-    def test_bulk_transition_new_group_to_ongoing__metric_issues__preserves_incident(
-        self, mock_logger
-    ) -> None:
-        """Ensure we do not trigger an IGOP write for a new to ongoing status change"""
+    def test_ongoing_transition_preserves_open_period(self) -> None:
         _, group_info = self.save_issue_occurrence()
         group = group_info.group
-        assert group is not None
-
-        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
-        assert open_period
-
-        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        incident = Incident.objects.get(id=dummy_relationship.incident_id)
-        assert incident.status == IncidentStatus.CRITICAL.value
-
-        group.substatus = GroupSubStatus.NEW
-        group.save()
-
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        group.update(substatus=GroupSubStatus.NEW)
         bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
         assert Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
@@ -275,47 +177,30 @@ class IncidentGroupOpenPeriodIntegrationTest(TestCase):
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
-        assert mock_logger.error.call_count == 0
+        open_period.refresh_from_db()
+        assert open_period.date_ended is None
+        assert not IncidentGroupOpenPeriod.objects.exists()
 
-        incident.refresh_from_db()
-        assert incident.status == IncidentStatus.CRITICAL.value
-        assert incident.date_closed is None
-        assert (
-            IncidentGroupOpenPeriod.objects.get(group_open_period=open_period) == dummy_relationship
+    def test_resolve_previous_activation_after_next_activation_opened(self) -> None:
+        self.assert_overlapping_activations_resolve_independently(resolve_first=True)
+
+    def test_resolve_next_activation_while_previous_activation_still_open(self) -> None:
+        self.assert_overlapping_activations_resolve_independently(resolve_first=False)
+
+    def assert_overlapping_activations_resolve_independently(self, resolve_first: bool) -> None:
+        _, first = self.save_issue_occurrence(fingerprint="activation-1")
+        _, second = self.save_issue_occurrence(fingerprint="activation-2")
+        resolved, active = (
+            (first.group, second.group) if resolve_first else (second.group, first.group)
         )
 
-    @mock.patch("sentry.models.group.logger")
-    def test_bulk_transition_regressed_group_to_ongoing__metric_issues__preserves_incident(
-        self, mock_logger
-    ) -> None:
-        """Ensure we do not trigger an IGOP write for a regressed to ongoing status change"""
-        _, group_info = self.save_issue_occurrence()
-        group = group_info.group
-        assert group is not None
+        with self.tasks():
+            update_status(resolved, self.mock_status_change_message)
 
-        open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
-        assert open_period
-
-        dummy_relationship = IncidentGroupOpenPeriod.objects.get(group_open_period=open_period)
-        incident = Incident.objects.get(id=dummy_relationship.incident_id)
-        assert incident.status == IncidentStatus.CRITICAL.value
-        group.substatus = GroupSubStatus.REGRESSED
-        group.save()
-
-        bulk_transition_group_to_ongoing(
-            GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, [group.id]
-        )
-        assert Activity.objects.filter(
-            group=group, type=ActivityType.AUTO_SET_ONGOING.value
-        ).exists()
-        assert GroupHistory.objects.filter(
-            group=group, status=GroupHistoryStatus.UNRESOLVED
-        ).exists()
-        assert mock_logger.error.call_count == 0
-
-        incident.refresh_from_db()
-        assert incident.status == IncidentStatus.CRITICAL.value
-        assert incident.date_closed is None
-        assert (
-            IncidentGroupOpenPeriod.objects.get(group_open_period=open_period) == dummy_relationship
-        )
+        resolved.refresh_from_db()
+        active.refresh_from_db()
+        assert resolved.status == GroupStatus.RESOLVED
+        assert GroupOpenPeriod.objects.get(group=resolved).date_ended is not None
+        assert active.status == GroupStatus.UNRESOLVED
+        assert GroupOpenPeriod.objects.get(group=active).date_ended is None
+        assert not IncidentGroupOpenPeriod.objects.exists()

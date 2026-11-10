@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import logging
 from functools import cached_property
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -19,6 +20,7 @@ from sentry.analytics.events.sentry_app_installed import SentryAppInstalledEvent
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -38,10 +40,15 @@ from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import InstallationActionType, SentryAppResourceType
+
+if TYPE_CHECKING:
+    from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
+
+logger = logging.getLogger(__name__)
 
 VALID_ACTIONS = ["created", "deleted"]
 
@@ -52,10 +59,31 @@ class SentryAppInstallationTokenCreator:
     expires_at: datetime.date | None = None
 
     def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            self._check_token_limit()
-            api_token = self._create_api_token()
-            self._create_sentry_app_installation_token(api_token=api_token)
+        api_token: ApiToken | None = None
+        try:
+            # This transaction is required to bind the token to a variable
+            # when replication fails. The outbox_context is just to flag
+            # that this is an outbox-producing operation.
+            with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
+                self._check_token_limit()
+                api_token = self._create_api_token()
+                self._create_sentry_app_installation_token(api_token=api_token)
+        except (OutboxDatabaseError, OutboxFlushError):
+            if api_token is None:
+                raise
+
+            # Guard against replication fanout failures. The token has been
+            # minted, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "sentry_app_installation_token.outbox-flush-failure",
+                extra={
+                    "token_id": api_token.id,
+                    "sentry_app_installation_id": self.sentry_app_installation.id,
+                },
+                exc_info=True,
+            )
+
         self.record_analytics(user)
         return api_token
 
@@ -231,15 +259,17 @@ class SentryAppInstallationNotifier:
 
     @cached_property
     def api_grant(self) -> ApiGrant | None:
-        return self.sentry_app_installation.api_grant_id and self.sentry_app_installation.api_grant
+        if not self.sentry_app_installation.api_grant_id:
+            return None
+        return self.sentry_app_installation.api_grant
 
 
 @dataclasses.dataclass
 class SentryAppInstallationUpdater:
-    sentry_app_installation: SentryAppInstallation
+    sentry_app_installation: SentryAppInstallation | RpcSentryAppInstallation
     status: str | None = None
 
-    def run(self) -> SentryAppInstallation:
+    def run(self) -> SentryAppInstallation | RpcSentryAppInstallation:
         with transaction.atomic(router.db_for_write(SentryAppInstallation)):
             self._update_status()
             self.record_analytics()

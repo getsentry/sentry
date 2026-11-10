@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
-const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
+export const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
 export type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
-const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
+export const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
 
 export type MeasurementType = (typeof ALL_MEASUREMENTS)[number];
 

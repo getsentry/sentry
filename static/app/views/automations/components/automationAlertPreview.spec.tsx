@@ -11,8 +11,9 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {AutomationAlertPreview} from 'sentry/views/automations/components/automationAlertPreview';
-import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+import {AutomationAlertPreview} from './automationAlertPreview';
+import {AutomationBuilderTestProvider} from './testUtils';
 
 jest.unmock('@tanstack/react-pacer');
 

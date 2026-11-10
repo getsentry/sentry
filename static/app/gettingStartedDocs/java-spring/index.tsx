@@ -1,5 +1,4 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {profiling} from 'sentry/gettingStartedDocs/java-spring/profiling';
 import {feedback} from 'sentry/gettingStartedDocs/java/feedback';
 import {metrics} from 'sentry/gettingStartedDocs/java/metrics';
 import {
@@ -9,6 +8,7 @@ import {
 
 import {logs} from './logs';
 import {onboarding} from './onboarding';
+import {profiling} from './profiling';
 import {platformOptions, type PlatformOptions} from './utils';
 
 export const docs: Docs<PlatformOptions> = {

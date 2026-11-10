@@ -4,6 +4,11 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
 
+// The date whose Cloudflare runtime defaults the snippets opt into. Today's date
+// gives a new project the newest defaults, and any date from 2024-09-23 on gives
+// `nodejs_compat` the full Node.js API surface the SDK needs.
+export const getCompatibilityDate = () => new Date().toISOString().slice(0, 10);
+
 export enum CloudflareSetupType {
   VITE = 'vite',
   MANUAL = 'manual',

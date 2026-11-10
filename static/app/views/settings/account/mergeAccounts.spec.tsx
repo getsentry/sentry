@@ -8,9 +8,10 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
-import MergeAccounts from 'sentry/views/settings/account/mergeAccounts';
+import MergeAccounts from './mergeAccounts';
 
 const ENDPOINT = '/auth-v2/merge-accounts/';
 const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';
@@ -36,6 +37,39 @@ describe('MergeAccounts', () => {
         "Only one account was found with your primary email address. You're all set."
       )
     ).toBeInTheDocument();
+  });
+
+  it('renders the current and other accounts in separate tables', async () => {
+    render(<MergeAccounts />);
+
+    const currentTable = await screen.findByRole('table', {
+      name: 'Your currently active account:',
+    });
+    const otherTable = screen.getByRole('table', {name: 'Your other accounts:'});
+
+    expect(
+      within(currentTable)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Name', 'Last Active', 'Organizations']);
+    expect(within(currentTable).getByRole('row', {name: /primary/})).toHaveTextContent(
+      'Currently active'
+    );
+    expect(
+      within(otherTable)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Name', 'Last Active', 'Organizations', 'Merge']);
+    expect(within(otherTable).getByRole('row', {name: /merge me/})).toHaveTextContent(
+      'hojicha, matcha'
+    );
+    expect(within(otherTable).getByRole('row', {name: /delete me/})).toHaveTextContent(
+      'Never'
+    );
+    expect(
+      within(otherTable).getByRole('checkbox', {name: 'Merge merge me'})
+    ).not.toBeChecked();
+    expect(within(currentTable).queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('can post verification code', async () => {
@@ -66,8 +100,7 @@ describe('MergeAccounts', () => {
     render(<MergeAccounts />);
     renderGlobalModal();
 
-    const checkbox = (await screen.findAllByRole('checkbox'))[0]!;
-    await userEvent.click(checkbox);
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Merge merge me'}));
     expect(
       screen.getByText('Merge 1 account(s) into Foo Bar and delete 1 account(s)') // the signed in user is named Foo Bar
     ).toBeInTheDocument();

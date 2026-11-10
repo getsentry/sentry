@@ -209,6 +209,7 @@ DETAILED_PROJECT = {
     "defaultEnvironment": "prod",
     "relayPiiConfig": None,
     "builtinSymbolSources": ["ios", "android", "chromium"],
+    "enableNativeSourceServerMapping": False,
     "dynamicSamplingBiases": [
         {"id": "boostEnvironments", "active": True},
         {"id": "boostLatestRelease", "active": True},
@@ -371,11 +372,13 @@ ERROR_RELEASE_CUSTOM_INBOUND_FILTER = {
     "active": True,
     "dataType": "error",
     "conditions": [
-        {"type": "error_type", "value": ["TypeError"]},
-        {"type": "release", "value": ["1.*"]},
+        {"type": "error_type", "operator": "equals", "value": ["TypeError"]},
+        {"type": "error_message", "operator": "contains", "value": ["undefined"]},
+        {"type": "release", "operator": "lt", "value": ["2.0.0"]},
     ],
     "dateCreated": "2024-07-23T17:52:53.981206Z",
     "dateUpdated": "2024-07-23T17:52:53.981206Z",
+    "legacyFilter": None,
 }
 
 
@@ -534,6 +537,23 @@ class ProjectExamples:
                 {"id": "localhost", "active": False},
                 {"id": "web-crawlers", "active": True},
             ],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    RESOLVE_DSN = [
+        OpenApiExample(
+            "Resolve a DSN to its project",
+            value={
+                "organizationSlug": "the-interstellar-jurisdiction",
+                "projectSlug": "pump-station",
+                "projectId": "2",
+                "projectName": "Pump Station",
+                "projectPlatform": "python",
+                "keyLabel": "Default",
+                "keyId": "60120449",
+            },
             status_codes=["200"],
             response_only=True,
         ),

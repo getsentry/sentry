@@ -9,11 +9,11 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  LoadingStreamGroup,
   StreamGroup,
 } from 'sentry/components/stream/group';
 import {
@@ -360,9 +360,12 @@ export function GroupList({
         <SimpleTable.Body>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
-                <SimpleTable.FullWidthRow key={i}>
-                  <Placeholder height="50px" />
-                </SimpleTable.FullWidthRow>
+                <LoadingStreamGroup
+                  key={i}
+                  canSelect={canSelectGroups}
+                  withChart={withChart}
+                  withColumns={withColumns}
+                />
               ))
             : groups.map(group => {
                 const members = memberList?.get(group.project.slug);

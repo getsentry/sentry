@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from django.http.request import QueryDict
 
 from sentry import analytics, features, options
-from sentry.api import client
+from sentry.api.client import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation

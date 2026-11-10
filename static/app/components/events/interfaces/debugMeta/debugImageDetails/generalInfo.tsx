@@ -1,6 +1,8 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {Processings} from 'sentry/components/events/interfaces/debugMeta/debugImage/processings';
 import {getImageAddress} from 'sentry/components/events/interfaces/debugMeta/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
@@ -18,7 +20,7 @@ export function GeneralInfo({image}: Props) {
   const imageAddress = image ? getImageAddress(image) : undefined;
 
   return (
-    <Wrapper>
+    <Grid columns="max-content 1fr">
       <Label coloredBg>{t('Address Range')}</Label>
       <Value coloredBg>{imageAddress ?? <NotAvailable />}</Value>
 
@@ -45,14 +47,9 @@ export function GeneralInfo({image}: Props) {
           <NotAvailable />
         )}
       </Value>
-    </Wrapper>
+    </Grid>
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-`;
 
 const Label = styled('div')<{coloredBg?: boolean}>`
   color: ${p => p.theme.tokens.content.primary};

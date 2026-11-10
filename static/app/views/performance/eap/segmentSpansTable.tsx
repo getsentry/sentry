@@ -7,7 +7,7 @@ import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
@@ -28,18 +28,16 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getAlignment} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+
 import {
   SEGMENT_SPANS_COLUMN_ORDER,
   type SegmentSpansColumn,
   type SegmentSpansRow,
-} from 'sentry/views/performance/eap/types';
-import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
-import {
-  getEAPSegmentSpansListSort,
-  SEGMENT_SPANS_CURSOR,
-} from 'sentry/views/performance/eap/utils';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
-import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+} from './types';
+import {useSegmentSpansQuery} from './useSegmentSpansQuery';
+import {getEAPSegmentSpansListSort, SEGMENT_SPANS_CURSOR} from './utils';
 
 const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
@@ -125,7 +123,7 @@ export function SegmentSpansTable({
 
   return (
     <Fragment>
-      <Header>
+      <Grid align="center" marginBottom="md" columns="1fr auto auto auto">
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
@@ -150,7 +148,7 @@ export function SegmentSpansTable({
           onCursor={handleCursor}
           isLoading={isLoading}
         />
-      </Header>
+      </Grid>
 
       <DataGrid
         isLoading={isLoading}
@@ -288,13 +286,6 @@ function CustomPagination({
     />
   );
 }
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${p => p.theme.space.md};

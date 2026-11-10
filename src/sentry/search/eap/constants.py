@@ -237,6 +237,7 @@ SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType]
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
+    "LOW_PRIORITY": DownsampledStorageConfig.MODE_LOW_PRIORITY,
     SAMPLING_MODE_HIGHEST_ACCURACY: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
     SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME,
 }
@@ -284,3 +285,7 @@ PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] 
     AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
     AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }
+
+# Protobuf has a max recursion depth, set a maximum on our side because snuba will 400 on parsing a request that has too
+# many functions chained together
+MAX_BOOLEAN_DEPTH = 50

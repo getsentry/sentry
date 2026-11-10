@@ -7,7 +7,8 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+
+import {useMetricOptions} from './useMetricOptions';
 
 describe('useMetricOptions', () => {
   const project = ProjectFixture();
@@ -68,6 +69,7 @@ describe('useMetricOptions', () => {
             'metric.type',
             'count(metric.name)',
             'max(timestamp_precise)',
+            'metric.unit',
           ],
           referrer: 'api.explore.metric-options',
         }),
@@ -117,6 +119,7 @@ describe('useMetricOptions', () => {
               'metric.type',
               'count(metric.name)',
               'max(timestamp_precise)',
+              'metric.unit',
             ],
             referrer: 'api.explore.metric-options',
             statsPeriod: '3d',

@@ -1,25 +1,22 @@
 __all__ = (
-    "InvestigationBlockSerializer",
-    "InvestigationBlockSerializerResponse",
+    "InvestigationActionRequestSerializer",
+    "InvestigationActionRequestSerializerResponse",
     "InvestigationDetailsSerializer",
     "InvestigationDetailsSerializerResponse",
-    "InvestigationParameterSerializer",
-    "InvestigationParameterSerializerResponse",
     "InvestigationSerializer",
     "InvestigationSerializerResponse",
     "orchestration_summaries_by_investigation",
 )
 
 
-from .block import InvestigationBlockSerializer, InvestigationBlockSerializerResponse
+from .action_request import (
+    InvestigationActionRequestSerializer,
+    InvestigationActionRequestSerializerResponse,
+)
 from .investigation import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
     InvestigationSerializer,
     InvestigationSerializerResponse,
     orchestration_summaries_by_investigation,
-)
-from .parameter import (
-    InvestigationParameterSerializer,
-    InvestigationParameterSerializerResponse,
 )

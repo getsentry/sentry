@@ -12,7 +12,7 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.relay import projectconfig_cache
-from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.relay.config import get_project_config
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 
@@ -57,7 +57,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
         project_keys = self._get_project_keys(project, supplied_project_key)
 
-        configs: MutableMapping[str, MutableMapping[str, Any] | ProjectConfig | None] = {}
+        configs: MutableMapping[str, MutableMapping[str, Any] | None] = {}
         uncached_keys = []
         for project_key in project_keys:
             if isinstance(project_key, ProjectKey) and project_key.public_key is not None:

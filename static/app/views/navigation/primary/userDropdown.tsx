@@ -1,6 +1,5 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
@@ -14,11 +13,14 @@ import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
@@ -36,6 +38,19 @@ export function UserDropdown() {
   const theme = useTheme();
   const {mutate: updateOptions} = useMutateUserOptions();
   const settingsV3 = useSettingsV3();
+  const organization = useOrganization({allowNull: true});
+  const {scope: settingsScope} = useSettingsScope();
+
+  const trackSettingsClicked = () => {
+    // The user menu stays visible in settings, where this is not an entry point.
+    if (settingsScope) {
+      return;
+    }
+    trackAnalytics('settings.entry_point_clicked', {
+      organization,
+      entry_point: 'user_menu',
+    });
+  };
 
   useEffect(() => {
     portalContainerRef.current = document.body;
@@ -71,7 +86,7 @@ export function UserDropdown() {
     return (
       <DropdownMenu
         usePortal
-        size={size}
+        size="md"
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         renderWrapAs={PassthroughWrapper}
@@ -95,14 +110,15 @@ export function UserDropdown() {
               {
                 key: 'settings',
                 label: t('Settings'),
-                leadingItems: <IconSettings size="sm" />,
+                leadingItems: <IconSettings size="md" />,
                 to: '/settings/account/',
+                onAction: trackSettingsClicked,
               },
               {
                 key: 'preferences',
                 label: t('Preferences'),
-                leadingItems: <IconSliders size="sm" />,
-                submenu: {title: t('Preferences')},
+                leadingItems: <IconSliders size="md" />,
+                submenu: true,
                 children: [
                   {
                     key: 'theme',
@@ -111,28 +127,19 @@ export function UserDropdown() {
                       {
                         key: 'theme-system',
                         label: t('Default to system'),
-                        leadingItems:
-                          user.options.theme === 'system' ? (
-                            <IconCheckmark size="sm" />
-                          ) : undefined,
+                        isSelected: user.options.theme === 'system',
                         onAction: () => updateOptions({theme: 'system'}),
                       },
                       {
                         key: 'theme-light',
                         label: t('Light'),
-                        leadingItems:
-                          user.options.theme === 'light' ? (
-                            <IconCheckmark size="sm" />
-                          ) : undefined,
+                        isSelected: user.options.theme === 'light',
                         onAction: () => updateOptions({theme: 'light'}),
                       },
                       {
                         key: 'theme-dark',
                         label: t('Dark'),
-                        leadingItems:
-                          user.options.theme === 'dark' ? (
-                            <IconCheckmark size="sm" />
-                          ) : undefined,
+                        isSelected: user.options.theme === 'dark',
                         onAction: () => updateOptions({theme: 'dark'}),
                       },
                     ],
@@ -144,17 +151,13 @@ export function UserDropdown() {
                       {
                         key: 'time-format-false',
                         label: t('12 hour'),
-                        leadingItems: user.options.clock24Hours ? undefined : (
-                          <IconCheckmark size="sm" />
-                        ),
+                        isSelected: !user.options.clock24Hours,
                         onAction: () => updateOptions({clock24Hours: false}),
                       },
                       {
                         key: 'time-format-true',
                         label: t('24 hour'),
-                        leadingItems: user.options.clock24Hours ? (
-                          <IconCheckmark size="sm" />
-                        ) : undefined,
+                        isSelected: user.options.clock24Hours,
                         onAction: () => updateOptions({clock24Hours: true}),
                       },
                     ],
@@ -224,6 +227,7 @@ export function UserDropdown() {
               key: 'user-settings',
               label: t('User Settings'),
               to: '/settings/account/',
+              onAction: trackSettingsClicked,
             },
             {
               key: 'admin',

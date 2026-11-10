@@ -18,8 +18,22 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+# Preserve the existing OPENED/CLOSED activity policy independently of detector registration.
+_OPEN_PERIOD_ACTIVITY_GROUP_TYPES = frozenset(
+    {
+        "error",
+        "issue_stream",
+        "metric_issue",
+        "monitor_check_in_failure",
+        "preprod_size_analysis",
+        "sourcemap_configuration",
+        "uptime_domain_failure",
+    }
+)
 
 
 class TsTzRange(models.Func):
@@ -28,11 +42,17 @@ class TsTzRange(models.Func):
 
 
 def get_group_types_without_open_periods() -> Collection[int]:
-    return options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+    type_ids = options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+    return type_ids
 
 
 def should_create_open_periods(type_id: int) -> bool:
     return type_id not in get_group_types_without_open_periods()
+
+
+def should_record_open_period_activity(type_id: int) -> bool:
+    """Whether to record OPENED/CLOSED activities; priority activities have a separate policy."""
+    return get_group_type_by_type_id(type_id).slug in _OPEN_PERIOD_ACTIVITY_GROUP_TYPES
 
 
 @cell_silo_model
@@ -97,9 +117,17 @@ class GroupOpenPeriod(DefaultFieldsModel):
             logger.warning("Open period is already closed", extra={"group_id": self.group.id})
             return
 
+        if resolution_time < self.date_started:
+            metrics.incr(
+                "group_open_period.close.resolution_time_before_start",
+                tags={"group_type": get_group_type_by_type_id(self.group.type).slug},
+            )
+
+            resolution_time = self.date_started
+
         self.update(date_ended=resolution_time)
 
-        if get_group_type_by_type_id(self.group.type).detector_settings is not None:
+        if should_record_open_period_activity(self.group.type):
             GroupOpenPeriodActivity.objects.create(
                 group_open_period=self,
                 type=OpenPeriodActivityType.CLOSED,
@@ -211,8 +239,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             date_ended=None,
         )
 
-        # If we care about this group's activity, create activity entry
-        if get_group_type_by_type_id(group.type).detector_settings is not None:
+        if should_record_open_period_activity(group.type):
             GroupOpenPeriodActivity.objects.create(
                 date_added=start_time,
                 group_open_period=open_period,

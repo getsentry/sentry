@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {NoGroupsHandler} from 'sentry/views/issueList/noGroupsHandler';
 
 describe('NoGroupsHandler', () => {
@@ -76,5 +77,45 @@ describe('NoGroupsHandler', () => {
     render(<NoGroupsHandler {...defaultProps} />);
 
     expect(await screen.findByText(/Waiting for events/i)).toBeInTheDocument();
+  });
+
+  it('checks first events and projects for only the selected projects', async () => {
+    const sentFirstEvent = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: false},
+      match: [MockApiClient.matchQuery({project: [1, 2]})],
+    });
+    const projects = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [ProjectFixture()],
+      match: [MockApiClient.matchQuery({query: 'id:1 id:2'})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/issues/',
+      body: [],
+    });
+
+    render(<NoGroupsHandler {...defaultProps} selectedProjectIds={[1, 2]} />);
+
+    expect(await screen.findByText(/Waiting for events/i)).toBeInTheDocument();
+    expect(sentFirstEvent).toHaveBeenCalled();
+    expect(projects).toHaveBeenCalled();
+  });
+
+  it('checks first events across all projects when all projects are selected', async () => {
+    const sentFirstEvent = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sent-first-event/',
+      body: {sentFirstEvent: true},
+    });
+
+    render(
+      <NoGroupsHandler {...defaultProps} selectedProjectIds={[ALL_ACCESS_PROJECTS]} />
+    );
+
+    expect(await screen.findByText('No issues match your search')).toBeInTheDocument();
+    expect(sentFirstEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: undefined})
+    );
   });
 });

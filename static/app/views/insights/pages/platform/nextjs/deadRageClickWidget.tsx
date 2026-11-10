@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconCursorArrow} from '@sentry/icons/cursorArrow';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
@@ -30,13 +32,13 @@ export function DeadRageClicksWidget({visulizationOnly}: {visulizationOnly?: boo
   const isEmpty = !isLoading && data.length === 0;
 
   let visualization = (
-    <FeatureWrapper>
+    <Container paddingTop="md">
       <FeatureDisabled
         features="organizations:session-replay-ui"
         featureName={t('Replays')}
         hideHelpToggle
       />
-    </FeatureWrapper>
+    </Container>
   );
 
   if (hasReplays) {
@@ -133,8 +135,4 @@ const ClickCount = styled(TextOverflow)`
   grid-template-columns: auto auto;
   gap: ${p => p.theme.space.sm};
   align-items: center;
-`;
-
-const FeatureWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.md};
 `;

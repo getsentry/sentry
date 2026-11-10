@@ -52,6 +52,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -64,11 +65,18 @@ logger = logging.getLogger(__name__)
 def _organization_viewer_context_scope(
     organization_id: int,
 ) -> contextlib.AbstractContextManager[None]:
-    if get_viewer_context() is not None:
+    current = get_viewer_context()
+    if (
+        current is not None
+        and current.organization_id == organization_id
+        and current.actor.type == ActorType.USER
+        and current.actor.user_id is not None
+        and current.actor.user_id > 0
+    ):
         return contextlib.nullcontext()
 
     return viewer_context_scope(
-        ViewerContext(organization_id=organization_id, actor_type=ActorType.SYSTEM)
+        ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id)
     )
 
 
@@ -177,7 +185,7 @@ def index_org_project_knowledge(org_id: int) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SnubaRPCRateLimitExceeded,), delay=60),
 )
-def build_service_map(organization_id: int, *args, **kwargs) -> None:
+def build_service_map(organization_id: int, *args: object, **kwargs: object) -> None:
     """
     Build service map for a single organization and send to Seer.
 
@@ -256,7 +264,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
     processing_deadline_duration=10 * 60,  # 10 minutes
     retry=Retry(times=3, on=(SeerApiError,), delay=60),
 )
-def index_repos(organization_id: int, *args, **kwargs) -> None:
+def index_repos(organization_id: int, *args: object, **kwargs: object) -> None:
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
@@ -449,7 +457,7 @@ def schedule_context_engine_indexing_tasks() -> None:
     processing_deadline_duration=30,
 )
 def index_sentry_knowledge() -> None:
-    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+    with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
         response = make_index_sentry_knowledge_request(
             body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
         )

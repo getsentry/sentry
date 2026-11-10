@@ -1,22 +1,29 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
   doesMetricSupportHeatMapVisualization,
@@ -41,6 +48,7 @@ import {
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
 import {
+  useQueryParamsGroupBys,
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
@@ -100,6 +108,7 @@ function getVisualizationTypeDisabledReason(
 interface MetricsGraphProps {
   actions: React.ReactNode;
   timeseriesResult: SortedTimeSeries;
+  footerActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -107,6 +116,7 @@ interface MetricsGraphProps {
 export function MetricsGraph({
   timeseriesResult,
   actions,
+  footerActions,
   isMetricOptionsEmpty,
   title,
 }: MetricsGraphProps) {
@@ -126,6 +136,7 @@ export function MetricsGraph({
       visualizes={visualizes}
       timeseriesResult={timeseriesResult}
       actions={actions}
+      footerActions={footerActions}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
       title={title}
     />
@@ -137,6 +148,7 @@ interface GraphProps {
   timeseriesResult: SortedTimeSeries;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
+  footerActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
   title?: string;
 }
@@ -146,6 +158,7 @@ function Graph({
   visualize,
   visualizes,
   actions,
+  footerActions,
   isMetricOptionsEmpty,
   title,
 }: GraphProps) {
@@ -154,6 +167,8 @@ function Graph({
   const metricLabel = useMetricLabel();
   const metricName = useMetricName();
   const userQuery = useQueryParamsQuery();
+  const groupBys = useQueryParamsGroupBys();
+  const {selection} = usePageFilters();
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
@@ -166,19 +181,16 @@ function Graph({
     normalModeExtrapolated: true,
   });
   const [interval] = useChartInterval();
-  const {droppedEvents, acceptedEvents} = useDroppedData({
-    dataset: DiscoverDatasets.TRACEMETRICS,
-    interval,
-  });
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({
-    dataset: DiscoverDatasets.TRACEMETRICS,
-  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
-    const yAxes = visualizes.map(v => v.yAxis);
-    const rawSeries = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
+    const rawSeries = [
+      ...new Set(
+        visualizes.flatMap(v =>
+          getTimeSeriesForQuery(timeseriesResult.data, v.yAxis, v.transformations)
+        )
+      ),
+    ];
 
     // When displaying multiple aggregates, simplify the legend labels
     // to just show the function name (e.g., "p50" instead of "p50(metric.name)")
@@ -208,6 +220,19 @@ function Graph({
     }
 
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
+    const groups = Object.values(
+      Object.groupBy(
+        rawSeries.filter(s => !s.meta.isOther),
+        s => JSON.stringify(s.groupBy ?? [])
+      )
+    );
+    if (isTopEvents) {
+      samplingMeta.sampleCount = groups.reduce(
+        (total, group) =>
+          total + determineSeriesSampleCountAndIsSampled(group ?? [], false).sampleCount,
+        0
+      );
+    }
 
     return {
       chartType: visualize.chartType,
@@ -219,9 +244,12 @@ function Graph({
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,
       samplingMode: undefined,
-      topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
+      topEvents: isTopEvents ? groups.length : undefined,
     };
   }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit, visualizes]);
+
+  const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const chartTitle = useMemo(() => {
     if (visualizes.length > 1) {
@@ -241,9 +269,18 @@ function Graph({
         chartInfo.dataScanned
       )
     : null;
-  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
+  const droppedData = useDroppedDataLayer(
+    {dataset: DiscoverDatasets.TRACEMETRICS, interval},
+    {enabled: showChart}
+  );
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
+
+  // ECharts keeps its toolbox zoom window across option merges, so a chart that
+  // stays mounted after a zoom keeps clipping to the old range when the query
+  // changes (e.g. switching back to a larger preset). Remounting gives each
+  // query a fresh chart instance, matching `LogsGraph`.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${visualizes.map(v => v.yAxis).join(',')}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
     <WidgetWrapper hideFooterBorder>
@@ -259,11 +296,8 @@ function Graph({
         }
         Actions={
           <Fragment>
-            {canShowDroppedData ? (
-              <DroppedDataLayerControl
-                showDroppedData={isDroppedDataLayerOn}
-                onChange={setIsDroppedDataLayerOn}
-              />
+            {droppedData.layerControl ? (
+              <DroppedDataLayerControl {...droppedData.layerControl} />
             ) : null}
             {actions}
           </Fragment>
@@ -289,27 +323,52 @@ function Graph({
             />
           ) : showChart ? (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
-              droppedData={
-                showDroppedDataBand
-                  ? {
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
-                    }
-                  : undefined
-              }
+              droppedData={droppedData.band}
+              plottables={plottables}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           ) : undefined
         }
         Footer={
-          showChart ? (
-            <ConfidenceFooter
-              chartInfo={chartInfo}
-              isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
-              hasUserQuery={!!userQuery}
-              rawMetricCounts={rawMetricCounts}
-            />
+          showChart || footerActions ? (
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  {showChart && hasExtrapolationConfidenceFooter ? (
+                    !timeseriesResult.isPending &&
+                    !timeseriesResult.isFetching && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : showChart ? (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={
+                        timeseriesResult.isPending || timeseriesResult.isFetching
+                      }
+                      hasUserQuery={!!userQuery}
+                      rawMetricCounts={rawMetricCounts}
+                    />
+                  ) : null}
+                  {droppedData.filterNote ? (
+                    <DroppedDataFilterNote
+                      {...droppedData.filterNote}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
+                {footerActions}
+              </Flex>
+            </Container>
           ) : undefined
         }
         height={height}

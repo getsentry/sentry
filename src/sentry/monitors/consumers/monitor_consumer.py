@@ -44,6 +44,7 @@ from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
 )
+from sentry.monitors.logic.monitor_status import update_monitor_status
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -775,12 +776,18 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     monitor = None
     # 01
     # Retrieve or upsert monitor for this check-in
+    existing_monitor_environment = MonitorEnvironment.objects.get_existing(
+        project, monitor_slug, environment
+    )
     try:
-        (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
-            project,
-            monitor_slug,
-            monitor_config,
-        )
+        if existing_monitor_environment and not monitor_config:
+            monitor = existing_monitor_environment.monitor
+        else:
+            (monitor, non_fatal_processing_errors) = _ensure_monitor_with_config(
+                project,
+                monitor_slug,
+                monitor_config,
+            )
     except ProcessingErrorsException as e:
         ensure_config_errors = list(e.processing_errors)
     except MonitorLimitsExceeded as e:
@@ -813,7 +820,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+            update_monitor_status(monitor, ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(
@@ -893,9 +900,14 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     # 02
     # Retrieve or upsert monitor environment for this check-in
     try:
-        monitor_environment = MonitorEnvironment.objects.ensure_environment(
-            project, monitor, environment
-        )
+        if existing_monitor_environment:
+            # Use the monitor the upsert may have just updated
+            existing_monitor_environment.monitor = monitor
+            monitor_environment = existing_monitor_environment
+        else:
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, environment
+            )
     except MonitorEnvironmentLimitsExceeded as e:
         metrics.incr(
             "monitors.checkin.result",
@@ -1115,12 +1127,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
                     )
-
-                    # When creating a brand new check-in (not updating an existing one),
-                    # if no monitor config was provided and the monitor was previously
-                    # marked as upserting, mark it as no longer upserting.
-                    if not monitor_config and monitor.is_upserting:
-                        monitor.update(is_upserting=False)
 
             track_outcome(
                 org_id=project.organization_id,

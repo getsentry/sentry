@@ -15,6 +15,7 @@ from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
@@ -199,7 +200,7 @@ def merge_groups(
             from_object_ids.remove(from_object_id)
 
             # Don't do MinHash work if we use embeddings-based similarity.
-            if not group.project.get_option("sentry:similarity_backfill_completed"):
+            if not project_uses_seer_similarity(group.project):
                 similarity.merge(group.project, new_group, [group], allow_unsafe=True)
 
             environment_ids = list(
@@ -258,7 +259,7 @@ def merge_groups(
                     num_comments=F("num_comments") + group.num_comments,
                 )
             except DataError as e:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.new_scope() as scope:
                     scope.set_extra("new_group_id", new_group.id)
                     scope.set_extra("old_group_id", group.id)
                     sentry_sdk.capture_exception(e, level="warning")

@@ -5,24 +5,12 @@ import {IconFatal} from '@sentry/icons/fatal';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {CanvasSupportNotice} from 'sentry/components/replays/canvasSupportNotice';
-import {
-  JetpackComposePiiNotice,
-  useNeedsJetpackComposePiiNotice,
-} from 'sentry/components/replays/jetpackComposePiiNotice';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {ReplayController} from 'sentry/components/replays/replayController';
-import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
-import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';
-import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
-import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
-import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
@@ -31,6 +19,19 @@ import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {ReplayViewScale} from 'sentry/views/explore/replays/detail/replayViewScale';
+
+import {CanvasSupportNotice} from './canvasSupportNotice';
+import {
+  JetpackComposePiiNotice,
+  useNeedsJetpackComposePiiNotice,
+} from './jetpackComposePiiNotice';
+import {useReplayContext} from './replayContext';
+import {ReplayController} from './replayController';
+import {ReplayCurrentScreen} from './replayCurrentScreen';
+import {ReplayCurrentUrl} from './replayCurrentUrl';
+import {SentryPlayerRoot as ReplayPlayer} from './replayPlayer';
+import {ReplayProcessingError} from './replayProcessingError';
+import {ReplaySidebarToggleButton} from './replaySidebarToggleButton';
 
 type Props = {
   isLoading: boolean;
@@ -61,7 +62,7 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
     <Fragment>
       <Flex flexGrow={1} gap="md">
         <PlayerContainer>
-          <ContextContainer>
+          <Grid align="center" gap="lg" columns="1fr max-content" flow="column">
             {isLoading ? (
               <TextCopyInput size="sm" disabled>
                 {''}
@@ -120,7 +121,7 @@ export function ReplayView({isLoading, layout, toggleFullscreen, toggleLayout}: 
                 }}
               />
             )}
-          </ContextContainer>
+          </Grid>
           {isLoading ? (
             <FluidHeight>
               <Panel>
@@ -163,14 +164,6 @@ const Panel = styled(FluidHeight)`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: ${p => p.theme.shadow.medium};
-`;
-
-const ContextContainer = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const PlayerContainer = styled('div')`

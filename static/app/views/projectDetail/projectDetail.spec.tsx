@@ -162,6 +162,24 @@ describe('ProjectDetail', () => {
     );
   });
 
+  it('Links Create Monitor to the project by id', async () => {
+    ProjectsStore.loadInitialData([project]);
+    setupMockResponses();
+
+    renderProjectDetail();
+
+    await userEvent.click(
+      await within(screen.getByRole('banner')).findByRole('button', {
+        name: 'Project Actions',
+      })
+    );
+
+    expect(screen.getByRole('menuitemradio', {name: 'Create Monitor'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/monitors/new/?project=${project.id}`
+    );
+  });
+
   it('Sync project with slug', async () => {
     ProjectsStore.loadInitialData([project]);
     setupMockResponses();

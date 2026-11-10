@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {dragHandle} from 'sentry-test/dragMove';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
@@ -385,6 +392,112 @@ describe('ConversationsTable', () => {
     expect(router.location.pathname).toBe(initialPath);
 
     openSpy.mockRestore();
+  });
+
+  it('adds a cell value to the search query without opening the conversation', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', llmCalls: 7}]);
+
+    const {router} = renderTable();
+    const initialPath = router.location.pathname;
+
+    await screen.findByText('Filter me');
+    const messagesCell = screen.getAllByRole('cell')[2]!;
+    await userEvent.click(within(messagesCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.messages:7')
+    );
+    expect(router.location.pathname).toBe(initialPath);
+  });
+
+  it('excludes a cell value from the existing search query', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', errors: 2}]);
+
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {query: 'gen_ai.tool.name:search'}},
+      },
+    });
+
+    await screen.findByText('Filter me');
+    const errorsCell = screen.getAllByRole('cell')[3]!;
+    await userEvent.click(within(errorsCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'gen_ai.tool.name:search !conversation.errors:2'
+      )
+    );
+  });
+
+  it('filters the timespan and cost with comparisons', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 1500, totalCost: 0.25},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.timeSpan:>1.50s')
+    );
+
+    const costCell = screen.getAllByRole('cell')[4]!;
+    await userEvent.click(within(costCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe(
+        'conversation.timeSpan:>1.50s conversation.totalCost:<0.25'
+      )
+    );
+  });
+
+  it('filters on generation duration when the timespan falls back to it', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'Filter me', timeSpan: 0, generationDuration: 2000},
+    ]);
+
+    const {router} = renderTable();
+
+    await screen.findByText('Filter me');
+    const timeSpanCell = screen.getAllByRole('cell')[1]!;
+    await userEvent.click(within(timeSpanCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
+
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('conversation.generationDuration:<2.00s')
+    );
+  });
+
+  it('does not offer cell actions for a missing cost', async () => {
+    mockConversations([{...BASE_CONVERSATION, title: 'Filter me', totalCost: null}]);
+
+    renderTable();
+
+    await screen.findByText('Filter me');
+    const costCell = screen.getAllByRole('cell')[4]!;
+    expect(
+      within(costCell).queryByRole('button', {name: 'Actions'})
+    ).not.toBeInTheDocument();
   });
 });
 

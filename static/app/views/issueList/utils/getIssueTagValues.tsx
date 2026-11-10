@@ -1,5 +1,6 @@
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {TagValue} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 import {DEVICE_CLASS_TAG_VALUES, FieldKey, isDeviceClass} from 'sentry/utils/fields';
 
 /**
@@ -18,14 +19,9 @@ export function makeGetIssueTagValues(
       return DEVICE_CLASS_TAG_VALUES;
     }
     const values = await tagValueLoader(tag.key, searchQuery);
-    const stringValues = values.map(({value}) => {
-      // Truncate results to 5000 characters to avoid exceeding the max url query length
-      // The message attribute for example can be 8192 characters.
-      if (typeof value === 'string' && value.length > 5000) {
-        return value.substring(0, 5000);
-      }
-      return value;
-    });
+    // Truncate results to 5000 characters to avoid exceeding the max url query length
+    // The message attribute for example can be 8192 characters.
+    const stringValues = values.map(({value}) => value?.slice(0, 5000)).filter(defined);
 
     const includeLatest =
       (tag.key === FieldKey.RELEASE || tag.key === FieldKey.FIRST_RELEASE) &&

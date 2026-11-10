@@ -11,8 +11,9 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {SentryAppExternalIssueForm} from './sentryAppExternalIssueForm';
 
 describe('SentryAppExternalIssueForm', () => {
   const group = GroupFixture({
@@ -49,7 +50,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
@@ -102,7 +103,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
@@ -126,7 +127,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={undefined}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
@@ -149,7 +150,7 @@ describe('SentryAppExternalIssueForm', () => {
           event={EventFixture()}
           onSubmitSuccess={jest.fn()}
           group={group}
-          sentryAppInstallation={sentryAppInstallation}
+          sentryAppInstallationUuid={sentryAppInstallation.uuid}
           appName={sentryApp.name}
           config={component.schema.link}
           action="link"
@@ -216,7 +217,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
-        sentryAppInstallation={sentryAppInstallation}
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"
@@ -286,7 +287,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
         event={EventFixture()}
         onSubmitSuccess={jest.fn()}
         group={group}
-        sentryAppInstallation={sentryAppInstallation}
+        sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"

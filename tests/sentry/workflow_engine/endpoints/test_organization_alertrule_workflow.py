@@ -1,7 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
-from sentry.workflow_engine.models import AlertRuleDetector, AlertRuleWorkflow
 
 
 class OrganizationAlertRuleWorkflowAPITestCase(APITestCase):
@@ -139,8 +138,8 @@ class OrganizationAlertRuleWorkflowProjectAccessTest(OrganizationAlertRuleWorkfl
 
     def test_legacy_source_resolution(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        mapping = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        AlertRuleDetector.objects.filter(rule_id=rule.id).delete()
+        workflow = self.create_workflow(organization=self.organization)
+        mapping = self.create_alert_rule_workflow(rule_id=rule.id, workflow=workflow)
         self.get_error_response(self.organization.slug, rule_id=rule.id, status_code=404)
 
         self.create_team_membership(team=self.team, user=self.member)
@@ -153,7 +152,7 @@ class OrganizationAlertRuleWorkflowProjectAccessTest(OrganizationAlertRuleWorkfl
 
     def test_shared_workflow_only_returns_accessible_mapping(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        AlertRuleWorkflow.objects.filter(rule_id=rule.id).update(workflow=self.workflow_1)
+        self.create_alert_rule_workflow(rule_id=rule.id, workflow=self.workflow_1)
         accessible_team = self.create_team(organization=self.organization)
         accessible_project = self.create_project(
             organization=self.organization, teams=[accessible_team]

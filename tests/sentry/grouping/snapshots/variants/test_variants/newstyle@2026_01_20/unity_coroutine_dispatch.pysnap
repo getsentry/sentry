@@ -2,51 +2,51 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: null
-  contributing component: null
-  hint: ignored because system exception takes precedence
+  hash: "04eb3e30c44355bca4f760682c7b6198"
+  contributing component: exception
+  hint: None
   root_component:
-    app (ignored because system exception takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+    app*
+      exception*
         type*
           "System.NullReferenceException"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Object reference not set to an instance of an object"
-        stacktrace (ignored because it contains no in-app frames)
-          frame (non app frame)
+        stacktrace*
+          frame (marked in-app by the client but ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group))
             module*
               "GameBootstrap"
             filename (ignored because module takes precedence)
               "gamebootstrap.cs"
             function*
-              "GameBootstrap.Start()"
-          frame (non app frame)
+              "Start"
+          frame (marked out of app by the client)
             module*
               "UnityEngine.MonoBehaviour"
             function*
-              "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)"
-          frame (non app frame)
+              "StartCoroutine"
+          frame (marked out of app by the client)
             module*
               "UnityEngine.SetupCoroutine"
             function*
-              "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)"
-          frame (non app frame)
+              "InvokeMoveNext"
+          frame* (marked in-app by the client)
             module*
               "EnemySpawner+<SpawnWaves>d__4"
             filename (ignored because module takes precedence)
               "enemyspawner.cs"
             function*
-              "EnemySpawner+<SpawnWaves>d__4.MoveNext()"
-          frame (non app frame)
+              "MoveNext"
+          frame* (marked in-app by the client)
             module*
               "CombatSystem"
             filename (ignored because module takes precedence)
               "combatsystem.cs"
             function*
-              "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)"
+              "ApplyDamage"
 --------------------------------------------------------------------------
 system:
-  hash: "872f67574fe082419e092229105d22ca"
+  hash: "3280616726a0dc4b6230272e6ae3cafb"
   contributing component: exception
   hint: None
   root_component:
@@ -57,34 +57,34 @@ system:
         value (ignored because stacktrace takes precedence)
           "Object reference not set to an instance of an object"
         stacktrace*
-          frame*
+          frame (ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group))
             module*
               "GameBootstrap"
             filename (ignored because module takes precedence)
               "gamebootstrap.cs"
             function*
-              "GameBootstrap.Start()"
-          frame*
+              "Start"
+          frame (ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group))
             module*
               "UnityEngine.MonoBehaviour"
             function*
-              "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)"
+              "StartCoroutine"
           frame*
             module*
               "UnityEngine.SetupCoroutine"
             function*
-              "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)"
+              "InvokeMoveNext"
           frame*
             module*
               "EnemySpawner+<SpawnWaves>d__4"
             filename (ignored because module takes precedence)
               "enemyspawner.cs"
             function*
-              "EnemySpawner+<SpawnWaves>d__4.MoveNext()"
+              "MoveNext"
           frame*
             module*
               "CombatSystem"
             filename (ignored because module takes precedence)
               "combatsystem.cs"
             function*
-              "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)"
+              "ApplyDamage"

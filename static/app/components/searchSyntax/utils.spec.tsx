@@ -1,7 +1,4 @@
-import {
-  addArrayMembershipOperator,
-  stripArrayMembershipOperator,
-} from 'sentry/components/searchSyntax/utils';
+import {addArrayMembershipOperator, stripArrayMembershipOperator} from './utils';
 
 describe('stripArrayMembershipOperator', () => {
   it('strips an in-progress or complete membership operator so the key still matches', () => {

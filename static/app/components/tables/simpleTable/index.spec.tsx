@@ -1,5 +1,4 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -118,7 +117,7 @@ describe('SimpleTable component', () => {
     expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
   });
 
-  it('centers a column header through styles rather than a DOM attribute', () => {
+  it('does not forward the header alignment to the DOM', () => {
     render(
       <SimpleTable
         header={
@@ -130,10 +129,8 @@ describe('SimpleTable component', () => {
     );
 
     const header = screen.getByRole('columnheader', {name: 'A'});
-    const content = within(header).getByText('A').parentElement!;
 
     expect(header).not.toHaveAttribute('align');
-    expect(getEmotionRules(content).join('')).toContain('justify-content: center');
   });
 
   it('renders a single spanning cell when given a full width row', () => {
@@ -276,94 +273,6 @@ describe('SimpleTable component', () => {
     );
 
     expect(screen.getAllByRole('separator')).toHaveLength(1);
-  });
-
-  it('scrolls its overflow and caps its height when scrollable with a max height', () => {
-    render(
-      <SimpleTable maxHeight="200px" scrollable>
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
-        </SimpleTable.Row>
-      </SimpleTable>
-    );
-
-    const rules = getEmotionRules(screen.getByRole('table')).join('');
-
-    expect(rules).toContain('overflow: auto');
-    expect(rules).toContain('max-height: 200px');
-  });
-
-  it('clips its overflow when not scrollable', () => {
-    render(
-      <SimpleTable>
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
-        </SimpleTable.Row>
-      </SimpleTable>
-    );
-
-    const rules = getEmotionRules(screen.getByRole('table')).join('');
-
-    expect(rules).toContain('overflow: hidden');
-    expect(rules).not.toContain('grid-template-rows');
-  });
-
-  it('tightens cells, shortens the header, drops row dividers, and shrinks text when compressed', () => {
-    render(
-      <SimpleTable
-        density="compressed"
-        header={
-          <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
-          </SimpleTable.HeaderRow>
-        }
-      >
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>One</SimpleTable.RowCell>
-        </SimpleTable.Row>
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>Two</SimpleTable.RowCell>
-        </SimpleTable.Row>
-      </SimpleTable>
-    );
-
-    const headerRules = getEmotionRules(
-      screen.getByRole('columnheader', {name: 'A'})
-    ).join('');
-    const headerRowRules = getEmotionRules(screen.getByRole('row', {name: 'A'})).join('');
-
-    expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
-      'padding: 4px 8px'
-    );
-    expect(
-      getEmotionRules(screen.getByRole('row', {name: 'One'})).join('')
-    ).not.toContain('border-bottom');
-    expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-      'font-size: 12px'
-    );
-    expect(headerRules).toContain('padding: 0px 8px');
-    expect(headerRules).toContain('font-size: 12px');
-    expect(headerRowRules).toContain('min-height: 26px');
-  });
-
-  it('pads cells more and drops row dividers when comfortable', () => {
-    render(
-      <SimpleTable density="comfortable">
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>One</SimpleTable.RowCell>
-        </SimpleTable.Row>
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>Two</SimpleTable.RowCell>
-        </SimpleTable.Row>
-      </SimpleTable>
-    );
-
-    expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
-      'padding: 16px'
-    );
-    expect(
-      getEmotionRules(screen.getByRole('row', {name: 'One'})).join('')
-    ).not.toContain('border-bottom');
   });
 
   it('passes the row element to a ref when given a callback ref', () => {

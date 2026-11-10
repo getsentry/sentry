@@ -5,8 +5,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {TimestampTooltipBody} from 'sentry/views/explore/logs/logsTimeTooltip';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {TimestampTooltipBody} from './logsTimeTooltip';
+import {OurLogKnownFieldKey} from './types';
 
 describe('TimestampTooltipBody', () => {
   const timestamp = '2024-01-15T15:45:30.456Z';

@@ -57,3 +57,14 @@ export const ToolbarRow = styled('div')`
     margin-bottom: ${p => p.theme.space.xs};
   }
 `;
+
+/**
+ * A visualize row can stack a filter bar or formula inputs under its dropdowns,
+ * so rows need more room between them than the gap inside a row to read as
+ * separate series.
+ */
+export const ToolbarVisualizeRow = styled(ToolbarRow)`
+  :not(:last-child) {
+    margin-bottom: ${p => p.theme.space.lg};
+  }
+`;

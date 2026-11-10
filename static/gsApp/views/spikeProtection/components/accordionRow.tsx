@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {motion} from 'framer-motion';
 
+import {Stack} from '@sentry/scraps/layout';
+
 type AccordionRowProps = {
   /**
    * The body of the accordion that is shown & hidden
@@ -50,7 +52,7 @@ export function AccordionRow({
   };
 
   return (
-    <AccordionContent>
+    <Stack width="100%">
       <Title
         onClick={async () => {
           if (!isExpanded) {
@@ -81,15 +83,9 @@ export function AccordionRow({
       >
         {body}
       </motion.div>
-    </AccordionContent>
+    </Stack>
   );
 }
-
-const AccordionContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-`;
 
 const Title = styled('div')<{disabled: boolean}>`
   width: 100%;

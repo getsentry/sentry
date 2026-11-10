@@ -83,8 +83,10 @@ def get_transformer_for_field(
 
 
 def transform_fields(
-    user_id_field: str, jira_fields: Iterable[JiraField], **data
-) -> Mapping[str, Any]:
+    user_id_field: str,
+    jira_fields: Iterable[JiraField],
+    **data: Any,
+) -> Mapping[str, object]:
     transformed_data = {}
 
     # Special handling for fields that don't map cleanly to the transformer logic

@@ -192,3 +192,29 @@ class TestBaseActionValidator(TestCase):
                 )
             ]
         }
+
+
+class TestUnregisteredActionType(TestCase):
+    def assert_validation_error(self, action_type: str) -> None:
+        validator = BaseActionValidator(
+            data={
+                "type": action_type,
+                "config": {},
+                "data": {},
+            },
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is False
+        assert validator.errors["data"] == [
+            ErrorDetail(string=f"Invalid action type: {action_type}", code="invalid")
+        ]
+        assert validator.errors["config"] == [
+            ErrorDetail(string=f"Invalid action type: {action_type}", code="invalid")
+        ]
+
+    def test_notify_email_returns_validation_error(self) -> None:
+        self.assert_validation_error("notify_email")
+
+    def test_assign_returns_validation_error(self) -> None:
+        self.assert_validation_error("assign")

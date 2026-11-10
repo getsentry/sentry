@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
@@ -12,6 +15,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.utils.action_log.activity_translator import activity_to_action
@@ -35,6 +39,77 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["id"] == str(entry.id)
         assert result["commentId"] is None
         assert result["data"] == {"referrer": "slack"}
+
+    def test_legacy_mcp_client_family_source_is_renamed(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        legacy = self.create_group_action_log_entry(
+            group=group, type=GroupActionType.RESOLVE, source="mcp:claude-desktop"
+        )
+        current = self.create_group_action_log_entry(
+            group=group, type=GroupActionType.RESOLVE, source="mcp:claude-code"
+        )
+
+        legacy_result, current_result = serialize([legacy, current], user)
+
+        assert legacy_result["source"] == "mcp:claude"
+        assert current_result["source"] == "mcp:claude-code"
+
+    def test_impact_assessment_entry(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 73.5,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {
+                        "reference": "entire-event:event-id",
+                        "claim": "The request failed before order creation.",
+                        "source": "event",
+                    }
+                ],
+                "source_event_id": "event-id",
+            },
+        )
+
+        result = serialize(entry, self.user)
+
+        assert result["type"] == "impact_assessment"
+        assert result["data"] == {
+            "score": 73.5,
+            "level": "high",
+            "description": "Users cannot submit an order.",
+            "citations": [
+                {
+                    "reference": "entire-event:event-id",
+                    "claim": "The request failed before order creation.",
+                    "source": "event",
+                }
+            ],
+            "sourceEventId": "event-id",
+        }
+
+    def test_impact_assessment_is_in_activity(self) -> None:
+        self.create_group_action_log_entry(
+            type=GroupActionType.IMPACT_ASSESSMENT,
+            data={
+                "score": 73.5,
+                "description": "Users cannot submit an order.",
+                "citations": [
+                    {
+                        "reference": "entire-event:event-id",
+                        "claim": "The request failed before order creation.",
+                        "source": "event",
+                    }
+                ],
+                "source_event_id": "event-id",
+            },
+        )
+
+        assert [item["type"] for item in self._activity_items()] == [
+            "impact_assessment",
+            "first_seen",
+        ]
 
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -338,6 +413,67 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         result = serialize(entry, user)
         assert result["data"] == {"issues": [{"id": "2"}, {"id": "3"}]}
 
+    def test_unmerge_entries_expand_the_other_issue(self) -> None:
+        user = self.create_user()
+        source = self.create_group(status=GroupStatus.UNRESOLVED)
+        destinations = [self.create_group(status=GroupStatus.UNRESOLVED) for _ in range(2)]
+        entries = [
+            self.create_group_action_log_entry(
+                group=source,
+                type=GroupActionType.UNMERGE_SOURCE,
+                data={"destination_id": destination.id, "fingerprints": ["a"]},
+            )
+            for destination in destinations
+        ]
+        entries.append(
+            self.create_group_action_log_entry(
+                group=destinations[0],
+                type=GroupActionType.UNMERGE_DESTINATION,
+                data={"source_id": source.id, "fingerprints": ["a"]},
+            )
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(GroupActionLogEntry)]) as queries:
+            result = serialize(entries, user)
+
+        assert [item["data"]["fingerprints"] for item in result] == [["a"], ["a"], ["a"]]
+        assert [result[0]["data"]["destination"]["id"], result[1]["data"]["destination"]["id"]] == [
+            str(destination.id) for destination in destinations
+        ]
+        assert result[0]["data"]["destination"]["shortId"] == destinations[0].qualified_short_id
+        assert result[2]["data"]["source"]["id"] == str(source.id)
+        assert "destination_id" not in result[0]["data"]
+        # One query loads all the issues, however many entries refer to them.
+        group_queries = [q["sql"] for q in queries if 'FROM "sentry_groupedmessage"' in q["sql"]]
+        assert len(group_queries) == 1
+
+    def test_unmerge_entry_with_deleted_issue(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.UNMERGE_SOURCE,
+            data={"destination_id": 0, "fingerprints": ["a"]},
+        )
+
+        assert serialize(entry, self.user)["data"] == {"fingerprints": ["a"], "destination": None}
+
+    def test_seer_pr_entry_written_with_a_string_pr_number(self) -> None:
+        pull_request = {"pr_number": "42", "pr_url": "https://github.com/o/r/pull/42"}
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.SEER_PR_CREATED,
+            data={
+                "run_id": 1,
+                "pull_requests": [
+                    {"provider": "github", "repo_name": "o/r", "pull_request": pull_request}
+                ],
+            },
+        )
+
+        result = serialize(entry, self.user)
+
+        assert result["data"]["pull_requests"][0]["pull_request"] == {
+            "pr_number": 42,
+            "pr_url": "https://github.com/o/r/pull/42",
+        }
+
     def test_comment_entry_serializes_its_own_id_and_comment_reference(self) -> None:
         user = self.create_user()
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -356,14 +492,21 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["commentId"] == "123"
         assert result["type"] == "note"
 
-    def test_comment_mutations_keep_their_own_ids_without_comment_references(self) -> None:
+    def test_comment_mutations_distinguish_gal_and_comment_references(self) -> None:
         comment = self._comment(123, "original")
         edit = self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
         delete = self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
+        direct_edit = self._comment_mutation(
+            GroupActionType.COMMENT_EDIT, comment, comment_id=123, comment_id_kind="comment"
+        )
+        direct_delete = self._comment_mutation(
+            GroupActionType.COMMENT_DELETE, comment, comment_id=123, comment_id_kind="comment"
+        )
 
-        results = serialize([edit, delete], self.user)
-        assert [result["id"] for result in results] == [str(edit.id), str(delete.id)]
-        assert [result["commentId"] for result in results] == [None, None]
+        entries = [edit, delete, direct_edit, direct_delete]
+        results = serialize(entries, self.user)
+        assert [result["id"] for result in results] == [str(entry.id) for entry in entries]
+        assert [result["commentId"] for result in results] == [None, None, "123", "123"]
 
     def _comment(self, comment_id: int, text: str) -> GroupActionLogEntry:
         return self.create_group_action_log_entry(
@@ -371,6 +514,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
             data={"comment_id": comment_id, "text": text},
+            idempotency_key=f"activity:{comment_id}",
+            source="web",
         )
 
     def _comment_mutation(
@@ -400,6 +545,94 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"first_seen": (first_seen or self.group.first_seen).isoformat()},
             idempotency_key=f"first_seen:{group_id or self.group.id}",
         )
+
+    def test_feed_filters_audit_events_before_limiting(self) -> None:
+        first_seen = self._first_seen()
+        created = self.create_group_action_log_entry(
+            type=GroupActionType.CREATE_ISSUE,
+            data={
+                "provider": "Example",
+                "title": "APP-42",
+                "location": "https://example.com/42",
+                "new": True,
+            },
+        )
+        merged = self.create_group_action_log_entry(
+            type=GroupActionType.MERGE_FROM_OTHER,
+            data={"counterpart_group_ids": [42]},
+        )
+        # Newer non-user-visible rows must neither appear nor consume the page.
+        for action_type in (
+            GroupActionType.CREATE_EXTERNAL_ISSUE,
+            GroupActionType.LINK_EXTERNAL_ISSUE,
+            GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+            GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+            GroupActionType.MERGE_INTO_OTHER,
+            GroupActionType.DEPLOY,
+            GroupActionType.NEW_PROCESSING_ISSUES,
+            GroupActionType.BOOKMARK,
+            GroupActionType.SUBSCRIBE,
+            GroupActionType.UNSUBSCRIBE,
+            GroupActionType.DELETE,
+            GroupActionType.AUTOFIX_PR_CREATED,
+            GroupActionType.ROOT_CAUSE_IDENTIFIED,
+            GroupActionType.AUTOFIX_CODING_COMPLETE,
+        ):
+            self.create_group_action_log_entry(type=action_type)
+
+        items = self._activity_items(limit=2)
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("merge", str(merged.id)),
+            ("create_issue", str(created.id)),
+            ("first_seen", str(first_seen.id)),
+        ]
+
+    def test_unlinks_are_served_with_lowercase_types_and_original_data(self) -> None:
+        for action_type, type_name, data in (
+            (
+                GroupActionType.UNLINK_EXTERNAL_ISSUE,
+                "unlink_external_issue",
+                {"provider": "github", "external_issue_key": "org/repo#42"},
+            ),
+            (
+                GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+                "unlink_platform_external_issue",
+                {
+                    "service_type": "example",
+                    "display_name": "APP-42",
+                    "web_url": "https://example.com/42",
+                },
+            ),
+        ):
+            entry = self.create_group_action_log_entry(type=action_type, data=data)
+
+            items = self._activity_items(limit=1)
+
+            assert items[0]["id"] == str(entry.id)
+            assert items[0]["type"] == type_name
+            assert items[0]["data"] == data
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_first_seen_only_log_serves_notes_without_fallback(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "live"})
+        self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
+        first_seen = self._first_seen()
+
+        items = self._activity_items()
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("note", str(note.id)),
+            ("first_seen", str(first_seen.id)),
+        ]
+
+    def test_hidden_only_log_falls_back_to_activity(self) -> None:
+        self.create_group_action_log_entry(type=GroupActionType.LINK_EXTERNAL_ISSUE)
+
+        with action_log_activity_enabled():
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+
+        assert items is None
 
     def test_logged_first_seen_is_not_duplicated(self) -> None:
         first_seen = self._first_seen()
@@ -458,219 +691,164 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             str(own_first_seen.id),
         ]
 
-    def test_comment_edit_replaces_the_comment_text(self) -> None:
-        comment = self._comment(123, "original")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
-
-        items = self._activity_items()
-
-        assert [item["type"] for item in items] == ["note", "first_seen"]
-        assert items[0]["id"] == str(comment.id)
-        assert items[0]["commentId"] == "123"
-        assert items[0]["data"]["text"] == "edited"
-        assert items[1]["id"] == "0"
-        assert items[1]["commentId"] is None
-
-    def test_edit_at_window_boundary_preserves_comment(self) -> None:
-        comment = self._comment(123, "original")
-        older_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
-        before = self._activity_items(limit=3)
-
-        for edit_number in range(16):
-            self._comment_mutation(
-                GroupActionType.COMMENT_EDIT, comment, text=f"edit {edit_number}"
-            )
-
-        with patch.object(
-            GroupActionLogEntry.objects,
-            "get_actions_for_group",
-            wraps=GroupActionLogEntry.objects.get_actions_for_group,
-        ) as fetch:
-            items = self._activity_items(limit=3)
-
-        assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12, 24]
-
-        assert [item["id"] for item in items] == [
-            str(newer_action.id),
-            str(older_action.id),
-            str(comment.id),
-            "0",
-        ]
-        assert items[:2] == before[:2]
-        assert items[2] == {**before[2], "data": {**before[2]["data"], "text": "edit 15"}}
-        assert items[3] == before[3]
-
-    def test_initial_headroom_absorbs_boundary_edit_without_refetch(self) -> None:
-        comment = self._comment(123, "original")
-        older_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
-        newest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
-
-        with patch.object(
-            GroupActionLogEntry.objects,
-            "get_actions_for_group",
-            wraps=GroupActionLogEntry.objects.get_actions_for_group,
-        ) as fetch:
-            items = self._activity_items(limit=4)
-
-        fetch.assert_called_once_with(self.group, 5)
-        assert [item["id"] for item in items] == [
-            str(newest_action.id),
-            str(newer_action.id),
-            str(older_action.id),
-            str(comment.id),
-            "0",
-        ]
-        assert items[3]["data"]["text"] == "edited"
-
-    def test_refetch_limit_returns_short_page(self) -> None:
-        # These actions would fill the page, but lie beyond the final fetch window.
-        self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
-        for comment_id in range(1000, 1012):
-            deleted = self._comment(comment_id, "deleted")
-            self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
-        kept = self._comment(123, "original")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, kept, text="edited")
-
-        with patch.object(
-            GroupActionLogEntry.objects,
-            "get_actions_for_group",
-            wraps=GroupActionLogEntry.objects.get_actions_for_group,
-        ) as fetch:
-            items = self._activity_items(limit=3)
-
-        assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12, 24]
-        assert [item["type"] for item in items] == ["note", "first_seen"]
-        assert items[0]["id"] == str(kept.id)
-        assert items[0]["data"]["text"] == "edited"
-
-    def test_full_page_without_mutations_needs_only_one_fetch(self) -> None:
-        action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        # A comment reference can match another action's id without colliding in the feed.
-        comment = self._comment(action.id, "comment")
-
-        with patch.object(
-            GroupActionLogEntry.objects,
-            "get_actions_for_group",
-            wraps=GroupActionLogEntry.objects.get_actions_for_group,
-        ) as fetch:
-            items = self._activity_items(limit=2)
-
-        fetch.assert_called_once_with(self.group, 2)
-        assert [item["type"] for item in items] == ["note", "set_resolved", "first_seen"]
-        assert [item["id"] for item in items] == [str(comment.id), str(action.id), "0"]
-        assert items[0]["commentId"] == str(action.id)
-
-    def test_deleted_comment_is_replaced_by_older_action(self) -> None:
-        oldest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        comment = self._comment(123, "original")
-        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
-        newest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
-        self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
-
-        items = self._activity_items(limit=3)
-
-        assert [item["id"] for item in items] == [
-            str(newest_action.id),
-            str(newer_action.id),
-            str(oldest_action.id),
-            "0",
-        ]
-        assert items[-1]["type"] == "first_seen"
-
-    def test_deleted_comment_is_replaced_by_older_comment(self) -> None:
-        oldest = self._comment(123, "oldest")
-        middle = self._comment(456, "middle")
-        deleted = self._comment(789, "newest")
-        self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
-
-        items = self._activity_items(limit=2)
-
-        assert [item["id"] for item in items] == [str(middle.id), str(oldest.id), "0"]
-
-    def test_comment_history_is_truncated_after_folding(self) -> None:
-        oldest = self._comment(123, "oldest")
-        middle = self._comment(456, "middle")
-        newest = self._comment(789, "newest")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, newest, text="edited")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, oldest, text="still outside the page")
-
-        items = self._activity_items(limit=2)
-
-        assert [item["id"] for item in items] == [str(newest.id), str(middle.id), "0"]
-        assert items[0]["data"]["text"] == "edited"
-        assert items[-1]["type"] == "first_seen"
-
-    def test_latest_comment_edit_wins(self) -> None:
-        comment = self._comment(123, "original")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="first edit")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="second edit")
-
-        items = self._activity_items()
-
-        assert [item["type"] for item in items] == ["note", "first_seen"]
-        assert items[0]["data"]["text"] == "second edit"
-
-    def test_comment_delete_removes_the_comment(self) -> None:
-        comment = self._comment(123, "original")
-        self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
-
-        with patch.object(
-            GroupActionLogEntry.objects,
-            "get_actions_for_group",
-            wraps=GroupActionLogEntry.objects.get_actions_for_group,
-        ) as fetch:
-            items = self._activity_items(limit=2)
-
-        # Stop once history is exhausted, even though no entries survive the fold.
-        assert [call.args[1] for call in fetch.call_args_list] == [2, 4]
-        assert [item["type"] for item in items] == ["first_seen"]
-
-    def test_comment_delete_wins_over_an_earlier_edit(self) -> None:
-        comment = self._comment(123, "original")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
-        self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
-
-        items = self._activity_items()
-
-        assert [item["type"] for item in items] == ["first_seen"]
-
-    def test_only_the_named_comment_is_folded(self) -> None:
-        untouched = self._comment(123, "untouched")
-        edited = self._comment(456, "original")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, edited, text="edited")
-        deleted = self._comment(789, "doomed")
-        self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
-        self.create_group_action_log_entry(
-            type=GroupActionType.TRIGGER_AUTOFIX,
-            actor_type=GroupActorType.USER,
-            actor_id=self.user.id,
-            data={"referrer": "slack"},
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_comments_use_current_activity_state(self) -> None:
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "latest edit"}
+        )
+        logged = self._comment(note.id, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, logged, text="stale edit")
+        missing = self.create_group_activity(
+            type=ActivityType.NOTE.value, data={"text": "no creation event"}
+        )
+        deleted = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "deleted"})
+        self._comment(deleted.id, "deleted")
+        deleted.delete()  # No deletion event: Activity alone determines existence.
+        self.create_group_action_log_entry(type=GroupActionType.VIEW)
+        self.create_group_activity(
+            group=self.create_group(), type=ActivityType.NOTE.value, data={"text": "other group"}
         )
 
         items = self._activity_items()
 
-        assert [item["type"] for item in items] == [
-            "trigger_autofix",
-            "note",
-            "note",
-            "first_seen",
-        ]
-        assert items[1]["id"] == str(edited.id)
-        assert items[1]["data"]["text"] == "edited"
-        assert items[2]["id"] == str(untouched.id)
-        assert items[2]["data"]["text"] == "untouched"
+        assert [item["id"] for item in items] == [str(missing.id), str(note.id), "0"]
+        assert items[0]["source"] is None
+        assert items[1]["commentId"] == str(note.id)
+        assert items[1]["data"] == {"text": "latest edit", "comment_id": note.id}
+        assert items[1]["source"] == "web"
+        assert items[1]["user"]["id"] == str(self.user.id)
+        assert items[1]["dateCreated"] == note.datetime
 
-    def test_comment_mutations_are_dropped_without_their_comment(self) -> None:
-        # A missing COMMENT leaves nothing to fold into; its mutation must not render.
-        orphan = self._comment(123, "original")
-        self._comment_mutation(GroupActionType.COMMENT_EDIT, orphan, text="edited")
-        orphan.delete()
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_mutations_do_not_displace_comments_or_require_refetching(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "edited"})
+        logged = self._comment(note.id, "original")
+        older_action = self.create_group_action_log_entry(
+            type=GroupActionType.RESOLVE,
+            date_added=note.datetime + timedelta(seconds=1),
+        )
+        newer_action = self.create_group_action_log_entry(
+            type=GroupActionType.UNRESOLVE,
+            date_added=note.datetime + timedelta(seconds=2),
+        )
+        for edit_number in range(30):
+            self._comment_mutation(GroupActionType.COMMENT_EDIT, logged, text=f"edit {edit_number}")
+        deleted = self._comment(note.id + 1, "deleted")
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
+
+        with CaptureQueriesContext(connections[router.db_for_read(GroupActionLogEntry)]) as queries:
+            items = self._activity_items(limit=3)
+
+        assert [item["id"] for item in items] == [
+            str(newer_action.id),
+            str(older_action.id),
+            str(note.id),
+            "0",
+        ]
+        assert items[2]["data"]["text"] == "edited"
+        log_queries = [q["sql"] for q in queries if 'FROM "sentry_groupactionlogentry"' in q["sql"]]
+        # One oldest-entry lookup, one limited non-comment query, one source lookup.
+        assert len(log_queries) == 3
+        assert "LIMIT 3" in log_queries[1]
+        assert "NOT" in log_queries[1]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_tied_timestamps_and_overlapping_ids(self) -> None:
+        first_seen = self._first_seen()
+        timestamp = first_seen.date_added + timedelta(seconds=1)
+        for comment_id in (9, 10):
+            self.create_group_activity(
+                id=comment_id,
+                type=ActivityType.NOTE.value,
+                data={"text": "comment"},
+                datetime=timestamp,
+            )
+        for action_id in (9, 10):
+            self.create_group_action_log_entry(
+                id=action_id,
+                type=GroupActionType.RESOLVE,
+                date_added=timestamp,
+            )
+
+        items = self._activity_items(limit=4)
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("note", "10"),
+            ("note", "9"),
+            ("set_resolved", "10"),
+            ("set_resolved", "9"),
+            ("first_seen", str(first_seen.id)),
+        ]
+        assert [item["commentId"] for item in items] == ["10", "9", None, None, None]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_limit_is_applied_after_merging_both_sources(self) -> None:
+        self._first_seen()
+        timestamp = timezone.now()
+        older_note = self.create_group_activity(
+            type=ActivityType.NOTE.value,
+            data={"text": "old"},
+            datetime=timestamp - timedelta(days=1),
+        )
+        note = self.create_group_activity(
+            type=ActivityType.NOTE.value,
+            data={"text": "new"},
+            datetime=timestamp + timedelta(seconds=1),
+        )
+        action = self.create_group_action_log_entry(
+            type=GroupActionType.RESOLVE, date_added=timestamp
+        )
+        newest_action = self.create_group_action_log_entry(
+            type=GroupActionType.UNRESOLVE, date_added=timestamp + timedelta(seconds=2)
+        )
+        with CaptureQueriesContext(connections[router.db_for_read(GroupActionLogEntry)]) as queries:
+            items = self._activity_items(limit=2)
+
+        assert [(item["type"], item["id"]) for item in items[:-1]] == [
+            ("set_unresolved", str(newest_action.id)),
+            ("note", str(note.id)),
+        ]
+        assert items[-1]["type"] == "first_seen"
+        source_queries = [q["sql"] for q in queries if '"idempotency_key" IN' in q["sql"]]
+        assert len(source_queries) == 1
+        assert f"'activity:{note.id}'" in source_queries[0]
+        assert f"'activity:{older_note.id}'" not in source_queries[0]
+        assert all(item["id"] != str(action.id) for item in items if item["type"] != "note")
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_comment_only_log_does_not_fall_back(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "comment"})
+        logged = self._comment(note.id, "stale")
 
         items = self._activity_items()
 
-        assert [item["type"] for item in items] == ["first_seen"]
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["data"]["text"] == "comment"
+        note.delete()
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, logged)
+        assert [item["type"] for item in self._activity_items()] == ["first_seen"]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_hidden_comment_events_do_not_cause_fallback_or_appear_in_feed(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "current"})
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id},
+            idempotency_key=f"activity:{note.id}",
+            source="api",
+        )
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_EDIT,
+            data={"comment_id": note.id, "comment_id_kind": "comment"},
+        )
+        items = self._activity_items()
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["data"]["text"] == "current"
+        assert items[0]["source"] == "api"
+        note_id = note.id
+        note.delete()
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_DELETE,
+            data={"comment_id": note_id, "comment_id_kind": "comment"},
+        )
+        assert [item["type"] for item in self._activity_items()] == ["first_seen"]

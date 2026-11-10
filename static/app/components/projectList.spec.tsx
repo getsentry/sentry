@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectList} from 'sentry/components/projectList';
+import {ProjectList} from './projectList';
 
 describe('ProjectList', () => {
   beforeEach(() => {

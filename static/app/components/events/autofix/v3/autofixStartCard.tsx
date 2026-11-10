@@ -11,9 +11,10 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface AutofixStartCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -36,20 +37,21 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashMode] = useForceBashMode();
-
   const [startingRun, setStartingRun] = useState(false);
   const isStarting = startingRun || autofix.isWaitingForRun;
+  const openSingleRunChat = useOpenSingleRunChat();
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    try {
-      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
-    } catch {
+    const run = await startStep('root_cause').catch(() => null);
+    setStartingRun(false);
+    if (!run) {
       return;
-    } finally {
-      setStartingRun(false);
     }
-    onStarted?.();
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
+    } else {
+      onStarted?.();
+    }
   };
 
   return (
@@ -73,7 +75,7 @@ export function AutofixStartCard({
   );
 }
 
-export function AutofixStartCardContent() {
+function AutofixStartCardContent() {
   return (
     <Flex
       border="muted"

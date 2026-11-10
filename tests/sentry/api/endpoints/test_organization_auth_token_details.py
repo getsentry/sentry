@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from django.urls import reverse
 from rest_framework import status
 
+from sentry import audit_log
 from sentry.models.apitoken import ApiToken
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
@@ -495,3 +497,74 @@ class OrganizationAuthTokenDetailsImpersonationTest(APITestCase):
         with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+@control_silo_test
+class OrganizationAuthTokenDetailsOAuthTest(APITestCase):
+    endpoint = "sentry-api-0-org-auth-token-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = self.create_api_application(owner=self.user)
+        self.org_token = OrgAuthToken.objects.create(
+            organization_id=self.organization.id,
+            name="token 1",
+            token_hashed="ABCDEF",
+            token_last_characters="xyz1",
+            scope_list=["org:ci"],
+        )
+
+    def oauth_headers(self, scope_list: list[str]) -> dict[str, str]:
+        self.oauth_token = ApiToken.objects.create(
+            user=self.user, application=self.application, scope_list=scope_list
+        )
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.oauth_token.token}"}
+
+    def test_get(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.org_token.id,
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
+        )
+        assert response.data["id"] == str(self.org_token.id)
+
+    def test_delete(self) -> None:
+        self.get_success_response(
+            self.organization.slug,
+            self.org_token.id,
+            method="DELETE",
+            status_code=status.HTTP_204_NO_CONTENT,
+            extra_headers=self.oauth_headers(["org:write", "org:tokens"]),
+        )
+        self.org_token.refresh_from_db()
+        assert self.org_token.date_deactivated is not None
+
+        entry = AuditLogEntry.objects.get(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("ORGAUTHTOKEN_REMOVE"),
+        )
+        assert entry.target_object == self.org_token.id
+        assert entry.data["application_id"] == self.application.id
+        assert entry.data["api_token_id"] == self.oauth_token.id
+
+    def test_delete_requires_org_write_scope(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.org_token.id,
+            method="DELETE",
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers=self.oauth_headers(["org:read", "org:tokens"]),
+        )
+        self.org_token.refresh_from_db()
+        assert self.org_token.date_deactivated is None
+
+    def test_delete_requires_org_tokens_scope(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.org_token.id,
+            method="DELETE",
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers=self.oauth_headers(["org:write"]),
+        )
+        self.org_token.refresh_from_db()
+        assert self.org_token.date_deactivated is None

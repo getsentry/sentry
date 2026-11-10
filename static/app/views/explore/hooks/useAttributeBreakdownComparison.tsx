@@ -2,6 +2,7 @@ import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -9,7 +10,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 export type AttributeBreakdownsComparison = {
   cohort1Total: number;
@@ -49,6 +51,7 @@ export function useAttributeBreakdownComparison({
   const organization = useOrganization();
   const {selection: contextPageFilters} = usePageFilters();
   const pageFilters = pageFiltersProp ?? contextPageFilters;
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const [x1, x2] = range;
 
@@ -86,6 +89,7 @@ export function useAttributeBreakdownComparison({
           query_2: baselineRegionQuery.formatString(),
           sampling: SAMPLING_MODE.NORMAL,
           aggregateExtrapolation: extrapolate,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
         },
         staleTime: 0,
       }

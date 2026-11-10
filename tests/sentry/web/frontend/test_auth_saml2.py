@@ -1,11 +1,13 @@
 import base64
 import contextlib
 from functools import cached_property
+from typing import Any
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.conf import settings
 from django.db import models
+from django.http import HttpRequest
 from django.urls import reverse
 
 from sentry import audit_log
@@ -47,7 +49,7 @@ class DummySAML2Provider(GenericSAML2Provider):
     def get_saml_setup_pipeline(self) -> list[AuthView]:
         return []
 
-    def build_config(self, state):
+    def build_config(self, state: dict[str, Any]) -> Any:
         return dummy_provider_config
 
 
@@ -81,15 +83,15 @@ class AuthSAML2Test(AuthProviderTestCase):
         super().tearDown()
 
     @cached_property
-    def login_path(self):
+    def login_path(self) -> str:
         return reverse("sentry-auth-organization", args=["saml2-org"])
 
     @cached_property
-    def acs_path(self):
+    def acs_path(self) -> str:
         return reverse("sentry-auth-organization-saml-acs", args=["saml2-org"])
 
     @cached_property
-    def setup_path(self):
+    def setup_path(self) -> str:
         return reverse("sentry-organization-auth-provider-settings", args=["saml2-org"])
 
     def test_redirects_to_idp(self) -> None:
@@ -102,9 +104,9 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert redirect.path == "/sso_url"
         assert "SAMLRequest" in query
 
-    def accept_auth(self, follow=False, **kwargs):
-        saml_response = self.load_fixture("saml2_auth_response.xml")
-        saml_response = base64.b64encode(saml_response).decode("utf-8")
+    def accept_auth(self, follow: bool = False, **kwargs: Any) -> Any:
+        saml_response_bytes = self.load_fixture("saml2_auth_response.xml")
+        saml_response = base64.b64encode(saml_response_bytes).decode("utf-8")
 
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
@@ -181,7 +183,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_idp_initiated_invalid_flow_from_session(self) -> None:
         original_is_valid = AuthHelperSessionStore.is_valid
 
-        def side_effect(self):
+        def side_effect(self: Any) -> bool:
             self.flow = None
             assert original_is_valid(self) is False
             return False
@@ -204,7 +206,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         original_get_for_request = AuthHelper.get_for_request
 
-        def side_effect(request):
+        def side_effect(request: HttpRequest) -> Any:
             helper = original_get_for_request(request)
             assert helper is not None
             # This could occur if redis state has expired
@@ -226,7 +228,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         TotpInterface().enroll(self.user)
         with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
-        assert self.organization.flags.require_2fa.is_set
+        assert self.organization.flags.require_2fa
 
         self.auth_provider_inst.delete()
         self.login_as(self.user)
@@ -300,7 +302,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         updated = type(self.user).objects.get(pk=self.user.id)
         assert updated.session_nonce != self.user.session_nonce
 
-    def test_verify_email(self, follow=False, **kwargs) -> None:
+    def test_verify_email(self, follow: bool = False, **kwargs: Any) -> None:
         assert AuthIdentity.objects.filter(user_id=self.user.id).count() == 0
 
         response = self.accept_auth()
@@ -375,8 +377,8 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_acs_pipeline_step_strips_op_from_post(self) -> None:
         """When SAMLResponse and op are both in the POST body, op should be
         stripped — the ACS endpoint only processes SAMLResponse payloads."""
-        saml_response = self.load_fixture("saml2_auth_response.xml")
-        saml_response = base64.b64encode(saml_response).decode("utf-8")
+        saml_response_bytes = self.load_fixture("saml2_auth_response.xml")
+        saml_response = base64.b64encode(saml_response_bytes).decode("utf-8")
 
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 

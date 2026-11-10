@@ -6,5 +6,4 @@ class Config(AppConfig):
 
     def ready(self) -> None:
         from . import action_handlers  # NOQA
-        from . import events  # NOQA
         from . import subscription_handlers  # NOQA

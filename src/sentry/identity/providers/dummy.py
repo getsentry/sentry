@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from django.http import HttpResponse
@@ -31,7 +32,7 @@ class DummyProvider(Provider):
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [AskEmail()]
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
         return {"id": state["email"], "email": state["email"], "name": "Dummy"}
 
     def refresh_identity(self, identity: Identity | RpcIdentity, **kwargs: Any) -> None:

@@ -39,14 +39,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {
-  WIZARD_STORAGE_KEY,
-  type WizardState,
-} from 'sentry/views/projectInstall/scmCreateProjectSession';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {AgenticCreateProject} from './agenticCreateProject';
+import {useProjectCreationPageOrigin} from './projectCreationOrigin';
+import {WIZARD_STORAGE_KEY, type WizardState} from './scmCreateProjectSession';
 
 const CREATE_PROJECT_MAX_WIDTH = '700px';
 
@@ -210,8 +207,8 @@ function ScmCreateProjectWizard({
   );
 
   // Clear state derived from the repository when the repo changes. Platform,
-  // features, and the project-details form are repo-dependent (auto-detection
-  // seeds the platform, which in turn seeds the project name). The restored
+  // features, and the project-details form are all repo-dependent: auto-detection
+  // seeds the platform and the repo name seeds the project name. The restored
   // created project is too: the reuse check skips the repository link, so a
   // new repository must create a new project (mirrors onboarding's
   // clearDerivedState).

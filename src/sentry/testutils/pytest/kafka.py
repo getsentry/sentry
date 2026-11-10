@@ -1,12 +1,17 @@
 import logging
 import threading
 import time
-from collections.abc import MutableMapping
+from collections.abc import Callable, Generator, Mapping, MutableMapping
+from concurrent.futures import Future
+from contextlib import AbstractContextManager
+from typing import cast
 
 import pytest
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing import StreamProcessor
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
+from django.conf import LazySettings
 
 from sentry.testutils.pytest import xdist
 
@@ -16,8 +21,8 @@ MAX_SECONDS_WAITING_FOR_EVENT = 16
 
 
 @pytest.fixture
-def kafka_producer():
-    def inner(settings):
+def kafka_producer() -> Callable[[LazySettings], Producer]:
+    def inner(settings: LazySettings) -> Producer:
         producer = Producer(
             {"bootstrap.servers": settings.KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"]}
         )
@@ -27,7 +32,7 @@ def kafka_producer():
 
 
 class _KafkaAdminWrapper:
-    def __init__(self, request, settings):
+    def __init__(self, request: pytest.FixtureRequest, settings: LazySettings) -> None:
         self.test_name = request.node.name
 
         kafka_config = {}
@@ -36,14 +41,14 @@ class _KafkaAdminWrapper:
 
         self.admin_client = AdminClient(kafka_config)
 
-    def delete_topic(self, topic_name):
+    def delete_topic(self, topic_name: str) -> None:
         try:
             futures_dict = self.admin_client.delete_topics([topic_name])
             self._sync_wait_on_result(futures_dict)
         except Exception:
             _log.warning("Could not delete topic %s", topic_name)
 
-    def _sync_wait_on_result(self, futures_dict):
+    def _sync_wait_on_result(self, futures_dict: Mapping[str, Future[object]]) -> None:
         """
         Synchronously waits on all futures returned by the admin_client api.
         :param futures_dict: the api returns a dict of futures that can be awaited
@@ -54,27 +59,27 @@ class _KafkaAdminWrapper:
 
 
 @pytest.fixture
-def kafka_admin(request):
+def kafka_admin(request: pytest.FixtureRequest) -> Callable[[LazySettings], _KafkaAdminWrapper]:
     """
     A fixture representing a simple wrapper over the admin interface
     :param request: the pytest request
     :return: a Kafka admin wrapper
     """
 
-    def inner(settings):
+    def inner(settings: LazySettings) -> _KafkaAdminWrapper:
         return _KafkaAdminWrapper(request, settings)
 
     return inner
 
 
 @pytest.fixture(scope="session")
-def scope_consumers():
+def scope_consumers() -> Generator[MutableMapping[str, StreamProcessor[KafkaPayload] | None]]:
     """
     Sets up an object to keep track of the scope consumers ( consumers that will only
     be created once per test session).
 
     """
-    all_consumers: MutableMapping[str, StreamProcessor | None] = {
+    all_consumers: MutableMapping[str, StreamProcessor[KafkaPayload] | None] = {
         xdist.get_kafka_topic("ingest-events"): None,
         xdist.get_kafka_topic("outcomes"): None,
     }
@@ -96,7 +101,11 @@ def scope_consumers():
 
 
 @pytest.fixture(scope="function")
-def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
+def session_ingest_consumer(
+    scope_consumers: MutableMapping[str, StreamProcessor[KafkaPayload] | None],
+    kafka_admin: Callable[[LazySettings], _KafkaAdminWrapper],
+    task_runner: Callable[[], AbstractContextManager[None]],
+) -> Callable[..., StreamProcessor[KafkaPayload]]:
     """
     Returns a factory for a session ingest consumer.
 
@@ -108,7 +117,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
     :return: a function factory that creates a consumer at first invocation and returns the cached consumer afterwards.
     """
 
-    def ingest_consumer(settings):
+    def ingest_consumer(settings: LazySettings) -> StreamProcessor[KafkaPayload]:
         from sentry.consumers import get_stream_processor
         from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -117,7 +126,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
 
         if scope_consumers[topic_event_name] is not None:
             # reuse whatever was already created (will ignore the settings)
-            return scope_consumers[topic_event_name]
+            return cast(StreamProcessor[KafkaPayload], scope_consumers[topic_event_name])
 
         # first time the consumer is requested, create it using settings
         admin = kafka_admin(settings)
@@ -143,7 +152,10 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
 
 
 @pytest.fixture(scope="function")
-def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
+def wait_for_ingest_consumer(
+    session_ingest_consumer: Callable[..., StreamProcessor[KafkaPayload]],
+    task_runner: Callable[[], AbstractContextManager[None]],
+) -> Callable[..., Callable[..., object | None]]:
     """
     Returns a function that can be used to create a wait loop for the ingest consumer
 
@@ -162,10 +174,13 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
     assert result == expected_result
     """
 
-    def factory(settings, **kwargs):
+    def factory(settings: LazySettings, **kwargs: object) -> Callable[..., object | None]:
         consumer = session_ingest_consumer(settings, **kwargs)
 
-        def waiter(exit_predicate, max_time=MAX_SECONDS_WAITING_FOR_EVENT):
+        def waiter(
+            exit_predicate: Callable[[], object],
+            max_time: float = MAX_SECONDS_WAITING_FOR_EVENT,
+        ) -> object | None:
             """
             Implements a wait loop for the ingest consumer
             :param exit_predicate:  A Callable[(),Any] that will be called in a loop after each call

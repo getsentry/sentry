@@ -15,7 +15,7 @@ The proxying is managed by the [`IntegrationProxyClient`](/src/sentry/shared_int
   ```
   {SENTRY_CONTROL_ADDRESS}/api/0/internal/integration-proxy # PROXY_BASE_PATH
   ```
-  The [integration proxy endpoint](/src/sentry/api/endpoints/internal/integration_proxy.py) parses the headers to verify the request is coming from a valid Region silo, and then replays the request with the proper authentication data (from `self.authorize_request`). The raw response is sent back to the originating silo to handle itself!
+  The [integration proxy endpoint](/src/sentry/integrations/api/endpoints/integration_proxy.py) parses the headers to verify the request is coming from a valid Region silo, and then replays the request with the proper authentication data (from `self.authorize_request`). The raw response is sent back to the originating silo to handle itself!
 
 ## Implementing the IntegrationProxyClient
 

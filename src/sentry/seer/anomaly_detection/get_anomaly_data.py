@@ -34,6 +34,7 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -176,7 +177,7 @@ def get_anomaly_data_from_seer(
         )
         return None
 
-    extra_data = {
+    extra_data: dict[str, object] = {
         "subscription_id": subscription.id,
         "organization_id": subscription.project.organization_id,
         "project_id": subscription.project_id,
@@ -214,9 +215,9 @@ def get_anomaly_data_from_seer(
         if get_viewer_context() is None:
             scope = viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
                     organization_id=subscription.project.organization_id,
                     project_id=subscription.project_id,
-                    actor_type=ActorType.SYSTEM,
                 )
             )
 

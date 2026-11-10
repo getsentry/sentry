@@ -54,10 +54,7 @@ def create_project_detectors(
     **kwargs: Any,
 ) -> None:
     if created:
-        try:
-            ensure_default_detectors(instance)
-        except UnableToAcquireLockApiError as e:
-            sentry_sdk.capture_exception(e)
+        ensure_default_detectors(instance)
 
 
 def create_default_anomaly_detector(

@@ -12,8 +12,8 @@ import omitBy from 'lodash/omitBy';
 
 import {Flex} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoiceValue,
@@ -21,11 +21,11 @@ import type {
 } from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
 import type {Choices, Choice} from 'sentry/types/core';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
-import {useApi} from 'sentry/utils/useApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = (value: unknown) => !!value || value === 0;
@@ -352,7 +352,6 @@ export function SentryAppExternalForm({
   getFieldDefault,
   resetValues,
 }: Props) {
-  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const serializedExtraFields = JSON.stringify(extraFields ?? {});
   const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
@@ -437,19 +436,12 @@ export function SentryAppExternalForm({
         query.dependentData = JSON.stringify(dependentData);
       }
 
-      const response = await queryClient.fetchQuery({
-        queryKey: [
-          'sentry-app-external-request',
-          sentryAppInstallationUuid,
-          field.uri,
-          query,
-        ],
-        queryFn: () =>
-          api.requestPromise(
-            `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
-            {query}
-          ),
-      });
+      const {json: response} = await queryClient.fetchQuery(
+        apiOptions.as<{choices?: unknown; defaultValue?: unknown}>()(
+          '/sentry-app-installations/$uuid/external-requests/',
+          {path: {uuid: sentryAppInstallationUuid}, query, staleTime: 0}
+        )
+      );
 
       return {
         choices: Array.isArray(response?.choices) ? (response.choices as Choices) : [],
@@ -457,7 +449,6 @@ export function SentryAppExternalForm({
       };
     },
     [
-      api,
       normalizedExtraRequestBody,
       normalizedResetValues,
       queryClient,
@@ -650,6 +641,7 @@ export function SentryAppExternalForm({
     let isCancelled = false;
 
     const runPrefetch = async () => {
+      // oxlint-disable-next-line react/todo
       try {
         const cascadeResult = await cascadeFetchDependents({
           seedTriggers,
@@ -686,7 +678,7 @@ export function SentryAppExternalForm({
       // Match the click-cascade error handling: surface a toast so the user
       // knows a dependent fetch failed instead of silently leaving the
       // affected select blank.
-      addErrorMessage(t("Couldn't load options for some fields."));
+      toast.error(t("Couldn't load options for some fields."));
       Sentry.captureException(error, {
         tags: {
           sentry_app: appName,
@@ -954,7 +946,7 @@ export function SentryAppExternalForm({
         setExternalDefaultValues(cascadeResult.defaultValues);
         setFormVersion(version => version + 1);
       } catch (error) {
-        addErrorMessage(t("Couldn't load options for some fields."));
+        toast.error(t("Couldn't load options for some fields."));
         Sentry.captureException(error, {
           tags: {
             sentry_app: appName,
@@ -967,6 +959,7 @@ export function SentryAppExternalForm({
             impactedFields: [...allImpactedNames],
           },
         });
+        // oxlint-disable-next-line react/todo
       } finally {
         if (requestVersion === dependentFetchVersionRef.current) {
           setIsFetchingDependentFields(false);
@@ -1042,7 +1035,7 @@ export function SentryAppExternalForm({
     },
     onError: error => {
       if (!(error instanceof RequestError)) {
-        addErrorMessage(t('Unable to %s %s issue.', action, appName));
+        toast.error(t('Unable to %s %s issue.', action, appName));
       }
     },
   });

@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import cast
+
 import orjson
 from django.db import models
 from django.utils import timezone
@@ -15,10 +20,15 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.models.group import Group
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.models.releases.util import release_order_date
 from sentry.utils import metrics
+
+
+def _version_raw(version: str) -> str:
+    return cast(str, parse_release(version, json_loads=orjson.loads).get("version_raw"))
 
 
 @cell_silo_model
@@ -71,14 +81,16 @@ class GroupResolution(Model):
     __repr__ = sane_repr("group_id", "release_id")
 
     @classmethod
-    def has_resolution(cls, group, release):
+    def has_resolution(cls, group: Group, release: Release | None) -> bool:
         """
         Determine if a resolution exists for the given group and release.
 
         This is used to suggest if a regression has occurred.
         """
 
-        def compare_release_dates_for_in_next_release(res_release, res_release_datetime, release):
+        def compare_release_dates_for_in_next_release(
+            res_release: int, res_release_datetime: datetime, release: Release
+        ) -> bool:
             """
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
@@ -141,12 +153,8 @@ class GroupResolution(Model):
                     # If current_release_version == release.version => 0
                     # If current_release_version < release.version => -1
                     # If current_release_version > release.version => 1
-                    current_release_raw = parse_release(
-                        current_release_version, json_loads=orjson.loads
-                    ).get("version_raw")
-                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
-                        "version_raw"
-                    )
+                    current_release_raw = _version_raw(current_release_version)
+                    release_raw = _version_raw(release.version)
                     if compare_version_relay(current_release_raw, release_raw) >= 0:
                         return True
 
@@ -156,9 +164,7 @@ class GroupResolution(Model):
                     # comparing the event release against the resolved-in
                     # release: if the event is on an older version than the fix,
                     # the resolution still holds.
-                    res_release_raw = parse_release(
-                        res_release_version, json_loads=orjson.loads
-                    ).get("version_raw")
+                    res_release_raw = _version_raw(res_release_version)
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...
@@ -202,12 +208,8 @@ class GroupResolution(Model):
                 try:
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
-                    res_release_raw = parse_release(
-                        res_release_version, json_loads=orjson.loads
-                    ).get("version_raw")
-                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
-                        "version_raw"
-                    )
+                    res_release_raw = _version_raw(res_release_version)
+                    release_raw = _version_raw(release.version)
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...

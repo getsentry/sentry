@@ -32,6 +32,7 @@ import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -48,9 +49,6 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {ReleaseArchivedNotice} from 'sentry/views/explore/releases/detail/overview/releaseArchivedNotice';
-import {MobileBuilds} from 'sentry/views/explore/releases/list/mobileBuilds';
-import {ReleaseHealthCTA} from 'sentry/views/explore/releases/list/releaseHealthCTA';
-import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -61,6 +59,9 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
+import {MobileBuilds} from './mobileBuilds';
+import {ReleaseHealthCTA} from './releaseHealthCTA';
+import {ReleaseListInner} from './releaseListInner';
 import {ReleasesDisplayOption, ReleasesDisplayOptions} from './releasesDisplayOptions';
 import {ReleasesSortOptions} from './releasesSortOptions';
 import {ReleasesStatusOption, ReleasesStatusOptions} from './releasesStatusOptions';
@@ -417,7 +418,7 @@ function ReleasesListInnerPage() {
   const getTagValues = useCallback<GetTagValues>(
     async ({tag, searchQuery}) => {
       const values = await tagValueLoader(tag.key, searchQuery);
-      return values.map(({value}) => value);
+      return values.map(({value}) => value).filter(defined);
     },
     [tagValueLoader]
   );

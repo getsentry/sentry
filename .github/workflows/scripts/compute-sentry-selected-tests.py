@@ -158,6 +158,9 @@ ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/backup/test_validate.py",
     # Freezes option registrations, which happen at import time anywhere in src/.
     "tests/sentry/options/test_legacy_options.py",
+    # Counts request.user patterns by parsing every file in src/ with ast, so it
+    # reads source without executing it and coverage never links it to a change.
+    "tests/sentry/auth/test_principal.py",
 }
 
 # Seer public-API matrix discovers published mutations at collection time, so
