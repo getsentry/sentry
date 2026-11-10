@@ -1,12 +1,14 @@
 import type {PropsWithChildren} from 'react';
 import {useMemo} from 'react';
 
+import type {ModalBoundaryProps} from '@sentry/scraps/modal';
 import {
   OverlayContextProvider,
   type DrawerWidthStorage,
 } from '@sentry/scraps/overlayContext';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {ROOT_ELEMENT} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,12 +27,23 @@ function DrawerErrorBoundary({children}: PropsWithChildren) {
   );
 }
 
-function shouldCloseOnInteractOutside(element: Element) {
-  if (document.getElementById('modal-portal')?.contains(element)) {
-    return false;
-  }
-  const overlay = element.closest('[data-overlay]');
-  return !overlay || overlay.hasAttribute('data-drawer-backdrop');
+function getAppElement() {
+  return document.getElementById(ROOT_ELEMENT);
+}
+
+function ModalErrorBoundary({children, resetKey, onDismiss, header}: ModalBoundaryProps) {
+  return (
+    <ErrorBoundary
+      mini
+      allowDismiss
+      resetKey={resetKey}
+      onDismiss={onDismiss}
+      header={header}
+      message={t('There was a problem rendering the dialog.')}
+    >
+      {children}
+    </ErrorBoundary>
+  );
 }
 
 const drawerWidthStorage: DrawerWidthStorage = {
@@ -72,10 +85,10 @@ export function SentryOverlayProvider({children}: PropsWithChildren) {
     () => ({
       contentTop,
       headerHeight: `${PRIMARY_HEADER_HEIGHT}px`,
+      location,
+      modal: {getAppElement, boundaryComponent: ModalErrorBoundary},
       drawer: {
-        location,
         boundaryComponent: DrawerErrorBoundary,
-        shouldCloseOnInteractOutside,
         widthStorage: drawerWidthStorage,
       },
     }),

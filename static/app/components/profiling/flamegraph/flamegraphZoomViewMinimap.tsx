@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -97,7 +97,7 @@ function FlamegraphZoomViewMinimap({
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 

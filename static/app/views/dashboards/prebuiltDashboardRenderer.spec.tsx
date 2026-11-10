@@ -3,8 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {PrebuiltDashboardRenderer} from './prebuiltDashboardRenderer';
 
 jest.mock('sentry/views/dashboards/detail', () => ({
   DashboardDetailWithInjectedProps: ({pageAlerts}: {pageAlerts?: ReactNode}) => (

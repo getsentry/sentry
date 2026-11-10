@@ -17,19 +17,19 @@ import {
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
+
 import {
+  NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
   getSettingsLastProjectKey,
-} from 'sentry/views/navigation/constants';
-import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+} from './constants';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
   'discover',
   'discover-basic',
   'discover-query',
-  'dashboards-basic',
-  'dashboards-edit',
   'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
@@ -864,7 +864,7 @@ describe('desktop navigation', () => {
           [`${ORG}/explore/profiles/`, 'Explore', 'Profiles'],
           [`${ORG}/explore/replays/`, 'Explore', 'Replays'],
           [`${ORG}/explore/releases/`, 'Explore', 'Releases'],
-          [`${ORG}/explore/saved-queries/`, 'Explore', 'All Queries'],
+          [`${ORG}/explore/saved-queries/`, 'Explore', 'Saved Queries'],
           // Dashboards
           [`${ORG}/dashboards/`, 'Dashboards', 'All Dashboards'],
           // Insights
@@ -1068,6 +1068,28 @@ describe('desktop navigation', () => {
       expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/seer/investigations/'
+      );
+    });
+
+    it('hides Seer with classifiers-ui but without seer-primary-nav', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'classifiers-ui'],
+      });
+
+      expect(
+        within(primaryNav).queryByRole('link', {name: 'Seer'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('links Seer to classifiers when only classifiers is enabled', () => {
+      const primaryNav = renderSeerNavigation({
+        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'classifiers-ui'],
+        openMembership: false,
+      });
+
+      expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/seer/classifiers/'
       );
     });
 
@@ -1404,6 +1426,78 @@ describe('desktop navigation', () => {
               'false'
             );
           });
+        });
+
+        it('hides the sidebar on mouse leave when a collapsible section is expanded', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+            })
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+          expect(screen.getByRole('button', {name: 'Autofix'})).toHaveAttribute(
+            'aria-expanded',
+            'true'
+          );
+
+          await userEvent.unhover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'false'
+            );
+          });
+        });
+
+        it('keeps the sidebar open on mouse leave while a popup is open', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+
+          const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+          await userEvent.click(whatsNewButton);
+          expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
+
+          await userEvent.unhover(primaryNav);
+          // Wait past the collapse delay so a close would have happened.
+          await new Promise(resolve =>
+            setTimeout(resolve, NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS + 100)
+          );
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
         });
 
         it('shows the sidebar when a nav element receives keyboard focus while collapsed', async () => {

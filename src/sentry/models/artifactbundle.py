@@ -132,7 +132,10 @@ def delete_file_for_artifact_bundle(instance: ArtifactBundle, **kwargs: object) 
             )
 
     finally:
-        instance.file.delete()
+        try:
+            instance.file.delete()
+        except File.DoesNotExist:
+            pass
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)

@@ -6,22 +6,20 @@ import type {ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
-import {
-  useSearchQueryBuilderLayout,
-  useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {KeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
-import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGrid';
-import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/hooks/useSelectOnDrag';
-import {useUndoStack} from 'sentry/components/searchQueryBuilder/hooks/useUndoStack';
-import {SelectionKeyHandler} from 'sentry/components/searchQueryBuilder/selectionKeyHandler';
-import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/tokens/boolean';
-import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
-import {SearchQueryBuilderFreeText} from 'sentry/components/searchQueryBuilder/tokens/freeText';
-import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/tokens/paren';
-import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+
+import {KeyboardSelection} from './hooks/useKeyboardSelection';
+import {useQueryBuilderGrid} from './hooks/useQueryBuilderGrid';
+import {useSelectOnDrag} from './hooks/useSelectOnDrag';
+import {useUndoStack} from './hooks/useUndoStack';
+import {SearchQueryBuilderBoolean} from './tokens/boolean';
+import {SearchQueryBuilderFilter} from './tokens/filter/filter';
+import {SearchQueryBuilderFreeText} from './tokens/freeText';
+import {SearchQueryBuilderParen} from './tokens/paren';
+import {useSearchQueryBuilderLayout, useSearchQueryBuilderState} from './context';
+import {SelectionKeyHandler} from './selectionKeyHandler';
+import {makeTokenKey} from './utils';
 
 interface TokenizedQueryGridProps {
   actionBarWidth: number;

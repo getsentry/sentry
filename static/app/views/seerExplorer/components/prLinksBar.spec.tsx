@@ -1,7 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
 
 const REPO = 'acme/web';
 const PR_URL = 'https://github.com/acme/web/pull/482';

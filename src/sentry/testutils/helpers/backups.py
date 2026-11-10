@@ -129,6 +129,12 @@ from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
+from sentry.telemetry_classifiers.models import (
+    TelemetryClassifier,
+    TelemetryClassifierDataset,
+    TelemetryClassifierOutputType,
+    TelemetryClassifierStatus,
+)
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
@@ -526,6 +532,18 @@ class ExhaustiveFixtures(Fixtures):
             data_type=DataType.ALL,
             conditions=[{"type": "release", "value": ["2.0.0"]}],
             legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        TelemetryClassifier.objects.create(
+            project=project,
+            name=f"conversation-classifier-{slug}",
+            result_attribute="sentry.classifier.result",
+            dataset=TelemetryClassifierDataset.CONVERSATION,
+            filter_query="",
+            status=TelemetryClassifierStatus.ENABLED,
+            natural_language_prompt="Is this conversation useful?",
+            compiled_prompt="Return yes when this conversation is useful.",
+            output_type=TelemetryClassifierOutputType.BINARY,
+            created_by_id=owner_id,
         )
 
         # Auth*

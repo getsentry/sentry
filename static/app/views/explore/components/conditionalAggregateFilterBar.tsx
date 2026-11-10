@@ -5,11 +5,12 @@ import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/span
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE} from 'sentry/views/explore/utils/conditionalAggregate';
+
+import {TraceItemSearchQueryBuilder} from './traceItemSearchQueryBuilder';
 
 interface ConditionalAggregateFilterBarProps {
   initialQuery: string;

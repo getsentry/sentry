@@ -8,6 +8,7 @@ from django.db import router, transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from sentry.api.helpers.creator import CreatorReference
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -101,7 +102,7 @@ def _create_project_links(investigation: Notebook, project_ids: Iterable[int]) -
 def create_manual_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: CreatorReference,
     title: str,
     project_ids: list[int],
     filters: dict[str, Any],
@@ -109,9 +110,38 @@ def create_manual_investigation(
     with transaction.atomic(using=router.db_for_write(Notebook)):
         investigation = Notebook.objects.create(
             organization=organization,
-            created_by_id=user_id,
+            **creator,
             title=title,
             filters=filters,
+        )
+        _create_project_links(investigation, project_ids)
+    return investigation
+
+
+def create_notebook(
+    *,
+    organization: Organization,
+    created_by_id: int | None,
+    created_by_service_account_id: int | None,
+    title: str,
+    source_type: str,
+    source_key: str | None,
+    source: dict[str, Any],
+    source_revision: int | None,
+    filters: dict[str, Any],
+    project_ids: list[int],
+) -> Notebook:
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        investigation = Notebook.objects.create(
+            organization=organization,
+            created_by_id=created_by_id,
+            created_by_service_account_id=created_by_service_account_id,
+            title=title,
+            source_type=source_type,
+            source_key=source_key,
+            source=deepcopy(source),
+            source_revision=source_revision,
+            filters=deepcopy(filters),
         )
         _create_project_links(investigation, project_ids)
     return investigation
@@ -122,8 +152,10 @@ def _copy_title(title: str) -> str:
     return prefix + title[: MAX_INVESTIGATION_TITLE_LENGTH - len(prefix)]
 
 
-def duplicate_investigation(*, investigation: Notebook, user_id: int) -> Notebook:
+def duplicate_investigation(*, investigation: Notebook, creator: CreatorReference) -> Notebook:
     """Copy notebook structure without executions, comments, or collaboration state."""
+
+    user_id = creator["created_by_id"]
 
     with transaction.atomic(using=router.db_for_write(Notebook)):
         try:
@@ -132,7 +164,7 @@ def duplicate_investigation(*, investigation: Notebook, user_id: int) -> Noteboo
             raise InvestigationSourceNotFound
         duplicate = Notebook.objects.create(
             organization=source.organization,
-            created_by_id=user_id,
+            **creator,
             title=_copy_title(source.title),
             filters=deepcopy(source.filters),
         )

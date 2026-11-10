@@ -13,7 +13,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
-import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
+
+import {OrganizationAuthTokensAuthTokenRow} from './authTokenRow';
 
 describe('OrganizationAuthTokensAuthTokenRow', () => {
   const {organization} = initializeOrg();

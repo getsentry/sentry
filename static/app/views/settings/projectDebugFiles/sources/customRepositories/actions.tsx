@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 

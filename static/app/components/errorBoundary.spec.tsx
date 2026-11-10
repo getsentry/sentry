@@ -125,6 +125,39 @@ describe('ErrorBoundary', () => {
     errorSpy.mockRestore();
   });
 
+  it('resets errors only when resetKey changes and catches replacement errors', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const {rerender} = render(
+      <ErrorBoundary mini resetKey={0}>
+        <ErrorComponent />
+      </ErrorBoundary>
+    );
+
+    rerender(
+      <ErrorBoundary mini resetKey={0}>
+        <HelloComponent />
+      </ErrorBoundary>
+    );
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByText('hello')).not.toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary mini resetKey={1}>
+        <ErrorComponent />
+      </ErrorBoundary>
+    );
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary mini resetKey={2}>
+        <HelloComponent />
+      </ErrorBoundary>
+    );
+    expect(screen.getByText('hello')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    errorSpy.mockRestore();
+  });
+
   it('renders a null custom error', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 

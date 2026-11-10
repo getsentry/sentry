@@ -8,7 +8,6 @@ import * as Storybook from 'sentry/stories';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
-import {NextStepCard} from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
 import {
   InvestigationActionRequestFixture,
@@ -19,6 +18,8 @@ import type {
   InvestigationActionRequest,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
+
+import {NextStepCard} from './nextStepCard';
 
 const intervalChange = InvestigationActionRequestFixture({
   title: 'Change the monitor’s interval from 1 minute to 10 minutes',

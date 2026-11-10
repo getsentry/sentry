@@ -3,8 +3,8 @@ import {queryOptions, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -79,7 +79,7 @@ export function GitHubInstallationCallout({installationId}: Props) {
 
   useEffect(() => {
     if (error) {
-      addErrorMessage(t('Failed to retrieve GitHub installation details'));
+      toast.error(t('Failed to retrieve GitHub installation details'));
     }
   }, [error]);
 

@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -17,7 +18,6 @@ import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -28,6 +28,7 @@ import {
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreCaseInsensitivityDefault} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,
@@ -39,18 +40,19 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
-import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {SpansCommandPaletteActions} from './spansCommandPaletteActions';
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {SpansTabContent, SpansTabOnboarding} from './spansTab';
 import {
   EXPLORE_SPANS_TOUR_GUIDE_KEY,
   ExploreSpansTourContext,
   ORDERED_EXPLORE_SPANS_TOUR,
   useExploreSpansTourModal,
   type ExploreSpansTour,
-} from 'sentry/views/explore/spans/tour';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './tour';
 
 function useHasCrossEvents() {
   const crossEvents = useQueryParamsCrossEvents();
@@ -63,7 +65,9 @@ export function ExploreContent() {
 
   return (
     <SpansQueryParamsProvider>
-      <ExploreContentInner />
+      <ExploreCaseInsensitivityDefault>
+        <ExploreContentInner />
+      </ExploreCaseInsensitivityDefault>
     </SpansQueryParamsProvider>
   );
 }
@@ -76,7 +80,7 @@ function ExploreContentInner() {
   });
 
   const organization = useOrganization();
-  const {loading: organizationLoading} = useLegacyStore(OrganizationStore);
+  const organizationLoading = useStore(OrganizationStore, state => state.loading);
   const {data: bootstrapOrganization, isPending: isBootstrapOrganizationPending} =
     useQuery(getBootstrapOrganizationQueryOptions(organization.slug));
 

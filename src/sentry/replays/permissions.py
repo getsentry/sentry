@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.http import HttpRequest
 
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
@@ -85,6 +86,8 @@ def granular_permissions_turned_off(organization: Organization) -> bool:
 def get_org_member(organization: Organization, request: HttpRequest) -> OrganizationMember | None:
     """Get the OrganizationMember for the request user, or None if not a member."""
     try:
-        return OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
+        return OrganizationMember.objects.get(
+            is_owned_by_acting_user(request.user), organization=organization
+        )
     except OrganizationMember.DoesNotExist:
         return None

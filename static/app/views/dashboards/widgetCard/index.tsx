@@ -1,11 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -33,9 +32,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {withApi} from 'sentry/utils/withApi';
-import {withPageFilters} from 'sentry/utils/withPageFilters';
 import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -45,7 +43,6 @@ import {
 import {getWidgetConfigError} from 'sentry/views/dashboards/utils/getWidgetConfigError';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
-import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {
   LegendSelection,
@@ -57,6 +54,7 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
@@ -86,8 +84,6 @@ export const SESSION_DURATION_ALERT = (
 );
 
 type Props = {
-  api: Client;
-  selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -111,6 +107,7 @@ type Props = {
   onLegendSelectChanged?: () => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
+  selection?: PageFilters;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -119,6 +116,10 @@ type Props = {
   widgetInterval?: string;
   windowWidth?: number;
 };
+
+const widgetViewerParsers = Object.fromEntries(
+  Object.values(WidgetViewerQueryField).map(field => [field, parseAsString])
+);
 
 type Data = {
   confidence?: Confidence;
@@ -136,7 +137,11 @@ function WidgetCard(props: Props) {
   const [isLoadingTextVisible, setIsLoadingTextVisible] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [, setWidgetViewerParams] = useQueryStates(widgetViewerParsers, {
+    history: 'replace',
+  });
   const {dashboardId: currentDashboardId} = useParams<{dashboardId: string}>();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Resolve TOP_N → AREA before capturing context (the render body mutates
@@ -177,9 +182,10 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
+  const {selection: globalSelection} = usePageFilters();
+  const selection = props.selection ?? globalSelection;
+
   const {
-    api,
-    selection,
     widget,
     isMobile,
     tableItemLimit,
@@ -310,14 +316,11 @@ function WidgetCard(props: Props) {
         widget,
         widgetLegendState,
         dashboardFilters,
+        queryPriority: dashboardQueryPriority,
         widgetInterval,
         onClose: () => {
           // Filter out Widget Viewer Modal query params when exiting the Modal
-          const query = omit(location.query, Object.values(WidgetViewerQueryField));
-          navigate(
-            {pathname: location.pathname, query},
-            {preventScrollReset: true, replace: true}
-          );
+          setWidgetViewerParams(null);
         },
       });
     }
@@ -417,6 +420,7 @@ function WidgetCard(props: Props) {
               showConfidenceWarning={showConfidenceWarning}
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
+              disableFullscreen={disableFullscreen}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -450,7 +454,6 @@ function WidgetCard(props: Props) {
           noVisualizationPadding
         >
           <WidgetCardChartContainer
-            api={api}
             selection={selection}
             widget={widget}
             isMobile={isMobile}
@@ -478,7 +481,7 @@ function WidgetCard(props: Props) {
   );
 }
 
-export default registerLLMContext('widget', withApi(withPageFilters(WidgetCard)));
+export default registerLLMContext('widget', WidgetCard);
 
 function useTimeRangeWarning({widget}: {widget: TWidget}) {
   const {

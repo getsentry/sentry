@@ -9,7 +9,8 @@ import type {boot as intercomBoot} from '@intercom/messenger-js-sdk';
 
 import {Client} from 'sentry/api';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {getApiUrl} from './api/getApiUrl';
 
 interface IntercomUserData {
   createdAt: number;

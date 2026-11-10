@@ -4,10 +4,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
+
+import {useAddIntegration} from './useAddIntegration';
 
 describe('useAddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();
@@ -87,7 +89,7 @@ describe('useAddIntegration', () => {
   });
 
   it('calls onInstall and shows a success message on completion', () => {
-    const successSpy = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
     const onInstall = jest.fn();
 
     let onComplete: ((data: typeof integration) => void) | undefined;
@@ -117,7 +119,7 @@ describe('useAddIntegration', () => {
   });
 
   it('suppresses the success message when requested', () => {
-    const successSpy = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
     const onInstall = jest.fn();
 
     let onComplete: ((data: typeof integration) => void) | undefined;

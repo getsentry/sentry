@@ -743,6 +743,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "brief": "The model identifier being used for the request.",
             "examples": ["gpt-4-turbo-preview"],
             "isDeprecated": False,
+            "isInOtel": True,
         }
         # `http.route` is a convention defined in sentry-conventions but not in
         # attributes.py, so it resolves as a `user` source attribute but is still
@@ -762,6 +763,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
             "examples": ["/users/:id"],
             "isDeprecated": False,
+            "isInOtel": True,
         }
         # `span.description` is a Sentry-defined attribute that isn't a sentry
         # convention. It's always included (this segment sets no description) and
@@ -2047,6 +2049,11 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         response = self.do_request(query={"attributeType": "string"})
         assert response.status_code == 200, response.content
         assert response.data == []
+
+    def test_key_too_long(self) -> None:
+        self.create_project(organization=self.organization)
+        response = self.do_request(key="a" * 201)
+        assert response.status_code == 400, response.content
 
     def test_attribute_values(self) -> None:
         logs = [

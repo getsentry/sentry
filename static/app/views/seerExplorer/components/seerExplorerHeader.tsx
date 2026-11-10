@@ -10,16 +10,17 @@ import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {SeerExplorerDebugMenu} from 'sentry/views/seerExplorer/components/seerExplorerDebugMenu';
-import {
-  SeerExplorerHeaderActions,
-  SeerExplorerHeaderActionsMenu,
-} from 'sentry/views/seerExplorer/components/seerExplorerHeaderActions';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
 } from 'sentry/views/seerExplorer/types';
+
+import {SeerExplorerDebugMenu} from './seerExplorerDebugMenu';
+import {
+  SeerExplorerHeaderActions,
+  SeerExplorerHeaderActionsMenu,
+} from './seerExplorerHeaderActions';
 
 /**
  * The shared inner header content (title + action cluster) for Seer Explorer.

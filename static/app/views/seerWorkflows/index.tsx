@@ -1,7 +1,9 @@
 import {Outlet} from 'react-router';
+import {IconAdd} from '@sentry/icons/add';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Stack} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,11 +13,13 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
 import {
+  getAutomationCreatePath,
   getAutomationRunsPath,
   getAutomationsPath,
   useAutomationsEnabled,
-} from 'sentry/views/seerWorkflows/utils';
+} from './utils';
 
 export default function AutomationsLayout() {
   const organization = useOrganization();
@@ -42,28 +46,37 @@ export default function AutomationsLayout() {
             trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
           }}
         />
-        <Tabs value={activeTab} size="sm">
-          <TabList>
-            <TabList.Item
-              key="automations"
-              to={getAutomationsPath(organization.slug)}
-              textValue={t('Automations')}
-            >
-              <Text bold={activeTab === 'automations'} variant="inherit">
-                {t('Automations')}
-              </Text>
-            </TabList.Item>
-            <TabList.Item
-              key="runs"
-              to={getAutomationRunsPath(organization.slug)}
-              textValue={t('Runs')}
-            >
-              <Text bold={activeTab === 'runs'} variant="inherit">
-                {t('Runs')}
-              </Text>
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <Flex justify="between" align="center" gap="lg">
+          <Tabs value={activeTab} size="sm">
+            <TabList>
+              <TabList.Item
+                key="automations"
+                to={getAutomationsPath(organization.slug)}
+                textValue={t('Automations')}
+              >
+                <Text bold={activeTab === 'automations'} variant="inherit">
+                  {t('Automations')}
+                </Text>
+              </TabList.Item>
+              <TabList.Item
+                key="runs"
+                to={getAutomationRunsPath(organization.slug)}
+                textValue={t('Runs')}
+              >
+                <Text bold={activeTab === 'runs'} variant="inherit">
+                  {t('Runs')}
+                </Text>
+              </TabList.Item>
+            </TabList>
+          </Tabs>
+          <LinkButton
+            variant="primary"
+            icon={<IconAdd />}
+            to={getAutomationCreatePath(organization.slug)}
+          >
+            {t('Create automation')}
+          </LinkButton>
+        </Flex>
         <Outlet />
       </Stack>
     </SentryDocumentTitle>

@@ -28,6 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
@@ -185,6 +186,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         return Response(status=204)
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
     publish_status = {
@@ -196,11 +198,22 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
+    @extend_schema(
+        operation_id="Record a Visit to an Organization's Explore Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ExploreSavedQueryParams.EXPLORE_SAVED_QUERY_ID],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(
         self, request: Request, organization: Organization, query: ExploreSavedQuery
-    ) -> Response:
+    ) -> Response[None]:
         """
-        Update last_visited and increment visits counter
+        Record that the requesting user visited a saved query. Increments the query's
+        visit count and updates its last visited time.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -211,11 +224,13 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 
-        ExploreSavedQueryLastVisited.objects.update_or_create(
-            organization=organization,
-            user_id=request.user.id,
-            explore_saved_query=query,
-            defaults={"last_visited": timezone.now()},
-        )
+        user_id = acting_user_id(request.user)
+        if user_id is not None:
+            ExploreSavedQueryLastVisited.objects.update_or_create(
+                organization=organization,
+                user_id=user_id,
+                explore_saved_query=query,
+                defaults={"last_visited": timezone.now()},
+            )
 
         return Response(status=204)

@@ -13,7 +13,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
+import {AddCodeOwnerModal} from './addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', () => {
   const org = OrganizationFixture({features: ['integrations-codeowners']});

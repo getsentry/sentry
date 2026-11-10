@@ -3,6 +3,9 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.agent_handoff.endpoints.organization_agent_handoff import (
+    OrganizationAgentHandoffEndpoint,
+)
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -45,12 +48,12 @@ from sentry.api.endpoints.organization_releases import (
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_project_span_counts import (
-    OrganizationSamplingProjectSpanCountsEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
+)
+from sentry.api.endpoints.organization_trace_item_attribute_details import (
+    OrganizationTraceItemAttributeDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
@@ -313,12 +316,6 @@ from sentry.investigations.endpoints.organization_investigation_action_request_r
 from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
     OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
-    OrganizationInvestigationBlockExecutionDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_block_executions import (
-    OrganizationInvestigationBlockExecutionsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
 )
@@ -337,9 +334,6 @@ from sentry.investigations.endpoints.organization_investigation_index import (
 from sentry.investigations.endpoints.organization_investigation_orchestration import (
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_title_generation import (
-    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -471,6 +465,12 @@ from sentry.monitors.endpoints.project_processing_errors_index import (
 from sentry.notebooks.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_execution_details import (
+    OrganizationInvestigationBlockExecutionDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_executions import (
+    OrganizationInvestigationBlockExecutionsEndpoint,
+)
 from sentry.notebooks.endpoints.organization_investigation_block_index import (
     OrganizationInvestigationBlocksEndpoint,
 )
@@ -488,6 +488,9 @@ from sentry.notebooks.endpoints.organization_investigation_favorite import (
 )
 from sentry.notebooks.endpoints.organization_investigation_presence import (
     OrganizationInvestigationPresenceEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_title_generation import (
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.notifications.api.endpoints.notification_actions_available import (
     NotificationActionsAvailableEndpoint,
@@ -581,6 +584,8 @@ from sentry.scm.endpoints.scm_git import ScmGitEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
+from sentry.seer.endpoints.admin_autofix_single_run import SeerAdminAutofixSingleRunEndpoint
+from sentry.seer.endpoints.admin_metric_breaches import SeerAdminMetricBreachesEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -690,6 +695,9 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.service_accounts.endpoints.organization_service_account_tokens import (
+    OrganizationServiceAccountTokenIndexEndpoint,
+)
 from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
     OrganizationServiceAccountViewerContextEndpoint,
 )
@@ -699,6 +707,15 @@ from sentry.service_accounts.endpoints.organization_service_accounts import (
 )
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
+from sentry.telemetry_classifiers.endpoints.organization_prebuilt_telemetry_classifiers import (
+    OrganizationPrebuiltTelemetryClassifiersEndpoint,
+)
+from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifier_details import (
+    OrganizationTelemetryClassifierDetailsEndpoint,
+)
+from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifiers import (
+    OrganizationTelemetryClassifiersEndpoint,
+)
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
@@ -849,7 +866,6 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
@@ -1733,16 +1749,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-config-integrations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",
-        OrganizationSamplingProjectRatesEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-project-rates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-root-counts/$",
-        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-root-counts",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
         OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-effective-sample-rate",
@@ -1818,6 +1824,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-service-account-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/tokens/$",
+        OrganizationServiceAccountTokenIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-tokens",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/viewer-context/$",
         OrganizationServiceAccountViewerContextEndpoint.as_view(),
         name="sentry-api-0-organization-service-account-viewer-context",
@@ -1863,6 +1874,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-agent-conversation-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/$",
+        OrganizationTelemetryClassifiersEndpoint.as_view(),
+        name="sentry-api-0-organization-telemetry-classifiers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/prebuilt/$",
+        OrganizationPrebuiltTelemetryClassifiersEndpoint.as_view(),
+        name="sentry-api-0-organization-prebuilt-telemetry-classifiers",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/classifiers/(?P<classifier_id>[^/]+)/$",
+        OrganizationTelemetryClassifierDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-telemetry-classifier-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/$",
         OrganizationTraceItemAttributesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes",
@@ -1871,6 +1897,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/merged/$",
         OrganizationTraceItemAttributesMergedEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes-merged",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/details/$",
+        OrganizationTraceItemAttributeDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attribute-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validate/$",
@@ -2656,6 +2687,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding-tasks/$",
         OrganizationOnboardingTaskEndpoint.as_view(),
         name="sentry-api-0-organization-onboardingtasks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts/$",
+        OrganizationAgentHandoffEndpoint.as_view(),
+        name="sentry-api-0-organization-agent-handoff",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding/agent/runs/$",
@@ -3765,6 +3801,11 @@ INTERNAL_URLS = [
     *preprod_urls.preprod_internal_urlpatterns,
     *notification_platform_urls.internal_urlpatterns,
     re_path(
+        r"^seer/metric-breaches/$",
+        SeerAdminMetricBreachesEndpoint.as_view(),
+        name="sentry-admin-seer-metric-breaches",
+    ),
+    re_path(
         r"^seer/night-shift/trigger/$",
         SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
@@ -3773,6 +3814,11 @@ INTERNAL_URLS = [
         r"^seer/autofix/retry/$",
         SeerAdminAutofixRetryEndpoint.as_view(),
         name="sentry-admin-seer-autofix-retry",
+    ),
+    re_path(
+        r"^seer/autofix/single-run/$",
+        SeerAdminAutofixSingleRunEndpoint.as_view(),
+        name="sentry-admin-seer-autofix-single-run",
     ),
 ]
 

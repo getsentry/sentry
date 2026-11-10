@@ -4,10 +4,11 @@ import invariant from 'invariant';
 import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
-import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
-import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
-import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {defaultTitle} from './getFrameDetails';
+import type {BreadcrumbFrame, RawBreadcrumbFrame} from './types';
+import {isBreadcrumbFrame} from './types';
 
 // Categories whose SDK types require `data`. Custom breadcrumbs often omit it,
 // so only these are worth reporting when it is missing.

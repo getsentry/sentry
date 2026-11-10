@@ -1,4 +1,4 @@
-import {segmentSequentialBy} from 'sentry/utils/array/segmentSequentialBy';
+import {segmentSequentialBy} from './segmentSequentialBy';
 
 describe('segmentSequentialBy', () => {
   it('handles empty array', () => {

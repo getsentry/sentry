@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from django.db import connection
 from django.db.utils import OperationalError
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -79,6 +80,7 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from sentry.utils.snuba import SnubaQueryParams
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -420,6 +422,42 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="inbox", query=f"{query} assigned_or_suggested:my_teams", project=project
         )
         assert response.data == []
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_teams_or_self_to_search_by(self) -> None:
+        group = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        assert group is not None
+        GroupAssignee.objects.assign(group, self.team)
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:read"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        def search(query: str) -> list[str]:
+            response = self.client.get(
+                reverse(self.endpoint, args=[self.organization.slug]),
+                {"query": query, "project": [self.project.id]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+            assert response.status_code == 200, response.content
+            return [item["id"] for item in response.data]
+
+        assert search("is:unresolved") == [str(group.id)]
+        assert search("assigned:my_teams") == []
+        assert search("!assigned:my_teams") == [str(group.id)]
+        assert search("assigned:me") == []
 
     def test_trace_search(self) -> None:
         event = self.store_event(
@@ -905,6 +943,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.create_group()
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
+
+    def test_lookup_by_group_id_invalid(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_error_response(group="not-an-int", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="782672999178267162297826713017", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="-1", status_code=400)
+        assert "group" in response.data
 
     def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()

@@ -13,9 +13,11 @@ from sentry.models.groupsearchview import (
 )
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
@@ -1005,3 +1007,52 @@ class OrganizationGroupSearchViewsGetSortTest(GroupSearchViewAPITestCase):
         assert response.data[1]["id"] == str(view_2.id)
         assert response.data[2]["id"] == str(view_4.id)
         assert response.data[3]["id"] == str(view_3.id)
+
+
+@with_feature(["organizations:granular-permission-scopes", "organizations:issue-views"])
+class OrganizationGroupSearchViewsScopeTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.view = self.create_group_search_view(
+            name="Shared View", visibility=GroupSearchViewVisibility.ORGANIZATION
+        )
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.view_data = {
+            "name": "Created View",
+            "query": "is:unresolved",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_list(self) -> None:
+        self._use_token(["saved_query:read"])
+        response = self.client.get(self.url)
+        assert response.status_code == 200, response.content
+        assert [view["name"] for view in response.data] == ["Shared View"]
+
+    def test_read_scope_cannot_create(self) -> None:
+        self._use_token(["saved_query:read"])
+        assert self.client.post(self.url, self.view_data, format="json").status_code == 403
+        assert not GroupSearchView.objects.filter(name="Created View").exists()
+
+    def test_write_scope_can_create(self) -> None:
+        self._use_token(["saved_query:write"])
+        response = self.client.post(self.url, self.view_data, format="json")
+        assert response.status_code == 201, response.content
+        assert GroupSearchView.objects.filter(name="Created View").exists()
+
+    def test_write_scope_cannot_list(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403

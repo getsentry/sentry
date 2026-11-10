@@ -7,7 +7,7 @@ import {motion} from 'framer-motion';
 import {Container} from '@sentry/scraps/layout';
 import {Prose} from '@sentry/scraps/text';
 
-import {Panel} from 'sentry/components/panels/panel';
+import {Panel} from './panels/panel';
 
 /**
  * The default wrapper for the detail text.

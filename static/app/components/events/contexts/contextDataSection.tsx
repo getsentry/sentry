@@ -1,5 +1,4 @@
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -7,6 +6,7 @@ import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {ContextCard} from './contextCard';
 import {getOrderedContextItems} from './contextItems';
 
 interface ContextDataSectionProps {

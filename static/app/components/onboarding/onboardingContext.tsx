@@ -1,14 +1,15 @@
 import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {Integration, Repository} from 'sentry/types/integrations';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {removeStorageValue, useSessionStorage} from 'sentry/utils/useSessionStorage';
+
+import type {ProductSolution} from './gettingStartedDoc/types';
 import {
   type CreatedProject,
   type ScmMessagingSetup,
   UNCONFIGURED_SCM_MESSAGING_SETUP,
-} from 'sentry/components/onboarding/scm/scmMessagingSetup';
-import type {Integration, Repository} from 'sentry/types/integrations';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {removeStorageValue, useSessionStorage} from 'sentry/utils/useSessionStorage';
+} from './scm/scmMessagingSetup';
 
 type OnboardingContextProps = {
   clearDerivedState: () => void;

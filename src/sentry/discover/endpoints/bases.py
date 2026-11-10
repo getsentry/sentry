@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.auth.principal import is_acting_user, owned_by_acting_user
+from sentry.auth.principal import is_acting_user, is_owned_by_acting_user
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
@@ -17,6 +17,9 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin", "saved_query:write"],
         "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
+
+    # saved_query:read and saved_query:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
     def has_object_permission(
         self,
@@ -79,7 +82,7 @@ def filter_to_accessible_discover_queries(
         discover_saved_query_id=OuterRef("id"),
     )
     queryset = queryset.filter(
-        Exists(has_any_project) | owned_by_acting_user(request.user, "created_by_id")
+        Exists(has_any_project) | is_owned_by_acting_user(request.user, "created_by_id")
     )
 
     return queryset

@@ -16,7 +16,7 @@ from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSec
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth import access
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, is_acting_user, require_user
 from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -37,6 +37,9 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppPublicErrorBody,
     SentryAppSentryError,
 )
+from sentry.service_accounts.auth import is_service_account_auth
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.strings import to_single_line_str
 
@@ -169,6 +172,8 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
     def _get_organization_slug(self, request: Request) -> str:
+        if not isinstance(request.data, dict):
+            raise SentryAppError(message="Request body must be a JSON object.")
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
@@ -176,12 +181,12 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
-        self, request: Request, organization_slug: str
+        self, request: Request, user: RpcUser | User, organization_slug: str
     ) -> RpcUserOrganizationContext:
         context = organization_service.get_access_context_by_slug(
             slug=organization_slug,
             only_visible=False,
-            user_id=request.user.id,
+            user_id=user.id,
             include_resource_ids=access.should_prefetch_organization_resources(request),
         )
 
@@ -192,12 +197,12 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         return context
 
     def _get_organization_for_user(
-        self, request: Request, organization_slug: str
+        self, request: Request, user: RpcUser | User, organization_slug: str
     ) -> RpcUserOrganizationContext:
         context = organization_service.get_access_context_by_slug(
             slug=organization_slug,
             only_visible=True,
-            user_id=request.user.id,
+            user_id=user.id,
             include_resource_ids=access.should_prefetch_organization_resources(request),
         )
         if context is None or context.member is None:
@@ -207,12 +212,12 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
-        assert request.user.is_authenticated, "User must be authenticated to get organization"
+        user = require_user(request)
 
         if is_active_superuser(request) or is_active_staff(request):
-            return self._get_organization_for_superuser_or_staff(request, organization_slug)
+            return self._get_organization_for_superuser_or_staff(request, user, organization_slug)
         else:
-            return self._get_organization_for_user(request, organization_slug)
+            return self._get_organization_for_user(request, user, organization_slug)
 
     def convert_args(
         self,
@@ -282,13 +287,16 @@ class SentryAppPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
+        user_id = acting_user_id(request.user)
         organizations = (
-            user_service.get_organizations(user_id=request.user.id)
-            if request.user.id is not None
-            else ()
+            user_service.get_organizations(user_id=user_id) if user_id is not None else ()
+        )
+        is_owner_service_account = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == sentry_app.owner_id
         )
         # if app is unpublished, user must be in the Org who owns the app.
-        if not sentry_app.is_published:
+        if not sentry_app.is_published and not is_owner_service_account:
             if not any(sentry_app.owner_id == org.id for org in organizations):
                 raise SentryAppError(
                     message="User must be in the app owner's organization for unpublished apps",
@@ -368,10 +376,9 @@ class SentryAppInstallationsPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
+        user_id = acting_user_id(request.user)
         organizations = (
-            user_service.get_organizations(user_id=request.user.id)
-            if request.user.id is not None
-            else ()
+            user_service.get_organizations(user_id=user_id) if user_id is not None else ()
         )
         if not any(organization.id == org.id for org in organizations):
             raise SentryAppError(
@@ -393,6 +400,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        user_id = acting_user_id(request.user)
         if str(organization_id_or_slug).isdecimal():
             context = access.get_organization_access_context(
                 request, organization_id=int(organization_id_or_slug)
@@ -401,14 +409,14 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
             context = organization_service.get_access_context_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
-                user_id=request.user.id,
+                user_id=user_id,
                 include_resource_ids=access.should_prefetch_organization_resources(request),
             )
 
         # Preserve the summary lookup's visibility rules before checking permissions.
         if context is None or (
             not is_active_superuser(request)
-            and request.user.id is not None
+            and user_id is not None
             and (context.member is None or context.organization.status != OrganizationStatus.ACTIVE)
         ):
             raise SentryAppError(message="Could not find requested organization", status_code=404)
@@ -459,9 +467,17 @@ class SentryAppInstallationPermission(SentryPermission):
 
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
-            return request.user.id == installation.sentry_app.proxy_user_id
+            return is_acting_user(request.user, installation.sentry_app.proxy_user_id)
 
-        if not org_context.member or org_context.organization.status != OrganizationStatus.ACTIVE:
+        # A service account has no membership; it belongs to its own organization.
+        is_org_service_account = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == installation.organization_id
+        )
+        if (
+            not (org_context.member or is_org_service_account)
+            or org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
             raise SentryAppError(message="Given organization is not valid", status_code=404)
 
         assert request.method, "method must be present in request to get permissions"
@@ -529,7 +545,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
         # Request must be made as the app's Proxy User, using their Client ID
         # and Secret.
-        return request.user.id == installation.sentry_app.proxy_user_id
+        return is_acting_user(request.user, installation.sentry_app.proxy_user_id)
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):

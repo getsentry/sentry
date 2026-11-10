@@ -15,20 +15,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
-import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {
-  getLeadHint,
-  hasAssembly,
-  hasContextRegisters,
-  hasContextSource,
-  hasContextVars,
-  isExpandable,
-  trimPackage,
-} from 'sentry/components/events/interfaces/frame/utils';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
@@ -49,7 +35,21 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 import {useOptionalDebugMetaSearch} from './debugMeta/debugMetaSearchContext';
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
+import {FRAME_TOOLTIP_MAX_WIDTH} from './frame/defaultTitle';
+import {OpenInContextLine} from './frame/openInContextLine';
+import {StacktraceLink} from './frame/stacktraceLink';
+import {
+  getLeadHint,
+  hasAssembly,
+  hasContextRegisters,
+  hasContextSource,
+  hasContextVars,
+  isExpandable,
+  trimPackage,
+} from './frame/utils';
+import {useStacktraceContext} from './stackTraceContext';
 import {SymbolicatorStatus} from './types';
+import {formatAddress, parseAddress} from './utils';
 
 type Props = {
   emptySourceNotation: boolean;

@@ -28,6 +28,7 @@ from sentry.integrations.utils.assignee_sync import (
     parse_provider_event_time,
     record_provider_assignee_updated_at,
 )
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee, GroupAssignmentState
@@ -38,6 +39,7 @@ from sentry.silo.base import cell_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType, get_viewer_context
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
@@ -173,6 +175,21 @@ def _drop_stale_groups(
     ]
 
 
+@contextmanager
+def _assignment_viewer_context(organization_id: int) -> Iterator[None]:
+    current = get_viewer_context()
+    if (
+        current is not None
+        and current.organization_id == organization_id
+        and current.actor.type != ActorType.UNKNOWN
+    ):
+        yield
+    else:
+        # The assignee is the recipient, not the actor initiating the webhook.
+        with webhook_viewer_context(organization_id):
+            yield
+
+
 def _handle_deassign(
     groups: Iterable[Group], integration: RpcIntegration | Integration
 ) -> list[Group]:
@@ -181,7 +198,10 @@ def _handle_deassign(
         if not should_sync_assignee_inbound(group.organization, integration.provider):
             continue
 
-        with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
+        with (
+            _assignment_viewer_context(group.project.organization_id),
+            action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR),
+        ):
             GroupAssignee.objects.deassign(
                 group,
                 assignment_source=AssignmentSource.from_integration(integration),
@@ -222,7 +242,10 @@ def _handle_assign(
                     "user_id": user.id,
                 },
             )
-            with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
+            with (
+                _assignment_viewer_context(group.project.organization_id),
+                action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR),
+            ):
                 assignment = GroupAssignee.objects.assign(
                     group,
                     user,

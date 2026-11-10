@@ -1,4 +1,4 @@
-import {RateUnit} from 'sentry/utils/discover/fields';
+import {RateUnit} from './discover/fields';
 import {
   formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
@@ -6,7 +6,7 @@ import {
   formatRate,
   formatSpanOperation,
   userDisplayName,
-} from 'sentry/utils/formatters';
+} from './formatters';
 
 describe('formatAbbreviatedNumber()', () => {
   it('should format numbers smaller than 1', () => {

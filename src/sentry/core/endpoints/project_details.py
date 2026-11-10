@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import orjson
 from django.db import IntegrityError, router, transaction
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -33,16 +34,15 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
-    SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -57,6 +57,7 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -64,6 +65,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
@@ -394,12 +396,6 @@ E.g. `['release', 'environment']`""",
         required=False,
         help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
     )
-    targetSampleRate = serializers.FloatField(
-        required=False,
-        min_value=0,
-        max_value=1,
-        help_text="Target proportion of transactions to retain, from `0` to `1`. Requires manual dynamic sampling mode.",
-    )
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(
         required=False,
         many=True,
@@ -596,24 +592,6 @@ E.g. `['release', 'environment']`""",
     def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
-    def validate_targetSampleRate(self, value: float) -> float:
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_custom_dynamic_sampling(organization, actor=actor):
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.PROJECT.value
-        ):
-            raise serializers.ValidationError(
-                "Must enable Manual Mode to configure project sample rates."
-            )
-
-        return value
-
     def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
@@ -670,9 +648,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         resolve_age = project.get_option("sentry:resolve_age", None)
         if resolve_age:
-            queryset = queryset.filter(
-                last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age))
+            cutoff = timezone.now() - timedelta(hours=int(resolve_age))
+            recently_reopened = Exists(
+                Activity.objects.get_recent_unresolved_activities(project.id, cutoff).filter(
+                    group_id=OuterRef("id")
+                )
             )
+            queryset = queryset.filter(Q(last_seen__gt=cutoff) | recently_reopened)
 
         return queryset.count()
 
@@ -819,14 +801,21 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if old_slug:
                 ProjectRedirect.record(project, old_slug)
 
-        if result.get("isBookmarked"):
-            try:
-                with transaction.atomic(router.db_for_write(ProjectBookmark)):
-                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
-            except IntegrityError:
-                pass
-        elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
+        # Bookmarks are per user: skipped without one, like token callers always were.
+        bookmark_user_id = acting_user_id(request.user)
+        if bookmark_user_id is not None:
+            if result.get("isBookmarked"):
+                try:
+                    with transaction.atomic(router.db_for_write(ProjectBookmark)):
+                        ProjectBookmark.objects.create(
+                            project_id=project.id, user_id=bookmark_user_id
+                        )
+                except IntegrityError:
+                    pass
+            elif result.get("isBookmarked") is False:
+                ProjectBookmark.objects.filter(
+                    project_id=project.id, user_id=bookmark_user_id
+                ).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
@@ -953,13 +942,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
                     "enableNativeSourceServerMapping"
                 ]
-        if result.get("targetSampleRate") is not None:
-            if project.update_option(
-                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
-            ):
-                changed_proj_settings["sentry:target_sample_rate"] = round(
-                    result["targetSampleRate"], 4
-                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
@@ -1423,7 +1405,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.rename_on_pending_deletion()
 
             # Tell seer to delete all the project's grouping records
-            if project.get_option("sentry:similarity_backfill_completed"):
+            if project_uses_seer_similarity(project):
                 call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)

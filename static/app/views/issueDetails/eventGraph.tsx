@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs, useResizeObserver} from '@react-aria/utils';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -23,13 +24,12 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -41,16 +41,17 @@ import {
   useReleaseBubbles,
 } from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/hooks/useEventMarkLineSeries';
+
+import {useCurrentEventMarklineSeries} from './hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
-import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/hooks/useReleaseMarkLineSeries';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+} from './hooks/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from './hooks/useReleaseMarkLineSeries';
+import {EVENT_GRAPH_WIDGET_ID} from './constants';
+import {useIssueDetails} from './context';
+import {Tab} from './types';
+import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -175,30 +176,24 @@ export function EventGraph({
       },
     });
 
-  const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
-    data: Array<{'count_unique(user)': number}>;
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...eventView.getEventsAPIPayload(location),
-          dataset: config.usesIssuePlatform
-            ? DiscoverDatasets.ISSUE_PLATFORM
-            : DiscoverDatasets.ERRORS,
-          field: 'count_unique(user)',
-          per_page: 50,
-          project: group.project.id,
-          query: eventView.query,
-          referrer: 'issue_details.streamline_graph',
-        },
+  const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useQuery(
+    apiOptions.as<{
+      data: Array<{'count_unique(user)': number}>;
+    }>()('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        ...eventView.getEventsAPIPayload(location),
+        dataset: config.usesIssuePlatform
+          ? DiscoverDatasets.ISSUE_PLATFORM
+          : DiscoverDatasets.ERRORS,
+        field: 'count_unique(user)',
+        per_page: 50,
+        project: group.project.id,
+        query: eventView.query,
+        referrer: 'issue_details.streamline_graph',
       },
-    ],
-    {
       staleTime: 60_000,
-    }
+    })
   );
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 

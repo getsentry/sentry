@@ -4,13 +4,14 @@ import partition from 'lodash/partition';
 import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
-import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
-import {useProjects} from 'sentry/utils/useProjects';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {defined} from './defined';
+import {getDaysSinceDate} from './getDaysSinceDate';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
+import {useProjects} from './useProjects';
 
 type ProjectPlaceholder = AvatarProject;
 

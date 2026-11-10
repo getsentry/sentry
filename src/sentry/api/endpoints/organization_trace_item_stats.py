@@ -5,7 +5,7 @@ from concurrent.futures import as_completed
 from dataclasses import dataclass
 from typing import Any, Literal, cast, get_args
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,6 +22,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -121,68 +122,45 @@ class TraceItemStatsPaginator:
         )
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "limit": (
+            "The page size the Explore UI requests. It raises the page-size cap instead of "
+            "being bounded by it."
+        ),
+    }
+)
 class OrganizationTraceItemStatsSerializer(serializers.Serializer):
-    query = serializers.CharField(required=False)
+    query = serializers.CharField(
+        required=False,
+        help_text="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing statistics.",
+    )
     statsType = serializers.ListField(
-        child=serializers.ChoiceField(list(SUPPORTED_STATS_TYPES)), required=True
+        child=serializers.ChoiceField(sorted(SUPPORTED_STATS_TYPES)),
+        required=True,
+        help_text="The statistics to compute over the matching trace items.",
     )
     substringMatch = serializers.CharField(
         required=False,
-        help_text="Match substring on attribute name.",
+        help_text="Restrict results to attribute names containing this substring (case-sensitive).",
     )
+    # TODO: Bound `limit` with an appropriate cap. Passed as `default_per_page`, it lifts the
+    # `explore.trace-items.keys.max` page-size cap, so any client can request an unbounded page.
     limit = serializers.IntegerField(
         required=False,
     )
-    traceItemsLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
+    traceItemsLimit = serializers.IntegerField(
+        required=False,
+        default=1000,
+        max_value=1000,
+        help_text="Maximum number of trace items to sample when computing statistics. Defaults to `1000`, which is also the maximum.",
+    )
     itemType = serializers.ChoiceField(
         choices=SUPPORTED_ITEM_TYPES,
         required=False,
         default="spans",
+        help_text="The trace item dataset to compute statistics for. Defaults to `spans`.",
     )
-
-
-STATS_TYPE_QUERY_PARAM = OpenApiParameter(
-    name="statsType",
-    location="query",
-    required=True,
-    many=True,
-    type=str,
-    enum=sorted(SUPPORTED_STATS_TYPES),
-    description="The statistics to compute over the matching trace items.",
-)
-
-ITEM_TYPE_QUERY_PARAM = OpenApiParameter(
-    name="itemType",
-    location="query",
-    required=False,
-    type=str,
-    enum=list(SUPPORTED_ITEM_TYPES),
-    description="The trace item dataset to compute statistics for. Defaults to `spans`.",
-)
-
-SEARCH_QUERY_PARAM = OpenApiParameter(
-    name="query",
-    location="query",
-    required=False,
-    type=str,
-    description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing statistics.",
-)
-
-SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
-    name="substringMatch",
-    location="query",
-    required=False,
-    type=str,
-    description="Restrict results to attribute names containing this substring (case-sensitive).",
-)
-
-TRACE_ITEMS_LIMIT_QUERY_PARAM = OpenApiParameter(
-    name="traceItemsLimit",
-    location="query",
-    required=False,
-    type=int,
-    description="Maximum number of trace items to sample when computing statistics. Defaults to `1000`, which is also the maximum.",
-)
 
 
 @extend_schema(tags=["Explore"])
@@ -202,11 +180,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            STATS_TYPE_QUERY_PARAM,
-            ITEM_TYPE_QUERY_PARAM,
-            SEARCH_QUERY_PARAM,
-            SUBSTRING_MATCH_QUERY_PARAM,
-            TRACE_ITEMS_LIMIT_QUERY_PARAM,
+            OrganizationTraceItemStatsSerializer,
             CursorQueryParam,
         ],
         responses={

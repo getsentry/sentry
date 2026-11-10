@@ -11,10 +11,11 @@ import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
+
+import {useGroupTags} from './groupTags/useGroupTags';
+import {ALL_EVENTS_EXCLUDED_TAGS} from './hooks/useEventQuery';
+import {fetchIssueTagValues} from './utils';
 
 interface EventSearchProps {
   environments: string[];

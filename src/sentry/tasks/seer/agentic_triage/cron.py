@@ -38,6 +38,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
+    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -94,6 +95,7 @@ class SeerAgenticTriageRunOptions(TypedDict):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -106,6 +108,7 @@ class SeerAgenticTriageRunOptionsPartial(TypedDict, total=False):
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
+    single_run: bool
     intelligence_level: IntelligenceLevel
     reasoning_effort: ReasoningEffort
     extra_triage_instructions: str
@@ -542,6 +545,7 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerAgenticTriageRunOptions
         source=data.get("source", "cron"),
         max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
         dry_run=data.get("dry_run", False),
+        single_run=data.get("single_run", False),
         intelligence_level=data.get("intelligence_level", DEFAULT_INTELLIGENCE_LEVEL),
         reasoning_effort=data.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
         extra_triage_instructions=data.get(
@@ -635,11 +639,11 @@ def _get_eligible_orgs_from_batch(
     if options.get("seer.night_shift.enable_for_legacy_orgs"):
         return eligible
 
-    # seat-based-seer-enabled: required for paid path, bypassed by free cohort
     paid_eligible: list[Organization] = []
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
-        if all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES):
+        has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
+        if has_seat_based_seer or is_seer_token_based_billing_onboarding_enabled(org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)

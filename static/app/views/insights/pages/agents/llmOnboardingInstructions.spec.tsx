@@ -26,7 +26,7 @@ describe('getAgentSetupPrompt', () => {
       expect(prompt).toContain(`${organization.slug}/${project.slug}`);
       expect(prompt).toContain(dsn);
       expect(prompt).toContain(`Platform hint: ${platform ?? 'unknown'}`);
-      expect(prompt).toContain('https://skills.sentry.dev/instrument');
+      expect(prompt).toContain('https://skills.sentry.dev/agent-tracing');
       expect(prompt).toContain('https://docs.sentry.io/ai/agent-plugin/');
     }
   );
@@ -44,7 +44,7 @@ describe('getAgentSetupPrompt', () => {
     'other',
     undefined,
   ] as const)(
-    'delegates data collection guidance to the instrument skill on %s',
+    'delegates data collection guidance to the agent tracing skill on %s',
     platform => {
       const prompt = getAgentSetupPrompt({
         organizationSlug: OrganizationFixture().slug,
@@ -52,7 +52,7 @@ describe('getAgentSetupPrompt', () => {
         dsn: ProjectKeysFixture()[0]!.dsn.public,
       });
 
-      expect(prompt).toContain('https://skills.sentry.dev/instrument');
+      expect(prompt).toContain('https://skills.sentry.dev/agent-tracing');
       expect(prompt).not.toContain('which AI inputs and outputs the SDK sends');
       expect(prompt).not.toContain('#dataCollection');
     }

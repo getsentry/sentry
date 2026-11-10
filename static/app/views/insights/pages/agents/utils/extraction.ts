@@ -10,9 +10,10 @@ import {z} from 'zod';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 // As with evaluations, schemas describe the valid shape only and keep values as
 // sent. A field or answer that's present with the wrong type is shown raw

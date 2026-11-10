@@ -1,3 +1,5 @@
+import importlib
+import runpy
 from unittest import mock
 
 import pytest
@@ -20,6 +22,26 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import FUTURE_EXPIRATION
+
+
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "sentry.integrations.jira.client",
+        "sentry.integrations.jira_server.client",
+        "sentry.integrations.bitbucket.client",
+        "sentry.integrations.utils.jira",
+        "sentry.integrations.bitbucket.utils",
+    ],
+)
+def test_import_does_not_read_options(module_name: str) -> None:
+    module = importlib.import_module(module_name)
+    assert module.__file__ is not None
+    # Pytest has already imported these modules with system.url-prefix configured.
+    # Execute their module bodies again without changing the cached modules, and
+    # reject option reads even when test settings would otherwise make them safe.
+    with mock.patch("sentry.options.get", side_effect=AssertionError("Option read during import")):
+        runpy.run_path(module.__file__)
 
 
 class AtlassianConnectTest(TestCase):
@@ -112,6 +134,26 @@ class AtlassianConnectTest(TestCase):
         )
 
         with pytest.raises(AtlassianConnectValidationError, match="Required claim is missing"):
+            get_integration_from_jwt(
+                token=token,
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
+
+    def test_get_integration_from_jwt_rejects_forge_only_integration(self) -> None:
+        # Forge-only integrations are keyed by the site's public cloud ID and have no
+        # Connect secret, so a Connect JWT naming one must be rejected, not crash.
+        self.create_provider_integration(
+            provider=self.provider, external_id="cloud-id", metadata={"base_url": "https://x"}
+        )
+        token = jwt.encode(
+            {"iss": "cloud-id", "iat": 1234567890, "exp": 9999999999, "qsh": self.query_hash},
+            "guessed-secret",
+        )
+
+        with pytest.raises(AtlassianConnectValidationError):
             get_integration_from_jwt(
                 token=token,
                 path=self.path,

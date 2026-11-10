@@ -20,6 +20,7 @@ from sentry.api.helpers.error_upsampling import (
 )
 from sentry.api.serializers.snuba import StatsTimeSeriesResult
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -79,7 +80,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
         batch_features = features.batch_has(
             feature_names,
             organization=organization,
-            actor=request.user,
+            actor=acting_user(request.user),
         )
         return (
             batch_features.get(f"organization:{organization.id}", {})

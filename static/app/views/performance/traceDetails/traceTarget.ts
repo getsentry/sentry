@@ -11,8 +11,9 @@ import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import type {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+
+import type {TraceViewSources} from './traceHeader/traceViewSources';
+import {getTraceDetailsUrl} from './traceUrl';
 
 function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';

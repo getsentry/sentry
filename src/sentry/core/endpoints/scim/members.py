@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -36,10 +36,12 @@ from sentry.apidocs.constants import (
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.auth.services.auth import auth_service
 from sentry.conf.types.sentry_config import SentryMode
@@ -391,7 +393,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+            "SCIMMemberReplace", fields={"sentryOrgRole": serializers.CharField()}
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
@@ -495,7 +497,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
 
 class SCIMListMembersResponse(SCIMListBaseResponse):
-    Resources: list[OrganizationMemberSCIMSerializerResponse]
+    Resources: Annotated[
+        list[OrganizationMemberSCIMSerializerResponse],
+        ApiDescription("Organization members in this page, as SCIM users"),
+    ]
 
 
 @cell_silo_endpoint
@@ -672,7 +677,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     organization=organization,
                     email=result["email"],
                     role=result["role"],
-                    inviter_id=request.user.id,
+                    inviter_id=acting_user_id(request.user),
                 )
 
                 # TODO: are invite tokens needed for SAML orgs?

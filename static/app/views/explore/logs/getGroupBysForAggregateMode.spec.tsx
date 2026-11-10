@@ -1,5 +1,6 @@
-import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBysForAggregateMode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {getGroupBysForAggregateMode} from './getGroupBysForAggregateMode';
 
 describe('getGroupBysForAggregateMode', () => {
   it('returns null when nothing is grouped yet', () => {

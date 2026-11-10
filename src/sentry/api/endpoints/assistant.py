@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
-from sentry.auth.principal import owned_by_acting_user, require_user
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.models.assistant import AssistantActivity
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
@@ -70,7 +70,7 @@ class AssistantEndpoint(Endpoint):
             return Response(status=400)
 
         seen_ids = set(
-            AssistantActivity.objects.filter(owned_by_acting_user(request.user)).values_list(
+            AssistantActivity.objects.filter(is_owned_by_acting_user(request.user)).values_list(
                 "guide_id", flat=True
             )
         )

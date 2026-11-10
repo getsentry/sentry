@@ -8,8 +8,9 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {PageBanner} from 'sentry/components/alerts/pageBanner';
 import * as Storybook from 'sentry/stories';
+
+import {PageBanner} from './pageBanner';
 
 export default Storybook.story('PageBanner', story => {
   const storiesButton = (

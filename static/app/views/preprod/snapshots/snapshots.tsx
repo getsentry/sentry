@@ -10,17 +10,17 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconGrabbable} from '@sentry/icons/grabbable';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {isModalOpen} from '@sentry/scraps/modal';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -34,7 +34,6 @@ import {
 } from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
-  SnapshotDetailsApiResponse,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
@@ -50,6 +49,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {useSnapShotApiOptions} from './snapshotApiOptions';
 import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
@@ -130,29 +130,25 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const snapshotApiUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        snapshotId,
-      },
-    }
-  );
+  const snapshotApiOptions = useSnapShotApiOptions();
 
-  const {data, isPending, isError} = useApiQuery<SnapshotDetailsApiResponse>(
-    [snapshotApiUrl],
-    {
-      staleTime: 0,
-      enabled: !!snapshotId,
-      // Skip retries on 4xx so error pages render instantly
-      retry: (count, err) => count < 3 && (!err?.status || err.status >= 500),
-      refetchInterval: query => {
-        const state = query.state.data?.json?.comparison_state;
-        return state === 'pending' || state === 'processing' ? 5_000 : false;
-      },
-    }
-  );
+  const {data, isPending, isError} = useQuery({
+    ...snapshotApiOptions,
+    // Skip retries on 4xx so error pages render instantly
+    retry: (count, err) => {
+      if (count >= 3) {
+        return false;
+      }
+      if (err instanceof RequestError && err.status && err.status < 500) {
+        return false;
+      }
+      return true;
+    },
+    refetchInterval: query => {
+      const state = query.state.data?.json?.comparison_state;
+      return state === 'pending' || state === 'processing' ? 5_000 : false;
+    },
+  });
 
   const viewedArtifactRef = useRef<string | null>(null);
   useEffect(() => {
@@ -663,7 +659,7 @@ export default function SnapshotsPage() {
       ) {
         return;
       }
-      if (typeof ModalStore.getState().renderer === 'function') {
+      if (isModalOpen()) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -847,7 +843,6 @@ export default function SnapshotsPage() {
       snapshotId={snapshotId}
       data={data}
       organizationSlug={organization.slug}
-      apiUrl={snapshotApiUrl}
     />
   );
 

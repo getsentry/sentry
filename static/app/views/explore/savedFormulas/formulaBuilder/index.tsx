@@ -9,9 +9,9 @@ import {Container as LayoutContainer, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -33,7 +33,11 @@ import {
   type SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
-import {FIELD_MAX_WIDTH} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
+import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {FIELD_MAX_WIDTH} from './builderSection';
 import {
   exceedsApiLimits,
   isInvalidSuggestedNumber,
@@ -42,13 +46,10 @@ import {
   toRequest,
   variableNames,
   type FormulaDraft,
-} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
-import {ParametersSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/parametersSection';
-import {ReferencesSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
-import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
-import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './draft';
+import {OptionSizedLabel} from './optionSizedLabel';
+import {ParametersSection} from './parametersSection';
+import {ReferencesSection} from './referencesSection';
 
 const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
   {value: 'spans', label: t('Spans')},
@@ -141,10 +142,10 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
       await saveFormula(toRequest(draft));
     } catch (error) {
       const detail = (error as RequestError).responseJSON?.detail;
-      addErrorMessage(typeof detail === 'string' ? detail : t('Unable to save formula'));
+      toast.error(typeof detail === 'string' ? detail : t('Unable to save formula'));
       return;
     }
-    addSuccessMessage(t('Formula saved'));
+    toast.success(t('Formula saved'));
     navigate(listPathname);
   }
 

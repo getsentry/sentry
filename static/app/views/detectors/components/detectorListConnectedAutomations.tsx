@@ -17,8 +17,9 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {useIssueStreamDetectorContext} from 'sentry/views/detectors/components/detectorListTable/issueStreamDetectorContext';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
+
+import {useIssueStreamDetectorContext} from './detectorListTable/issueStreamDetectorContext';
 
 type DetectorListConnectedAutomationsProps = {
   automationIds: string[];

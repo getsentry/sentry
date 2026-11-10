@@ -2,9 +2,10 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {GroupTitle} from 'sentry/components/groupTitle';
 import {EventOrGroupType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
+
+import {GroupTitle} from './groupTitle';
 
 describe('GroupTitle', () => {
   const data = {
