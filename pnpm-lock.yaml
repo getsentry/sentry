@@ -498,9 +498,6 @@ importers:
       '@react-aria/slider':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/tabs':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/textfield':
         specifier: 3.19.1
         version: 3.19.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -531,9 +528,6 @@ importers:
       '@react-stately/slider':
         specifier: 3.8.1
         version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/tabs':
-        specifier: 3.9.1
-        version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/tree':
         specifier: 3.10.1
         version: 3.10.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
