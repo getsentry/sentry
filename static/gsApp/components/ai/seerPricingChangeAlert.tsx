@@ -6,7 +6,9 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
+import {isSalesAccount} from 'getsentry/utils/billing';
 
 const SEER_PRICING_CHANGE_URL =
   'https://www.sentry.help/en/articles/18300945-seer-pricing-changes-code-review-deprecation-december-8-2026';
@@ -19,6 +21,11 @@ export function hasPaidSeer(subscription: Subscription) {
 }
 
 function SeerAnnouncementAlert({children}: {children: ReactNode}) {
+  const subscription = useSubscription();
+  if (subscription && isSalesAccount(subscription)) {
+    return null;
+  }
+
   return (
     <Alert
       variant="warning"

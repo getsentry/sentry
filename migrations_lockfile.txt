@@ -27,7 +27,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0003_unique_live_producer_block
+notebooks: 0004_add_notebook_org_auth_token_creator
 
 notifications: 0017_add_notificationthread_integration_id
 
@@ -41,7 +41,7 @@ seer: 0046_add_workflow_config_backing_workflow
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1251_add_apisetupcode
+sentry: 1253_grouprelease_drop_new_release_id_pending
 
 service_accounts: 0007_add_service_account_token_replica
 
@@ -53,4 +53,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
 
-workflow_engine: 0124_add_workflow_type_org_index
+workflow_engine: 0125_clean_up_metric_detector_config

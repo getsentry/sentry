@@ -440,20 +440,22 @@ export function SudoModal({
               <Fragment>
                 <superuserForm.AppField name="superuserAccessCategory">
                   {field => (
-                    <field.Radio.Group
+                    <field.RadioGroup
                       value={field.state.value}
                       onChange={field.handleChange}
                     >
-                      <field.Layout.Stack
-                        label={t('Categories of Superuser Access')}
-                        required
-                      >
-                        <Override
-                          name="component:superuser-access-category"
-                          RadioItem={field.Radio.Item}
-                        />
-                      </field.Layout.Stack>
-                    </field.Radio.Group>
+                      {({Item}) => (
+                        <field.Layout.Stack
+                          label={t('Categories of Superuser Access')}
+                          required
+                        >
+                          <Override
+                            name="component:superuser-access-category"
+                            RadioItem={Item}
+                          />
+                        </field.Layout.Stack>
+                      )}
+                    </field.RadioGroup>
                   )}
                 </superuserForm.AppField>
                 <superuserForm.AppField name="superuserReason">

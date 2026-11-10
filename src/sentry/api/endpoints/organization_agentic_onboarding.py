@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, get_args
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -27,6 +27,7 @@ from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
     STAGE_INDEX,
+    ConnectionMethod,
     InvalidProgressUpdate,
     OnboardingRun,
     OnboardingRunExpired,
@@ -68,7 +69,7 @@ STAGE_INPUT_ALIASES: dict[str, Stage] = {"connect_agent": Stage.CONNECT_MCP}
 
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
-    onboarding_code: str
+    onboarding_code: str | None
     origin: RunOrigin | None
 
 
@@ -97,8 +98,12 @@ class AgenticOnboardingPermission(OrganizationPermission):
 
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
-    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$", required=False, default=None)
     origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
+
+
+class ConnectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    method = serializers.ChoiceField(choices=get_args(ConnectionMethod))
 
 
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -110,6 +115,7 @@ class VerificationErrorExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
 
 
 EXTRA_SERIALIZER_BY_STAGE = {
+    Stage.CONNECT_MCP: ConnectExtraSerializer,
     Stage.CREATE_PROJECT: CreateProjectExtraSerializer,
     Stage.RECEIVE_VERIFICATION_ERROR: VerificationErrorExtraSerializer,
 }

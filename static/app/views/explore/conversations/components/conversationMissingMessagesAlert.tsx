@@ -26,7 +26,7 @@ Use these skills as the source of truth:
 ## Skill References
 
 - Source repository: https://github.com/getsentry/sentry-for-ai
-- Agent-monitoring skill: https://skills.sentry.dev/sentry-setup-ai-monitoring/SKILL.md
+- Agent tracing skill: https://skills.sentry.dev/agent-tracing
 `;
 
 function CopyCaptureMessagesPromptButton() {
