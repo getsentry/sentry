@@ -7,7 +7,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
-from sentry.seer.credits import SEER_OPERATIONS, SeerOperation
+from sentry.seer.credits import SEER_OPERATION_ESTIMATES, SeerOperation
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -27,14 +27,16 @@ class OrganizationSeerCreditCheckTest(APITestCase):
     def test_get_returns_has_enough_credits_when_billing_has_credits(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        response = self.get_success_response(self.organization.slug, operation="autofix_root_cause")
+        response = self.get_success_response(
+            self.organization.slug, feature="autofix", operation="autofix_root_cause"
+        )
 
         assert response.data == {"hasEnoughCredits": True}
         mock_check_seer_credits.assert_called_once_with(
             CheckSeerCreditsRequest(
                 organization_id=self.organization.id,
                 feature_id="autofix",
-                predicted_credit_usage=SEER_OPERATIONS[SeerOperation.AUTOFIX_ROOT_CAUSE].estimate(),
+                predicted_credit_usage=SEER_OPERATION_ESTIMATES[SeerOperation.AUTOFIX_ROOT_CAUSE](),
                 take_lease=False,
             )
         )
@@ -47,13 +49,17 @@ class OrganizationSeerCreditCheckTest(APITestCase):
     def test_get_returns_not_enough_credits_when_billing_has_no_credits(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        response = self.get_success_response(self.organization.slug, operation="agent_chat_message")
+        response = self.get_success_response(
+            self.organization.slug, feature="explorer", operation="agent_chat_message"
+        )
 
         assert response.data == {"hasEnoughCredits": False}
         assert mock_check_seer_credits.call_args.args[0].feature_id == "explorer"
 
     def test_get_returns_has_enough_credits_when_credit_checks_disabled(self) -> None:
-        response = self.get_success_response(self.organization.slug, operation="autofix_solution")
+        response = self.get_success_response(
+            self.organization.slug, feature="autofix", operation="autofix_solution"
+        )
 
         assert response.data == {"hasEnoughCredits": True}
 
@@ -65,13 +71,30 @@ class OrganizationSeerCreditCheckTest(APITestCase):
     def test_get_returns_has_enough_credits_when_not_token_billed(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        response = self.get_success_response(self.organization.slug, operation="autofix_solution")
+        response = self.get_success_response(
+            self.organization.slug, feature="autofix", operation="autofix_solution"
+        )
 
         assert response.data == {"hasEnoughCredits": True}
         mock_check_seer_credits.assert_not_called()
 
     def test_get_returns_400_when_operation_missing(self) -> None:
-        self.get_error_response(self.organization.slug, status_code=400)
+        self.get_error_response(self.organization.slug, feature="autofix", status_code=400)
 
     def test_get_returns_400_when_operation_invalid(self) -> None:
-        self.get_error_response(self.organization.slug, operation="nightshift", status_code=400)
+        self.get_error_response(
+            self.organization.slug, feature="autofix", operation="nightshift", status_code=400
+        )
+
+    def test_get_returns_400_when_feature_missing(self) -> None:
+        self.get_error_response(
+            self.organization.slug, operation="autofix_root_cause", status_code=400
+        )
+
+    def test_get_returns_400_when_feature_invalid(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            feature="nightshift",
+            operation="autofix_root_cause",
+            status_code=400,
+        )

@@ -10,11 +10,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.credits import SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class SeerCreditCheckSerializer(serializers.Serializer[dict[str, str]]):
+    feature = serializers.ChoiceField(choices=[feature.value for feature in SeerFeature])
     operation = serializers.ChoiceField(choices=[operation.value for operation in SeerOperation])
 
 
@@ -45,5 +46,8 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
+        feature = SeerFeature(serializer.validated_data["feature"])
         operation = SeerOperation(serializer.validated_data["operation"])
-        return Response({"hasEnoughCredits": can_run_seer_operation(organization, operation)})
+        return Response(
+            {"hasEnoughCredits": can_run_seer_operation(organization, feature, operation)}
+        )
