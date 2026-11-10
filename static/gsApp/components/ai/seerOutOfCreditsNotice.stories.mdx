@@ -27,8 +27,8 @@ underneath it. The copy and buttons follow the Billing Gates designs in Figma.
 ## Agent chat
 
 Shown above the chat composer when the org can't afford another message.
-Billing members turn on auto-reload, which opens the Seer credits modal in
-place. The chat uses full-size buttons; Autofix uses small ones.
+Billing members turn on auto-reload in place, in the billing page's
+auto-reload modal. The chat uses full-size buttons; Autofix uses small ones.
 
 <Storybook.Demo>
   <SeerOutOfCreditsNotice
@@ -215,8 +215,8 @@ says who to ask.
 ## For the signed-in viewer
 
 `SeerOutOfCreditsCta` itself, with the escalation and copy it picks for you.
-"Configure auto reload" and "Request credits" do the real thing: the modal reads
-and saves your org's Seer wallet, and the request emails your billing members.
+The auto-reload button and "Contact Admin" do the real thing: the modal reads and
+saves your org's Seer wallet, and "Contact Admin" emails your billing members.
 
 <Storybook.Demo>
   <SeerOutOfCreditsCta reason="agent-chat" />

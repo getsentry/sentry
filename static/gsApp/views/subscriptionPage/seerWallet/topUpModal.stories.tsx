@@ -15,17 +15,17 @@ export default Storybook.story('Seer top-up modal', story => {
     return (
       <Stack gap="md" align="start">
         <Text as="p">
-          What a billing member sees after clicking "Configure auto reload" in the
-          out-of-credits CTA: the balance, then the auto top-up settings from the billing
-          page. This one opens with sample wallet data instead of loading yours; Save
-          still writes your organization's settings.
+          What a billing member sees after clicking "Turn on auto-reload" in the
+          out-of-credits CTA: the auto-reload modal from the billing page. This one opens
+          with sample wallet data instead of loading yours; turning it on still saves your
+          organization's settings.
         </Text>
         <Button
           onClick={() =>
             openSeerAutoTopUpModal({
               organization,
-              balance: 0,
               creditPriceCents: 1,
+              purchasedExpiresAt: null,
               autoTopUp: {
                 enabled: false,
                 thresholdCredits: 500,
@@ -49,7 +49,7 @@ export default Storybook.story('Seer top-up modal', story => {
         <Text as="p">
           The modal the CTA opens, loading your organization's Seer wallet. Organizations
           without token-billed Seer get the load error and its retry. Saving changes the
-          real auto top-up settings.
+          real auto-reload settings.
         </Text>
         <Button onClick={() => openSeerTopUpModal({organization})}>
           Open for this organization
