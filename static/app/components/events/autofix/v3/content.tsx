@@ -8,11 +8,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   AutofixOutOfCreditsAlert,
   getAutofixContinueAction,
 } from 'sentry/components/events/autofix/autofixCredits';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getOrderedAutofixSections,
   isCodeChangesSection,
