@@ -95,7 +95,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
     def test_rejects_authorization_for_deleting_app(self) -> None:
         self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
-        assert self.sentry_app.application.is_active
+        assert self.application.is_active
 
         response = self.get_error_response(status_code=401)
 
@@ -105,7 +105,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
     def test_rejects_authorization_for_deleting_installation(self) -> None:
         self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
-        assert self.sentry_app.application.is_active
+        assert self.application.is_active
 
         response = self.get_error_response(status_code=401)
 
@@ -141,9 +141,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
     def test_rejects_client_secret_jwt_refresh_for_deleting_app(self) -> None:
         initial_response = self.get_success_response()
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
         self.sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
 
         response = self.get_error_response(
@@ -157,9 +155,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
     def test_rejects_client_secret_jwt_refresh_for_deleting_installation(self) -> None:
         initial_response = self.get_success_response()
-        jwt_token = self._create_jwt(
-            self.sentry_app.application.client_id, self.sentry_app.application.client_secret
-        )
+        jwt_token = self._create_jwt(self.application.client_id, self.client_secret)
         self.install.update(status=SentryAppInstallationStatus.PENDING_DELETION)
 
         response = self.get_error_response(
