@@ -1,4 +1,5 @@
-import type {ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -14,13 +15,34 @@ import type {User} from 'sentry/types/user';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
 
 import {CodeChangesCard} from './codeChangesCard';
+import {PullRequestsCard} from './pullRequestsCard';
 
 // The Feedback section is gated behind this feature flag; the wrapper below
 // injects it so every example renders it.
 const PR_ITERATION_FEATURE = 'autofix-pr-iteration-manual';
+const PIN_TO_PR_HEAD_FEATURE = 'autofix-pr-iteration-pin-to-pr-head';
+
+const PULL_REQUEST_FILES = {
+  files: [
+    {
+      path: 'src/handlers/user.py',
+      patch:
+        '@@ -10,2 +10,2 @@\n def handler(request):\n-    return user.name\n+    return user.name if user else None',
+      status: 'modified',
+      previousPath: null,
+    },
+    {
+      path: 'tests/test_user.py',
+      patch:
+        '@@ -0,0 +1,2 @@\n+def test_handler_without_user():\n+    assert handler(None) is None',
+      status: 'added',
+      previousPath: null,
+    },
+  ],
+};
 
 const noop = () => {};
 
@@ -385,6 +407,73 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     );
   });
 
+  story('PR iterations pinned to the PR head', () => {
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          The card shows all changes in the PR, including a test file missing from the
+          iteration's own patches. While pushing, it hides the diff and keeps the PR
+          button and feedback in progress.
+        </Text>
+        <StatusExample label="Pushed: the full PR diff is available.">
+          <PinnedToPrHeadExample pullRequest={pinnedPullRequest()} />
+        </StatusExample>
+        <StatusExample label="Pushing: no diff, feedback in progress, and an Updating PR button.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest({pr_creation_status: 'creating'})}
+          />
+        </StatusExample>
+        <StatusExample label="Push failed: a warning and the PR's diff without the latest edits.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest({
+              pr_creation_status: 'error',
+              pr_creation_error: 'GitHub rejected the push: branch is protected.',
+            })}
+          />
+        </StatusExample>
+      </Stack>
+    );
+  });
+
+  story('Pinned PR iteration without code changes', () => {
+    const explanation =
+      'The failed CI check also fails on main. It is unrelated to this PR, so I left the code unchanged.';
+    return (
+      <Stack gap="xl">
+        <Text size="sm" variant="muted">
+          This iteration made no new edits. Seer's explanation appears above the full PR
+          diff, which still includes changes from earlier work.
+        </Text>
+        <StatusExample label="The explanation and the full PR diff are both visible.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest()}
+            noChangesExplanation={explanation}
+          />
+        </StatusExample>
+        <StatusExample label="If the diff cannot load, the explanation stays above the GitHub fallback.">
+          <PinnedToPrHeadExample
+            pullRequest={pinnedPullRequest()}
+            noChangesExplanation={explanation}
+            diffUnavailable
+          />
+        </StatusExample>
+      </Stack>
+    );
+  });
+
+  story('PR diff unavailable', () => {
+    return (
+      <Stack gap="md">
+        <Text size="sm" variant="muted">
+          The first request for the PR diff failed. Instead of showing the iteration's
+          incomplete patches, the card links to the full diff on GitHub. Copying is
+          disabled because the diff has not loaded.
+        </Text>
+        <PinnedToPrHeadExample pullRequest={pinnedPullRequest()} diffUnavailable />
+      </Stack>
+    );
+  });
+
   story('PR iteration without a code change', () => {
     return (
       <Stack gap="xl">
@@ -587,6 +676,98 @@ function FeatureWrapper({children}: {children: ReactNode}) {
   return (
     <OrganizationContext.Provider value={{...organization, features}}>
       {children}
+    </OrganizationContext.Provider>
+  );
+}
+
+function pinnedPullRequest(overrides: Partial<RepoPRState> = {}): RepoPRState {
+  return {
+    repo_name: 'org/repo',
+    branch_name: 'seer/fix-null-user',
+    commit_sha: 'abc1234',
+    pr_number: 42,
+    pr_id: 42,
+    pr_url: 'https://github.com/org/repo/pull/42',
+    title: 'Guard against a null user',
+    pr_creation_status: 'completed',
+    pr_creation_error: null,
+    ...overrides,
+  };
+}
+
+/** Story requests stay local, including the deliberately failed diff request. */
+class PullRequestFilesQueryClient extends QueryClient {
+  constructor(private readonly diffUnavailable: boolean) {
+    super({defaultOptions: {queries: {retry: false}}});
+  }
+
+  override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
+    const defaulted = super.defaultQueryOptions(options);
+    const queryFn = () =>
+      this.diffUnavailable
+        ? Promise.reject(new Error('Unable to fetch the PR diff'))
+        : Promise.resolve({json: PULL_REQUEST_FILES, headers: {}});
+    return {...defaulted, queryFn: queryFn as never};
+  };
+}
+
+function PinnedToPrHeadExample({
+  pullRequest,
+  diffUnavailable = false,
+  noChangesExplanation,
+}: {
+  pullRequest: RepoPRState;
+  diffUnavailable?: boolean;
+  noChangesExplanation?: string;
+}) {
+  const organization = useOrganization();
+  const user = useUser();
+  const [queryClient] = useState(() => new PullRequestFilesQueryClient(diffUnavailable));
+  const autofix = makeAutofix([], {
+    repo_pr_states: {[pullRequest.repo_name]: pullRequest},
+  });
+
+  return (
+    <OrganizationContext.Provider
+      value={{
+        ...organization,
+        features: [
+          ...organization.features,
+          PR_ITERATION_FEATURE,
+          PIN_TO_PR_HEAD_FEATURE,
+        ],
+      }}
+    >
+      <QueryClientProvider client={queryClient}>
+        <Stack gap="md">
+          <CodeChangesCard
+            groupId="1"
+            autofix={autofix}
+            section={makeSection(
+              'completed',
+              [
+                makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+                ...(noChangesExplanation
+                  ? [makeAssistantBlock('no-change-reply', noChangesExplanation)]
+                  : []),
+              ],
+              noChangesExplanation ? [] : undefined
+            )}
+          />
+          <PullRequestsCard
+            autofix={autofix}
+            section={{
+              step: 'pull_request',
+              status:
+                pullRequest.pr_creation_status === 'creating'
+                  ? 'processing'
+                  : 'completed',
+              blocks: [],
+              artifacts: [[pullRequest]],
+            }}
+          />
+        </Stack>
+      </QueryClientProvider>
     </OrganizationContext.Provider>
   );
 }

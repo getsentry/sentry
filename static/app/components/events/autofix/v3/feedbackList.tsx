@@ -29,8 +29,10 @@ import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ArtifactDetails} from './artifactDetails';
+import {isPushingToPullRequest} from './usePullRequestPatches';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
@@ -191,6 +193,12 @@ export function usePrIterationFeedback(
   autofix: ReturnType<typeof useExplorerAutofix>,
   enabled: boolean
 ): {feedback: IterationFeedback[]; latestIterationIndex: number | null} {
+  const organization = useOrganization();
+  // With iterations pinned to the PR's head, the feedback stays in progress until the
+  // push lands, matching the Code Changes card and the Pull Requests button.
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
+  );
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
     [section.blocks]
@@ -210,7 +218,11 @@ export function usePrIterationFeedback(
       section.status === 'processing' ||
       autofix.runState?.status === 'processing' ||
       autofix.runState?.status === 'awaiting_user_input' ||
-      repoStates.some(repo => repo.pr_creation_status === 'creating');
+      repoStates.some(repo =>
+        hasPinToPrHeadFeature
+          ? isPushingToPullRequest(repo, autofix.runState)
+          : repo.pr_creation_status === 'creating'
+      );
 
     const currentStep = section.blocks[currentStepStart];
     const currentIterationIndex =
@@ -256,7 +268,14 @@ export function usePrIterationFeedback(
         errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
-  }, [section.blocks, section.status, autofix.runState, currentStepStart, enabled]);
+  }, [
+    section.blocks,
+    section.status,
+    autofix.runState,
+    currentStepStart,
+    enabled,
+    hasPinToPrHeadFeature,
+  ]);
 
   const latestIterationIndex = useMemo(
     () =>

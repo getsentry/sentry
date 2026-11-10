@@ -18,8 +18,10 @@ import {
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ArtifactCard} from './artifactCard';
+import {isPushingToPullRequest} from './usePullRequestPatches';
 import {artifactToMarkdown} from './utils';
 
 interface PullRequestsCardProps {
@@ -28,7 +30,13 @@ interface PullRequestsCardProps {
 }
 
 export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
+  const organization = useOrganization();
   const runId = getAutofixRunId(autofix.runState);
+  // When iterations push to the PR's head, show "Updating" as soon as Seer is done editing,
+  // the same moment the Code Changes card and the feedback show the push.
+  const hasPinToPrHeadFeature = organization.features.includes(
+    'autofix-pr-iteration-pin-to-pr-head'
+  );
   const {createPR} = autofix;
   const artifact = useMemo(() => {
     const sectionArtifact = getAutofixArtifactFromSection(section);
@@ -55,7 +63,10 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
       }
     >
       {artifact?.map(pullRequest => {
-        if (pullRequest.pr_creation_status === 'creating') {
+        const isPushing = hasPinToPrHeadFeature
+          ? isPushingToPullRequest(pullRequest, autofix.runState)
+          : pullRequest.pr_creation_status === 'creating';
+        if (isPushing) {
           const isUpdating = defined(pullRequest.pr_number);
           return (
             <Flex key={pullRequest.repo_name} gap="xs" align="center">

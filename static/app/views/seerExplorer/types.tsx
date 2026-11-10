@@ -168,7 +168,9 @@ export interface ToolResult {
     agentWriteApproval?: AgentWriteApproval;
     artifacts?: Artifact[];
     calls?: CallRecord[];
+    file_patches?: ExplorerFilePatch[] | null;
     links?: ToolLink[];
+    pr_commit_shas?: Record<string, string> | null;
     todos?: TodoItem[];
   } | null;
 }
@@ -201,6 +203,8 @@ export interface Block {
   live_calls?: CallRecord[] | null;
   loading?: boolean;
   merged_file_patches?: ExplorerFilePatch[] | null;
+  /** Repository name to the commit Seer pushed with this block. */
+  pr_commit_shas?: Record<string, string> | null;
   progress?: ProgressEvent[] | null;
   todos?: TodoItem[] | null;
   tool_links?: Array<ToolLink | null> | null;
