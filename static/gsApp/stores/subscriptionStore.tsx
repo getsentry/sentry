@@ -1,7 +1,6 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand/vanilla';
 
 import {Client} from 'sentry/api';
-import type {StrictStoreDefinition} from 'sentry/stores/types';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -12,109 +11,92 @@ type LoadOptions = {
 };
 
 /**
- * Mapping of organizaton slug to subscription details
+ * Mapping of organization slug to subscription details
  */
-type Subscriptions = Record<string, Subscription>;
+type Subscriptions = Readonly<Record<string, Subscription>>;
 
-interface Internal {
-  api: Client;
-  callbacks: Record<string, GetCallback[]>;
-  loadingData: Record<string, boolean>;
-}
+const store = createStore<Subscriptions>()(() => ({}));
 
-interface SubscriptionStoreDefintion
-  extends StrictStoreDefinition<Subscriptions>, Internal {
-  clearStartedTrial: (orgSlug: string) => void;
-  get: (orgSlug: string, callback: GetCallback) => void;
-  loadData: (
-    orgSlug: string,
-    callback?: null | GetCallback,
-    options?: LoadOptions
-  ) => Promise<void>;
-  set: (orgSlug: string, data: Partial<Subscription>) => void;
-}
+let api = new Client();
+let loadingData: Record<string, boolean> = {};
+let callbacks: Record<string, GetCallback[]> = {};
 
-const subscriptionStoreConfig: SubscriptionStoreDefintion = {
-  api: new Client(),
-  state: {},
-  loadingData: {},
-  callbacks: {},
+export const SubscriptionStore = {
+  // State is only written through the methods below.
+  getState: store.getState,
+  getInitialState: store.getInitialState,
+  subscribe: store.subscribe,
 
-  init() {
-    this.api = new Client();
-    this.state = {};
-    this.loadingData = {};
-    this.callbacks = {};
+  /**
+   * Empties the store. Only used to reset state between tests.
+   */
+  init(): void {
+    api = new Client();
+    loadingData = {};
+    callbacks = {};
+    store.setState({}, true);
   },
 
-  set(orgSlug: string, data: Partial<Subscription>) {
+  set(orgSlug: string, data: Partial<Subscription>): void {
     const subscription = {
-      ...this.state[orgSlug]!,
+      ...store.getState()[orgSlug]!,
       ...data,
       setAt: Date.now(), // Refetch usage data if Subscription is updated
     };
 
-    this.state = {...this.state, [orgSlug]: subscription};
-    this.trigger(subscription);
+    store.setState({[orgSlug]: subscription});
 
-    if (this.callbacks[orgSlug]) {
-      this.callbacks[orgSlug].forEach(cb => cb(subscription));
-      delete this.callbacks[orgSlug];
+    if (callbacks[orgSlug]) {
+      callbacks[orgSlug].forEach(cb => cb(subscription));
+      delete callbacks[orgSlug];
     }
   },
 
-  get(orgSlug: string, callback: GetCallback) {
-    if (this.state[orgSlug]) {
-      callback(this.state[orgSlug]);
+  get(orgSlug: string, callback: GetCallback): void {
+    const subscription = store.getState()[orgSlug];
+    if (subscription) {
+      callback(subscription);
       return;
     }
 
-    this.loadData(orgSlug, callback);
+    SubscriptionStore.loadData(orgSlug, callback);
   },
 
-  getState() {
-    return this.state;
-  },
-
-  clearStartedTrial(orgSlug: string) {
-    if (!this.state[orgSlug]) {
+  clearStartedTrial(orgSlug: string): void {
+    const current = store.getState()[orgSlug];
+    if (!current) {
       return;
     }
 
-    // Do not use this.set() as there is no new data and we do not need to
+    // Do not use set() as there is no new data and we do not need to
     // update subscription.setAt
     // Remove isTrialStarted from subscription
-    const {isTrialStarted: _, ...subscription} = this.state[orgSlug];
-    this.state = {...this.state, [orgSlug]: subscription};
-    this.trigger(this.state[orgSlug]);
+    const {isTrialStarted: _, ...subscription} = current;
+    store.setState({[orgSlug]: subscription});
   },
 
   async loadData(
     orgSlug: string,
     callback?: null | GetCallback,
-    {markStartedTrial} = {}
-  ) {
-    if (this.callbacks[orgSlug] === undefined) {
-      this.callbacks[orgSlug] = [];
-    }
+    {markStartedTrial}: LoadOptions = {}
+  ): Promise<void> {
+    callbacks[orgSlug] ??= [];
 
     if (typeof callback === 'function') {
-      this.callbacks[orgSlug].push(callback);
+      callbacks[orgSlug].push(callback);
     }
 
-    if (this.loadingData[orgSlug]) {
+    if (loadingData[orgSlug]) {
       return;
     }
-    this.loadingData[orgSlug] = true;
+    loadingData[orgSlug] = true;
 
-    const data = await this.api.requestPromise(`/customers/${orgSlug}/`);
+    const data: Subscription = await api.requestPromise(`/customers/${orgSlug}/`);
     if (markStartedTrial) {
       data.isTrialStarted = true;
     }
 
-    this.set(orgSlug, data);
-    delete this.loadingData[orgSlug];
+    SubscriptionStore.set(orgSlug, data);
+    delete loadingData[orgSlug];
   },
 };
-
-export const SubscriptionStore = createStore(subscriptionStoreConfig);

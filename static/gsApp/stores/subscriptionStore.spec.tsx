@@ -54,6 +54,16 @@ describe('SubscriptionStore', () => {
     ).toBeUndefined();
   });
 
+  it('notifies subscribers when a subscription is set', () => {
+    const listener = jest.fn();
+    const unsubscribe = SubscriptionStore.subscribe(listener);
+
+    SubscriptionStore.set(organization.slug, subscription);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
   it('should return stable reference from getState', () => {
     SubscriptionStore.set(organization.slug, subscription);
     const state = SubscriptionStore.getState();
