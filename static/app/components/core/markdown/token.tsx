@@ -278,10 +278,6 @@ export function Token({
     }
 
     case 'annotation': {
-      // The marks of an annotation that was cut, see `annotationExtension`.
-      if (!token.text) {
-        return null;
-      }
       const AnnotationComp = components.Annotation ?? DefaultAnnotation;
       return (
         <AnnotationComp Default={DefaultAnnotation} data={token.data}>
