@@ -370,7 +370,7 @@ export function ChartContent({
           <ChartTable data={data} />
         </Stack>
       ) : (
-        <Fragment>
+        <Stack gap="sm" width="100%">
           {/*
             Inline-size containment: without it a wide legend sets this box's
             min-content width, which no ancestor can shrink below, and the chart
@@ -393,7 +393,7 @@ export function ChartContent({
               )}
             </Text>
           ) : null}
-        </Fragment>
+        </Stack>
       )}
     </Stack>
   );
