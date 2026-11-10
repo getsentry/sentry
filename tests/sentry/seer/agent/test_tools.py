@@ -3353,40 +3353,115 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert isinstance(result, RepositoryDefinitionResponse)
         assert result.provider == "integrations:github_enterprise"
 
-    def test_get_repository_definition_multiple_providers(self) -> None:
-        """Test that when multiple repos with different supported providers exist, first one is returned"""
-        # Create two repos with same name but different providers
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github",
-            external_id="12345678",
-            integration_id=123,
-            status=ObjectStatus.ACTIVE,
-        )
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github_enterprise",
-            external_id="87654321",
-            integration_id=456,
-            status=ObjectStatus.ACTIVE,
+    def _create_repo(self, **kwargs: Any) -> Repository:
+        defaults: dict[str, Any] = {
+            "organization_id": self.organization.id,
+            "name": "getsentry/seer",
+            "provider": "integrations:github",
+            "external_id": "12345678",
+            "integration_id": 123,
+            "status": ObjectStatus.ACTIVE,
+        }
+        return Repository.objects.create(**{**defaults, **kwargs})
+
+    def test_get_repository_definition_multiple_providers_is_ambiguous(self) -> None:
+        """Same name on two supported providers: refuse rather than guess."""
+        self._create_repo(provider="integrations:github", external_id="12345678")
+        self._create_repo(provider="integrations:github_enterprise", external_id="87654321")
+
+        assert self._lookup(self.organization, "getsentry/seer") == RepositoryDefinitionFailure(
+            failure_reason="repo_ambiguous"
         )
 
-        # Should return one of them without raising MultipleObjectsReturned
+    def test_get_repository_definition_same_name_same_provider_is_ambiguous(self) -> None:
+        """A re-installed integration leaves two active rows with one name and provider."""
+        self._create_repo(external_id="12345678", integration_id=123)
+        self._create_repo(external_id="87654321", integration_id=456)
+
+        assert self._lookup(self.organization, "getsentry/seer") == RepositoryDefinitionFailure(
+            failure_reason="repo_ambiguous"
+        )
+
+    def test_get_repository_definition_github_and_gitlab_mirror_is_ambiguous(self) -> None:
+        """A GitHub repo and its GitLab mirror share a URL path."""
+        self._create_repo(
+            name="acme/app", url="https://github.com/acme/app", provider="integrations:github"
+        )
+        self._create_repo(
+            name="Acme / App",
+            url="https://gitlab.com/acme/app",
+            provider="integrations:gitlab",
+            external_id="1",
+            config={"path": "acme/app"},
+        )
+
+        assert self._lookup(self.organization, "acme/app") == RepositoryDefinitionFailure(
+            failure_reason="repo_ambiguous"
+        )
+
+    def test_get_repository_definition_ambiguous_is_none_unless_asked(self) -> None:
+        """Callers that don't ask for a reason get None, as for not-found."""
+        self._create_repo(external_id="12345678")
+        self._create_repo(external_id="87654321")
+
         result = get_repository_definition(
             organization_id=self.organization.id,
             repo_full_name="getsentry/seer",
         )
 
+        assert result is None
+
+    def test_get_repository_definition_ignores_inactive_duplicate(self) -> None:
+        """An inactive row with the same name doesn't make the lookup ambiguous."""
+        active = self._create_repo(external_id="12345678")
+        self._create_repo(external_id="87654321", status=ObjectStatus.DISABLED)
+
+        result = self._lookup(self.organization, "getsentry/seer")
+
         assert isinstance(result, RepositoryDefinitionResponse)
-        # Should return the first matching repo (in this case, GitHub)
-        assert result.provider in [
-            "integrations:github",
-            "integrations:github_enterprise",
+        assert result.repository_id == active.id
+
+    def test_get_repository_definition_ignores_other_org_duplicate(self) -> None:
+        """A same-named repo in another org doesn't make the lookup ambiguous."""
+        self._create_repo(organization_id=self.create_organization().id, external_id="87654321")
+        mine = self._create_repo(external_id="12345678")
+
+        result = self._lookup(self.organization, "getsentry/seer")
+
+        assert isinstance(result, RepositoryDefinitionResponse)
+        assert result.repository_id == mine.id
+
+    def test_get_repository_definition_ambiguous_external_id_skips_name_fallback(self) -> None:
+        """An ambiguous external_id stops the lookup; it doesn't fall back to the name."""
+        self._create_repo(name="getsentry/a", provider="integrations:github")
+        self._create_repo(name="getsentry/b", provider="integrations:github_enterprise")
+
+        result = get_repository_definition(
+            organization_id=self.organization.id,
+            repo_full_name="getsentry/a",
+            external_id="12345678",
+            report_failure_reason=True,
+        )
+
+        assert result == RepositoryDefinitionFailure(failure_reason="repo_ambiguous")
+
+    @patch("sentry.seer.agent.tools.metrics.incr")
+    def test_get_repository_definition_counts_each_resolution(self, mock_incr: MagicMock) -> None:
+        """Every lookup is counted by outcome, so the ambiguous share can be measured."""
+        self._create_repo(name="getsentry/one", external_id="1")
+        self._create_repo(name="getsentry/two", external_id="2")
+        self._create_repo(name="getsentry/two", external_id="3")
+
+        self._lookup(self.organization, "getsentry/one")
+        self._lookup(self.organization, "getsentry/two")
+        self._lookup(self.organization, "getsentry/missing")
+
+        resolution_calls = [
+            call.kwargs["tags"]["resolution"]
+            for call in mock_incr.call_args_list
+            if call.args == ("seer.rpc.get_repository_definition.resolution",)
         ]
-        assert result.owner == "getsentry"
-        assert result.name == "seer"
+        assert resolution_calls == ["resolved", "ambiguous", "not_found"]
 
     def test_get_repository_definition_filters_unsupported_with_supported(self) -> None:
         """Test that unsupported providers are ignored even when a supported one exists"""
