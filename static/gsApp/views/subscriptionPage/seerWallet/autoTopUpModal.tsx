@@ -20,6 +20,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
+  seerWalletBalanceOptions,
   type SeerWalletAutoTopUp,
 } from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
@@ -75,6 +76,10 @@ function AutoTopUpModal({
     onSuccess: data => {
       queryClient.invalidateQueries({
         queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
+      });
+      // Turning on asks the user to pay for a reload now, so refresh the balance as well.
+      queryClient.invalidateQueries({
+        queryKey: seerWalletBalanceOptions(organization).queryKey,
       });
       if (!data.enabled) {
         toast.success(t('Auto-reload turned off'));
