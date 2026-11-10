@@ -394,25 +394,33 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        type: 'css/auto',
+        // Inject a <style> tag, like style-loader did
+        parser: {exportType: 'style'},
+        // Resolve asset URLs against __webpack_public_path__ (set in setupStatics)
+        generator: {runtimePublicPath: true},
       },
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [
-          {
-            loader: rspack.CssExtractRspackPlugin.loader,
-            options: {
-              publicPath: 'auto',
-            },
-          },
-          'css-loader',
-          'less-loader',
-        ],
+        // Emitted as a separate stylesheet, see output.cssFilename
+        type: 'css/auto',
+        use: ['less-loader'],
       },
       {
         test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
+        oneOf: [
+          {
+            // sentry.css is emitted to entrypoints/, so its asset URLs must
+            // step up to reach assets/. The layer keeps these separate from
+            // the same images imported from JS, which need the runtime path.
+            issuer: /\.less$/,
+            layer: 'legacy-css-assets',
+            generator: {publicPath: '../'},
+          },
+          {},
+        ],
       },
     ],
   },
@@ -452,16 +460,6 @@ const appConfig: Configuration = {
      * This plugin tells rspack where to find those SVG files
      */
     new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
-
-    /**
-     * Extract CSS into separate files.
-     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
-     */
-    new rspack.CssExtractRspackPlugin({
-      // We want the sentry css file to be unversioned for frontend-only deploys
-      // We will cache using `Cache-Control` headers
-      filename: 'entrypoints/[name].css',
-    }),
 
     /**
      * Defines environment specific flags.
@@ -567,6 +565,11 @@ const appConfig: Configuration = {
     path: distPath,
     publicPath: '',
     filename: 'entrypoints/[name].js',
+    // Entrypoints keep stable names. The getsentry frontend deploy hashes them
+    // into entrypoints-hashed/ and Django resolves them via
+    // frontend-versions.json (see sentry.utils.assets). Self-hosted serves them
+    // as-is.
+    cssFilename: 'entrypoints/[name].css',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
