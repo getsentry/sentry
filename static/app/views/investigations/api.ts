@@ -126,7 +126,13 @@ function investigationCommentUrl(
 ) {
   return getApiUrl(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/$commentId/',
-    {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId, commentId}}
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        notebookId: investigationId,
+        commentId,
+      },
+    }
   );
 }
 
@@ -517,15 +523,12 @@ export function useRenameInvestigationMutation(
       }
 
       return fetchMutation<InvestigationDetail>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              notebookId: investigationId,
-            },
-          }
-        ),
+        url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/$notebookId/', {
+          path: {
+            organizationIdOrSlug: organizationSlug,
+            notebookId: investigationId,
+          },
+        }),
         method: 'PUT',
         data: {title, investigationVersion: current.version},
       });
@@ -714,7 +717,11 @@ function getActionRequestUrl(
   actionRequestId: string,
   command: ActionRequestCommand
 ) {
-  const path = {organizationIdOrSlug: organizationSlug, notebookId: investigationId, actionRequestId};
+  const path = {
+    organizationIdOrSlug: organizationSlug,
+    notebookId: investigationId,
+    actionRequestId,
+  };
   switch (command) {
     case 'apply':
       return getApiUrl(
@@ -985,15 +992,12 @@ export function useDeleteInvestigationMutation(
     organizationSlug,
     investigation =>
       fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              notebookId: investigation.id,
-            },
-          }
-        ),
+        url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/$notebookId/', {
+          path: {
+            organizationIdOrSlug: organizationSlug,
+            notebookId: investigation.id,
+          },
+        }),
         method: 'DELETE',
         data: {investigationVersion: investigation.version},
       }),
