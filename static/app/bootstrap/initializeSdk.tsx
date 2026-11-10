@@ -46,6 +46,119 @@ const NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|PATCH|DELETE) \S+$
 
 const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
 
+const SDK_CONFIG_HASH_EXCLUSIONS = new Set([
+  'server_name',
+  'release',
+  'timestamp',
+  'environment',
+  'dist',
+]);
+
+async function hashSdkConfig(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), byte =>
+    byte.toString(16).padStart(2, '0')
+  ).join('');
+}
+
+// Sort object keys recursively, preserving array order. Replace functions
+// and unsupported values with fingerprints before hashing the config.
+async function serializeSdkConfig(
+  value: unknown,
+  ancestors = new Set<object>()
+): Promise<unknown> {
+  if (typeof value === 'function') {
+    const source = Function.prototype.toString.call(value);
+    return `[Function:${await hashSdkConfig(source)}]`;
+  }
+
+  if (value === null || typeof value !== 'object') {
+    if (typeof value === 'bigint' || typeof value === 'symbol') {
+      return `[${typeof value}:${await hashSdkConfig(String(value))}]`;
+    }
+    return value;
+  }
+
+  if (value instanceof RegExp) {
+    return value.toString();
+  }
+
+  if (ancestors.has(value)) {
+    return '[Circular]';
+  }
+
+  if (!Array.isArray(value) && !isPlainObject(value)) {
+    const type = Object.prototype.toString.call(value).slice(8, -1);
+    return `[${type}:${await hashSdkConfig(String(value))}]`;
+  }
+
+  const nextAncestors = new Set(ancestors).add(value);
+  if (Array.isArray(value)) {
+    return Promise.all(
+      value.map(async item => (await serializeSdkConfig(item, nextAncestors)) ?? null)
+    );
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(value).sort()) {
+    const item = (value as Record<string, unknown>)[key];
+    if (item !== undefined) {
+      result[key] = await serializeSdkConfig(item, nextAncestors);
+    }
+  }
+  return result;
+}
+
+async function reportSdkConfig(client: Sentry.Client): Promise<void> {
+  // Integrations are reported separately; SDK metadata lives under `sdk`.
+  const options = Object.fromEntries(
+    Object.entries(client.getOptions()).filter(
+      ([key]) =>
+        key !== 'integrations' && key !== 'defaultIntegrations' && key !== '_metadata'
+    )
+  );
+  const configuredIntegrations = client.getOptions().integrations;
+  const integrations = Array.isArray(configuredIntegrations)
+    ? configuredIntegrations.map(integration => ({name: integration.name}))
+    : [];
+
+  const config = (await serializeSdkConfig({
+    version: 1,
+    sdk: client.getSdkMetadata()?.sdk,
+    options,
+    integrations,
+  })) as {
+    version: number;
+    sdk?: unknown;
+    options: Record<string, unknown>;
+    integrations: unknown[];
+  };
+
+  const hashInput = await serializeSdkConfig({
+    ...config,
+    options: Object.fromEntries(
+      Object.entries(config.options).filter(
+        ([key]) => !SDK_CONFIG_HASH_EXCLUSIONS.has(key)
+      )
+    ),
+  });
+  const configHash = await hashSdkConfig(JSON.stringify(hashInput));
+  const payload = {
+    ...config,
+    timestamp: Date.now() / 1000,
+    release: options.release,
+    environment: options.environment,
+    dist: options.dist,
+  };
+
+  Sentry.metrics.count('sdk.config', 1, {
+    attributes: {
+      'sentry.sdk_config.hash': configHash,
+      'sentry.sdk_config.payload': JSON.stringify(payload),
+    },
+  });
+}
+
 /**
  * Check if the message is from the console banner in `static/app/bootstrap/printConsoleBanner.ts`.
  * Used to filter it from both breadcrumbs and logs.
@@ -250,6 +363,11 @@ export function initializeSdk(config: Config) {
 
   if (sentryClient) {
     addUIElementTagToSegmentSpan(sentryClient);
+
+    setTimeout(() => {
+      // Experimental telemetry must not interrupt application initialization.
+      void reportSdkConfig(sentryClient).catch(() => {});
+    }, 5000);
   }
 }
 
