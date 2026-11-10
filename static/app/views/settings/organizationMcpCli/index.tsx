@@ -16,11 +16,14 @@ export default function OrganizationMcpCli() {
   const orgScopedMcpUrl = `https://mcp.sentry.dev/mcp/${organization.slug}`;
   const projectScopedMcpUrl = `${orgScopedMcpUrl}/your-project`;
   const cliMcpScope = `${organization.slug}/`;
-  const cliMcpConfig = JSON.stringify(
-    {mcpServers: {sentry: {command: 'sentry', args: ['mcp', cliMcpScope]}}},
-    null,
-    2
-  );
+  const cliMcpConfig = `{
+  "mcpServers": {
+    "sentry": {
+      "command": "sentry",
+      "args": ["mcp", ${JSON.stringify(cliMcpScope)}]
+    }
+  }
+}`;
 
   return (
     <Fragment>
