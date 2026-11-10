@@ -6,12 +6,14 @@ from pydantic import ValidationError
 
 from sentry.agent_handoff.codes import (
     HANDOFF_LIFETIME,
-    AgentHandoff,
+    GuidedNextStepsHandoff,
     HandoffFlow,
     HandoffIPMismatch,
     IssuedAgentHandoff,
+    OnboardingHandoffContext,
     _get_redis_client,
     _handoff_key,
+    _StoredAgentHandoff,
     consume_handoff,
     issue_handoff,
     revoke_handoff,
@@ -28,7 +30,7 @@ class AgentHandoffTest(TestCase):
         self, ip_address: str = "192.0.2.1", *, disable_ip_pinning: bool = False
     ) -> IssuedAgentHandoff:
         return issue_handoff(
-            flow=HandoffFlow.ONBOARDING,
+            flow=HandoffFlow.GUIDED_NEXT_STEPS,
             user_id=1,
             organization_id=2,
             application_id=3,
@@ -50,7 +52,6 @@ class AgentHandoffTest(TestCase):
         assert issued.code not in repr(issued)
         assert 0 < client.ttl(key) <= int(HANDOFF_LIFETIME.total_seconds())
         assert json.loads(raw) == {
-            "flow": "onboarding",
             "user_id": 1,
             "organization_id": 2,
             "application_id": 3,
@@ -60,8 +61,7 @@ class AgentHandoffTest(TestCase):
 
     def test_consume_is_single_use(self) -> None:
         issued = self.issue()
-        assert consume_handoff(issued.code, ip_address="192.0.2.1") == AgentHandoff(
-            flow=HandoffFlow.ONBOARDING,
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") == GuidedNextStepsHandoff(
             user_id=1,
             organization_id=2,
             application_id=3,
@@ -142,16 +142,43 @@ class AgentHandoffTest(TestCase):
 
 
 def test_handoff_defaults_to_guided_next_steps() -> None:
-    handoff = AgentHandoff.parse_raw(
-        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"]}'
-    )
+    handoff = _StoredAgentHandoff.parse_raw(
+        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"]}',
+    ).__root__
     assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
     assert handoff.ip_address is None
 
 
 def test_unknown_handoff_flow_is_rejected() -> None:
     with pytest.raises(ValidationError, match="flow"):
-        AgentHandoff.parse_raw(
+        _StoredAgentHandoff.parse_raw(
             '{"flow":"unsupported","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"]}'
+            '"application_id":3,"scope_list":["org:read"]}',
+        )
+
+
+def test_guided_next_steps_rejects_onboarding_context() -> None:
+    with pytest.raises(ValidationError, match="context"):
+        _StoredAgentHandoff.parse_raw(
+            '{"flow":"guided_next_steps","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"],'
+            '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
+        )
+
+
+def test_onboarding_flow_preserves_typed_context() -> None:
+    handoff = _StoredAgentHandoff.parse_raw(
+        '{"flow":"onboarding","user_id":1,"organization_id":2,'
+        '"application_id":3,"scope_list":["org:read"],'
+        '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
+    ).__root__
+    assert handoff.flow is HandoffFlow.ONBOARDING
+    assert handoff.context == OnboardingHandoffContext(run_id="a" * 32)
+
+
+def test_onboarding_flow_requires_run_context() -> None:
+    with pytest.raises(ValidationError, match="context"):
+        _StoredAgentHandoff.parse_raw(
+            '{"flow":"onboarding","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"]}',
         )
