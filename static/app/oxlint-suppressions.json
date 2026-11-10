@@ -208,16 +208,6 @@
       "count": 3
     }
   },
-  "components/core/modal/components.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 2
-    }
-  },
-  "components/core/modal/index.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    }
-  },
   "components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -303,11 +293,6 @@
   "components/events/eventAttachments.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "components/events/eventDrawer.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
     }
   },
   "components/events/eventMessage.tsx": {
@@ -2160,11 +2145,6 @@
       "count": 6
     }
   },
-  "utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "utils/replays/hooks/usePollReplayRecord.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
@@ -2185,11 +2165,6 @@
   },
   "utils/useBreakpoints.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "utils/useChartInterval.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2284,11 +2259,6 @@
       "count": 1
     }
   },
-  "views/autofixIssuesDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/automations/components/actionFilters/subfiltersList.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
@@ -2329,11 +2299,6 @@
   },
   "views/automations/components/editConnectedMonitors.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/automations/list.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -2711,11 +2676,6 @@
   },
   "views/detectors/components/uptime/uptimeHeadersField.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/detectors/list/common/detectorListHeader.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -3118,9 +3078,6 @@
   "views/explore/releases/drawer/releasesDrawerDetails.tsx": {
     "@sentry/prefer-nuqs": {
       "count": 1
-    },
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 2
     }
   },
   "views/explore/releases/drawer/releasesDrawerList.tsx": {
@@ -4424,20 +4381,12 @@
       "count": 1
     }
   },
-  "views/seerRunsDemo/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 2
     }
   },
   "views/seerWorkflows/overview/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 2
     },
@@ -4578,47 +4527,6 @@
       "count": 1
     }
   },
-  "views/settings/dynamicSampling/organizationSampleRateInput.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 7
-    }
-  },
-  "views/settings/dynamicSampling/organizationSampling.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "views/settings/dynamicSampling/projectsEditTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/dynamicSampling/projectsPreviewTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/dynamicSampling/projectsTable.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 6
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "views/settings/dynamicSampling/samplingBreakdown.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 6
-    }
-  },
-  "views/settings/dynamicSampling/samplingModeSwitchModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "views/settings/featureFlags/changeTracking/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4674,11 +4582,6 @@
       "count": 1
     }
   },
-  "views/settings/organizationIntegrations/configureIntegration.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/organizationIntegrations/detailedView/integrationLayout.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -4688,9 +4591,6 @@
     }
   },
   "views/settings/organizationIntegrations/integrationListDirectory.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4725,11 +4625,6 @@
       "count": 1
     }
   },
-  "views/settings/organizationMembers/organizationMembersList.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/organizationRelay/list/cardHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4760,23 +4655,8 @@
       "count": 2
     }
   },
-  "views/settings/project/preprod/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/settings/project/preprod/sizeRulesPanel.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/project/preprod/statusCheckRuleItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/project/projectAttributes.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4810,41 +4690,17 @@
       "count": 1
     }
   },
-  "views/settings/project/projectTeams.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/project/tempest/DevKitSettings.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/settings/project/tempest/EmptyState.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
-  "views/settings/project/tempest/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/settings/project/tempest/PlayStationSettings.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/projectDebugFiles/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4859,28 +4715,17 @@
       "count": 1
     }
   },
-  "views/settings/projectProguard/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/projectProguard/projectProguardRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/settings/projectSourceMaps/sourceMapsDetails.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
   },
   "views/settings/projectSourceMaps/sourceMapsList.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }

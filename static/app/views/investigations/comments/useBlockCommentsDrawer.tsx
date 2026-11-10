@@ -66,8 +66,7 @@ export function useBlockCommentsDrawer(investigationId: string) {
     if (
       !isDrawerOpen ||
       !(target instanceof Element) ||
-      target.closest('[data-overlay], [data-block-comments-trigger]') ||
-      document.getElementById('modal-portal')?.contains(target)
+      target.closest('[data-overlay], [data-block-comments-trigger]')
     ) {
       return;
     }

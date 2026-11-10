@@ -75,10 +75,6 @@ describe('GroupAutofix', () => {
       body: {integrations: []},
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${orgSlug}/${project.slug}/autofix-repos/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: `/projects/${orgSlug}/${project.slug}/seer/repos/`,
       body: [],
     });

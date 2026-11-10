@@ -8,6 +8,7 @@ import {z} from 'zod';
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {
   defaultFormValidators,
   FormSearch,
@@ -18,7 +19,6 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import type {RequestOptions} from 'sentry/api';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';

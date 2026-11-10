@@ -5,7 +5,8 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import * as modalActions from 'sentry/actionCreators/modal';
+import * as modalActions from '@sentry/scraps/modal';
+
 import type {
   IntegrationProvider,
   OrganizationIntegration,

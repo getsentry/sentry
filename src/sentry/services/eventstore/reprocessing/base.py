@@ -1,14 +1,19 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.utils.query import TaskBulkQueryState
 from sentry.utils.services import Service
 
 
 class ReprocessingInfo(TypedDict):
-    dateCreated: str
-    syncCount: int
-    totalEvents: int
+    dateCreated: Annotated[str, ApiDescription("When reprocessing started (ISO 8601)")]
+    syncCount: Annotated[
+        int, ApiDescription("Number of events in the issue when reprocessing started")
+    ]
+    totalEvents: Annotated[
+        int, ApiDescription("Number of events to reprocess, at most the requested maximum")
+    ]
 
 
 class ReprocessingStore(Service):

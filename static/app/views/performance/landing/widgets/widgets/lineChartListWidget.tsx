@@ -7,7 +7,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
+import {EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Count} from 'sentry/components/count';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -24,9 +24,9 @@ import {
 } from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
@@ -106,6 +106,7 @@ const integrationEmptyStateWidgets = [
 ];
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
+  const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
@@ -519,6 +520,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              api={api}
               includeAllArgs={false}
               yAxis={yAxis}
               limit={1}
@@ -883,8 +885,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     />
   );
 }
-
-const EventsRequest = withApi(_EventsRequest);
 
 const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;

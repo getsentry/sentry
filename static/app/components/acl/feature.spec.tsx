@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 
-import Feature from './feature';
+import {Feature} from './feature';
 
 describe('Feature', () => {
   const organization = OrganizationFixture({

@@ -8,10 +8,10 @@ import {
   ScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
 import {
   type DataExportPayload,

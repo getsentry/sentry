@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
@@ -18,8 +19,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
@@ -44,15 +45,13 @@ export default function MonitorDetails() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const params = useParams<{monitorSlug: string; projectId: string}>();
-  const location = useLocation();
+  const [environment] = useQueryState('environment', pageFilterParsers.environment);
 
   const queryKey = makeMonitorDetailsQueryKey(
     organization,
     params.projectId,
     params.monitorSlug,
-    {
-      environment: location.query.environment,
-    }
+    {environment}
   );
 
   const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {

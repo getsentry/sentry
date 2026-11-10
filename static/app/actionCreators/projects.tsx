@@ -12,35 +12,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type UpdateParams = {
-  orgId: string;
-  projectId: string;
-  data?: Record<string, any>;
-};
-
-export function update(api: Client, params: UpdateParams) {
-  const endpoint = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {
-      organizationIdOrSlug: params.orgId,
-      projectIdOrSlug: params.projectId,
-    },
-  });
-  return api
-    .requestPromise(endpoint, {
-      method: 'PUT',
-      data: params.data,
-    })
-    .then(
-      data => {
-        ProjectsStore.onUpdateSuccess(data);
-        return data;
-      },
-      (err: Error) => {
-        throw err;
-      }
-    );
-}
-
 export function transferProject(
   api: Client,
   orgId: string,
@@ -71,9 +42,15 @@ export function transferProject(
       },
       (err: RequestError) => {
         let message = '';
+        const detail = err.responseJSON?.detail;
         // Handle errors with known failures
-        if (err.status && err.status >= 400 && err.status < 500 && err.responseJSON) {
-          message = err.responseJSON.detail as string;
+        if (
+          err.status &&
+          err.status >= 400 &&
+          err.status < 500 &&
+          typeof detail === 'string'
+        ) {
+          message = detail;
         }
 
         if (message) {

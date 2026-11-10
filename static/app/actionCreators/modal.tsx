@@ -1,4 +1,9 @@
-import type {ModalTypes} from '@sentry/scraps/modal';
+import {
+  openModal,
+  closeModal,
+  type ModalOptions,
+  type ModalRenderProps,
+} from '@sentry/scraps/modal';
 import type {Theme} from '@sentry/scraps/theme';
 
 import type {
@@ -16,7 +21,6 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
-import {ModalStore, type ModalRenderer} from 'sentry/stores/modalStore';
 import type {
   CustomRepo,
   CustomRepoFormData,
@@ -30,23 +34,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
-export type ModalOptions = ModalTypes['options'];
-export type ModalRenderProps = ModalTypes['renderProps'];
 type ModalRenderPropKeys = keyof ModalRenderProps;
-
-/**
- * Show a modal
- */
-export function openModal(renderer: ModalRenderer, options?: ModalOptions) {
-  ModalStore.openModal(renderer, options ?? {});
-}
-
-/**
- * Close modal
- */
-export function closeModal() {
-  ModalStore.closeModal();
-}
 
 type EmailVerificationModalOptions = {
   actionMessage?: string;

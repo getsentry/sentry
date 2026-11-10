@@ -57,10 +57,6 @@ describe('IssueListOverview (actions)', () => {
       body: [groupStats],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
@@ -73,11 +69,6 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
       body: [{}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -98,7 +89,7 @@ describe('IssueListOverview (actions)', () => {
       body: [],
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {

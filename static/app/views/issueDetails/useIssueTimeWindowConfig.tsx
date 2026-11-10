@@ -7,7 +7,9 @@ import {usePageFilterDates as useCronsPageFilterDates} from 'sentry/components/c
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import type {Group} from 'sentry/types/group';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 import {useGroupDefaultStatsPeriod} from './useGroupDefaultStatsPeriod';
 
@@ -28,8 +30,11 @@ export function useIssueTimeWindowConfig({
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, group.project);
   const timezone = useTimezone();
 
-  const hasSetStatsPeriod =
-    location.query.statsPeriod || location.query.start || location.query.end;
+  const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+    pageFilterParsers,
+    location
+  );
+  const hasSetStatsPeriod = statsPeriod || start || end;
 
   let since: Date;
   let until: Date;

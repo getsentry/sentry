@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useQuery, keepPreviousData} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -102,7 +103,7 @@ function AccountNotificationsByProject({
 
 export function AccountNotificationFineTuning() {
   const {organizations} = useLegacyStore(OrganizationsStore);
-  const config = useLegacyStore(ConfigStore);
+  const customerDomain = useStore(ConfigStore, state => state.customerDomain);
 
   const [orgIdParam, setOrgId] = useQueryState('organizationId', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
@@ -114,7 +115,7 @@ export function AccountNotificationFineTuning() {
   // - default to first org
   const organizationId =
     orgIdParam ??
-    organizations.find(({slug}) => slug === config?.customerDomain?.subdomain)?.id ??
+    organizations.find(({slug}) => slug === customerDomain?.subdomain)?.id ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
 
   const {

@@ -9,15 +9,16 @@ import {
   makeFetchTransport,
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {TextArea} from '@sentry/scraps/textarea';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Data} from 'sentry/components/forms/types';
@@ -26,7 +27,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {defined} from 'sentry/utils/defined';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -207,7 +208,7 @@ export function FeedbackModal<T extends Data>({
 }: FeedbackModalProps<T> & ModalRenderProps) {
   const {organization} = useLegacyStore(OrganizationStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
-  const location = useLocation();
+  const [projectIds] = useQueryState('project', pageFilterParsers.project);
 
   const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -218,11 +219,11 @@ export function FeedbackModal<T extends Data>({
   );
 
   const project = useMemo(() => {
-    if (projectsLoaded && location.query.project) {
-      return projects.find(p => p.id === location.query.project);
+    if (projectsLoaded && projectIds.length === 1) {
+      return projects.find(p => p.id === projectIds[0]);
     }
     return;
-  }, [projectsLoaded, projects, location.query.project]);
+  }, [projectsLoaded, projects, projectIds]);
 
   const handleSubmit = useCallback(
     (submitEventData?: Event) => {

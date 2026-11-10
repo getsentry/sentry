@@ -11,9 +11,9 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 import type {InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 import {Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
 import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';

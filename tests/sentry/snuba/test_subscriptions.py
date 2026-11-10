@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba.dataset import Dataset
@@ -14,7 +15,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
     update_snuba_subscription,
 )
-from sentry.snuba.tasks import SubscriptionError
+from sentry.snuba.tasks import BROKEN_GRACE_PERIOD, create_subscription_in_snuba
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
 
@@ -189,8 +190,11 @@ class CreateSnubaSubscriptionTest(TestCase):
             snuba_query = create_snuba_query(
                 query_type, dataset, query, "count()", time_window, resolution, self.environment
             )
-            with pytest.raises(SubscriptionError):
-                create_snuba_subscription(self.project, subscription_type, snuba_query)
+            subscription = create_snuba_subscription(self.project, subscription_type, snuba_query)
+        subscription = QuerySubscription.objects.get(id=subscription.id)
+        # Left for subscription_checker to retry until the grace period passes.
+        assert subscription.status == QuerySubscription.Status.CREATING.value
+        assert subscription.subscription_id is None
 
 
 class UpdateSnubaQueryTest(TestCase):
@@ -355,8 +359,11 @@ class UpdateSnubaSubscriptionTest(TestCase):
             aggregate=aggregate,
         )
         assert subscription_id is not None
+        before_update = timezone.now()
         update_snuba_subscription(subscription, old_type, old_dataset, old_aggregate, old_query)
         assert subscription.status == QuerySubscription.Status.UPDATING.value
+        assert subscription.date_updated is not None
+        assert subscription.date_updated >= before_update
         assert subscription.subscription_id == subscription_id
         assert subscription.snuba_query.dataset == dataset.value
         assert subscription.snuba_query.query == query
@@ -478,3 +485,24 @@ class DeleteSnubaSubscriptionTest(TestCase):
             subscription_id = subscription.id
             delete_snuba_subscription(subscription)
             assert not QuerySubscription.objects.filter(id=subscription_id).exists()
+
+    def test_broken_with_task(self) -> None:
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                SnubaQuery.Type.ERROR,
+                Dataset.Events,
+                "issue:INVALID-1",
+                "count()",
+                timedelta(minutes=10),
+                timedelta(minutes=1),
+                None,
+            )
+            subscription = create_snuba_subscription(self.project, "something", snuba_query)
+            QuerySubscription.objects.filter(id=subscription.id).update(
+                date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2
+            )
+            create_subscription_in_snuba(subscription.id)
+            subscription = QuerySubscription.objects.get(id=subscription.id)
+            assert subscription.status == QuerySubscription.Status.BROKEN.value
+            delete_snuba_subscription(subscription)
+        assert not QuerySubscription.objects.filter(id=subscription.id).exists()

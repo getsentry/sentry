@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -23,14 +24,15 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 
 import {SentryApplicationRow} from './sentryApplicationRow';
 
-type Tab = 'public' | 'internal';
+const TABS = ['public', 'internal'] as const;
+
+type Tab = (typeof TABS)[number];
 
 const TAB_LABELS: Record<Tab, string> = {
   internal: t('Internal Integration'),
@@ -75,15 +77,16 @@ function IntegrationPanel({
 }
 
 function OrganizationDeveloperSettings() {
-  const location = useLocation();
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 
-  const value =
-    ['public', 'internal'].find(tab => tab === location?.query?.type) || 'internal';
+  const [initialTab] = useQueryState(
+    'type',
+    parseAsStringLiteral(TABS).withDefault('internal')
+  );
   const analyticsView = 'developer_settings';
 
-  const [tab, setTab] = useState<Tab>(value as Tab);
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [applicationsState, setApplicationsState] = useState<SentryApp[] | undefined>(
     undefined
   );

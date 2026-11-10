@@ -1,9 +1,9 @@
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
+import {openModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';

@@ -38,7 +38,12 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import ConfigUpdate, SeerWorkflow, WorkflowUpdateError
+from sentry.seer.workflows.workflow import (
+    ConfigUpdate,
+    SeerServiceAccountGrant,
+    SeerWorkflow,
+    WorkflowUpdateError,
+)
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
@@ -94,6 +99,7 @@ class MetricBreachTrigger(BaseModel):
     observed_at: datetime
     environment: str | None = None
     group_id: int
+    group_short_id: str | None = None
     project_id: int
     invocation_source: Literal["wfe"] = "wfe"
     binding_id: int
@@ -189,20 +195,25 @@ class BreachedMetricWorkflow(SeerWorkflow):
         environments: Sequence[str] = (),
         monitor_ids: Sequence[int] = (),
         extras: SeerWorkflowConfigExtras | None = None,
+        service_account_grant: SeerServiceAccountGrant,
     ) -> BreachedMetricWorkflow:
-        """Create an automation whose project coverage comes from connected monitors."""
+        """
+        Create an automation whose project coverage comes from connected monitors.
+        ``service_account_grant`` sets the access of the automation's service account; its
+        projects are independent of the monitors. Callers must authorize the grant and audit it.
+        """
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
         database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
-            config = cls._create_config(
-                database=database,
-                organization_id=organization_id,
-                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-                enabled=enabled,
-                filters=SeerWorkflowFilters(environments=list(environments)),
-                extras=extras,
-            )
+        with cls._create_config(
+            database=database,
+            organization_id=organization_id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=enabled,
+            filters=SeerWorkflowFilters(environments=list(environments)),
+            service_account_grant=service_account_grant,
+            extras=extras,
+        ) as config:
             workflow = cls(config_id=config.id, organization_id=organization_id)
             change = (
                 set_monitor_selection(organization_id, config, monitor_ids) if monitor_ids else None
@@ -240,7 +251,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
         return BreachedMetricConfigUpdate(config)
 
     def delete(self) -> None:
-        """Delete the config and schedule its backing workflow for deletion."""
+        """Delete the config and its service account, and schedule its backing workflow for deletion."""
+        self._delete_service_account()
         with self._lock_config() as config:
             if config.backing_workflow_id is not None:
                 workflow = Workflow.objects_for_deletion.filter(
@@ -287,6 +299,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 observed_at=occurrence.detection_time,
                 environment=event.get_tag("environment"),
                 group_id=group.id,
+                group_short_id=group.qualified_short_id,
                 project_id=group.project_id,
                 binding_id=binding.id,
                 workflow_id=workflow_id,
@@ -476,8 +489,6 @@ def set_monitor_selection(
 
     if existing != selected:
         _replace_monitor_connections(workflow, existing, selected)
-    # TODO(telkins): Propagate the derived projects to the automation's dedicated
-    # service account in a separate step.
     return MonitorSelectionChange(
         workflow_id=workflow.id,
         workflow_created=created,

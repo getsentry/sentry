@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
+  isSingleRunAutofix,
   type AutofixExplorerStep,
   type AutofixSection,
   type useExplorerAutofix,
@@ -32,7 +33,7 @@ export function useResetAutofixStep({
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
   const defaultCanReset = notProcessing && noPRs && noCodingAgents;
 
-  const isResetEligible = canReset ?? defaultCanReset;
+  const isResetEligible = !isSingleRunAutofix(runState) && (canReset ?? defaultCanReset);
 
   const handleReset = useMemo(() => {
     return async (userContext?: string) => {

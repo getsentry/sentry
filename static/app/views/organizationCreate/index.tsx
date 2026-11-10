@@ -1,5 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
@@ -12,7 +14,6 @@ import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSignupLocalities} from 'sentry/utils/cells';
@@ -56,8 +57,16 @@ const schema = z.object({
 });
 
 function OrganizationCreate() {
-  const {termsUrl, privacyUrl, isSelfHosted, features, links} =
-    useLegacyStore(ConfigStore);
+  const {termsUrl, privacyUrl, isSelfHosted, features, links} = useStore(
+    ConfigStore,
+    useShallow(state => ({
+      termsUrl: state.termsUrl,
+      privacyUrl: state.privacyUrl,
+      isSelfHosted: state.isSelfHosted,
+      features: state.features,
+      links: state.links,
+    }))
+  );
   const relocationUrl = normalizeUrl('/relocation/');
   const localityOptions = getSignupLocalities();
 

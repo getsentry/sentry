@@ -2,9 +2,9 @@ import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';

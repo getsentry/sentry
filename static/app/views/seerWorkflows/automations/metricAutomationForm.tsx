@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {queryOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -12,6 +12,7 @@ import {
   ScrapsForm,
   DisplayField,
   useScrapsForm,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -20,9 +21,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
-import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import type {Detector, MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -32,7 +32,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
-  SeerAgentResponse,
+  SeerServiceAccountResponse,
   SeerWorkflowConfigResponse,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -40,7 +40,9 @@ import {
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
 
-const agentProjectsSchema = z.discriminatedUnion('mode', [
+import {useCreateConfig, useUpdateConfig} from './hooks/configs';
+
+const serviceAccountProjectsSchema = z.discriminatedUnion('mode', [
   z.object({mode: z.literal('monitors')}),
   z.object({mode: z.literal('selected'), projectIds: z.array(z.string())}),
   z.object({mode: z.literal('all')}),
@@ -50,11 +52,11 @@ const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
   monitorIds: z.array(z.string()),
-  agentProjects: agentProjectsSchema,
+  serviceAccountProjects: serviceAccountProjectsSchema,
   scopes: z.array(z.string()).min(1, t('Select at least one permission scope.')),
 });
 
-const DEFAULT_AGENT_SCOPES = [
+const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
   'event:read',
   'member:read',
   'org:read',
@@ -67,9 +69,8 @@ type Props = {mode: 'create'} | {config: SeerWorkflowConfigResponse; mode: 'edit
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {projects} = useProjects();
-  const agent = props.mode === 'edit' ? props.config.agent : null;
+  const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
   const grantableScopes = new Set<string>(organization.access);
   const availableScopes = organization.access.filter(
     scope =>
@@ -78,66 +79,42 @@ export function MetricAutomationForm(props: Props) {
       scope !== 'org:superuser' &&
       scope !== 'org:billing'
   );
-  // TODO: Only the first 100 metric monitors are loaded; handle more.
-  const monitorsQuery = useQuery(
-    detectorListApiOptions(organization, {
-      query: 'type:metric_issue',
-      projects: [-1],
-      limit: 100,
-    })
-  );
-  const monitors =
-    monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [];
   const getProjectSlug = (projectId: string) =>
     projects.find(project => project.id === projectId)?.slug ?? projectId;
-  const configsUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-    {path: {organizationIdOrSlug: organization.slug}}
-  );
-  const mutation = useMutation({
-    mutationFn: (value: z.infer<typeof schema>) =>
-      fetchMutation<SeerWorkflowConfigResponse>({
-        url:
-          props.mode === 'create'
-            ? configsUrl
-            : getApiUrl(
-                '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
-                {
-                  path: {
-                    organizationIdOrSlug: organization.slug,
-                    configId: props.config.id,
-                  },
-                }
-              ),
-        method: props.mode === 'create' ? 'POST' : 'PUT',
-        data: {
-          ...(props.mode === 'create' && {
-            strategy: 'breached_metric_investigation',
-            name: value.name,
-          }),
-          enabled: value.enabled,
-          monitorIds: value.monitorIds.map(Number),
-          agent: {
-            scopes: value.scopes,
-            projectIds: resolveAgentProjects(
-              value.agentProjects,
-              value.monitorIds,
-              monitors
-            ).map(Number),
-            allProjects: value.agentProjects.mode === 'all',
-          },
-        },
-      }),
-    onSuccess: async config => {
-      await queryClient.invalidateQueries({queryKey: [configsUrl]});
-      toast.success(
-        props.mode === 'create' ? t('Automation created.') : t('Automation saved.')
-      );
-      if (props.mode === 'create') {
-        navigate(getAutomationDetailPath(organization.slug, config.id));
-      }
-    },
+  const createConfig = useCreateConfig();
+  // Only called in edit mode, where the config ID is known
+  const updateConfig = useUpdateConfig({
+    configId: props.mode === 'edit' ? props.config.id : '',
   });
+  const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
+  const saveConfig = async (value: z.infer<typeof schema>) => {
+    const fields = {
+      enabled: value.enabled,
+      monitorIds: value.monitorIds.map(Number),
+      serviceAccount: {
+        scopes: value.scopes,
+        projectIds: resolveServiceAccountProjects(
+          value.serviceAccountProjects,
+          value.monitorIds,
+          monitors
+        ).map(Number),
+        allProjects: value.serviceAccountProjects.mode === 'all',
+      },
+    };
+    if (props.mode === 'create') {
+      const config = await createConfig.mutateAsync({
+        ...fields,
+        strategy: 'breached_metric_investigation',
+        name: value.name,
+      });
+      toast.success(t('Automation created.'));
+      navigate(getAutomationDetailPath(organization.slug, config.id));
+      return config;
+    }
+    const config = await updateConfig.mutateAsync(fields);
+    toast.success(t('Automation saved.'));
+    return config;
+  };
   const form = useScrapsForm({
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
@@ -146,21 +123,24 @@ export function MetricAutomationForm(props: Props) {
           ? t('Breached Metric Investigation')
           : (props.config.name ?? t('Breached metrics')),
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
-      agentProjects: getAgentProjectSelection(agent),
+      serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
-        agent?.scopes ?? DEFAULT_AGENT_SCOPES.filter(scope => grantableScopes.has(scope)),
+        serviceAccount?.scopes ??
+        DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantableScopes.has(scope)),
     },
     validators: defaultFormValidators(schema),
     onSubmit: async ({value, formApi, createValidationError}) => {
       try {
-        const config = await mutation.mutateAsync(schema.parse(value));
+        const config = await saveConfig(schema.parse(value));
         if (props.mode === 'edit') {
           formApi.reset({
             name: value.name,
             enabled: config.enabled,
             monitorIds: config.monitorIds.map(String),
-            agentProjects: getAgentProjectSelection(config.agent),
-            scopes: config.agent?.scopes ?? value.scopes,
+            serviceAccountProjects: getServiceAccountProjectSelection(
+              config.serviceAccount
+            ),
+            scopes: config.serviceAccount?.scopes ?? value.scopes,
           });
         }
       } catch (error) {
@@ -174,21 +154,53 @@ export function MetricAutomationForm(props: Props) {
       return;
     },
   });
+  // Fetch connected monitors by ID so they resolve even when they aren't in the
+  // picker's current search results
+  const queryClient = useQueryClient();
+  const monitorIds = useSelector(form.atom, state => state.values.monitorIds);
+  const monitorsQueryOptions = detectorListApiOptions(organization, {
+    ids: monitorIds,
+    projects: [-1],
+    limit: 100,
+  });
+  const monitorsQuery = useQuery({
+    ...monitorsQueryOptions,
+    enabled: monitorIds.length > 0,
+    // Show monitors already fetched by the picker's search or an earlier lookup while
+    // the by-ID fetch runs, so a newly connected monitor appears right away
+    placeholderData: previous => {
+      const known = new Map<string, Detector>();
+      for (const [, data] of queryClient.getQueriesData<ApiResponse<Detector[]>>({
+        queryKey: [monitorsQueryOptions.queryKey[0]],
+      })) {
+        data?.json.forEach(monitor => known.set(monitor.id, monitor));
+      }
+      previous?.json.forEach(monitor => known.set(monitor.id, monitor));
+      const json = monitorIds.flatMap(id => known.get(id) ?? []);
+      return json.length > 0 ? {json, headers: {}} : undefined;
+    },
+  });
+  // The query is disabled with no monitors connected, so its state only matters otherwise
+  const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
+  const isResolvingMonitors =
+    monitorIds.length > 0 && (monitorsQuery.isLoading || monitorsQuery.isPlaceholderData);
+  // For typing
+  const monitors =
+    monitorIds.length > 0
+      ? (monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [])
+      : [];
 
   return (
     <Container maxWidth="960px" width="100%" containerType="inline-size">
       <ScrapsForm form={form}>
         <Stack gap="lg">
-          {mutation.isError && (
+          {mutationError && (
             <Alert variant="danger">
-              {getRequestErrorUserMessage(
-                mutation.error,
-                t('Unable to save automation.')
-              )}
+              {getRequestErrorUserMessage(mutationError, t('Unable to save automation.'))}
             </Alert>
           )}
-          <form.FieldGroup title={t('Details')}>
-            {props.mode === 'create' ? (
+          <form.FieldGroup title={t('Description')}>
+            {props.mode === 'create' && (
               <form.Field name="name">
                 {field => (
                   <field.Layout.Stack label={t('Name')} required>
@@ -201,18 +213,14 @@ export function MetricAutomationForm(props: Props) {
                   </field.Layout.Stack>
                 )}
               </form.Field>
-            ) : (
-              <DisplayField.Row label={t('Name')}>
-                <Text>{props.config.name ?? t('Breached metrics')}</Text>
-              </DisplayField.Row>
             )}
-            <DisplayField.Stack label={t('Description')}>
+            <Container padding="lg xl">
               <Text variant="muted">
                 {t(
                   'Investigate metric breaches using related errors, traces, and recent changes to find likely causes.'
                 )}
               </Text>
-            </DisplayField.Stack>
+            </Container>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Trigger')}>
@@ -229,62 +237,87 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Scope')}>
-            <form.Subscribe selector={state => state.values.monitorIds}>
-              {monitorIds => (
-                <Fragment>
-                  <Stack gap="lg">
-                    {monitorsQuery.isError ? (
-                      <LoadingError onRetry={monitorsQuery.refetch} />
-                    ) : (
-                      <form.Field name="monitorIds">
-                        {field => (
-                          <field.Layout.Stack
-                            label={t('Connected monitors')}
-                            hintText={t(
-                              'Search by monitor or project name. You can connect more than one.'
-                            )}
-                          >
-                            <field.Select
-                              multiple
-                              clearable
-                              searchable
-                              value={field.value}
-                              onChange={field.handleChange}
-                              isLoading={monitorsQuery.isPending}
-                              placeholder={t('Connect metric monitors…')}
-                              options={monitors.map(monitor => ({
+            <Fragment>
+              <Stack gap="lg">
+                <form.Field name="monitorIds">
+                  {field => (
+                    <field.Layout.Stack
+                      label={t('Connected monitors')}
+                      hintText={t(
+                        'Search by monitor name. You can connect more than one.'
+                      )}
+                    >
+                      {/* TODO: The picker flashes while typing monitor names.
+                         Suspected cause, in SelectAsyncField (components/core/form/field/selectAsyncField.tsx):
+                         - Each debounced input is a new query key, and it reads `data: options = []`, so the
+                           options are empty until each new search returns.
+                         - It also shows loading whenever the input differs from the debounced value, so the
+                           loading state appears on every keystroke even before a request starts.
+                         Likely fix: add `placeholderData: keepPreviousData` to the queryOptions below so the
+                         previous results stay visible, and/or only show loading in SelectAsyncField when there
+                         are no options to display. */}
+                      <field.SelectAsync
+                        multiple
+                        clearable
+                        value={field.value}
+                        onChange={field.handleChange}
+                        placeholder={t('Connect metric monitors…')}
+                        queryOptions={debouncedInput => {
+                          // Filter query by form input
+                          const baseOptions = detectorListApiOptions(organization, {
+                            query: debouncedInput
+                              ? `type:metric_issue name:"*${escapeSearchValue(debouncedInput)}*"`
+                              : 'type:metric_issue',
+                            projects: [-1],
+                            limit: 100,
+                            sortBy: '-latestGroup',
+                          });
+                          return queryOptions({
+                            ...baseOptions,
+                            select: ({json}) => {
+                              const results = json.filter(
+                                monitor => monitor.type === 'metric_issue'
+                              );
+                              // Keep already-selected monitors in the options so their labels still render
+                              const selected = monitors.filter(
+                                monitor =>
+                                  field.value.includes(monitor.id) &&
+                                  !results.some(result => result.id === monitor.id)
+                              );
+                              return [...selected, ...results].map(monitor => ({
                                 value: monitor.id,
                                 label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
-                              }))}
-                            />
-                          </field.Layout.Stack>
-                        )}
-                      </form.Field>
-                    )}
-                    <ConnectedMonitorList
-                      monitorIds={monitorIds}
-                      monitors={monitors}
-                      getProjectSlug={getProjectSlug}
-                      onDisconnect={monitorId =>
-                        form.setFieldValue(
-                          'monitorIds',
-                          monitorIds.filter(id => id !== monitorId)
-                        )
-                      }
-                    />
-                  </Stack>
-                  <DisplayField.Row label={t('Projects and environments')}>
-                    <MonitorProjectsSummary
-                      monitorIds={monitorIds}
-                      monitors={monitors}
-                      isPending={monitorsQuery.isPending}
-                      isError={monitorsQuery.isError}
-                      getProjectSlug={getProjectSlug}
-                    />
-                  </DisplayField.Row>
-                </Fragment>
-              )}
-            </form.Subscribe>
+                              }));
+                            },
+                          });
+                        }}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.Field>
+                {hasMonitorsError && <LoadingError onRetry={monitorsQuery.refetch} />}
+                <ConnectedMonitorList
+                  monitorIds={monitorIds}
+                  monitors={monitors}
+                  getProjectSlug={getProjectSlug}
+                  onDisconnect={monitorId =>
+                    form.setFieldValue(
+                      'monitorIds',
+                      monitorIds.filter(id => id !== monitorId)
+                    )
+                  }
+                />
+              </Stack>
+              <DisplayField.Row label={t('Projects and environments')}>
+                <MonitorProjectsSummary
+                  monitorIds={monitorIds}
+                  monitors={monitors}
+                  isPending={monitorsQuery.isLoading}
+                  isError={monitorsQuery.isError}
+                  getProjectSlug={getProjectSlug}
+                />
+              </DisplayField.Row>
+            </Fragment>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Actions')}>
@@ -302,76 +335,70 @@ export function MetricAutomationForm(props: Props) {
             </form.Field>
           </form.FieldGroup>
 
-          <form.FieldGroup title={t('Agent Capabilities')}>
+          <form.FieldGroup title={t('Service account capabilities')}>
             <Stack gap="lg">
               <Text variant="muted">
                 {t(
-                  'Choose what the agent can access during an investigation. These permissions are saved on its service account.'
+                  "Choose what this automation's service account can access during an investigation."
                 )}
               </Text>
-              <form.Subscribe selector={state => state.values.monitorIds}>
-                {monitorIds => (
-                  <form.Field name="agentProjects">
-                    {field => (
-                      <field.Layout.Stack
-                        label={t('Agent projects')}
-                        hintText={t(
-                          'Start with monitor projects, then add other projects the agent may need to investigate.'
-                        )}
-                      >
-                        <Stack gap="md">
-                          <field.Select
-                            multiple
-                            clearable
-                            searchable
-                            disabled={field.value.mode === 'all'}
-                            value={resolveAgentProjects(
-                              field.value,
-                              monitorIds,
-                              monitors
-                            )}
-                            onChange={projectIds =>
-                              field.handleChange({mode: 'selected', projectIds})
-                            }
-                            options={projects.map(project => ({
-                              value: project.id,
-                              label: project.slug,
-                            }))}
-                            placeholder={
-                              field.value.mode === 'all'
-                                ? t('All projects')
-                                : t('Select projects…')
-                            }
-                          />
-                          <Flex align="center" justify="between" gap="md" wrap="wrap">
-                            <Text variant="muted" size="sm">
-                              {field.value.mode === 'monitors'
-                                ? t('Using connected monitor projects.')
-                                : t(
-                                    'Project access is independent of connected monitors.'
-                                  )}
-                            </Text>
-                            {field.value.mode !== 'monitors' && (
-                              <Button
-                                size="xs"
-                                onClick={() => field.handleChange({mode: 'monitors'})}
-                              >
-                                {t('Use monitor projects')}
-                              </Button>
-                            )}
-                          </Flex>
-                        </Stack>
-                      </field.Layout.Stack>
+              <form.Field name="serviceAccountProjects">
+                {field => (
+                  <field.Layout.Stack
+                    label={t('Service account projects')}
+                    hintText={t(
+                      'Start with monitor projects, then add other projects the service account may need to investigate.'
                     )}
-                  </form.Field>
+                  >
+                    <Stack gap="md">
+                      <field.Select
+                        multiple
+                        clearable
+                        searchable
+                        disabled={field.value.mode === 'all'}
+                        value={resolveServiceAccountProjects(
+                          field.value,
+                          monitorIds,
+                          monitors
+                        )}
+                        onChange={projectIds =>
+                          field.handleChange({mode: 'selected', projectIds})
+                        }
+                        options={projects.map(project => ({
+                          value: project.id,
+                          label: project.slug,
+                        }))}
+                        placeholder={
+                          field.value.mode === 'all'
+                            ? t('All projects')
+                            : t('Select projects…')
+                        }
+                      />
+                      <Flex align="center" justify="between" gap="md" wrap="wrap">
+                        <Text variant="muted" size="sm">
+                          {field.value.mode === 'monitors'
+                            ? t('Using connected monitor projects.')
+                            : t('Project access is independent of connected monitors.')}
+                        </Text>
+                        {field.value.mode !== 'monitors' && (
+                          <Button
+                            size="xs"
+                            onClick={() => field.handleChange({mode: 'monitors'})}
+                          >
+                            {t('Use monitor projects')}
+                          </Button>
+                        )}
+                      </Flex>
+                    </Stack>
+                  </field.Layout.Stack>
                 )}
-              </form.Subscribe>
+              </form.Field>
               <form.Field name="scopes">
                 {field => (
                   <field.Layout.Stack
                     label={t('Permission scopes')}
                     hintText={t(
-                      'Starts with read access for investigations. Add write permissions only for actions you want the agent to perform.'
+                      'Starts with read access for investigations. Add write permissions only for actions you want the service account to perform.'
                     )}
                     required
                   >
@@ -405,7 +432,7 @@ export function MetricAutomationForm(props: Props) {
               )}
               <form.SubmitButton
                 variant="primary"
-                disabled={monitorsQuery.isPending || monitorsQuery.isError}
+                disabled={isResolvingMonitors || hasMonitorsError}
               >
                 {props.mode === 'create' ? t('Create automation') : t('Save changes')}
               </form.SubmitButton>
@@ -533,19 +560,19 @@ function MonitorProjectsSummary({
   );
 }
 
-function getAgentProjectSelection(
-  agent: SeerAgentResponse | null
-): z.infer<typeof agentProjectsSchema> {
-  if (!agent) {
+function getServiceAccountProjectSelection(
+  serviceAccount: SeerServiceAccountResponse | null
+): z.infer<typeof serviceAccountProjectsSchema> {
+  if (!serviceAccount) {
     return {mode: 'monitors'};
   }
-  return agent.allProjects
+  return serviceAccount.allProjects
     ? {mode: 'all'}
-    : {mode: 'selected', projectIds: agent.projectIds.map(String)};
+    : {mode: 'selected', projectIds: serviceAccount.projectIds.map(String)};
 }
 
-function resolveAgentProjects(
-  selection: z.infer<typeof agentProjectsSchema>,
+function resolveServiceAccountProjects(
+  selection: z.infer<typeof serviceAccountProjectsSchema>,
   monitorIds: string[],
   monitors: MetricDetector[]
 ): string[] {
@@ -563,4 +590,12 @@ function resolveAgentProjects(
     case 'all':
       return [];
   }
+}
+
+/**
+ * Escapes text for use inside a quoted wildcard search value. The search parser
+ * only unescapes `\"` and `\*`, so backslashes are dropped rather than escaped.
+ */
+function escapeSearchValue(value: string): string {
+  return value.replace(/[\\"*]/g, char => (char === '\\' ? '' : `\\${char}`));
 }

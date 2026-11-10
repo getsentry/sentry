@@ -4,14 +4,15 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {openModal} from '@sentry/scraps/modal';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Config} from 'sentry/types/system';
 
-import {openModal} from './modal';
 import {navigateTo} from './navigation';
 
-jest.mock('sentry/actionCreators/modal');
+jest.mock('@sentry/scraps/modal');
 
 describe('navigation ActionCreator', () => {
   let navigate: jest.Mock;

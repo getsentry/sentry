@@ -1,18 +1,20 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useMutation} from '@tanstack/react-query';
 import HeroImg from 'getsentry-images/features/replay-modal-hero.jpg';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {closeModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {closeModal} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -42,19 +44,26 @@ function UpgradeNowModal({
 }: Props) {
   useLogUpgradeNowViewed({organization, subscription, surface, hasPriceChange: false});
 
-  const api = useApi();
   const navigate = useNavigate();
 
-  const onUpdatePlan = async () => {
-    try {
-      await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
+  const {mutateAsync: updateSubscription} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
         data: {
           ...reservations,
           plan: plan.id,
           referrer: 'replay-am2-update-modal',
         },
-      });
+      }),
+  });
+
+  const onUpdatePlan = async () => {
+    try {
+      await updateSubscription();
 
       SubscriptionStore.loadData(organization.slug, () => {
         if (onComplete) {

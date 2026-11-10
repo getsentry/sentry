@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSpan} from '@sentry/icons/span';
+import * as qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -8,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -20,6 +22,8 @@ export interface ConversationTrace {
   /** A span within the trace, used to focus the trace view on the conversation. */
   spanId: string;
   traceId: string;
+  /** Start of that span in seconds, so the trace view queries the right time window. */
+  timestamp?: number;
 }
 
 interface ConversationTraceLinkProps {
@@ -42,6 +46,8 @@ export function ConversationTraceLink({
 }: ConversationTraceLinkProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const dateSelection = normalizeDateTimeParams(selection.datetime);
 
   const trackClick = () =>
     trackAnalytics('conversations.detail.click-trace-link', {organization});
@@ -75,7 +81,7 @@ export function ConversationTraceLink({
   if (traces.length === 1) {
     return (
       <Link
-        to={getTraceUrl(organization.slug, firstTrace.traceId, firstTrace.spanId)}
+        to={getTraceUrl(organization.slug, firstTrace, dateSelection)}
         onClick={trackClick}
       >
         <Flex align="center" gap="xs">
@@ -89,13 +95,13 @@ export function ConversationTraceLink({
   }
 
   const items: MenuItemProps[] = [
-    ...traces.slice(0, VISIBLE_TRACE_COUNT).map(({traceId, spanId}) => ({
-      key: traceId,
-      label: getShortTraceId(traceId),
+    ...traces.slice(0, VISIBLE_TRACE_COUNT).map(trace => ({
+      key: trace.traceId,
+      label: getShortTraceId(trace.traceId),
       // Accents the id and its icon, so each trace reads as a link.
       priority: 'primary' as const,
       leadingItems: <MenuTraceIcon size="xs" />,
-      to: getTraceUrl(organization.slug, traceId, spanId),
+      to: getTraceUrl(organization.slug, trace, dateSelection),
       onAction: trackClick,
     })),
     {
@@ -148,8 +154,20 @@ function getShortTraceId(traceId: string) {
   return traceId.slice(0, 8);
 }
 
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
+/**
+ * Without a timestamp or date range, the trace view queries a relative default
+ * period and fails to find traces older than it, so always send one.
+ */
+function getTraceUrl(
+  orgSlug: string,
+  {traceId, spanId, timestamp}: ConversationTrace,
+  dateSelection: ReturnType<typeof normalizeDateTimeParams>
+) {
+  const query = {
+    node: `span-${spanId}`,
+    ...(timestamp === undefined ? dateSelection : {timestamp}),
+  };
   return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
+    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?${qs.stringify(query)}`
   );
 }

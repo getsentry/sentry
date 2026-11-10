@@ -23,6 +23,18 @@ type InvestigationOrchestrationSummary = {
   status: InvestigationOrchestrationStatus;
 };
 
+/**
+ * What started an investigation: the automation run that created it, else the
+ * user who did.
+ */
+export type InvestigationTrigger =
+  | {
+      automation: {id: string; name: string | null; strategy: string};
+      runId: string;
+      type: 'automation';
+    }
+  | {type: 'user'; user: AvatarUser};
+
 export type InvestigationListItem = {
   blockCount: number;
   createdBy: string | null;
@@ -40,6 +52,7 @@ export type InvestigationListItem = {
   titleGeneration?: {
     status: 'pending' | 'running' | 'completed' | 'failed' | null;
   };
+  trigger?: InvestigationTrigger | null;
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -491,8 +504,9 @@ export type InvestigationOrchestration = {
   activeTimeElapsedSeconds?: number | null;
   finishedAt?: string | null;
   pendingInput?: {
-    missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
+    /** What the run is waiting for. Optional on the wire. */
+    missingFields?: Array<'prompt' | 'time_range'>;
   } | null;
   /** Fresh API server time, independent of the projection's last update. */
   serverTime?: string;
@@ -510,41 +524,16 @@ export type InvestigationOrchestration = {
 };
 
 /**
- * A viewer-issued instruction to a running workflow. Mirrors
- * `COMMAND_VALIDATORS`. The inner payload stays camelCase because the server
+ * A viewer-issued instruction to a running workflow, from `COMMAND_VALIDATORS`.
+ * Only `provide_input` is sent from here; the others are left out until
+ * something sends them. The inner payload stays camelCase because the server
  * only case-converts the envelope keys.
  */
-export type InvestigationOrchestrationCommand =
-  | {
-      type: 'provide_input';
-      prompt?: string;
-      timeRange?: {end: string; start: string};
-    }
-  | {
-      statement: string;
-      type: 'add_hypothesis';
-      rationale?: string | null;
-    }
-  | {
-      disposition: 'accepted' | 'rejected' | null;
-      hypothesisId: string;
-      type: 'set_hypothesis_disposition';
-    }
-  | {
-      instruction: string;
-      target: 'workflow' | 'hypothesis' | 'report' | 'block';
-      type: 'steer';
-      targetId?: string | null;
-    }
-  | {
-      target: 'run' | 'hypothesis' | 'report';
-      type: 'retry';
-      targetId?: string | null;
-    }
-  | {
-      type: 'cancel';
-      reason?: string | null;
-    };
+export type InvestigationOrchestrationCommand = {
+  type: 'provide_input';
+  prompt?: string;
+  timeRange?: {end: string; start: string};
+};
 
 export type InvestigationOrchestrationCommandVariables = {
   command: InvestigationOrchestrationCommand;

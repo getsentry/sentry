@@ -81,18 +81,6 @@ describe('IssueList -> Polling', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TagsFixture(),
@@ -130,7 +118,7 @@ describe('IssueList -> Polling', () => {
     });
 
     jest.mocked(StreamGroup).mockClear();
-    TagStore.init();
+    TagStore.reset();
   });
 
   it('toggles polling for new issues', async () => {

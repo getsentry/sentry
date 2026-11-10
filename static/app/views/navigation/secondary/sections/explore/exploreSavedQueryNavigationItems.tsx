@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {InfoText} from '@sentry/scraps/info';
 
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,7 +29,7 @@ type ReorderableItem = {
 export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const id = decodeScalar(location.query.id);
+  const [id] = useQueryState('id');
 
   const {projects} = useProjects();
 

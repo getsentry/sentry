@@ -324,8 +324,8 @@ export function investigationOrchestrationQueryOptions(
 }
 
 /**
- * Send a viewer command — accept/reject a hypothesis, steer, retry, cancel — to
- * a running workflow.
+ * Send a viewer command to a running workflow. The only one sent today is
+ * `provide_input`, the question a run started without.
  *
  * The response carries the post-command projection, so it is written straight
  * into the orchestration cache instead of triggering another fetch.

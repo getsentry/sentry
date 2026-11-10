@@ -4,10 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import * as modal from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import {handleEnroll} from 'sentry/components/webAuthn/handlers';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
@@ -130,7 +130,7 @@ describe('AccountSecurityEnroll', () => {
     });
 
     it('asks the user to verify their primary email when enrollment requires it', async () => {
-      const openModalSpy = jest.spyOn(ModalStore, 'openModal');
+      const openModalSpy = jest.spyOn(modal, 'openModal');
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.id}/enroll/`,
         method: 'POST',

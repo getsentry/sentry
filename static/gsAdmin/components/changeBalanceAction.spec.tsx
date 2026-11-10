@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 
@@ -24,7 +24,7 @@ describe('BalanceChangeAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
   });
 
   it('renders no balance', async () => {

@@ -230,6 +230,11 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
+from sentry.telemetry_classifiers.models import (
+    TelemetryClassifier,
+    TelemetryClassifierDataset,
+    TelemetryClassifierOutputType,
+)
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -428,9 +433,7 @@ DEFAULT_EVENT_DATA = {
     "platform": "python",
 }
 
-default_detector_config_data = {
-    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
-}
+default_detector_config_data = {MetricIssue.slug: {"detection_type": "static"}}
 
 
 def _patch_artifact_manifest(
@@ -2730,6 +2733,24 @@ class Factories:
             region_slug=region_slug,
             mode=mode,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_telemetry_classifier(
+        project: Project | None = None, **kwargs: Any
+    ) -> TelemetryClassifier:
+        if project is None:
+            project = Factories.create_project()
+        defaults: dict[str, Any] = {
+            "name": petname.generate(2, " ", letters=10).title(),
+            "result_attribute": "sentry.classifier.result",
+            "dataset": TelemetryClassifierDataset.CONVERSATION,
+            "filter_query": "",
+            "natural_language_prompt": "Is the user frustrated?",
+            "compiled_prompt": "Return yes when the user is frustrated.",
+            "output_type": TelemetryClassifierOutputType.BINARY,
+        }
+        return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

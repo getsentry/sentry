@@ -30,10 +30,10 @@ import {
   makeClosableHeader,
   ModalBody,
   ModalFooter,
+  closeModal,
 } from '@sentry/scraps/modal';
+import * as modalActions from '@sentry/scraps/modal';
 
-import {closeModal} from 'sentry/actionCreators/modal';
-import * as modalActions from 'sentry/actionCreators/modal';
 import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
 

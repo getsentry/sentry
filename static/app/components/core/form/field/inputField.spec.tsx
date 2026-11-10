@@ -3,8 +3,7 @@ import {expectTypeOf} from 'expect-type';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useScrapsForm, ScrapsForm} from '@sentry/scraps/form';
-
-import type {InputFieldProps} from './inputField';
+import type {InputFieldProps} from '@sentry/scraps/form/field/inputField';
 
 function TestForm() {
   const form = useScrapsForm({

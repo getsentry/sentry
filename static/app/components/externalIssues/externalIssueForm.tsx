@@ -1,15 +1,15 @@
 import {useCallback, useEffect, useEffectEvent, useMemo, useRef, useState} from 'react';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,
@@ -28,11 +28,10 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -82,7 +81,7 @@ interface ExternalIssueFormProps extends ModalRenderProps {
   onChange: () => void;
 }
 
-function makeIntegrationIssueConfigQueryKey({
+function makeIntegrationIssueConfigApiOptions({
   orgSlug,
   groupId,
   integrationId,
@@ -92,20 +91,19 @@ function makeIntegrationIssueConfigQueryKey({
   integrationId: string;
   orgSlug: string;
   action?: ExternalIssueAction;
-}): ApiQueryKey {
-  return [
-    getApiUrl(
-      '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          issueId: groupId,
-          integrationId,
-        },
-      }
-    ),
-    {query: {action}},
-  ];
+}) {
+  return apiOptions.as<IntegrationIssueConfig>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        issueId: groupId,
+        integrationId,
+      },
+      query: {action},
+      staleTime: Infinity,
+    }
+  );
 }
 
 function startExternalIssueFormSpan({
@@ -150,12 +148,15 @@ export function ExternalIssueForm({
 }: ExternalIssueFormProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const {url: endpointString} = parseQueryKey(
-    makeIntegrationIssueConfigQueryKey({
-      orgSlug: organization.slug,
-      groupId: group.id,
-      integrationId: integration.id,
-    })
+  const endpointString = getApiUrl(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        issueId: group.id,
+        integrationId: integration.id,
+      },
+    }
   );
   const queryClient = useQueryClient();
 
@@ -172,19 +173,16 @@ export function ExternalIssueForm({
     error,
     isPending,
     isError,
-  } = useApiQuery<IntegrationIssueConfig>(
-    makeIntegrationIssueConfigQueryKey({
+  } = useQuery({
+    ...makeIntegrationIssueConfigApiOptions({
       orgSlug: organization.slug,
       groupId: group.id,
       integrationId: integration.id,
       action,
     }),
-    {
-      staleTime: Infinity,
-      retry: false,
-      refetchOnMount: 'always',
-    }
-  );
+    retry: false,
+    refetchOnMount: 'always',
+  });
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({
     action,
     integrationDetails: integrationDetails ?? null,
@@ -212,7 +210,7 @@ export function ExternalIssueForm({
    * It starts as an object, with keys of certain field names, and empty values.
    * As the user updates the values, those dynamic fields require a refetch of the config, with what
    * the user entered as a query param. Since we can't conditionally call hooks, we have to avoid
-   * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
+   * `useQuery`, and instead manually call the api, and update the cache ourselves.
    */
   const refetchWithDynamicFields = useCallback(
     async (dynamicValues: Record<string, unknown>) => {
@@ -223,15 +221,19 @@ export function ExternalIssueForm({
           query: {action, ...dynamicValues},
           includeAllArgs: true,
         });
-        setApiQueryData(
-          queryClient,
-          makeIntegrationIssueConfigQueryKey({
+        queryClient.setQueryData(
+          makeIntegrationIssueConfigApiOptions({
             orgSlug: organization.slug,
             groupId: group.id,
             integrationId: integration.id,
             action,
-          }),
-          existingData => (data ? (data as IntegrationIssueConfig) : existingData)
+          }).queryKey,
+          previous => {
+            if (!data) {
+              return previous;
+            }
+            return {...previous, headers: previous?.headers ?? {}, json: data};
+          }
         );
       } catch (err: any) {
         if (err?.responseText) {
@@ -372,7 +374,8 @@ export function ExternalIssueForm({
     field => field.name === 'error' && field.type === 'blank'
   );
 
-  const errorDetail = error?.responseJSON?.detail;
+  const errorDetail =
+    error instanceof RequestError ? error.responseJSON?.detail : undefined;
   const errorMessage =
     typeof errorDetail === 'string'
       ? errorDetail

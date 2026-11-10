@@ -27,6 +27,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
+import {FingerprintRulesEditor} from './fingerprintRulesEditor';
+
 function FingerprintRulesForm({
   project,
   hasAccess,
@@ -86,18 +88,20 @@ error.type:DatabaseUnavailable -> system-down
 stack.function:malloc -> memory-allocation-error`}
                     </Text>
                   </Container>
-                  <field.TextArea
-                    value={field.value}
-                    onChange={field.handleChange}
-                    disabled={!hasAccess}
-                    monospace
-                    autosize
-                    rows={2}
-                    maxRows={20}
-                    placeholder={t(
-                      'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
+                  <field.Base<HTMLTextAreaElement> disabled={!hasAccess}>
+                    {fieldProps => (
+                      <FingerprintRulesEditor
+                        {...fieldProps}
+                        value={field.value}
+                        onChange={field.handleChange}
+                        rows={2}
+                        maxRows={20}
+                        placeholder={t(
+                          'error.type:MyException -> fingerprint-value\nstack.function:some_panic_function -> fingerprint-value'
+                        )}
+                      />
                     )}
-                  />
+                  </field.Base>
                 </Stack>
               </field.Layout.Stack>
             )}

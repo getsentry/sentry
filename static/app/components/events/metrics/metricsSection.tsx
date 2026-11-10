@@ -9,8 +9,6 @@ import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/even
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -28,15 +26,7 @@ import {
   NUMBER_ABBREVIATED_METRICS,
 } from './useMetricsIssueSection';
 
-export function MetricsSection({
-  event,
-  project,
-  group,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-}) {
+export function MetricsSection({event}: {event: Event}) {
   const organization = useOrganization();
   const location = useLocation();
   const traceId = event.contexts?.trace?.trace_id;
@@ -59,28 +49,13 @@ export function MetricsSection({
       withoutContainer
     >
       <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-        <MetricsSectionContent
-          event={event}
-          group={group}
-          project={project}
-          traceId={traceId}
-        />
+        <MetricsSectionContent event={event} traceId={traceId} />
       </TraceViewMetricsProviderWrapper>
     </LazyRender>
   );
 }
 
-function MetricsSectionContent({
-  event,
-  project,
-  group,
-  traceId,
-}: {
-  event: Event;
-  group: Group;
-  project: Project;
-  traceId: string;
-}) {
+function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -115,7 +90,7 @@ function MetricsSectionContent({
       openDrawer(
         () => (
           <TraceViewMetricsProviderWrapper traceSlug={traceId}>
-            <MetricsDrawer group={group} event={event} project={project} />
+            <MetricsDrawer event={event} />
           </TraceViewMetricsProviderWrapper>
         ),
         {
@@ -141,7 +116,7 @@ function MetricsSectionContent({
       );
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
+  }, [location.query, traceId, event, openDrawer, navigate, location]);
 
   if (!result.data || result.data.length === 0 || error) {
     return null;

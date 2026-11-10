@@ -1,6 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconQuestion} from '@sentry/icons/question';
+import {IconInfo} from '@sentry/icons/info';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -108,9 +108,7 @@ function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitR
           >
             <AuthorWrapper>
               {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
-              {commit.author && commit.author.id === undefined && (
-                <IconQuestion size="xs" />
-              )}
+              {commit.author && commit.author.id === undefined && <IconInfo size="xs" />}
             </AuthorWrapper>
           </Tooltip>
           {tct(' committed [commitLink]', {

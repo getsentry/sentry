@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -16,14 +17,13 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Default search applied when the URL has no ?query, scoping the demo to
 // explorer runs from autofix.
 const DEFAULT_QUERY = 'type:explorer source:autofix';
+
+const queryParsers = {query: parseAsString, cursor: parseAsString};
 
 // Questions asked about each run, sent to the endpoint as repeatable `question`
 // params (see organization_seer_runs.py). Edit this list to iterate on prompts
@@ -76,11 +76,9 @@ interface SeerRun {
 
 export default function SeerRunsDemo() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const query = decodeScalar(location.query.query, DEFAULT_QUERY);
-  const cursor = decodeScalar(location.query.cursor);
+  const [queryParams, setQueryParams] = useQueryStates(queryParsers);
+  const query = queryParams.query || DEFAULT_QUERY;
+  const cursor = queryParams.cursor || undefined;
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
@@ -96,12 +94,9 @@ export default function SeerRunsDemo() {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, query: newQuery, cursor: undefined},
-      });
+      setQueryParams({query: newQuery, cursor: null}, {history: 'push'});
     },
-    [navigate, location.pathname, location.query]
+    [setQueryParams]
   );
 
   // Predefined values (is:, type:) are supplied by the FILTER_KEYS definitions;

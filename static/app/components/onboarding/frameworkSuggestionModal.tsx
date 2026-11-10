@@ -9,9 +9,9 @@ import {z} from 'zod';
 
 import {useScrapsForm, defaultFormValidators, ScrapsForm} from '@sentry/scraps/form';
 import {Container} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Radio} from '@sentry/scraps/radio';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {List} from 'sentry/components/list';
