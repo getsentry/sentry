@@ -303,6 +303,8 @@ function DropdownMenuRows({
     estimateSize,
     scrollRef: menuRef,
     focusedKey: itemProps.state.selectionManager.focusedKey,
+    sectionRowSpace,
+    size,
     widestKey,
   });
 
