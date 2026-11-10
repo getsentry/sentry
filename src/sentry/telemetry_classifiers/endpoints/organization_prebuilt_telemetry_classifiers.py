@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import ChainPaginator
+from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -23,7 +24,7 @@ from sentry.models.organization import Organization
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.serializers import (
     PrebuiltClassifierResponse,
-    serialize_prebuilt_classifier,
+    PrebuiltClassifierSerializer,
 )
 from sentry.telemetry_classifiers.types import Dataset
 
@@ -76,13 +77,13 @@ class OrganizationPrebuiltTelemetryClassifiersEndpoint(OrganizationEndpoint):
         classifiers = [
             classifier
             for classifier in PREBUILT_CLASSIFIERS.values()
-            if dataset is None or classifier["dataset"] == dataset
+            if dataset is None or classifier.dataset == dataset
         ]
         return self.paginate(
             request=request,
             sources=[classifiers],
             paginator_cls=ChainPaginator,
-            on_results=lambda results: [
-                serialize_prebuilt_classifier(classifier) for classifier in results
-            ],
+            on_results=lambda results: serialize(
+                results, request.user, serializer=PrebuiltClassifierSerializer()
+            ),
         )

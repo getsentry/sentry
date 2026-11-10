@@ -1,4 +1,4 @@
-from typing import TypedDict
+from dataclasses import dataclass
 
 from django.db import models
 
@@ -24,7 +24,8 @@ class TelemetryClassifierStatus(models.TextChoices):
     ENABLED = "enabled", "Enabled"
 
 
-class PrebuiltClassifier(TypedDict):
+@dataclass(frozen=True)
+class PrebuiltClassifier:
     key: str  # Prebuilt classifier key used to identify it in Seer.
     dataset: Dataset
     name: str

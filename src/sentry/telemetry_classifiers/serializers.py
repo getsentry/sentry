@@ -97,16 +97,21 @@ class PrebuiltClassifierResponse(TypedDict):
     resultAttribute: str
 
 
-def serialize_prebuilt_classifier(
-    classifier: PrebuiltClassifier,
-) -> PrebuiltClassifierResponse:
-    return {
-        "key": classifier["key"],
-        "dataset": classifier["dataset"],
-        "name": classifier["name"],
-        "description": classifier["description"],
-        "resultAttribute": classifier["result_attribute"],
-    }
+class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
+    def serialize(
+        self,
+        obj: PrebuiltClassifier,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> PrebuiltClassifierResponse:
+        return {
+            "key": obj.key,
+            "dataset": obj.dataset,
+            "name": obj.name,
+            "description": obj.description,
+            "resultAttribute": obj.result_attribute,
+        }
 
 
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
@@ -141,7 +146,7 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         if {"natural_language_prompt", "output_type"} & self.initial_data.keys():
             raise serializers.ValidationError("Custom classifiers aren't supported yet.")
 
-        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]]["dataset"] != attrs["dataset"]:
+        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]].dataset != attrs["dataset"]:
             raise serializers.ValidationError(
                 {
                     "prebuilt_classifier_key": "This prebuilt classifier doesn't support this dataset."

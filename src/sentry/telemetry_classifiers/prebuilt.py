@@ -42,5 +42,5 @@ ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
 )
 
 PREBUILT_CLASSIFIERS: dict[str, PrebuiltClassifier] = {
-    classifier["key"]: classifier for classifier in ALL_PREBUILT_CLASSIFIERS
+    classifier.key: classifier for classifier in ALL_PREBUILT_CLASSIFIERS
 }
