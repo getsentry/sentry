@@ -101,7 +101,7 @@ dependencies = [
   "sentry-viewercontext>=0.2.0",
   "sentry-relay>=0.10.1",
   "sentry-scm>=3.1.1",
-  "sentry-sdk[http2]>=2.74.0",
+  "sentry-sdk[http2]==3.0.0b4",
   "sentry-usage-accountant>=0.0.10",
   "simplejson>=3.17.6",
   "slack-sdk>=3.40.1",
