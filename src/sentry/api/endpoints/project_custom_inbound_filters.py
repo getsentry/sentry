@@ -33,6 +33,7 @@ from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     get_supported_condition_types,
     get_supported_operators,
+    transaction_name_pattern_error,
 )
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
@@ -133,8 +134,10 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release` and "
             "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
-            "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
-            "`metric_name`. `span` and `all` accept no other types."
+            "`geo_country_code`, `log` accepts `log_message`, `metric` accepts "
+            "`metric_name`, and `span` accepts `transaction_name`. `all` accepts no other "
+            "types. `transaction_name` matches the name of the segment a span belongs to, "
+            "or the name of a transaction, and drops the whole segment or transaction."
         ),
     )
     # A row stored before operators existed carries none, and DRF cannot read a required
@@ -191,6 +194,13 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
                 raise serializers.ValidationError(
                     {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
                 )
+        # Relay drops a pattern it cannot parse, and a pattern that matches every name
+        # would drop all of a project's spans and transactions.
+        if condition_type is ConditionType.TRANSACTION_NAME:
+            for value in attrs["value"]:
+                error = transaction_name_pattern_error(operator, value)
+                if error is not None:
+                    raise serializers.ValidationError({"value": error})
         return attrs
 
     def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
@@ -310,6 +320,13 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
 
+        # Checked on new conditions only, so that a filter saved while the feature was on
+        # can still be renamed, deactivated or deleted.
+        if "conditions" in attrs and any(
+            condition["type"] == ConditionType.TRANSACTION_NAME for condition in conditions
+        ):
+            self._validate_transaction_name_enabled()
+
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
@@ -324,6 +341,22 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             )
 
         return attrs
+
+    def _validate_transaction_name_enabled(self) -> None:
+        organization = self.context["project"].organization
+        if not features.has(
+            "organizations:inbound-filters-transaction-name",
+            organization,
+            actor=self.context["request"].user,
+        ):
+            raise serializers.ValidationError(
+                {
+                    "conditions": (
+                        f"The {ConditionType.TRANSACTION_NAME} condition is not enabled for "
+                        "this organization."
+                    )
+                }
+            )
 
 
 def _validate_legacy_row_change(

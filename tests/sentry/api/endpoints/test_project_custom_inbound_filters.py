@@ -20,6 +20,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class CustomInboundFiltersTest(APITestCase):
     endpoint = "sentry-api-0-project-custom-inbound-filters"
     features = ["organizations:inbound-filters-v2", "projects:custom-inbound-filters"]
+    transaction_name_features = [*features, "organizations:inbound-filters-transaction-name"]
 
     def setUp(self) -> None:
         super().setUp()
@@ -464,6 +465,129 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["dataType"] == "span"
         assert custom_filter.data_type == "span"
+
+    def test_post_transaction_name(self) -> None:
+        conditions = [
+            {"type": "transaction_name", "operator": "glob", "value": ["*/health{/,}"]},
+            {"type": "transaction_name", "operator": "contains", "value": ["*ping*"]},
+        ]
+
+        with self.feature(self.transaction_name_features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Health checks",
+                dataType="span",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        assert response.data["conditions"] == conditions
+        assert CustomInboundFilter.objects.get(id=response.data["id"]).conditions == conditions
+
+    def test_rejects_transaction_name_without_the_feature(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="span",
+                conditions=[
+                    {"type": "transaction_name", "operator": "glob", "value": ["*/health*"]}
+                ],
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            "The transaction_name condition is not enabled for this organization."
+        )
+
+    def test_rejects_transaction_name_on_other_data_types(self) -> None:
+        for data_type in ("all", "error", "log", "metric"):
+            with self.feature(
+                [
+                    *self.transaction_name_features,
+                    "organizations:ourlogs-ingestion",
+                    "organizations:tracemetrics-ingestion",
+                ]
+            ):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    dataType=data_type,
+                    conditions=[
+                        {"type": "transaction_name", "operator": "glob", "value": ["*/health*"]}
+                    ],
+                )
+
+            assert str(response.data["conditions"][0]).startswith(
+                f"A filter on {data_type} data cannot use the transaction_name condition."
+            )
+
+    def test_post_negated_transaction_name(self) -> None:
+        conditions = [
+            {"type": "transaction_name", "operator": "does_not_start_with", "value": ["/api"]},
+            {"type": "transaction_name", "operator": "does_not_contain", "value": ["checkout"]},
+            {"type": "transaction_name", "operator": "does_not_end_with", "value": ["/"]},
+        ]
+
+        with self.feature(self.transaction_name_features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="span",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        assert response.data["conditions"] == conditions
+
+    def test_rejects_transaction_name_patterns_relay_cannot_use(self) -> None:
+        cases = [
+            (
+                "glob",
+                "*/health{/,",
+                "*/health{/, is not a valid pattern. A `{` has no matching `}`.",
+            ),
+            ("glob", "{a,{b}}", "{a,{b}} is not a valid pattern. A `{` group cannot contain"),
+            ("glob", "[z-a]*", "[z-a]* is not a valid pattern. The range `z-a` is invalid"),
+            ("glob", "/health]", "/health] is not a valid pattern. A `]` has no matching `[`."),
+            ("glob", "/health\\", "is not a valid pattern. The pattern ends with a `\\`"),
+            ("glob", "/{a,b,c,d}" * 5, "has too many `{}` alternatives"),
+            ("glob", "*", "This pattern matches every transaction. Make it more specific."),
+            ("glob", "?*", "This pattern matches every transaction. Make it more specific."),
+            ("glob", "*/*", "This pattern matches every transaction. Make it more specific."),
+            ("contains", "/", "This pattern matches every transaction. Make it more specific."),
+        ]
+
+        for operator, value, expected in cases:
+            with self.feature(self.transaction_name_features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    dataType="span",
+                    conditions=[
+                        {"type": "transaction_name", "operator": operator, "value": [value]}
+                    ],
+                )
+
+            assert expected in str(response.data["conditions"][0]["value"][0]), value
+
+    def test_allows_glob_characters_in_literal_transaction_names(self) -> None:
+        with self.feature(self.transaction_name_features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="span",
+                conditions=[
+                    {"type": "transaction_name", "operator": "equals", "value": ["/a{b[c"]}
+                ],
+                status_code=201,
+            )
 
     def test_post_ip_address(self) -> None:
         """An IP condition reads the envelope, so every data type takes it."""
@@ -963,6 +1087,26 @@ class CustomInboundFilterDetailsTest(APITestCase):
             )
         assert audit_entry.data["operation"] == "edit"
         assert audit_entry.data["changes"] == {"active": {"old": True, "new": False}}
+
+    def test_put_keeps_a_transaction_name_filter_editable_without_the_feature(self) -> None:
+        conditions = [{"type": "transaction_name", "operator": "glob", "value": ["*/health*"]}]
+        custom_filter = self.create_project_custom_inbound_filter(
+            project=self.project, data_type="span", conditions=conditions
+        )
+
+        with self.feature(self.features), outbox_runner():
+            self.get_success_response(
+                self.organization.slug, self.project.slug, custom_filter.id, active=False
+            )
+            response = self.get_error_response(
+                self.organization.slug, self.project.slug, custom_filter.id, conditions=conditions
+            )
+
+        custom_filter.refresh_from_db()
+        assert custom_filter.active is False
+        assert str(response.data["conditions"][0]) == (
+            "The transaction_name condition is not enabled for this organization."
+        )
 
     def test_put_requires_operator(self) -> None:
         """A partial update skips required fields, so the operator is checked by hand."""
