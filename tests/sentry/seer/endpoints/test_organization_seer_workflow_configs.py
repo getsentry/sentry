@@ -788,28 +788,23 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert service_account_project_ids(get_service_account(workflow.config_id)) == [kept.id]
 
     @with_feature("organizations:service-accounts")
-    def test_put_creates_a_service_account_for_a_config_without_one(self) -> None:
+    def test_put_service_account_on_a_config_without_one_returns_400(self) -> None:
         config = self.create_config()
-        grant = {"scopes": ["event:read", "project:read"], "projectIds": [self.project.id]}
 
         with outbox_runner():
-            response = self.get_success_response(
-                self.organization.slug, config.id, method="put", serviceAccount=grant
+            response = self.get_error_response(
+                self.organization.slug,
+                config.id,
+                method="put",
+                serviceAccount={"scopes": ["event:read"], "projectIds": [self.project.id]},
+                status_code=400,
             )
 
-        account = get_service_account(config.id)
-        assert response.data["serviceAccount"] == {
-            "serviceAccountId": str(account.id),
-            **grant,
-            "allProjects": False,
-        }
-        assert account.scope_list == ["event:read", "project:read"]
-        assert account.created_by_id == self.user.id
-        assert service_account_project_ids(account) == [self.project.id]
+        assert response.data == {"detail": "Couldn't update the automation's service account."}
+        config.refresh_from_db()
+        assert config.service_account_id is None
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_ADD"), target_object=account.id
-            ).exists()
+            assert not ServiceAccount.objects.filter(organization_id=self.organization.id).exists()
 
     @with_feature("organizations:service-accounts")
     def test_put_updates_the_existing_service_account(self) -> None:
@@ -987,9 +982,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 monitorIds=[monitor.id],
                 status_code=400,
             )
-            assert response.data == {
-                "detail": "Selected monitors must be active metric monitors in this organization."
-            }
+            assert response.data == {"detail": "Couldn't update the automation."}
 
         assert self.connected_monitor_ids(workflow) == {connected.id}
 
@@ -1039,9 +1032,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             status_code=400,
         )
 
-        assert response.data == {
-            "detail": "Breached metric projects are selected by connecting monitors"
-        }
+        assert response.data == {"detail": "Couldn't update the automation."}
         assert self.selected_project_ids(workflow.get_config()) == []
 
     def test_agent_projects_remain_independent_when_monitors_change(self) -> None:
@@ -1494,9 +1485,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization.slug, strategy="agentic_triage_v2", status_code=400
         )
 
-        assert response.data["detail"] == (
-            f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-        )
+        assert response.data["detail"] == "Couldn't create the automation."
         assert (
             SeerWorkflowConfig.objects.filter(
                 organization=self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
@@ -1619,9 +1608,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
                 monitorIds=[monitor.id],
                 status_code=400,
             )
-            assert response.data == {
-                "detail": "Selected monitors must be active metric monitors in this organization."
-            }
+            assert response.data == {"detail": "Couldn't create the automation."}
 
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 

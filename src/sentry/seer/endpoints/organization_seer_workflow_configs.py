@@ -412,8 +412,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         service account created for the automation.
 
         The number of automations per organization is capped, and creation is rate
-        limited. Failures past request validation, such as reaching the cap, return an
-        empty 400. Returns the new config in the same shape as an item in ``configs``.
+        limited. Failures past request validation, such as reaching the cap, return a 400
+        with a generic detail. Returns the new config in the same shape as an item in
+        ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -468,11 +469,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     extras=extras,
                     service_account_grant=grant,
                 )
-        except ValueError as e:
+        except ValueError:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
-            if isinstance(e, WorkflowUpdateError):
-                return Response({"detail": str(e)}, status=400)
-            return Response(status=400)
+            return Response({"detail": "Couldn't create the automation."}, status=400)
 
         account = workflow.get_service_account()
         if account is not None:
@@ -565,11 +564,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
-          account, creating one if the automation doesn't have one. Like ``projectIds``,
-          the account's projects the caller can't access are kept.
+          account. Like ``projectIds``, the account's projects the caller can't access are
+          kept, and scopes can't be added while any are.
 
-        Failures past request validation return an empty 400. Returns the updated config
-        in the same shape as an item in the list endpoint's ``configs``.
+        Failures past request validation return a 400 with a generic detail. Returns the
+        updated config in the same shape as an item in the list endpoint's ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -700,26 +699,22 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     extras.updated_by = "bot" if user_id is None else user_id
                     update.set_extras(extras)
 
-        except ValueError as e:
+        except ValueError:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
-            if isinstance(e, WorkflowUpdateError):
-                return Response({"detail": str(e)}, status=400)
-            return Response(status=400)
+            return Response({"detail": "Couldn't update the automation."}, status=400)
 
         account: RpcServiceAccount | None = None
         if grant is not None:
             try:
-                grant_update = workflow.set_service_account_grant(
-                    grant, created_by_id=acting_user_id(request.user)
+                account = workflow.set_service_account_grant(grant)
+            except WorkflowUpdateError:
+                logger.exception(
+                    "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
                 )
-            except WorkflowUpdateError as e:
-                return Response({"detail": str(e)}, status=400)
-            account = grant_update.service_account
-            if account is not None:
-                event: ServiceAccountAuditEvent = (
-                    "SERVICE_ACCOUNT_ADD" if grant_update.created else "SERVICE_ACCOUNT_EDIT"
+                return Response(
+                    {"detail": "Couldn't update the automation's service account."}, status=400
                 )
-                audit_service_account(self, request, organization, account, event)
+            audit_service_account(self, request, organization, account, "SERVICE_ACCOUNT_EDIT")
 
         config = workflow.get_config()
         return Response(self.serialize(request, organization, config, account))
