@@ -29,9 +29,11 @@ from sentry.notifications.platform.templates.issue import (
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.services.eventstore.models import GroupEvent
+from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation
+from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.types import ActionHandler, ActionInvocation
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,23 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             invocation.event_data.event.type in BaseMetricAlertHandler.ACTIVITIES_TO_INVOKE_ON
             and invocation.event_data.group.type == MetricIssue.type_id
         ):
+            if _is_ticket_creation_action(invocation.action):
+                # Ticketing actions create a ticket when the metric issue opens; there is
+                # nothing to do when it resolves, and there is no metric alert handler for them.
+                logger.info(
+                    "Skipping ticket creation action for metric issue resolution",
+                    extra={
+                        "action_id": invocation.action.id,
+                        "action_type": invocation.action.type,
+                        "detector_id": invocation.detector.id,
+                    },
+                )
+                metrics.incr(
+                    "notification_action.metric_resolution.ticketing_action_skipped",
+                    tags={"action_type": invocation.action.type},
+                    sample_rate=1.0,
+                )
+                return None
             return execute_via_metric_alert_handler(invocation)
 
         try:
@@ -90,6 +109,14 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             extra={"detector_id": invocation.detector.id, "action_id": invocation.action.id},
         )
         raise
+
+
+def _is_ticket_creation_action(action: Action) -> bool:
+    try:
+        handler = action_handler_registry.get(action.type)
+    except NoRegistrationExistsError:
+        return False
+    return handler.group == ActionHandler.Group.TICKET_CREATION
 
 
 def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:

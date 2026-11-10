@@ -117,6 +117,60 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
 
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_issue_alert_handler")
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
+    def test_metric_issue_resolution_skips_ticketing_action(
+        self,
+        mock_execute_metric_alert_handler: mock.MagicMock,
+        mock_execute_issue_alert_handler: mock.MagicMock,
+    ) -> None:
+        group = self.create_group(type=MetricIssue.type_id)
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(event=activity, group=group),
+            action=Action(type=Action.Type.GITHUB),
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+        execute_via_group_type_registry(invocation)
+        mock_execute_metric_alert_handler.assert_not_called()
+        mock_execute_issue_alert_handler.assert_not_called()
+
+    def test_metric_issue_resolution_ticketing_action_does_not_raise(self) -> None:
+        group = self.create_group(type=MetricIssue.type_id)
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(event=activity, group=group),
+            action=Action(type=Action.Type.GITHUB),
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+        execute_via_group_type_registry(invocation)
+
+    def test_metric_issue_resolution_unknown_action_type_still_raises(self) -> None:
+        group = self.create_group(type=MetricIssue.type_id)
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(event=activity, group=group),
+            action=Action(type=Action.Type.WEBHOOK),
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+        with pytest.raises(NoRegistrationExistsError):
+            execute_via_group_type_registry(invocation)
+
 
 class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
     def setUp(self) -> None:
