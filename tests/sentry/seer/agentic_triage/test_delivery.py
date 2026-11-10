@@ -15,6 +15,7 @@ from sentry.seer.agentic_triage.delivery import (
     deliver_agentic_triage_result,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerFeature
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
     SeerAgenticTriageRunResult,
@@ -218,6 +219,11 @@ class TestDeliverAgenticTriageResult(TestCase):
         mock_trigger = self._deliver_autofix_verdict(single_run=True)
 
         assert mock_trigger.call_args.kwargs["single_run"] is True
+
+    def test_starts_autofix_as_agentic_triage(self) -> None:
+        mock_trigger = self._deliver_autofix_verdict()
+
+        assert mock_trigger.call_args.kwargs["seer_feature"] == SeerFeature.AGENTIC_TRIAGE
 
     def test_dry_run_with_single_run_starts_nothing(self) -> None:
         mock_trigger = self._deliver_autofix_verdict(single_run=True, dry_run=True)

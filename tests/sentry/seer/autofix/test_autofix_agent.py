@@ -36,6 +36,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.credits import SeerFeature
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -1684,6 +1685,28 @@ class TestTriggerPushChanges(TestCase):
             )
 
         mock_post.assert_not_called()
+
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_agentic_triage_run_skips_credit_check(
+        self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        run = mirror_autofix_run(self, self.group, 123)
+        run.agent.update(extras={"seer_feature": SeerFeature.AGENTIC_TRIAGE.value})
+
+        self._push(
+            mock_post,
+            features={
+                "organizations:seer-credit-checks": True,
+                "organizations:token-billed-seer-enabled": True,
+            },
+        )
+
+        mock_check_seer_credits.assert_not_called()
+        mock_post.assert_called_once()
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_pr_description_suffix_ready_state_and_author(

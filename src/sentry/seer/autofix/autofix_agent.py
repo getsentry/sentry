@@ -36,6 +36,7 @@ from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     autofix_run_targets_other_issue,
     check_autofix_billing,
+    get_run_seer_feature,
     require_autofix_run_for_group,
     trigger_autofix_feature,
 )
@@ -64,7 +65,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     read_preference_from_sentry_db,
 )
-from sentry.seer.credits import SeerOperation
+from sentry.seer.credits import SeerFeature, SeerOperation
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -449,6 +450,7 @@ def trigger_autofix_agent(
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
     single_run: bool = False,
+    seer_feature: SeerFeature = SeerFeature.AUTOFIX,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -460,6 +462,8 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by agentic triage to bypass
             quota for free cohort orgs. Not exposed via the API.
+        seer_feature: Internal-only. Agentic triage starts runs with AGENTIC_TRIAGE.
+            Not exposed via the API.
     """
     outcome = "success"
     try:
@@ -503,6 +507,7 @@ def trigger_autofix_agent(
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
+            seer_feature=seer_feature,
             user=user,
             single_run=single_run,
         )
@@ -832,7 +837,12 @@ def trigger_push_changes(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    check_autofix_billing(group.organization, SeerOperation.AUTOFIX_OPEN_PR, is_new_run=False)
+    check_autofix_billing(
+        group.organization,
+        SeerOperation.AUTOFIX_OPEN_PR,
+        is_new_run=False,
+        seer_feature=get_run_seer_feature(group, run_id),
+    )
 
     client = get_autofix_agent_client(group, user=user)
 

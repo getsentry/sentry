@@ -29,6 +29,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
+from sentry.seer.credits import SeerFeature
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
     SeerAgenticTriageRunResult,
@@ -338,6 +339,7 @@ def _process_verdicts(
                     user_context=user_context,
                     allow_free_cohort=True,
                     single_run=single_run,
+                    seer_feature=SeerFeature.AGENTIC_TRIAGE,
                 )
             except Exception:
                 logger.exception(

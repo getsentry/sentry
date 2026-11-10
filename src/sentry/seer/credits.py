@@ -25,6 +25,7 @@ class SeerOperation(StrEnum):
 class SeerFeature(StrEnum):
     """Seer features as tagged on LLM proxy calls, which billing maps to data categories."""
 
+    AGENTIC_TRIAGE = "agentic_triage"  # Not billed yet. Marks the Autofix runs it starts.
     AUTOFIX = "autofix"
     EXPLORER = "explorer"
 
