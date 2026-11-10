@@ -38,6 +38,7 @@ from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.service_accounts.auth import is_service_account_auth
 from sentry.service_accounts.principal import ServiceAccountPrincipal
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -462,6 +463,14 @@ class TestTokenAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
+
+    def test_skips_service_account_token(self) -> None:
+        token_str = generate_service_account_token("test-org", "https://test-region.sentry.io")
+        request = _drf_request()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str}"
+
+        assert not self.auth.accepts_auth([b"bearer", token_str.encode()])
+        assert self.auth.authenticate(request) is None
 
     def test_authenticate_bearer_scheme_case_insensitive(self) -> None:
         """

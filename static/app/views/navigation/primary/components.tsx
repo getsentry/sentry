@@ -162,7 +162,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         align="center"
         justify="center"
         radius="md"
-        padding="xs"
         width={theme.form.sm.height}
         height={theme.form.sm.height}
         data-icon-container

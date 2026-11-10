@@ -5,10 +5,12 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
+from sentry import options
 from sentry.digests.backends.base import Backend, InvalidState
 from sentry.digests.backends.migrating import MigratingBackend
 from sentry.digests.types import Notification, Record
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 
 
@@ -20,7 +22,15 @@ class MigratingBackendTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         # RedisBackend looks up its cluster when it is built, so build it inside the context.
+        # use_redis_cluster keeps only "digests-cluster" in the option, so put "default" back
+        # for the old backend.
+        default_config = options.get("redis.clusters")["default"]
         self.enterContext(use_redis_cluster("digests-cluster", prefix_keys=False))
+        self.enterContext(
+            override_options(
+                {"redis.clusters": {**options.get("redis.clusters"), "default": default_config}}
+            )
+        )
         self.backend = MigratingBackend(
             old={"path": "sentry.digests.backends.redis.RedisBackend"},
             new={

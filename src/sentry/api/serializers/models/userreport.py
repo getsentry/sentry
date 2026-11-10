@@ -1,14 +1,13 @@
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import NotRequired, TypedDict, cast
+from typing import Annotated, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import quotas
-from sentry.api.serializers import Serializer, register, serialize
-from sentry.models.environment import Environment
-from sentry.models.group import Group
+from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
@@ -21,23 +20,34 @@ from sentry.utils.eventuser import EventUser, SerializedEventUser
 
 
 class UserReportEvent(TypedDict):
-    id: str
-    eventID: str
+    id: Annotated[str, ApiDescription("ID of the event the feedback is attached to")]
+    eventID: Annotated[str, ApiDescription("ID of the event the feedback is attached to")]
 
 
 class UserReportSerializerResponse(TypedDict):
-    id: str
-    eventID: str
-    name: str | None
-    email: str | None
-    comments: str
-    dateCreated: datetime
-    user: SerializedEventUser | None
-    event: UserReportEvent
-
-
-class UserReportWithGroupSerializerResponse(UserReportSerializerResponse):
-    issue: dict[str, object]
+    id: Annotated[str, ApiDescription("ID of the feedback")]
+    eventID: Annotated[str, ApiDescription("ID of the event the feedback is attached to")]
+    name: Annotated[
+        str | None,
+        ApiDescription(
+            "Name of the user who submitted the feedback. Falls back to the feedback's email address, then to the event user's name"
+        ),
+    ]
+    email: Annotated[
+        str | None,
+        ApiDescription(
+            "Email address of the user who submitted the feedback. Falls back to the event user's email address"
+        ),
+    ]
+    comments: Annotated[str, ApiDescription("Comments the user submitted")]
+    dateCreated: Annotated[datetime, ApiDescription("When the feedback was submitted (ISO 8601)")]
+    user: Annotated[
+        SerializedEventUser | None,
+        ApiDescription(
+            "User recorded on the feedback's event. Null when the event isn't found or has no user"
+        ),
+    ]
+    event: Annotated[UserReportEvent, ApiDescription("Event the feedback is attached to")]
 
 
 class _EventUser(TypedDict):
@@ -111,49 +121,4 @@ class UserReportSerializer(Serializer[UserReportSerializerResponse]):
             "dateCreated": obj.date_added,
             "user": serialized_user,
             "event": {"id": obj.event_id, "eventID": obj.event_id},
-        }
-
-
-class UserReportWithGroupSerializer(UserReportSerializer):
-    def __init__(self, environment_func: Callable[[], Environment | None] | None = None) -> None:
-        self.environment_func = environment_func
-
-    def get_attrs(
-        self,
-        item_list: Sequence[UserReport],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> dict[UserReport, _EventUser]:
-        from sentry.api.serializers import GroupSerializer
-
-        groups = list(Group.objects.filter(id__in={i.group_id for i in item_list if i.group_id}))
-        serialized_groups = {}
-        if groups:
-            serialized_groups = {
-                d["id"]: d
-                for d in serialize(
-                    groups,
-                    user,
-                    GroupSerializer(environment_func=self.environment_func),
-                )
-            }
-
-        attrs = super().get_attrs(item_list, user)
-        for item in item_list:
-            attrs[item].update(
-                {"group": serialized_groups[str(item.group_id)] if item.group_id else None}
-            )
-        return attrs
-
-    def serialize(
-        self,
-        obj: UserReport,
-        attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
-        **kwargs: object,
-    ) -> UserReportWithGroupSerializerResponse:
-        context = super().serialize(obj, attrs, user)
-        return {
-            **context,
-            "issue": cast(dict[str, object], attrs["group"]),
         }

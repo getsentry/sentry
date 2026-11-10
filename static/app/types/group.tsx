@@ -680,6 +680,7 @@ export enum GroupActivityType {
   TRIGGER_AUTOFIX = 'trigger_autofix',
   UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
   UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
+  IMPACT_ASSESSMENT = 'impact_assessment',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1151,6 +1152,27 @@ interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
   type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
 }
 
+type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+
+interface ImpactCitation {
+  claim: string;
+  reference: string;
+  source: string;
+}
+
+interface ImpactAssessment {
+  citations: ImpactCitation[];
+  description: string;
+  level: ImpactLevel | null;
+  score: number | null;
+  sourceEventId: string;
+}
+
+export interface GroupActivityImpactAssessment extends GroupActivityBase {
+  data: ImpactAssessment;
+  type: GroupActivityType.IMPACT_ASSESSMENT;
+}
+
 export type GroupActivity =
   | GroupActivityUnlinkExternalIssue
   | GroupActivityUnlinkPlatformExternalIssue
@@ -1196,7 +1218,8 @@ export type GroupActivity =
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged
   | GroupActivityPullRequestUnlinked
-  | GroupActivityTriggerAutofix;
+  | GroupActivityTriggerAutofix
+  | GroupActivityImpactAssessment;
 
 export type Activity = GroupActivity;
 
@@ -1320,6 +1343,7 @@ interface GroupDerivedData {
   progress: ProgressState;
   status: 'open' | 'closed';
   viewCount: number;
+  impact?: ImpactAssessment | null;
 }
 
 // TODO(ts): incomplete

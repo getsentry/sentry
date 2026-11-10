@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -122,14 +122,16 @@ class EventsMeta(TypedDict, total=False):
         dict[str, str],
         ApiDescription("Suggestions for improving the query, under the `query` and `columns` keys"),
     ]
-    datasetReason: str
+    datasetReason: Annotated[
+        str, ApiDescription("Why the query ran on a different dataset than requested, or unchanged")
+    ]
     isMetricsData: Annotated[bool, ApiDescription("Whether the results came from metrics data")]
     isMetricsExtractedData: Annotated[
         bool, ApiDescription("Whether the results came from metrics extracted on demand")
     ]
     dataset: Annotated[str, ApiDescription("Dataset that was queried")]
     discoverSplitDecision: Annotated[
-        Any,
+        Literal["error-events", "transaction-like"],
         ApiDescription(
             "Dataset the results were taken from when a Discover dashboard widget query was split between errors and transactions"
         ),
@@ -139,7 +141,12 @@ class EventsMeta(TypedDict, total=False):
         ApiDescription("Whether the query scanned the `full` data set or only a `partial` sample"),
     ]
     bytesScanned: Annotated[int, ApiDescription("Number of bytes the query scanned")]
-    routingHint: str
+    routingHint: Annotated[
+        str,
+        ApiDescription(
+            "Opaque routing hint of an EAP table query. Pass it unchanged as routing_hint when fetching item details for a row"
+        ),
+    ]
     debug_info: Annotated[
         Any,
         ApiDescription("Debug information about the query. Only present when `debug` is passed"),

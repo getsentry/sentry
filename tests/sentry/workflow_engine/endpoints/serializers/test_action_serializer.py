@@ -1,9 +1,12 @@
+from openapi_schema_validator import OAS30Validator
+
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.endpoints.serializers.response_schemas import action_data_schema
 from sentry.workflow_engine.models import Action
 
 pytestmark = [requires_snuba]
@@ -154,3 +157,71 @@ class TestActionSerializer(TestCase):
                 "my_field": "my value",
             },
         }
+
+    def test_serialize_ticketing_data_keeps_value_types(self) -> None:
+        github_integration = self.create_integration(
+            provider="github",
+            name="github-integration",
+            external_id="github-123",
+            metadata={},
+            organization=self.organization,
+        )
+        action = self.create_action(
+            type=Action.Type.GITHUB,
+            integration_id=github_integration.id,
+            data={
+                "dynamic_form_fields": [],
+                "additional_fields": {
+                    "repo": "owner/repo",
+                    "labels": ["bug", "triage"],
+                    "assignee": None,
+                },
+            },
+            config={"target_type": ActionTarget.SPECIFIC},
+        )
+
+        result = serialize(action)
+
+        assert result["data"] == {
+            "dynamicFormFields": [],
+            "additionalFields": {
+                "repo": "owner/repo",
+                "labels": ["bug", "triage"],
+                "assignee": None,
+            },
+        }
+
+    def test_serialized_data_matches_schema(self) -> None:
+        jira_integration = self.create_integration(
+            provider="jira",
+            name="jira-integration",
+            external_id="jira-456",
+            metadata={},
+            organization=self.organization,
+        )
+        actions = [
+            self.create_action(
+                type=Action.Type.JIRA,
+                integration_id=jira_integration.id,
+                data={
+                    "dynamic_form_fields": [
+                        {"name": "labels", "label": "Labels", "type": "select"}
+                    ],
+                    "additional_fields": {
+                        "project": "10000",
+                        "labels": ["bug"],
+                        "customfield_10001": 3,
+                        "customfield_10002": True,
+                        "customfield_10003": None,
+                    },
+                },
+                config={"target_type": ActionTarget.SPECIFIC},
+            ),
+            self.create_action(
+                type=Action.Type.WEBHOOK, data={}, config={"target_identifier": "webhooks"}
+            ),
+        ]
+        validator = OAS30Validator(action_data_schema())
+
+        for result in serialize(actions):
+            assert not list(validator.iter_errors(result["data"])), result["data"]
