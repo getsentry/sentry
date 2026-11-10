@@ -53,7 +53,7 @@ describe('Inbox', () => {
     title: 'OperationalError: could not connect to server',
     latestEvent: {
       id: '2',
-      type: 'notebook.mentioned',
+      type: 'notebook.user_mentioned',
       actor: {type: 'user', id: '2', name: 'Jane Doe', avatar: null},
       data: {blockId: null, commentId: '1'},
       summary: 'Mentioned you in a comment',
@@ -415,40 +415,55 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
     });
 
-    it('filters by multiple notification types', async () => {
-      const filteredRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/inbox/',
-        match: [
-          MockApiClient.matchQuery({
-            event_type: ['issue.user_assigned', 'notebook.mentioned'],
-          }),
-        ],
-        body: [issueItem, notebookItem],
-      });
+    it.each([
+      ['notebook.user_mentioned', 'Investigation mentioned you'],
+      ['notebook.team_mentioned', 'Investigation mentioned your team'],
+    ] as const)(
+      'filters by multiple notification types including %s',
+      async (eventType, label) => {
+        const filteredRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          match: [
+            MockApiClient.matchQuery({
+              event_type: ['issue.user_assigned', eventType],
+            }),
+          ],
+          body: [
+            issueItem,
+            InboxItemFixture({
+              ...notebookItem,
+              eventTypes: [eventType],
+              latestEvent: {
+                ...notebookItem.latestEvent,
+                type: eventType,
+                data: {blockId: null, commentId: '1'},
+              },
+            }),
+          ],
+        });
 
-      const {router} = render(<Inbox />, {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
-      });
+        const {router} = render(<Inbox />, {
+          organization,
+          initialRouterConfig: {
+            location: {pathname: '/organizations/org-slug/inbox/'},
+            routes: INBOX_ROUTES,
+          },
+        });
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
-      await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
-      );
-      await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Investigation mentioned you'})
-      );
+        await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
+        await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
+        await userEvent.click(
+          screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
+        );
+        await userEvent.click(screen.getByRole('menuitemradio', {name: label}));
 
-      await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
-      expect(router.location.query).toEqual({
-        eventType: ['issue.user_assigned', 'notebook.mentioned'],
-      });
-      expect(screen.getByText('Issue assigned to you +1')).toBeInTheDocument();
-    });
+        await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
+        expect(router.location.query).toEqual({
+          eventType: ['issue.user_assigned', eventType],
+        });
+        expect(screen.getByText('Issue assigned to you +1')).toBeInTheDocument();
+      }
+    );
 
     it('loads filters from the url and removes them', async () => {
       const filteredRequest = MockApiClient.addMockResponse({
