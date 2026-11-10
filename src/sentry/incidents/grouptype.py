@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, TypedDict
-from uuid import uuid4
 
 from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
@@ -17,7 +16,6 @@ from sentry.incidents.utils.types import (
 )
 from sentry.integrations.metric_alerts import TEXT_COMPARISON_DELTA, describe_query_metric
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.actor import parse_and_validate_actor
@@ -64,34 +62,6 @@ class MetricIssueEvidenceData(EvidenceData[StoredMetricResult]):
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
     regression_timeout = timedelta(hours=24)
-
-    def create_synthetic_occurrence(
-        self, data_packet: DataPacket[MetricUpdate], priority: DetectorPriorityLevel, value: float
-    ) -> DetectorEvaluation:
-        """Build test evidence without evaluating or changing the detector's state."""
-        evaluation = self._create_occurrence(
-            DetectorEvaluation.create_issue(None, priority),
-            data_packet,
-            value,
-            fingerprint=[f"admin-synthetic-metric-breach:{self.detector.id}:{uuid4().hex}"],
-        )
-        occurrence = evaluation.result
-        assert isinstance(occurrence, IssueOccurrence)
-        return evaluation.with_result(
-            replace(
-                occurrence,
-                issue_title=f"[Test breach] {occurrence.issue_title}",
-                detection_time=data_packet.packet.timestamp,
-                evidence_data={
-                    **occurrence.evidence_data,
-                    "conditions": [
-                        dict(condition.get_snapshot())
-                        for condition in self.detector.get_conditions()
-                        if condition.condition_result == priority
-                    ],
-                },
-            )
-        )
 
     def build_detector_evidence_data(
         self,
