@@ -19,9 +19,6 @@ type Subscriptions = Readonly<Record<string, Subscription>>;
 
 const store = createStore<Subscriptions>()(() => ({}));
 
-let loadingData: Record<string, Promise<void>> = {};
-let callbacks: Record<string, GetCallback[]> = {};
-
 export const SubscriptionStore = {
   // State is only written through the methods below.
   getState: store.getState,
@@ -29,11 +26,13 @@ export const SubscriptionStore = {
   subscribe: store.subscribe,
 
   api: new Client(),
+  callbacks: {} as Record<string, GetCallback[]>,
 
   /**
    * The error from the most recent failed load, cleared by the next successful one.
    */
   errors: {} as Record<string, unknown>,
+  loadingData: {} as Record<string, Promise<void>>,
 
   /**
    * Empties the store. Only used to reset state between tests.
@@ -41,8 +40,8 @@ export const SubscriptionStore = {
   init(): void {
     SubscriptionStore.api = new Client();
     SubscriptionStore.errors = {};
-    loadingData = {};
-    callbacks = {};
+    SubscriptionStore.loadingData = {};
+    SubscriptionStore.callbacks = {};
     store.setState({}, true);
   },
 
@@ -55,9 +54,9 @@ export const SubscriptionStore = {
 
     store.setState({[orgSlug]: subscription});
 
-    if (callbacks[orgSlug]) {
-      callbacks[orgSlug].forEach(cb => cb(subscription));
-      delete callbacks[orgSlug];
+    if (SubscriptionStore.callbacks[orgSlug]) {
+      SubscriptionStore.callbacks[orgSlug].forEach(cb => cb(subscription));
+      delete SubscriptionStore.callbacks[orgSlug];
     }
   },
 
@@ -70,7 +69,7 @@ export const SubscriptionStore = {
 
     // Keep this callback queued through failed loads, so work such as page-view
     // tracking runs late instead of never.
-    (callbacks[orgSlug] ??= []).push(callback);
+    (SubscriptionStore.callbacks[orgSlug] ??= []).push(callback);
     return SubscriptionStore.loadData(orgSlug);
   },
 
@@ -93,7 +92,7 @@ export const SubscriptionStore = {
     {markStartedTrial}: LoadOptions = {}
   ): Promise<void> {
     // Concurrent callers share the request so each one can see its outcome.
-    loadingData[orgSlug] ??= SubscriptionStore.api
+    SubscriptionStore.loadingData[orgSlug] ??= SubscriptionStore.api
       .requestPromise(`/customers/${orgSlug}/`)
       .then(
         (data: Subscription) => {
@@ -115,10 +114,10 @@ export const SubscriptionStore = {
         }
       )
       .finally(() => {
-        delete loadingData[orgSlug];
+        delete SubscriptionStore.loadingData[orgSlug];
       });
 
-    const load = loadingData[orgSlug];
+    const load = SubscriptionStore.loadingData[orgSlug];
     if (typeof callback !== 'function') {
       return load;
     }
