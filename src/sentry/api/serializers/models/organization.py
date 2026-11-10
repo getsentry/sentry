@@ -1111,7 +1111,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         "dashboardsAsyncQueueParallelLimit": "Internal query-queue tuning value.",
         "hasGranularReplayPermissions": "Internal replay permission flag surfaced only to the Sentry UI.",
         "replayAccessMembers": "Internal replay access list surfaced only to the Sentry UI.",
-        "replayAccessTeams": "Internal replay access team list surfaced only to the Sentry UI.",
+        "replayAccessTeams": "Internal replay settings state for the Sentry UI, withheld like replayAccessMembers so both replay access lists stay out of the public schema together.",
     }
 )
 class OrganizationWithProjectsAndTeamsSerializerResponse(OrganizationSerializerResponse):
