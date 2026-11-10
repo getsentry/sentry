@@ -62,7 +62,12 @@ describe('InvoiceComparison', () => {
     ConfigStore.set('cells', [{name: 'us', locality_url: US_URL}]);
   });
 
-  it('loads the last 24h when the URL has no window', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('loads yesterday in UTC when the URL has no window', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const mock = MockApiClient.addMockResponse({
       url: COMPARISON_URL,
       body: comparisonBody(),
@@ -71,9 +76,53 @@ describe('InvoiceComparison', () => {
     renderComparison({page_size: '25', rows_page: '1', unmatched_page: '1'});
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
-    const {start, end} = mock.mock.calls[0][1].query;
-    const windowMs = new Date(end).getTime() - new Date(start).getTime();
-    expect(windowMs).toBe(24 * 60 * 60 * 1000);
+    expect(mock.mock.calls[0][1].query).toEqual(
+      expect.objectContaining({
+        start: '2026-11-09T00:00:00.000Z',
+        end: '2026-11-10T00:00:00.000Z',
+      })
+    );
+    expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
+    expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
+  });
+
+  it('widens a window with times to the whole UTC days it touches', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody(),
+    });
+
+    renderComparison({
+      start: '2026-11-05T04:40:01.496458+00:00',
+      end: '2026-11-10T04:40:01.496458+00:00',
+    });
+
+    expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+    expect(mock.mock.calls[0][1].query).toEqual(
+      expect.objectContaining({
+        start: '2026-11-05T00:00:00.000Z',
+        end: '2026-11-11T00:00:00.000Z',
+      })
+    );
+  });
+
+  it('queries whole UTC days for the selected dates', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody(),
+    });
+
+    const {router} = renderComparison({});
+    const startInput = screen.getByLabelText('First day (UTC)');
+    const endInput = screen.getByLabelText('Last day (UTC)');
+    await userEvent.clear(startInput);
+    await userEvent.type(startInput, '2026-11-02');
+    await userEvent.clear(endInput);
+    await userEvent.type(endInput, '2026-11-03');
+    await userEvent.click(screen.getByRole('button', {name: 'Run comparison'}));
+
+    expect(router.location.query.start).toBe('2026-11-02T00:00:00.000Z');
+    expect(router.location.query.end).toBe('2026-11-04T00:00:00.000Z');
   });
 
   it('uses the window from the URL', async () => {
@@ -129,8 +178,7 @@ describe('InvoiceComparison', () => {
     expect(mock).not.toHaveBeenCalled();
     expect(screen.queryByText(/Failed to load comparison/)).not.toBeInTheDocument();
     expect(screen.queryByText('Comparing…')).not.toBeInTheDocument();
-    const input = screen.getByLabelText<HTMLInputElement>('Generated until (local)');
-    expect(new Date(input.value).toISOString()).toBe(end);
+    expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2019-12-31');
   });
 
   it('does not query when the URL has only a start', async () => {
@@ -144,8 +192,7 @@ describe('InvoiceComparison', () => {
     await act(async () => {});
 
     expect(mock).not.toHaveBeenCalled();
-    const input = screen.getByLabelText<HTMLInputElement>('Generated since (local)');
-    expect(new Date(input.value).toISOString()).toBe(start);
+    expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2020-01-01');
   });
 
   it('keeps typed dates when paginating pins the default window', async () => {
@@ -160,12 +207,12 @@ describe('InvoiceComparison', () => {
     });
 
     const {router} = renderComparison({});
-    const startInput = screen.getByLabelText('Generated since (local)');
+    const startInput = screen.getByLabelText('First day (UTC)');
     await userEvent.clear(startInput);
-    await userEvent.type(startInput, '2020-06-01T09:30');
+    await userEvent.type(startInput, '2020-06-01');
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
-    expect(startInput).toHaveValue('2020-06-01T09:30');
+    expect(startInput).toHaveValue('2020-06-01');
     expect(router.location.query.rows_page).toBe('2');
     expect(router.location.query.start).toBe(mock.mock.calls[0][1].query.start);
     expect(router.location.query.end).toBe(mock.mock.calls[0][1].query.end);
