@@ -41,7 +41,7 @@ seer: 0046_add_workflow_config_backing_workflow
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1260_backfill_projectartifactbundle_has_debug_ids
+sentry: 1261_add_projectartifactbundle_debug_ids_index
 
 service_accounts: 0007_add_service_account_token_replica
 
