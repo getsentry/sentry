@@ -118,10 +118,10 @@ describe('ConfigureIntegration settings tab', () => {
       },
     });
 
-    await userEvent.click(await screen.findByRole('tab', {name: 'Team Mappings'}));
+    await userEvent.click(await screen.findByRole('tab', {name: 'User Mappings'}));
 
     await waitFor(() =>
-      expect(router.location.query).toEqual({tab: 'teamMappings', other: 'kept'})
+      expect(router.location.query).toEqual({tab: 'userMappings', other: 'kept'})
     );
     expect(router.historyAction).toBe('PUSH');
   });
