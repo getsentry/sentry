@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
+import noop from 'lodash/noop';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import type {
@@ -164,7 +165,7 @@ export function DomainViewHeader<T extends string = string>({
               {({TabList}) => tabs.renderTabList(TabList)}
             </Tabs>
           ) : hideDefaultTabs ? null : (
-            <Tabs value={selectedModule ?? OVERVIEW_PAGE_TITLE}>
+            <Tabs onChange={noop} value={selectedModule ?? OVERVIEW_PAGE_TITLE}>
               {({TabList}) => (
                 <TabList>
                   {tabList.map(tab => (

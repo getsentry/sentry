@@ -38,7 +38,7 @@ describe('Tabs', () => {
   it('renders caller content as direct Grid children', async () => {
     render(
       <Grid role="group" aria-label="Tabs layout" columns="auto 1fr">
-        <Tabs>
+        <Tabs defaultValue="details">
           {({TabList, TabPanels}) => (
             <Fragment>
               <TabList aria-label="Sections">
@@ -109,10 +109,10 @@ describe('Tabs', () => {
 
   it('checks keys without widening from a broad selection callback', () => {
     const element = (
+      // @ts-expect-error Disabled keys must belong to the selected key type.
       <Tabs
         value={'details' as 'details' | 'activity'}
         onChange={(_key: string | number) => {}}
-        // @ts-expect-error Disabled keys must belong to the selected key type.
         disabledKeys={['unknown']}
       >
         {({TabList, TabPanels}) => (
@@ -143,28 +143,36 @@ describe('Tabs', () => {
     expectTypeOf(narrowCallback).not.toBeAny();
   });
 
-  it('accepts an explicit key union for uncontrolled default selection', async () => {
+  it('keeps uncontrolled keys as strings regardless of the default', async () => {
     const onChange = jest.fn();
     render(
-      <Tabs<'details' | 'activity'>
+      <Tabs
         defaultValue="activity"
         onChange={key => {
-          expectTypeOf(key).toEqualTypeOf<'details' | 'activity'>();
+          expectTypeOf(key).toEqualTypeOf<string>();
           onChange(key);
         }}
       >
-        {({TabList, TabPanels}) => (
-          <Fragment>
-            <TabList>
-              <TabList.Item key="details">Details</TabList.Item>
-              <TabList.Item key="activity">Activity</TabList.Item>
-            </TabList>
-            <TabPanels>
-              <TabPanels.Item key="details">Details content</TabPanels.Item>
-              <TabPanels.Item key="activity">Activity content</TabPanels.Item>
-            </TabPanels>
-          </Fragment>
-        )}
+        {({TabList, TabPanels}) => {
+          expectTypeOf<
+            Parameters<typeof TabList.Item>[0]['key']
+          >().toEqualTypeOf<string>();
+          expectTypeOf<
+            Parameters<typeof TabPanels.Item>[0]['key']
+          >().toEqualTypeOf<string>();
+          return (
+            <Fragment>
+              <TabList>
+                <TabList.Item key="details">Details</TabList.Item>
+                <TabList.Item key="activity">Activity</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="details">Details content</TabPanels.Item>
+                <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+              </TabPanels>
+            </Fragment>
+          );
+        }}
       </Tabs>,
       {wrapper: ThemeWrapper}
     );
@@ -183,7 +191,7 @@ describe('Tabs', () => {
 
   it('rejects numeric selection values and item keys', () => {
     const element = (
-      <Tabs value={'details' as 'details' | 'activity'}>
+      <Tabs value={'details' as 'details' | 'activity'} onChange={() => {}}>
         {({TabList, TabPanels}) => (
           <Fragment>
             <TabList>
@@ -202,7 +210,9 @@ describe('Tabs', () => {
 
     const controlled = (
       // @ts-expect-error Selected values must be strings.
-      <Tabs value={1}>{() => null}</Tabs>
+      <Tabs value={1} onChange={() => {}}>
+        {() => null}
+      </Tabs>
     );
     expectTypeOf(controlled).not.toBeAny();
 
@@ -214,14 +224,78 @@ describe('Tabs', () => {
 
     const numericType = (
       // @ts-expect-error The key type must extend string.
-      <Tabs<0 | 1>>{() => null}</Tabs>
+      <Tabs<0 | 1> defaultValue="details">{() => null}</Tabs>
     );
     expectTypeOf(numericType).not.toBeAny();
   });
 
+  it('requires exactly one selection mode and a controlled change handler', () => {
+    const missingSelection = (
+      // @ts-expect-error A selected value or default value is required.
+      <Tabs>{() => null}</Tabs>
+    );
+    const mixedSelection = (
+      // @ts-expect-error Controlled tabs cannot also provide a default value.
+      <Tabs value="details" defaultValue="activity" onChange={() => {}}>
+        {() => null}
+      </Tabs>
+    );
+    const missingControlledHandler = (
+      // @ts-expect-error Controlled tabs require a change handler.
+      <Tabs value="details">{() => null}</Tabs>
+    );
+    const undefinedSelection = (
+      // @ts-expect-error An undefined value does not supply a selection mode.
+      <Tabs value={undefined} onChange={() => {}}>
+        {() => null}
+      </Tabs>
+    );
+    const narrowUncontrolledHandler = (
+      <Tabs
+        defaultValue="activity"
+        // @ts-expect-error Uncontrolled callbacks must accept any string key.
+        onChange={(_key: 'details' | 'activity') => {}}
+      >
+        {() => null}
+      </Tabs>
+    );
+
+    expectTypeOf(missingSelection).not.toBeAny();
+    expectTypeOf(mixedSelection).not.toBeAny();
+    expectTypeOf(missingControlledHandler).not.toBeAny();
+    expectTypeOf(undefinedSelection).not.toBeAny();
+    expectTypeOf(narrowUncontrolledHandler).not.toBeAny();
+  });
+
+  it('does not restrict uncontrolled items to the default or disabled keys', () => {
+    const element = (
+      <Tabs defaultValue="activity" disabledKeys={['disabled']}>
+        {({TabList, TabPanels}) => {
+          expectTypeOf<
+            Parameters<typeof TabList.Item>[0]['key']
+          >().toEqualTypeOf<string>();
+          expectTypeOf<
+            Parameters<typeof TabPanels.Item>[0]['key']
+          >().toEqualTypeOf<string>();
+          return (
+            <Fragment>
+              <TabList>
+                <TabList.Item key="details">Details</TabList.Item>
+              </TabList>
+              <TabPanels>
+                <TabPanels.Item key="details">Details content</TabPanels.Item>
+              </TabPanels>
+            </Fragment>
+          );
+        }}
+      </Tabs>
+    );
+    expectTypeOf(element).not.toBeAny();
+  });
+
   it('renders tabs list', () => {
     render(
-      <Tabs>
+      <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
           <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <TabList>
@@ -257,7 +331,7 @@ describe('Tabs', () => {
 
   it('renders tabs list when disabled', () => {
     render(
-      <Tabs disabled>
+      <Tabs defaultValue="details" disabled>
         {({TabList, TabPanels}) => (
           <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <TabList>
@@ -294,7 +368,7 @@ describe('Tabs', () => {
 
   it('changes tabs on click', async () => {
     render(
-      <Tabs>
+      <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
           <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <TabList>
@@ -326,19 +400,9 @@ describe('Tabs', () => {
 
   it('keeps local selection controlled by the consumer', async () => {
     const onChange = jest.fn();
-    const {rerender} = render(
-      <Tabs<'details' | 'activity'> value="details" onChange={onChange}>
-        {({TabList}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-            <TabList>
-              <TabList.Item key="details">Details</TabList.Item>
-              <TabList.Item key="activity">Activity</TabList.Item>
-            </TabList>
-          </Stack>
-        )}
-      </Tabs>,
-      {wrapper: ThemeWrapper}
-    );
+    const {rerender} = render(<ControlledTabs value="details" onChange={onChange} />, {
+      wrapper: ThemeWrapper,
+    });
 
     await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
 
@@ -348,18 +412,7 @@ describe('Tabs', () => {
       'true'
     );
 
-    rerender(
-      <Tabs<'details' | 'activity'> value="activity" onChange={onChange}>
-        {({TabList}) => (
-          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
-            <TabList>
-              <TabList.Item key="details">Details</TabList.Item>
-              <TabList.Item key="activity">Activity</TabList.Item>
-            </TabList>
-          </Stack>
-        )}
-      </Tabs>
-    );
+    rerender(<ControlledTabs value="activity" onChange={onChange} />);
 
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
       'aria-selected',
@@ -375,7 +428,7 @@ describe('Tabs', () => {
     'changes tabs using $activation keyboard activation',
     async ({activation, keys}) => {
       render(
-        <Tabs keyboardActivation={activation}>
+        <Tabs defaultValue="details" keyboardActivation={activation}>
           {({TabList, TabPanels}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>
@@ -411,7 +464,7 @@ describe('Tabs', () => {
 
   it('changes tabs on key press in vertical orientation', async () => {
     render(
-      <Tabs orientation="vertical">
+      <Tabs defaultValue="details" orientation="vertical">
         {({TabList, TabPanels}) => (
           <Flex
             direction="row"
@@ -455,7 +508,7 @@ describe('Tabs', () => {
 
   it('renders disabled tabs', () => {
     render(
-      <Tabs>
+      <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
           <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <TabList>
@@ -486,7 +539,7 @@ describe('Tabs', () => {
 
   it('renders tab links', async () => {
     render(
-      <Tabs>
+      <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
           <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <TabList>
@@ -540,7 +593,7 @@ describe('Tabs', () => {
 
   it('should not allow disabled tabs to be links', () => {
     render(
-      <Tabs>
+      <Tabs defaultValue="details">
         {({TabList, TabPanels}) => (
           <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <TabList>
@@ -770,7 +823,7 @@ describe('Tabs overflow', () => {
       items: ReadonlyArray<{key: string; label: string}>;
     }) {
       return (
-        <Tabs>
+        <Tabs defaultValue="details">
           {({TabList}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>
@@ -820,7 +873,7 @@ function ThemeWrapper({children}: {children: ReactNode}) {
 
 function OverflowTabs({orientation}: {orientation?: 'horizontal' | 'vertical'}) {
   return (
-    <Tabs orientation={orientation}>
+    <Tabs defaultValue="details" orientation={orientation}>
       {({TabList, TabPanels}) => (
         <Flex
           direction={orientation === 'vertical' ? 'row' : 'column'}
@@ -842,6 +895,27 @@ function OverflowTabs({orientation}: {orientation?: 'horizontal' | 'vertical'}) 
             ))}
           </TabPanels>
         </Flex>
+      )}
+    </Tabs>
+  );
+}
+
+function ControlledTabs({
+  value,
+  onChange,
+}: {
+  onChange: (key: 'details' | 'activity') => void;
+  value: 'details' | 'activity';
+}) {
+  return (
+    <Tabs value={value} onChange={onChange}>
+      {({TabList}) => (
+        <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
+          <TabList>
+            <TabList.Item key="details">Details</TabList.Item>
+            <TabList.Item key="activity">Activity</TabList.Item>
+          </TabList>
+        </Stack>
       )}
     </Tabs>
   );

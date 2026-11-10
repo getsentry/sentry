@@ -32,7 +32,7 @@ export function MetricInfoTabs({
   const setAggregatesMode = useSetQueryParamsMode();
 
   return (
-    <Tabs<Mode>
+    <Tabs
       value={queryParamsMode}
       onChange={mode => {
         setAggregatesMode(mode);

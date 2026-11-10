@@ -1,5 +1,6 @@
 import {Outlet} from 'react-router';
 import {IconAdd} from '@sentry/icons/add';
+import noop from 'lodash/noop';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -47,7 +48,7 @@ export default function AutomationsLayout() {
           }}
         />
         <Flex justify="between" align="center" gap="lg">
-          <Tabs value={activeTab} size="sm">
+          <Tabs onChange={noop} value={activeTab} size="sm">
             {({TabList}) => (
               <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                 <TabList>

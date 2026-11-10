@@ -189,7 +189,7 @@ When a component exposes sub-components, show the full compound usage early:
 `<Tabs>` provides typed components through its child function. Import only `Tabs`, and choose the layout in the caller:
 
 ```jsx
-<Tabs>
+<Tabs defaultValue="tab1">
   {({TabList, TabPanels}) => (
     <Flex direction="column">
       <TabList>

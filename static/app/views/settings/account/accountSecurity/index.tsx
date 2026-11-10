@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {useMutation} from '@tanstack/react-query';
+import noop from 'lodash/noop';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -94,7 +95,7 @@ export default function AccountSecurity() {
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader title={t('Security')} />
       <Container marginBottom="xl">
-        <Tabs value={activeTab}>
+        <Tabs onChange={noop} value={activeTab}>
           {({TabList}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>

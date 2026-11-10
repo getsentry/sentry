@@ -22,11 +22,15 @@ export interface TabsComponents<T extends TabKey> {
   };
 }
 
-export interface TabsProps<T extends TabKey>
+interface BaseTabsProps
   extends
     Omit<
       AriaTabListOptions<any>,
-      'selectedKey' | 'defaultSelectedKey' | 'onSelectionChange' | 'isDisabled'
+      | 'selectedKey'
+      | 'defaultSelectedKey'
+      | 'onSelectionChange'
+      | 'isDisabled'
+      | 'disabledKeys'
     >,
     Omit<
       TabListStateOptions<any>,
@@ -35,24 +39,36 @@ export interface TabsProps<T extends TabKey>
       | 'defaultSelectedKey'
       | 'onSelectionChange'
       | 'isDisabled'
+      | 'disabledKeys'
     > {
-  children: (components: TabsComponents<T>) => ReactNode;
-  /** Initial selected key for uncontrolled tabs. */
-  defaultValue?: T;
   disabled?: boolean;
-  disabledKeys?: Iterable<NoInfer<T>>;
-  onChange?: (key: NoInfer<T>) => void;
   size?: TabProps['size'];
-  /** Selected key for controlled tabs. */
-  value?: T;
 }
+
+export type TabsProps<T extends TabKey = TabKey> = BaseTabsProps &
+  (
+    | {
+        children: (components: TabsComponents<NoInfer<T>>) => ReactNode;
+        onChange: (key: NoInfer<T>) => void;
+        value: T;
+        defaultValue?: never;
+        disabledKeys?: Iterable<NoInfer<T>>;
+      }
+    | {
+        children: (components: TabsComponents<TabKey>) => ReactNode;
+        defaultValue: TabKey;
+        disabledKeys?: Iterable<TabKey>;
+        onChange?: (key: TabKey) => void;
+        value?: never;
+      }
+  );
 
 function TabStateProvider({
   children,
   orientation = 'horizontal',
   size = 'md',
   ...props
-}: Omit<TabsProps<TabKey>, 'children'> & {children: ReactNode}) {
+}: Omit<TabsProps, 'children'> & {children: ReactNode}) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
@@ -66,7 +82,7 @@ function TabStateProvider({
 
 const components = {TabList, TabPanels};
 
-function TabsRoot({children, ...props}: TabsProps<TabKey>) {
+function TabsRoot({children, ...props}: TabsProps) {
   return <TabStateProvider {...props}>{children(components)}</TabStateProvider>;
 }
 

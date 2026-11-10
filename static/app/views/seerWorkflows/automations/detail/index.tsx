@@ -3,6 +3,7 @@ import {Outlet} from 'react-router';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconPause} from '@sentry/icons/pause';
 import {IconPlay} from '@sentry/icons/play';
+import noop from 'lodash/noop';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -259,7 +260,7 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <Tabs value={activeTab} size="sm">
+          <Tabs onChange={noop} value={activeTab} size="sm">
             {({TabList}) => (
               <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                 <TabList>

@@ -62,13 +62,16 @@ function initializeData(opts?: InitialOpts) {
 
 // The header renders into TopBar slots, so the bar has to be mounted alongside
 // it for the breadcrumbs and title to appear.
-function renderHeader(data = initializeData()) {
+function renderHeader(
+  data = initializeData(),
+  currentTab: Tab = Tab.TRANSACTION_SUMMARY
+) {
   const {project, organization, router, eventView} = data;
 
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
-      <Tabs<Tab> value={Tab.TRANSACTION_SUMMARY}>
+      <Tabs value={currentTab} onChange={jest.fn()}>
         {({TabList}) => (
           <TransactionHeader
             TabList={TabList}
@@ -78,7 +81,7 @@ function renderHeader(data = initializeData()) {
             projects={[project]}
             projectId={project.id}
             transactionName={TRANSACTION_NAME}
-            currentTab={Tab.TRANSACTION_SUMMARY}
+            currentTab={currentTab}
           />
         )}
       </Tabs>

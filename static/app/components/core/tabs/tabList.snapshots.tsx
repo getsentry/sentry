@@ -22,7 +22,7 @@ describe('TabList', () => {
         'horizontal',
         () => (
           <Wrapper>
-            <Tabs<(typeof TABS)[number]['key']> size={size} defaultValue="activity">
+            <Tabs size={size} defaultValue="activity">
               {({TabList}) => (
                 <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                   <TabList variant={variant}>
@@ -47,10 +47,7 @@ describe('TabList', () => {
       'vertical',
       () => (
         <Wrapper>
-          <Tabs<(typeof TABS)[number]['key']>
-            orientation="vertical"
-            defaultValue="activity"
-          >
+          <Tabs orientation="vertical" defaultValue="activity">
             {({TabList}) => (
               <Flex
                 direction="row"
@@ -81,7 +78,7 @@ describe('TabList', () => {
     'disabled',
     () => (
       <Wrapper>
-        <Tabs<(typeof TABS)[number]['key']> disabled defaultValue="activity">
+        <Tabs disabled defaultValue="activity">
           {({TabList}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>
@@ -103,7 +100,7 @@ describe('TabList', () => {
     'single disabled tab',
     () => (
       <Wrapper>
-        <Tabs<(typeof TABS)[number]['key']> defaultValue="details">
+        <Tabs defaultValue="details">
           {({TabList}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>

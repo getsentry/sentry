@@ -278,10 +278,7 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <Tabs<DetailTab>
-          value={getVisibleTab(activeTab, combinedTab)}
-          onChange={onTabChange}
-        >
+        <Tabs value={getVisibleTab(activeTab, combinedTab)} onChange={onTabChange}>
           {({TabList, TabPanels}) => (
             <Fragment>
               <TabList>

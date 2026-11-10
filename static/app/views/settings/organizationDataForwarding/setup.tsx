@@ -110,7 +110,7 @@ export default function OrganizationDataForwardingSetup() {
                   features={features}
                 />
               )}
-              <Tabs value={provider} onChange={setProvider}>
+              <Tabs value={provider ?? PROVIDER_TAB_ORDER[0]} onChange={setProvider}>
                 {({TabList}) => (
                   <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                     <TabList variant="floating">

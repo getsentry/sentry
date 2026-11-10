@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import noop from 'lodash/noop';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
@@ -54,7 +55,7 @@ export default function ProjectFilters() {
 
         {hasDiscardGroups && (
           <TabsContainer>
-            <Tabs value={activeTab}>
+            <Tabs onChange={noop} value={activeTab}>
               {({TabList}) => (
                 <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                   <TabList>

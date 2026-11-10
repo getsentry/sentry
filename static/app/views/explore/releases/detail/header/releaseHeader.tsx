@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
+import noop from 'lodash/noop';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
@@ -243,7 +244,7 @@ export function ReleaseHeader({
           {null}
         </FeedbackButton>
       </TopBar.Slot>
-      <Tabs value={getActiveTabTo()}>
+      <Tabs onChange={noop} value={getActiveTabTo()}>
         {({TabList}) => (
           <Stack
             flexGrow={1}

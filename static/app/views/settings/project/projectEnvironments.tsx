@@ -2,6 +2,7 @@ import {Fragment, useDeferredValue, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import noop from 'lodash/noop';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -276,7 +277,7 @@ export default function ProjectEnvironments() {
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
-        <Tabs value={isHidden ? 'hidden' : 'environments'}>
+        <Tabs onChange={noop} value={isHidden ? 'hidden' : 'environments'}>
           {({TabList}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>

@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
+import noop from 'lodash/noop';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -123,7 +124,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                   )}
                 />
               )}
-              <Tabs value={dataForwarder.provider}>
+              <Tabs onChange={noop} value={dataForwarder.provider}>
                 {({TabList}) => (
                   <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                     <TabList variant="floating">

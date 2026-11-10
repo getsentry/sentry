@@ -644,10 +644,7 @@ export function SourceMapsDebuggerModal({
               )}
             </p>
           )}
-          <Tabs<'debug-ids' | 'release' | 'fetching'>
-            value={activeTab}
-            onChange={setActiveTab}
-          >
+          <Tabs value={activeTab} onChange={setActiveTab}>
             {({TabList, TabPanels}) => (
               <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                 <TabList>

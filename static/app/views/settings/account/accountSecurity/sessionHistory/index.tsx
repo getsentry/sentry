@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import noop from 'lodash/noop';
 
 import {Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -52,7 +53,7 @@ export default function SessionHistory() {
     <SentryDocumentTitle title={t('Session History')}>
       <SettingsPageHeader title={t('Security')} />
       <TabsContainer>
-        <Tabs value={activeTab}>
+        <Tabs onChange={noop} value={activeTab}>
           {({TabList}) => (
             <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
               <TabList>

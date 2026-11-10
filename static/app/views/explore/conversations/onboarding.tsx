@@ -297,11 +297,13 @@ function ConversationOnboardingPanel({
                     defaultValue={defaultTab}
                     aria-label={t('Setup instructions')}
                     onChange={tab => {
-                      trackAnalytics('conversations.onboarding.interaction', {
-                        organization,
-                        action: 'switch_tab',
-                        tab,
-                      });
+                      if (tab === 'agent' || tab === 'human') {
+                        trackAnalytics('conversations.onboarding.interaction', {
+                          organization,
+                          action: 'switch_tab',
+                          tab,
+                        });
+                      }
                     }}
                   >
                     {({TabList, TabPanels}) => (

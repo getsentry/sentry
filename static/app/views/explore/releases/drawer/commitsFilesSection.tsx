@@ -55,7 +55,7 @@ export function CommitsFilesSection({
   const noRepositoryOrgRelatedFound = !repositories?.length;
 
   return (
-    <Tabs disabled={isError}>
+    <Tabs defaultValue="commits" disabled={isError}>
       {({TabList, TabPanels}) => (
         <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
           <Container marginBottom="md">

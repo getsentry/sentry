@@ -26,21 +26,21 @@ const TABS = [
 ] as const;
 
 function LinkedTabs({
-  value,
-  onChange,
   keyboardActivation = 'manual',
   disabled,
+  ...selection
 }: {
   disabled?: boolean;
   keyboardActivation?: 'manual' | 'automatic';
-  onChange?: (key: string) => void;
-  value?: string;
-}) {
+} & (
+  | {onChange: (key: string) => void; value: string}
+  | {onChange?: (key: string) => void; value?: never}
+)) {
   return (
     <Tabs
-      defaultValue="details"
-      value={value}
-      onChange={onChange}
+      {...(selection.value === undefined
+        ? {defaultValue: 'details', onChange: selection.onChange}
+        : selection)}
       keyboardActivation={keyboardActivation}
       disabled={disabled}
     >
@@ -61,7 +61,7 @@ function LinkedTabs({
 
 function RoutedTabs({onChange}: {onChange: (key: string) => void}) {
   const {pathname} = useLocation();
-  return <LinkedTabs value={pathname.split('/')[2]} onChange={onChange} />;
+  return <LinkedTabs value={pathname.split('/')[2] ?? 'details'} onChange={onChange} />;
 }
 
 describe('Tabs routing', () => {

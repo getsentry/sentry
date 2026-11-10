@@ -21,13 +21,13 @@ const enum DiffType {
 
 export function ReplayDiffChooser() {
   const organization = useOrganization();
-  const onTabChange = (tabKey: DiffType) => {
+  const onTabChange = (tabKey: string) => {
     trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});
   };
 
   return (
     <Grid gap="md" height="100%" rows="max-content 1fr">
-      <Tabs<DiffType> defaultValue={DiffType.SLIDER} onChange={onTabChange}>
+      <Tabs defaultValue={DiffType.SLIDER} onChange={onTabChange}>
         {({TabList, TabPanels}) => (
           <Fragment>
             <TabList>

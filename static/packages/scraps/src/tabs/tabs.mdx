@@ -13,6 +13,7 @@ resources:
 ---
 
 import {Fragment, useState} from 'react';
+import noop from 'lodash/noop';
 import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -29,7 +30,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/tabs');
 Use `<Tabs>` to organize related content into separate views that users can switch between without leaving the page.
 
 ```jsx
-<Tabs>
+<Tabs defaultValue="tab1">
   {({TabList, TabPanels}) => (
     <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
       <TabList>
@@ -73,7 +74,7 @@ export function BasicDemo() {
     {key: 'three', label: 'Label 3', content: 'This is the third panel.'},
   ];
   return (
-    <Tabs>
+    <Tabs defaultValue="one">
       {({TabList, TabPanels}) => (
         <Flex
           direction="column"
@@ -103,7 +104,7 @@ export function BasicDemo() {
 </Storybook.Demo>
 
 ```jsx
-<Tabs>
+<Tabs defaultValue="one">
   {({TabList, TabPanels}) => (
     <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
       <TabList>
@@ -129,7 +130,7 @@ export function BasicDemo() {
   {['md', 'sm', 'xs'].map(size => (
     <Stack key={size} gap="md">
       <Text>{size === 'md' ? 'md (default)' : size}</Text>
-      <Tabs size={size}>
+      <Tabs defaultValue="one" size={size}>
         {({TabList, TabPanels}) => (
           <Flex
             direction="column"
@@ -156,17 +157,17 @@ export function BasicDemo() {
 </Storybook.Demo>
 
 ```jsx
-<Tabs size="md">
+<Tabs defaultValue="one" size="md">
 {({TabList, TabPanels}) => (
 <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
 )}
 </Tabs>
-<Tabs size="sm">
+<Tabs defaultValue="one" size="sm">
 {({TabList, TabPanels}) => (
 <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
 )}
 </Tabs>
-<Tabs size="xs">
+<Tabs defaultValue="one" size="xs">
 {({TabList, TabPanels}) => (
 <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* tabs and panels */}</Flex>
 )}
@@ -175,7 +176,7 @@ export function BasicDemo() {
 
 ## Default Selection
 
-Set `defaultValue` to specify which tab is selected initially. For uncontrolled tabs, give `Tabs` an explicit key union when the keys are known. This lets every tab key be used while keeping the default selection typed.
+Uncontrolled tabs require `defaultValue` to specify the initial selection. Their item keys and optional `onChange` callback use strings. Do not pass `value` with `defaultValue`.
 
 <Storybook.Demo>
   <Tabs defaultValue="two">
@@ -203,9 +204,9 @@ Set `defaultValue` to specify which tab is selected initially. For uncontrolled 
 </Storybook.Demo>
 
 ```tsx
-type TabKey = 'one' | 'two' | 'three';
+const handleChange = (tab: string) => console.log(tab);
 
-<Tabs<TabKey> defaultValue="two">
+<Tabs defaultValue="two" onChange={handleChange}>
   {({TabList}) => (
     <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
       <TabList>
@@ -220,7 +221,7 @@ type TabKey = 'one' | 'two' | 'three';
 
 ## Controlled Tabs
 
-For controlled tabs, use `value` and `onChange` to manage the active tab externally. `value` determines the allowed item keys and the `onChange` parameter type. Use a union for known keys.
+Controlled tabs require both `value` and `onChange`. `value` determines the allowed item keys and the `onChange` parameter type. Use a union for known keys. Do not pass `defaultValue`.
 
 export function ControlledDemo() {
   const [selected, setSelected] = useState('two');
@@ -278,7 +279,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
   <Storybook.SideBySide>
     <div>
       <p>All tabs disabled</p>
-      <Tabs disabled>
+      <Tabs defaultValue="one" disabled>
         {({TabList, TabPanels}) => (
           <Flex
             direction="column"
@@ -301,7 +302,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
     </div>
     <div>
       <p>One tab disabled</p>
-      <Tabs>
+      <Tabs defaultValue="one">
         {({TabList, TabPanels}) => (
           <Flex
             direction="column"
@@ -331,7 +332,7 @@ Disable all tabs with the `disabled` prop on `<Tabs>`, or disable individual tab
 
 ```jsx
 // Disable all tabs
-<Tabs disabled>
+<Tabs defaultValue="two" disabled>
 {({TabList, TabPanels}) => (
 <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
   {/* tabs and panels */}
@@ -353,7 +354,7 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
   {['flat', 'floating'].map(variant => (
     <Stack key={variant} gap="md">
       <Text>{variant === 'flat' ? 'flat (default)' : variant}</Text>
-      <Tabs>
+      <Tabs defaultValue="one">
         {({TabList, TabPanels}) => (
           <Flex
             direction="column"
@@ -389,7 +390,7 @@ Tabs come in two visual variants: `flat` (default) and `floating`. The variant i
 Set `orientation` to control keyboard navigation and tab styling. Choose the matching layout on the parent component.
 
 <Storybook.Demo direction="column" align="stretch" gap="3xl">
-  <Tabs orientation="horizontal">
+  <Tabs defaultValue="one" orientation="horizontal">
     {({TabList, TabPanels}) => (
       <Flex
         direction="column"
@@ -409,7 +410,7 @@ Set `orientation` to control keyboard navigation and tab styling. Choose the mat
       </Flex>
     )}
   </Tabs>
-  <Tabs orientation="vertical">
+  <Tabs defaultValue="one" orientation="vertical">
     {({TabList, TabPanels}) => (
       <Flex
         direction="row"
@@ -434,12 +435,12 @@ Set `orientation` to control keyboard navigation and tab styling. Choose the mat
 </Storybook.Demo>
 
 ```jsx
-<Tabs orientation="horizontal">
+<Tabs defaultValue="overview" orientation="horizontal">
 {({TabList, TabPanels}) => (
 <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">{/* default */}</Flex>
 )}
 </Tabs>
-<Tabs orientation="vertical">
+<Tabs defaultValue="overview" orientation="vertical">
 {({TabList, TabPanels}) => (
 <Flex direction="row" flexGrow={1} minWidth="0" flexBasis="auto" alignSelf="auto" height="100%" align="stretch">{/* side-by-side layout */}</Flex>
 )}
@@ -482,9 +483,7 @@ Resize the demo to see tabs move into and out of the overflow menu.
 </Storybook.Demo>
 
 ```tsx
-type TabKey = 'overview' | 'activity' | 'feedback' | 'attachments' | 'settings';
-
-<Tabs<TabKey> defaultValue="overview">
+<Tabs defaultValue="overview">
   {({TabList, TabPanels}) => (
     <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
       <TabList>
@@ -503,7 +502,7 @@ type TabKey = 'overview' | 'activity' | 'feedback' | 'attachments' | 'settings';
       </TabPanels>
     </Flex>
   )}
-</Tabs>;
+</Tabs>
 ```
 
 ## Linked tabs
@@ -527,7 +526,7 @@ export function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs value={value}>
+    <Tabs onChange={noop} value={value}>
       {({TabList, TabPanels}) => (
         <Flex
           direction="column"
@@ -584,7 +583,7 @@ function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs value={value}>
+    <Tabs onChange={noop} value={value}>
       {({TabList, TabPanels}) => (
         <Flex
           direction="column"
@@ -635,7 +634,7 @@ function LinkedTabsDemo() {
 Use tabs to organize related content into distinct views:
 
 ```jsx
-<Tabs>
+<Tabs defaultValue="overview">
   {({TabList, TabPanels}) => (
     <Flex direction="column" flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
       <TabList>

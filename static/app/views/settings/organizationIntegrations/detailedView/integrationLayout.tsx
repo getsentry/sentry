@@ -104,7 +104,7 @@ function IntegrationTabs({
   }
 
   return (
-    <Tabs value={activeTab} onChange={onTabChange}>
+    <Tabs value={activeTab} onChange={tab => onTabChange?.(tab)}>
       {({TabList}) => (
         <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
           <TabList>

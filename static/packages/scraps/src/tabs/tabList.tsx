@@ -16,7 +16,7 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {Key, Node, Orientation} from '@react-types/shared';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -306,7 +306,7 @@ function BaseTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: onChange,
+    onSelectionChange: (key: Key) => onChange?.(String(key)),
     isDisabled: disabled,
     keyboardActivation,
     ...otherRootProps,

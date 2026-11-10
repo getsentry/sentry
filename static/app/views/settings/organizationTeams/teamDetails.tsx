@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import styled from '@emotion/styled';
+import noop from 'lodash/noop';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -80,11 +81,9 @@ export default function TeamDetails() {
     );
   }
   const routePrefix = `/settings/${orgSlug}/teams/${params.teamId}/`;
-  const tab = location.pathname.split('/').at(-2);
+  const tab = location.pathname.split('/').at(-2) ?? 'members';
 
-  const activeTab = ['members', 'projects', 'notifications', 'settings'].includes(
-    tab ?? ''
-  )
+  const activeTab = ['members', 'projects', 'notifications', 'settings'].includes(tab)
     ? tab
     : 'members';
 
@@ -98,7 +97,7 @@ export default function TeamDetails() {
           </h3>
 
           <TabsContainer>
-            <Tabs value={activeTab}>
+            <Tabs onChange={noop} value={activeTab}>
               {({TabList}) => (
                 <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
                   <TabList>
