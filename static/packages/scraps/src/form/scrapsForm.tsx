@@ -27,7 +27,7 @@ import {CompactSelectField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
-import {RadioField} from './field/radioField';
+import {RadioGroupField} from './field/radioGroupField';
 import {RangeField} from './field/rangeField';
 import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
@@ -65,7 +65,7 @@ const fieldComponents = {
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
-  Radio: RadioField,
+  RadioGroup: RadioGroupField,
   Range: RangeField,
   Select: SelectField,
   SelectAsync: SelectAsyncField,

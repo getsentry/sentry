@@ -318,23 +318,25 @@ Slider input for numeric values within a range.
 
 ## Radio
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`.
+Radio fields use `field.RadioGroup` with a render callback that provides a typed `Item` component. The selected `value` determines which item values are allowed.
 
 > [!WARNING]
-> The layout **must** be rendered inside `Radio.Group`. The group provides context that changes how the label is rendered for proper accessibility semantics.
+> The layout **must** be rendered inside the `RadioGroup` callback. The group provides context that changes how the label is rendered for proper accessibility semantics.
 
 ```jsx
 <form.AppField name="priority">
   {field => (
-    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label={t('Priority')}>
-        <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
-        <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
-        <field.Radio.Item value="high" description={t('Urgent issues')}>
-          {t('High')}
-        </field.Radio.Item>
-      </field.Layout.Stack>
-    </field.Radio.Group>
+    <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+      {({Item}) => (
+        <field.Layout.Stack label={t('Priority')}>
+          <Item value="low">{t('Low')}</Item>
+          <Item value="medium">{t('Medium')}</Item>
+          <Item value="high" description={t('Urgent issues')}>
+            {t('High')}
+          </Item>
+        </field.Layout.Stack>
+      )}
+    </field.RadioGroup>
   )}
 </form.AppField>
 ```
@@ -344,14 +346,16 @@ For horizontal arrangement, wrap the items in a `Flex`:
 ```jsx
 import {Flex} from '@sentry/scraps/layout';
 
-<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-  <field.Layout.Row label={t('Priority')}>
-    <Flex gap="lg">
-      <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
-      <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
-    </Flex>
-  </field.Layout.Row>
-</field.Radio.Group>;
+<field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+  {({Item}) => (
+    <field.Layout.Row label={t('Priority')}>
+      <Flex gap="lg">
+        <Item value="low">{t('Low')}</Item>
+        <Item value="high">{t('High')}</Item>
+      </Flex>
+    </field.Layout.Row>
+  )}
+</field.RadioGroup>;
 ```
 
 ## Custom Fields with `field.Base`
