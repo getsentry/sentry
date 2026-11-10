@@ -304,7 +304,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes. ' +
       'Use y null for a bucket with no data; never write 0 for missing data. When values come from a ' +
       "transformed time series, copy each row's filled and smoothed flags onto its point so the chart " +
-      'can mark them as derived rather than observed.',
+      'tooltip can say they were derived rather than observed.',
     level: ['block'],
     schema: z
       .object({
