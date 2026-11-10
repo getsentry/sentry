@@ -4,7 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconDownload} from '@sentry/icons/download';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSearch} from '@sentry/icons/search';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
@@ -92,7 +92,6 @@ export function SizeCompareMainContent() {
       headArtifactId,
       baseArtifactId,
     }),
-    enabled: !!headArtifactId && !!baseArtifactId,
     refetchInterval: query => {
       const mainComparison = getMainComparison(query.state.data?.json);
       return isSizeAnalysisComparisonInProgress(mainComparison) ? 10_000 : false;
@@ -101,26 +100,31 @@ export function SizeCompareMainContent() {
 
   const mainArtifactComparison = getMainComparison(sizeComparisonQuery.data);
 
+  const projectSlug = sizeComparisonQuery.data?.head_build_details.project_slug;
+  const headSizeMetricId = mainArtifactComparison?.head_size_metric_id;
+  const baseSizeMetricId = mainArtifactComparison?.base_size_metric_id;
+
   // Query the comparison download endpoint to get detailed data
   const comparisonDataQuery = useQuery({
     ...apiOptions.as<SizeAnalysisComparisonResults>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: sizeComparisonQuery.data?.head_build_details.project_slug!,
-          headSizeMetricId: mainArtifactComparison?.head_size_metric_id!,
-          baseSizeMetricId: mainArtifactComparison?.base_size_metric_id!,
-        },
+        path:
+          projectSlug &&
+          headSizeMetricId &&
+          baseSizeMetricId &&
+          organization.slug &&
+          mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS
+            ? {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+                headSizeMetricId,
+                baseSizeMetricId,
+              }
+            : skipToken,
         staleTime: 0,
       }
     ),
-    enabled:
-      !!mainArtifactComparison?.head_size_metric_id &&
-      !!mainArtifactComparison?.base_size_metric_id &&
-      !!organization.slug &&
-      !!baseArtifactId &&
-      mainArtifactComparison?.state === SizeAnalysisComparisonState.SUCCESS,
   });
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<

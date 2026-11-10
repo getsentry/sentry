@@ -1,3 +1,5 @@
+import {skipToken, type SkipToken} from '@tanstack/react-query';
+
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {SizeComparisonApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
@@ -60,12 +62,20 @@ export function getCompareApiUrl(params: {
   );
 }
 
-export function sizeComparisonApiOptions(params: Parameters<typeof getCompareApiUrl>[0]) {
-  const {organizationSlug, headArtifactId, baseArtifactId} = params;
+export function sizeComparisonApiOptions(
+  params: Parameters<typeof getCompareApiUrl>[0] | SkipToken
+) {
   return apiOptions.as<SizeComparisonApiResponse>()(
     '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
     {
-      path: {organizationIdOrSlug: organizationSlug, headArtifactId, baseArtifactId},
+      path:
+        params === skipToken
+          ? skipToken
+          : {
+              organizationIdOrSlug: params.organizationSlug,
+              headArtifactId: params.headArtifactId,
+              baseArtifactId: params.baseArtifactId,
+            },
       staleTime: 0,
     }
   );

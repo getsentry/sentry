@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
+import {skipToken, useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
@@ -31,37 +31,42 @@ export default function BuildComparison() {
     headArtifactId?: string;
   }>();
 
-  const headBuildDetailsQuery = useQuery({
-    ...apiOptions.as<BuildDetailsApiResponse>()(
+  const headBuildDetailsQuery = useQuery(
+    apiOptions.as<BuildDetailsApiResponse>()(
       '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/build-details/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          headArtifactId: headArtifactId!,
-        },
+        path: headArtifactId
+          ? {
+              organizationIdOrSlug: organization.slug,
+              headArtifactId,
+            }
+          : skipToken,
         staleTime: 0,
       }
-    ),
-    enabled: !!headArtifactId,
-  });
+    )
+  );
 
-  const compareOptions = sizeComparisonApiOptions({
-    organizationSlug: organization.slug,
-    headArtifactId: headArtifactId!,
-    baseArtifactId: baseArtifactId!,
-  });
+  const compareOptions = sizeComparisonApiOptions(
+    headArtifactId && baseArtifactId
+      ? {
+          organizationSlug: organization.slug,
+          headArtifactId,
+          baseArtifactId,
+        }
+      : skipToken
+  );
 
   const queryClient = useQueryClient();
   const {mutate: rerunComparison, isPending: isRerunning} = useMutation<
     {status: string},
-    RequestError
+    RequestError,
+    {baseArtifactId: string; headArtifactId: string}
   >({
-    mutationFn: () => {
+    mutationFn: artifacts => {
       return fetchMutation({
         url: getCompareApiUrl({
           organizationSlug: organization.slug,
-          headArtifactId: headArtifactId!,
-          baseArtifactId: baseArtifactId!,
+          ...artifacts,
         }),
         method: 'POST',
         options: {query: {rerun: 'true'}},
@@ -130,7 +135,11 @@ export default function BuildComparison() {
           buildDetails={headBuildDetailsQuery.data}
           headArtifactId={headArtifactId}
           baseArtifactId={baseArtifactId}
-          onRerunComparison={() => rerunComparison()}
+          onRerunComparison={
+            headArtifactId && baseArtifactId
+              ? () => rerunComparison({headArtifactId, baseArtifactId})
+              : undefined
+          }
           isRerunning={isRerunning}
         />
 
