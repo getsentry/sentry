@@ -23,6 +23,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {getMutateSeerProjectRepoOptions} from 'sentry/utils/seer/seerProjectRepos';
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -33,10 +34,10 @@ import {overrideHasAnyValue} from './overrideHasAnyValue';
 interface Props {
   canWrite: boolean;
   includeInstructions: boolean;
+  onRemoveRepo: ({repoId}: {repoId: string}) => void;
   project: AvatarProject;
   repositories: SeerProjectReposResponse[];
   repository: SeerProjectReposResponse;
-  onRemoveRepo?: ({repoId}: {repoId: string}) => void;
 }
 
 const overrideItemSchema = z
@@ -139,7 +140,7 @@ export function AutofixRepositoriesItem({
           </Flex>
         </SimpleTable.RowCell>
 
-        {onRemoveRepo && (
+        {!isSeerTokenBasedBillingOnboardingEnabled(organization) && (
           <SimpleTable.RowCell>
             <Confirm
               disabled={!canWrite}

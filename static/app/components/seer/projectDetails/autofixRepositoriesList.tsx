@@ -201,7 +201,7 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
             key={repository.repositoryId}
             includeInstructions={includeInstructions}
             canWrite={canWrite}
-            onRemoveRepo={isTokenBilled ? undefined : handleRemoveRepo}
+            onRemoveRepo={handleRemoveRepo}
             project={project}
             repositories={data}
             repository={repository}
