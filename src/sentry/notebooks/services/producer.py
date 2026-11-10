@@ -99,7 +99,10 @@ PRODUCERS: dict[str, NotebookProducer] = {}
 
 
 def register_producer(source_type: str, producer: NotebookProducer) -> None:
-    PRODUCERS[source_type] = producer
+    # Re-running ready() with a new instance is fine; a second producer type isn't.
+    existing = PRODUCERS.setdefault(source_type, producer)
+    if type(existing) is not type(producer):
+        raise ValueError(f"{source_type!r} already has a producer: {type(existing).__name__}")
 
 
 def get_producer(source_type: str) -> NotebookProducer | None:

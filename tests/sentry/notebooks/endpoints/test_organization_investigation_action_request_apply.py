@@ -328,7 +328,8 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             False,
             "unsupported_action",
         )
-        assert response.status_code == 404, response.data
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "unsupported_action"
         action_request.refresh_from_db()
         assert action_request.state == NotebookActionRequestState.SUGGESTED
 

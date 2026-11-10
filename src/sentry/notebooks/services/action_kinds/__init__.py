@@ -10,12 +10,15 @@ from sentry.notebooks.models import (
     NotebookStatus,
 )
 from sentry.notebooks.services.action_kinds.base import ActionKind, CannotApplyReason
+from sentry.notebooks.services.producer import get_producer
 
 ACTION_KINDS: dict[str, ActionKind[Mapping[str, object]]] = {}
 
 
 def register_action_kind(kind: ActionKind[Mapping[str, object]]) -> None:
-    ACTION_KINDS[kind.kind] = kind
+    existing = ACTION_KINDS.setdefault(kind.kind, kind)
+    if type(existing) is not type(kind):
+        raise ValueError(f"{kind.kind!r} is already registered: {type(existing).__name__}")
 
 
 def get_action_kind(kind: str | None) -> ActionKind[Mapping[str, object]] | None:
@@ -35,6 +38,8 @@ def shared_cannot_apply_reason(
         return CannotApplyReason.INVESTIGATION_ARCHIVED
     if action_request.state != NotebookActionRequestState.SUGGESTED:
         return CannotApplyReason.NOT_SUGGESTED
+    if get_producer(investigation.source_type) is None:
+        return CannotApplyReason.UNSUPPORTED_ACTION
     if get_action_kind(action_request.action_kind) is None:
         return CannotApplyReason.UNSUPPORTED_ACTION
     return None
