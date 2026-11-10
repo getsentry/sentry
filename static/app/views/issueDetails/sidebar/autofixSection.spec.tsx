@@ -21,9 +21,19 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 const mockOpenSeerExplorer = jest.fn();
+let mockIsExplorerOpen = false;
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
   ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
-  useSeerExplorerContext: () => ({openSeerExplorer: mockOpenSeerExplorer}),
+  useSeerExplorerContext: () => ({
+    openSeerExplorer: mockOpenSeerExplorer,
+    isOpen: mockIsExplorerOpen,
+  }),
+}));
+
+let mockOpenRunId: number | null = null;
+jest.mock('sentry/views/seerExplorer/seerExplorerChatStateContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/seerExplorerChatStateContext'),
+  useSeerExplorerChatState: () => ({runId: mockOpenRunId}),
 }));
 
 jest.mock('sentry/utils/cells');
@@ -209,6 +219,10 @@ describe('AutofixSection', () => {
   it('starts collapsed on the autofix tab even when saved as open', async () => {
     mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
@@ -298,6 +312,38 @@ describe('AutofixSection', () => {
 
     beforeEach(() => {
       mockOpenSeerExplorer.mockClear();
+      mockIsExplorerOpen = false;
+      mockOpenRunId = null;
+    });
+
+    it('hides the section while the run is open in the Explorer panel', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument()
+      );
+    });
+
+    it('keeps the section while the Explorer panel shows another chat', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 123;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     });
 
     it('opens the Explorer panel on Open Autofix', async () => {
