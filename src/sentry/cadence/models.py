@@ -58,7 +58,8 @@ class ScheduledTrigger(DefaultFieldsModel):
     class Meta:
         app_label = "cadence"
         db_table = "cadence_scheduledtrigger"
-        indexes = [models.Index(fields=["next_fire_at"])]
+        # `id` breaks ties so the tick can resume a claim from a (next_fire_at, id) cursor.
+        indexes = [models.Index(fields=["next_fire_at", "id"])]
         constraints = [
             models.UniqueConstraint(
                 fields=["organization", "trigger_type", "target_id"],
