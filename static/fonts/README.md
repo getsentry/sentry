@@ -1,30 +1,16 @@
-# Notes
+# Fonts
 
-The fonts in this folder have been optimized for web rendering. There are two notable modifications: vertical metrics and file size. Before making any changes to these files, ensure that the metrics are correct and the files are properly minimized.
+Rubik and Roboto Mono are built from the [google/fonts](https://github.com/google/fonts) variable fonts with fontTools. Keep these modifications when rebuilding:
 
-## Vertical metrics
+| Font        | Upstream                                    | `wght` axis |
+| ----------- | ------------------------------------------- | ----------- |
+| Rubik       | `ofl/rubik/Rubik[wght].ttf` 2.300           | 400–500     |
+| Roboto Mono | `ofl/robotomono/RobotoMono[wght].ttf` 3.001 | 425–600     |
 
-For historical reasons, font files include three different sets of metrics (`win`, `typo`, and `hhea`). These metrics have been modified to standardize rendering across operating systems and browsers.
+- **Axis:** limit with `fonttools varLib.instancer`. Rubik's `@font-face` declares `400 600` so 600 renders at 500, not a synthesized bold.
+- **Rubik vertical metrics:** win 840/250, typo 840/-250, hhea 935/-230, line gaps 0, `USE_TYPO_METRICS` on. Roboto Mono keeps upstream metrics.
+- **Rubik missing characters:** upstream lacks typographic spaces and hyphen variants. Map U+2010–2012 to the hyphen glyph and U+000D to space. Add empty glyphs for U+2000–200A, U+202F and U+205F at their Unicode widths (figure space = digit width, punctuation space = period width). They need `gvar` entries and `HVAR` advance mappings to an empty delta set.
+- **Subsets:** one WOFF2 per unicode range, matching the `@font-face` rules in `static/less/fonts.less`. Use `fonttools subset --no-hinting --flavor=woff2`, with `--layout-features='*'` for Rubik (tabular numbers etc.).
+- **Verify:** no characters lost per range, and advances/kerning match the previous files (e.g. shape with HarfBuzz).
 
-The modified metrics are:
-
-- `win` ascent: 840
-- `win` descent: 250
-- `typo` ascent: 840
-- `typo` descent: -250
-- `hhea` ascent: 935
-- `hhea` descent: -230
-
-## File size
-
-These files have been reprocessed using [FontSquirrel's Webfont Generator](https://www.fontsquirrel.com/tools/webfont-generator) to reduce their size. Note that the default Optimal option will remove certain useful font features and settings. Before processing, select the Expert option, and change the following:
-
-- **Vertical metrics:** no adjustment
-- **Opentype features:** keep all features
-- **Subsetting:** custom subsetting – read more below
-
-### Subsetting
-
-Subsetting narrows the list of glyphs (characters) included in the exported font files. We split our fonts into files with different glyph sets, each defined by a [unicode range](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/unicode-range). This way, we can serve only the files with the glyphs that the user needs. If the page contains only latin characters, then the browser will only download the file with latin glyphs (e.g. `/rubik-regular-latin.woff2`). But if the page also has cyrillic text, then the browser will additionally download the file with cyrillic glyphs (e.g. `/rubik-regular-cyrillic.woff2`). This split reduces the total font loading time, since only the relevant glyph sets are downloaded.
-
-We support four glyph sets: `latin`, `latin-ext`, `cyrillic`, and `cyrillic-ext`. The unicode ranges for each of these sets can be found in [Google Fonts' Rubik stylesheet](https://fonts.googleapis.com/css2?family=Rubik&display=swap). In FontSquirrel's Webfont Generator, copy and paste these ranges into Subsetting -> Custom Subsetting -> Unicode Ranges. Once everything has been exported, check that each file contains the correct glyphs using [FontDrop](https://fontdrop.info/).
+`sentry-simple.woff2` is the legacy icon font, not built this way.
