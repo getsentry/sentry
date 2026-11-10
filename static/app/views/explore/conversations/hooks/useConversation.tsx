@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -378,21 +378,17 @@ const RETENTION_CUTOFF_SLACK_MS = 10 * 60 * 1000;
  * Pads the conversation's window by an hour on each side, but never starts it
  * before the API's 30-day cutoff, which rejects such requests with a 400.
  */
-function getPaddedConversationWindow(startTimestamp: number, endTimestamp: number) {
+function getPaddedConversationWindow(
+  startTimestamp: number,
+  endTimestamp: number,
+  now: number
+) {
+  const earliestStart = now - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS;
   const paddedStart = startTimestamp - ONE_HOUR_MS;
-  const earliestStart =
-    Date.now() - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS;
-  // Pick from values that change at most hourly so the query key stays the same
-  // across renders. The hour boundary covers conversations whose oldest spans
-  // already aged out, and every candidate keeps the window on the conversation.
+  // Clamping a conversation that ends before the earliest start would skip it
+  // entirely, so those keep their window.
   const start =
-    [
-      paddedStart,
-      startTimestamp,
-      Math.ceil(earliestStart / ONE_HOUR_MS) * ONE_HOUR_MS,
-      endTimestamp,
-    ].find(candidate => candidate >= earliestStart && candidate <= endTimestamp) ??
-    paddedStart;
+    endTimestamp > earliestStart ? Math.max(paddedStart, earliestStart) : paddedStart;
   return {
     start: new Date(start).toISOString(),
     end: new Date(endTimestamp + ONE_HOUR_MS).toISOString(),
@@ -401,7 +397,8 @@ function getPaddedConversationWindow(startTimestamp: number, endTimestamp: numbe
 
 function buildConversationQueryParams(
   conversation: UseConversationsOptions,
-  selection: PageFilters
+  selection: PageFilters,
+  now: number
 ) {
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
@@ -412,7 +409,8 @@ function buildConversationQueryParams(
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
       ? getPaddedConversationWindow(
           conversation.startTimestamp,
-          conversation.endTimestamp
+          conversation.endTimestamp,
+          now
         )
       : hasExplicitDatetime
         ? normalizeDateTimeParams(selection.datetime)
@@ -451,7 +449,8 @@ const MAX_PAGES = 100;
 export function getConversationQueryOptions(
   organization: Organization,
   conversation: UseConversationsOptions,
-  selection: PageFilters
+  selection: PageFilters,
+  now = Date.now()
 ) {
   return apiOptions.asInfinite<ConversationApiResponse>()(
     '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
@@ -462,7 +461,7 @@ export function getConversationQueryOptions(
             conversationId: conversation.conversationId,
           }
         : skipToken,
-      query: buildConversationQueryParams(conversation, selection),
+      query: buildConversationQueryParams(conversation, selection, now),
       staleTime: Infinity,
     }
   );
@@ -473,6 +472,9 @@ export function useConversation(
 ): UseConversationResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  // Fixed for the hook's lifetime so the retention clamp can't change the
+  // query key between renders.
+  const [now] = useState(Date.now);
 
   const {
     data,
@@ -484,7 +486,7 @@ export function useConversation(
     isLoading,
     isLoadingError,
   } = useInfiniteQuery(
-    getConversationQueryOptions(organization, conversation, selection)
+    getConversationQueryOptions(organization, conversation, selection, now)
   );
 
   const pageCount = data?.pages.length ?? 0;
