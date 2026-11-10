@@ -1196,11 +1196,12 @@ function getChartMetadata(chart: ReturnType<typeof getRenderableChart>) {
   const total = values.reduce((sum, value) => sum + value, 0);
   const firstSeries = chart.series[0];
   const seriesName = firstSeries ? getSeriesName(firstSeries) : null;
-  const totalMetadata = Number.isFinite(total)
-    ? seriesName
-      ? t('%s total %s', new Intl.NumberFormat().format(total), seriesName)
-      : t('%s total', new Intl.NumberFormat().format(total))
-    : null;
+  const totalMetadata =
+    values.length > 0 && Number.isFinite(total)
+      ? seriesName
+        ? t('%s total %s', new Intl.NumberFormat().format(total), seriesName)
+        : t('%s total', new Intl.NumberFormat().format(total))
+      : null;
 
   if (chart.x_axis !== 'time') {
     return totalMetadata;

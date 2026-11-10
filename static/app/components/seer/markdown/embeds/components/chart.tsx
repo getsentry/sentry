@@ -137,9 +137,13 @@ export function ChartContent({
   const theme = useTheme();
   const metadata = UNIT_METADATA[yAxisUnit];
 
+  // Both visualizations throw when nothing is plottable, so a chart of only
+  // missing values shows the same empty state as a dashboard widget.
+  const hasValues = series.some(item => item.data.some(point => point.y !== null));
+
   // The categorical visualization only draws bars, so a category line or area
   // chart falls back to bars rather than dropping the agent's data.
-  const visualizationComponent =
+  const visualizationComponent = hasValues ? (
     xAxis === 'category' ? (
       <CategoricalSeriesWidgetVisualization
         plottables={series.map((item, index) => {
@@ -210,7 +214,10 @@ export function ChartContent({
         // legend's "+n more" menu grows past the card and is cut off.
         truncateLegendMenuLabels
       />
-    );
+    )
+  ) : (
+    <TimeSeriesWidgetVisualization.NoData />
+  );
 
   return (
     <Stack gap="0" width="100%">
