@@ -22,7 +22,6 @@ from sentry.issues.action_log.types import (
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
     CodingAgentState,
@@ -38,10 +37,8 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
-from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import (
-    AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION,
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
@@ -265,15 +262,6 @@ class SeerOperatorTest(TestCase):
             "name": self.user.get_display_name(),
             "email": "583231+octocat@users.noreply.github.com",
             "scm_login": "octocat",
-        }
-
-    def test_stopping_point_to_seer_operation_covers_every_stopping_point(self) -> None:
-        assert set(AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION) == set(AutofixStoppingPoint)
-        assert AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION == {
-            AutofixStoppingPoint.ROOT_CAUSE: SeerOperation.AUTOFIX_ROOT_CAUSE,
-            AutofixStoppingPoint.SOLUTION: SeerOperation.AUTOFIX_SOLUTION,
-            AutofixStoppingPoint.CODE_CHANGES: SeerOperation.AUTOFIX_CODE_CHANGES,
-            AutofixStoppingPoint.OPEN_PR: SeerOperation.AUTOFIX_OPEN_PR,
         }
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
@@ -647,82 +635,6 @@ class SeerOperatorTest(TestCase):
     ) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
         mock_check_seer_credits.assert_called_once()
-
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
-    @patch("sentry.seer.entrypoints.operator.can_run_seer_operation", return_value=False)
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    def test_can_trigger_autofix_checks_credits_for_the_given_step(
-        self, mock_quota: MagicMock, mock_can_run: MagicMock
-    ) -> None:
-        for stopping_point, operation in AUTOFIX_STOPPING_POINT_TO_SEER_OPERATION.items():
-            mock_can_run.reset_mock()
-            assert (
-                SeerAutofixOperator.can_trigger_autofix(
-                    group=self.group, stopping_point=stopping_point
-                )
-                is False
-            )
-            mock_can_run.assert_called_once_with(self.organization, operation)
-
-    def _autofix_update(
-        self,
-        current_point: AutofixStoppingPoint,
-        handoff_target: CodingAgentProviderType | None = None,
-    ) -> SeerAutofixUpdate:
-        return SeerAutofixUpdate(
-            run_id=MOCK_RUN_ID,
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            group_id=self.group.id,
-            current_point=current_point,
-            group_link=self.group.get_absolute_url(),
-            handoff_target=handoff_target,
-        )
-
-    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=False)
-    def test_can_trigger_next_step_checks_the_next_stopping_point(
-        self, mock_can_trigger: MagicMock
-    ) -> None:
-        expected_next_points = {
-            AutofixStoppingPoint.ROOT_CAUSE: AutofixStoppingPoint.SOLUTION,
-            AutofixStoppingPoint.SOLUTION: AutofixStoppingPoint.CODE_CHANGES,
-            AutofixStoppingPoint.CODE_CHANGES: AutofixStoppingPoint.OPEN_PR,
-        }
-        for current_point, next_point in expected_next_points.items():
-            mock_can_trigger.reset_mock()
-            update = self._autofix_update(current_point)
-            assert SeerAutofixOperator.can_trigger_next_step(update=update) is False
-            mock_can_trigger.assert_called_once_with(group=self.group, stopping_point=next_point)
-
-    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=False)
-    def test_can_trigger_next_step_true_without_next_step(
-        self, mock_can_trigger: MagicMock
-    ) -> None:
-        update = self._autofix_update(AutofixStoppingPoint.OPEN_PR)
-        assert SeerAutofixOperator.can_trigger_next_step(update=update) is True
-        mock_can_trigger.assert_not_called()
-
-    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=False)
-    def test_can_trigger_next_step_true_for_handoff(self, mock_can_trigger: MagicMock) -> None:
-        update = self._autofix_update(
-            AutofixStoppingPoint.ROOT_CAUSE,
-            handoff_target=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
-        )
-        assert SeerAutofixOperator.can_trigger_next_step(update=update) is True
-        mock_can_trigger.assert_not_called()
-
-    @patch("sentry.seer.entrypoints.operator.logger")
-    @patch.object(SeerAutofixOperator, "can_trigger_autofix", return_value=True)
-    def test_can_trigger_next_step_false_when_group_missing(
-        self, mock_can_trigger: MagicMock, mock_logger: MagicMock
-    ) -> None:
-        update = self._autofix_update(AutofixStoppingPoint.ROOT_CAUSE).copy(update={"group_id": 0})
-        assert SeerAutofixOperator.can_trigger_next_step(update=update) is False
-        mock_can_trigger.assert_not_called()
-        mock_logger.warning.assert_called_once_with(
-            "seer.operator.next_step_check.group_missing",
-            extra={"organization_id": self.organization.id, "run_id": MOCK_RUN_ID, "group_id": 0},
-        )
 
     @patch("sentry.seer_credit.backend.check_seer_credits")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)

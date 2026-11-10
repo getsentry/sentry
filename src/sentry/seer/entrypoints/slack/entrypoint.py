@@ -59,7 +59,6 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
-from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
@@ -613,8 +612,6 @@ class SlackAutofixEntrypoint(
                 return
 
         data = SeerAutofixUpdate(**data_kwargs)
-        if not SeerAutofixOperator.can_trigger_next_step(update=data):
-            data = data.copy(update={"has_credits_for_next_step": False})
         schedule_all_thread_updates(
             threads=cache_payload["threads"],
             integration_id=cache_payload["integration_id"],
