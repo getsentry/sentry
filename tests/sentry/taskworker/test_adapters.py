@@ -1,5 +1,6 @@
 import contextlib
 import signal
+from collections.abc import Callable, Iterator
 from unittest import mock
 
 import orjson
@@ -273,132 +274,180 @@ class TestLocalCacheClearHook(TestCase):
         assert any(isinstance(hook, LocalCacheClearHook) for hook in app.context_hooks)
 
 
-# TestCase wraps each test in an atomic block, which the hook would close.
+class TaskFailed(Exception):
+    pass
+
+
+# Use TransactionTestCase so we handle the atomic blocks ourselves
 class TestDatabaseConnectionResetHook(TransactionTestCase):
-    def _interrupt_commit(self) -> None:
-        """Leave the default connection as a deadline inside Atomic.__exit__ does."""
-        conn = connections["default"]
-        with mock.patch.object(conn, "_commit", side_effect=ProcessingDeadlineExceeded()):
-            with transaction.atomic(using="default"):
-                Option.objects.create(key="taskworker.test", value="1")
+    def test_keeps_the_connection_open_when_the_task_succeeds(self) -> None:
+        connection = connections["default"]
 
-    def test_keeps_connections_open_when_the_task_succeeds(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
-        conn.ensure_connection()
-        raw = conn.connection
+        connection.ensure_connection()
 
-        with hook.on_execute({}):
+        connection_before_the_task = connection.connection
+
+        with self._task():
             Option.objects.filter(key="taskworker.test").exists()
 
-        assert conn.connection is raw
+        assert connection.connection is connection_before_the_task
 
-    def test_closes_connections_and_reraises_when_the_task_fails(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
+    def test_closes_the_connection_when_the_task_fails(self) -> None:
+        with self._task_that_raises(TaskFailed):
+            Option.objects.filter(key="taskworker.test").exists()
 
-        with pytest.raises(ValueError):
-            with hook.on_execute({}):
-                Option.objects.filter(key="taskworker.test").exists()
-                raise ValueError("task failed")
+        assert connections["default"].connection is None
 
-        assert conn.connection is None
+    def test_closes_the_connection_when_the_task_hits_the_deadline(self) -> None:
+        with self._task_that_raises(ProcessingDeadlineExceeded):
+            Option.objects.filter(key="taskworker.test").exists()
 
-    def test_closes_connections_on_a_processing_deadline(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
+        assert connections["default"].connection is None
 
-        with pytest.raises(ProcessingDeadlineExceeded):
-            with hook.on_execute({}):
-                Option.objects.filter(key="taskworker.test").exists()
-                raise ProcessingDeadlineExceeded()
+    def test_does_not_reconnect_after_a_task_that_never_used_the_database(self) -> None:
+        with self._task_that_raises(TaskFailed):
+            Option.objects.filter(key="taskworker.test").exists()
 
-        assert conn.connection is None
+        with self._task():
+            pass
 
-    def test_a_deadline_during_commit_breaks_the_connection_for_later_tasks(self) -> None:
-        conn = connections["default"]
-        # The commit is cut short with the transaction still open, so the
-        # cleanup's set_autocommit(True) fails and replaces the deadline.
+        assert connections["default"].connection is None
+
+    def test_without_a_reset_on_commit_fails_after_a_deadline_during_commit(self) -> None:
+        """
+        This test triggers the bug that is fixed by the hook
+        If this fails, then perhaps the hook is no longer needed
+        """
+        self.addCleanup(reset_database_connections)
+
         with pytest.raises(ProgrammingError, match="set_session cannot be used"):
-            self._interrupt_commit()
+            self._hit_the_deadline_during_commit()
 
-        assert not conn.get_autocommit()
         with pytest.raises(TransactionManagementError, match="manual transaction management"):
             transaction.on_commit(lambda: None, using="default")
-        reset_database_connections()
 
-    def test_the_next_task_works_after_a_deadline_broke_the_connection(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
+    def test_on_commit_works_in_the_next_task_after_a_deadline_during_commit(self) -> None:
+        with self._task_that_raises(ProgrammingError):
+            self._hit_the_deadline_during_commit()
 
-        with pytest.raises(ProgrammingError, match="set_session cannot be used"):
-            with hook.on_execute({}):
-                self._interrupt_commit()
+        commit_hook = mock.Mock()
 
-        callback = mock.Mock()
-        with hook.on_execute({}):
-            transaction.on_commit(callback, using="default")
+        with self._task():
+            transaction.on_commit(commit_hook, using="default")
+
+        commit_hook.assert_called_once_with()
+
+        assert not Option.objects.filter(key="taskworker.interrupted").exists()
+
+    def test_on_commit_works_in_the_next_task_after_a_task_swallowed_a_deadline_during_commit(
+        self,
+    ) -> None:
+        with self._task():
+            with contextlib.suppress(ProgrammingError):
+                self._hit_the_deadline_during_commit()
+
+        commit_hook = mock.Mock()
+
+        with self._task():
+            transaction.on_commit(commit_hook, using="default")
+
+        commit_hook.assert_called_once_with()
+
+    def test_the_next_task_can_roll_back_after_a_task_left_an_atomic_block_open(self) -> None:
+        with self._task_that_raises(TaskFailed):
+            self._leave_an_atomic_block_open()
+
+            Option.objects.create(key="taskworker.left_open", value="1")
+
+        with self._task():
+            assert self._a_transaction_can_roll_back()
+
+        assert not Option.objects.filter(key="taskworker.left_open").exists()
+
+    def test_the_next_task_can_roll_back_after_a_task_closed_the_connection_in_an_open_atomic_block(
+        self,
+    ) -> None:
+        with self._task_that_raises(TaskFailed):
+            self._leave_an_atomic_block_open()
+
+            connections["default"].close()
+
+        with self._task():
+            assert self._a_transaction_can_roll_back()
+
+    def test_drops_the_commit_hooks_a_deadline_kept_from_running(self) -> None:
+        commit_hook = mock.Mock()
+
+        with self._task_that_raises(ProcessingDeadlineExceeded):
+            self._hit_the_deadline_before_the_commit_hooks_run(commit_hook)
+
+        with self._task():
+            Option.objects.filter(key="taskworker.test").exists()
+
+        commit_hook.assert_not_called()
+
+    def test_blocks_the_deadline_alarm_only_while_resetting(self) -> None:
+        connection = connections["default"]
+
+        connection.ensure_connection()
+
+        alarm_blocked_on_each_close: list[bool] = []
+
+        def record_whether_the_alarm_is_blocked() -> None:
+            alarm_blocked_on_each_close.append(self._is_the_deadline_alarm_blocked())
+
+        with mock.patch.object(
+            connection, "close", side_effect=record_whether_the_alarm_is_blocked
+        ):
+            with self._task_that_raises(TaskFailed):
+                pass
+
+        assert set(alarm_blocked_on_each_close) == {True}
+
+        assert not self._is_the_deadline_alarm_blocked()
+
+    @contextlib.contextmanager
+    def _task(self) -> Iterator[None]:
+        with DatabaseConnectionResetHook().on_execute({}):
+            yield
+
+    @contextlib.contextmanager
+    def _task_that_raises(self, error_type: type[BaseException]) -> Iterator[None]:
+        with pytest.raises(error_type):
+            with self._task():
+                yield
+
+                raise error_type()
+
+    def _hit_the_deadline_during_commit(self) -> None:
+        # Django's cleanup can't turn autocommit back on mid-transaction, so a ProgrammingError replaces the deadline
+        with mock.patch.object(
+            connections["default"], "_commit", side_effect=ProcessingDeadlineExceeded()
+        ):
             with transaction.atomic(using="default"):
-                Option.objects.create(key="taskworker.test.next", value="1")
+                Option.objects.create(key="taskworker.interrupted", value="1")
 
-        callback.assert_called_once_with()
-        assert conn.get_autocommit()
-        assert Option.objects.filter(key="taskworker.test.next").exists()
-        # The write from the interrupted task was never committed.
-        assert not Option.objects.filter(key="taskworker.test").exists()
-
-    def test_closes_a_connection_left_inside_an_atomic_block(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
-
-        with pytest.raises(ValueError):
-            with hook.on_execute({}):
-                transaction.atomic(using="default").__enter__()
-                Option.objects.create(key="taskworker.test", value="1")
-                raise ValueError("task failed")
-
-        assert conn.connection is None
-        assert not conn.in_atomic_block
-        assert not Option.objects.filter(key="taskworker.test").exists()
-
-    def test_drops_on_commit_callbacks_from_the_failed_task(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
-        callback = mock.Mock()
-
-        with pytest.raises(ValueError):
-            with hook.on_execute({}):
-                transaction.atomic(using="default").__enter__()
-                transaction.on_commit(callback, using="default")
-                raise ValueError("task failed")
-
-        assert conn.run_on_commit == []
-        with hook.on_execute({}):
+    def _hit_the_deadline_before_the_commit_hooks_run(
+        self, commit_hook: Callable[[], None]
+    ) -> None:
+        with mock.patch.object(
+            connections["default"],
+            "run_and_clear_commit_hooks",
+            side_effect=ProcessingDeadlineExceeded(),
+        ):
             with transaction.atomic(using="default"):
-                Option.objects.create(key="taskworker.test.next", value="1")
+                transaction.on_commit(commit_hook, using="default")
 
-        callback.assert_not_called()
+    def _leave_an_atomic_block_open(self) -> None:
+        transaction.atomic(using="default").__enter__()
 
-    def test_blocks_the_deadline_alarm_only_during_the_reset(self) -> None:
-        hook = DatabaseConnectionResetHook()
-        conn = connections["default"]
-        conn.ensure_connection()
-        blocked_during_close: list[bool] = []
-        real_close = conn.close
+    def _a_transaction_can_roll_back(self) -> bool:
+        with transaction.atomic(using="default"):
+            Option.objects.create(key="taskworker.rolled_back", value="1")
 
-        def close() -> None:
-            mask = signal.pthread_sigmask(signal.SIG_BLOCK, set())
-            blocked_during_close.append(signal.SIGALRM in mask)
-            real_close()
+            transaction.set_rollback(True, using="default")
 
-        with mock.patch.object(conn, "close", side_effect=close):
-            with pytest.raises(ValueError):
-                with hook.on_execute({}):
-                    raise ValueError("task failed")
+        return not Option.objects.filter(key="taskworker.rolled_back").exists()
 
-        assert blocked_during_close == [True]
-        assert signal.SIGALRM not in signal.pthread_sigmask(signal.SIG_BLOCK, set())
-
-    def test_the_sentry_task_app_resets_connections_after_the_other_hooks(self) -> None:
-        # ExitStack exits hooks in reverse, so the first hook's cleanup runs last.
-        assert isinstance(app.context_hooks[0], DatabaseConnectionResetHook)
+    def _is_the_deadline_alarm_blocked(self) -> bool:
+        return signal.SIGALRM in signal.pthread_sigmask(signal.SIG_BLOCK, set())
