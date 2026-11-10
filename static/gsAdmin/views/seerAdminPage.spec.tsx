@@ -181,8 +181,16 @@ describe('SyntheticMetricBreachForm', () => {
     slug: 'other-org',
     name: 'Other organization',
   });
-  const monitor = MetricDetectorFixture({id: '42', name: 'Checkout latency'});
-  const otherMonitor = MetricDetectorFixture({id: '43', name: 'API errors'});
+  const monitor = MetricDetectorFixture({
+    id: '42',
+    name: 'Checkout latency',
+    projectId: '7',
+  });
+  const otherMonitor = MetricDetectorFixture({
+    id: '43',
+    name: 'API errors',
+    projectId: '8',
+  });
 
   beforeEach(() => {
     ConfigStore.set('localities', [
@@ -212,7 +220,47 @@ describe('SyntheticMetricBreachForm', () => {
     });
   });
 
+  it('loads organizations from later pages when the first page belongs to another locality', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/customers/search/',
+      match: [MockApiClient.matchQuery({query: 'Test', cursor: undefined})],
+      body: [{...otherOrganization, links: {regionUrl: 'https://us.example.com'}}],
+      headers: {
+        Link: '<https://example.com/api/0/_admin/customers/search/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/customers/search/',
+      match: [MockApiClient.matchQuery({query: 'Test', cursor: '0:50:0'})],
+      body: [{...organization, links: {regionUrl: 'https://eu.example.com'}}],
+    });
+    render(<SyntheticMetricBreachForm />);
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
+    expect(
+      await screen.findByText('Load more results to search this region')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No organizations found')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Load more organizations'}));
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Test organization (test-org)'
+    );
+    expect(screen.queryByText('Other organization (other-org)')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Load more organizations'})
+    ).not.toBeInTheDocument();
+  });
+
   it('creates an issue in the selected locality and retains selections for another test', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/test-org/detectors/',
+      body: [
+        monitor,
+        MetricDetectorFixture({id: '44', name: 'Checkout latency', projectId: '8'}),
+      ],
+    });
     const response = Promise.withResolvers<void>();
     const request = MockApiClient.addMockResponse({
       url: '/internal/seer/metric-breaches/',
@@ -230,7 +278,7 @@ describe('SyntheticMetricBreachForm', () => {
     );
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Metric monitor'}),
-      'Checkout latency'
+      'Checkout latency (Project ID: 8, Monitor ID: 44)'
     );
     const submit = screen.getByRole('button', {name: 'Create test breach'});
     await userEvent.click(submit);
@@ -238,7 +286,7 @@ describe('SyntheticMetricBreachForm', () => {
       expect(request).toHaveBeenCalledWith(
         '/internal/seer/metric-breaches/',
         expect.objectContaining({
-          data: {organizationId: 123, monitorId: 42},
+          data: {organizationId: 123, monitorId: 44},
           host: 'https://eu.example.com',
         })
       )
@@ -268,7 +316,7 @@ describe('SyntheticMetricBreachForm', () => {
     );
     expect(secondRequest).toHaveBeenCalledWith(
       '/internal/seer/metric-breaches/',
-      expect.objectContaining({data: {organizationId: 123, monitorId: 42}})
+      expect.objectContaining({data: {organizationId: 123, monitorId: 44}})
     );
   });
 
@@ -291,7 +339,7 @@ describe('SyntheticMetricBreachForm', () => {
     );
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Metric monitor'}),
-      'Checkout latency'
+      'Checkout latency (Project ID: 7, Monitor ID: 42)'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
     expect(await screen.findByRole('link', {name: 'Open issue'})).toBeInTheDocument();
@@ -307,7 +355,9 @@ describe('SyntheticMetricBreachForm', () => {
       screen.getByRole('textbox', {name: 'Organization'}),
       'Other organization (other-org)'
     );
-    expect(screen.queryByText('Checkout latency')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Checkout latency (Project ID: 7, Monitor ID: 42)')
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
     await act(async () => {
       response.resolve();
@@ -315,7 +365,7 @@ describe('SyntheticMetricBreachForm', () => {
     });
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Metric monitor'}),
-      'API errors'
+      'API errors (Project ID: 8, Monitor ID: 43)'
     );
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Create test breach'})).toBeEnabled()
@@ -330,7 +380,9 @@ describe('SyntheticMetricBreachForm', () => {
     expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
     await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
     expect(screen.queryByText('Other organization (other-org)')).not.toBeInTheDocument();
-    expect(screen.queryByText('API errors')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('API errors (Project ID: 8, Monitor ID: 43)')
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Create test breach'})).toBeDisabled();
   });
 
@@ -359,7 +411,7 @@ describe('SyntheticMetricBreachForm', () => {
     );
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Metric monitor'}),
-      'Checkout latency'
+      'Checkout latency (Project ID: 7, Monitor ID: 42)'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create test breach'}));
     expect(
@@ -367,7 +419,9 @@ describe('SyntheticMetricBreachForm', () => {
     ).toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('link', {name: 'Open issue'})).not.toBeInTheDocument();
-    expect(screen.getByText('Checkout latency')).toBeInTheDocument();
+    expect(
+      screen.getByText('Checkout latency (Project ID: 7, Monitor ID: 42)')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Create test breach'})).toBeEnabled();
   });
 });

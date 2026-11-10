@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {skipToken, useInfiniteQuery, useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -19,7 +20,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type OrganizationChoice = Pick<OrganizationSummary, 'id' | 'name' | 'slug'>;
 type OrganizationSearchResult = OrganizationChoice & Pick<OrganizationSummary, 'links'>;
-type MonitorChoice = Pick<MetricDetector, 'id' | 'name'>;
+type MonitorChoice = Pick<MetricDetector, 'id' | 'name' | 'projectId'>;
 type BreachResponse = {eventId: string; issueId: string; issueUrl: string};
 type BreachRequest = {locality: string; monitorId: number; organizationId: number};
 
@@ -35,10 +36,14 @@ const breachSchema = z.object({
     .nullable()
     .refine(value => value !== null, 'Select an organization'),
   monitor: z
-    .object({id: idSchema, name: z.string()})
+    .object({id: idSchema, name: z.string(), projectId: idSchema})
     .nullable()
     .refine(value => value !== null, 'Select a metric monitor'),
 });
+
+function monitorLabel(monitor: MonitorChoice) {
+  return `${monitor.name} (Project ID: ${monitor.projectId}, Monitor ID: ${monitor.id})`;
+}
 
 export function SyntheticMetricBreachForm() {
   const localities = getLocalities();
@@ -84,12 +89,13 @@ export function SyntheticMetricBreachForm() {
   });
   const values = useStore(form.store, state => state.values);
   const cell = getCells().find(candidate => candidate.locality_url === values.locality);
-  const organizations = useQuery({
-    ...apiOptions.as<OrganizationSearchResult[]>()('/_admin/customers/search/', {
+  const organizations = useInfiniteQuery({
+    ...apiOptions.asInfinite<OrganizationSearchResult[]>()('/_admin/customers/search/', {
       query: {query: debouncedOrganizationSearch, per_page: 50},
       staleTime: 30_000,
     }),
     enabled: Boolean(cell && debouncedOrganizationSearch),
+    select: data => data.pages.flatMap(page => page.json),
   });
   const monitors = useQuery(
     apiOptions.as<MonitorChoice[]>()('/organizations/$organizationIdOrSlug/detectors/', {
@@ -122,13 +128,13 @@ export function SyntheticMetricBreachForm() {
   }
   const monitorOptions = (monitors.data ?? []).map(monitor => ({
     value: monitor,
-    label: monitor.name,
+    label: monitorLabel(monitor),
   }));
   if (
     values.monitor &&
     !monitors.data?.some(monitor => monitor.id === values.monitor?.id)
   ) {
-    monitorOptions.push({value: values.monitor, label: values.monitor.name});
+    monitorOptions.push({value: values.monitor, label: monitorLabel(values.monitor)});
   }
   const detail =
     mutation.error instanceof RequestError
@@ -186,8 +192,26 @@ export function SyntheticMetricBreachForm() {
                   }
                   noOptionsMessage={() =>
                     organizationSearch
-                      ? 'No organizations found'
+                      ? organizations.hasNextPage
+                        ? 'Load more results to search this region'
+                        : 'No organizations found'
                       : 'Type to search organizations'
+                  }
+                  menuFooter={
+                    organizations.hasNextPage && (
+                      <Container padding="sm">
+                        <Button
+                          size="sm"
+                          disabled={
+                            organizations.isFetching ||
+                            organizationSearch !== debouncedOrganizationSearch
+                          }
+                          onClick={() => organizations.fetchNextPage()}
+                        >
+                          Load more organizations
+                        </Button>
+                      </Container>
+                    )
                   }
                   onInputChange={(input, reason) => {
                     if (reason === 'input') {
