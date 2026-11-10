@@ -55,8 +55,11 @@ class JiraForgeConfigureLinkWebhook(JiraWebhookBase):
             external_id=cloud_id,
             status=ObjectStatus.ACTIVE,
         )
-        if integration is None:
-            # The installation task may not have finished yet.
+        # The installation task may not have finished yet. The integration must also belong
+        # to the calling installation, so another trusted app on the same site can't mint
+        # links for it.
+        forge = (integration.metadata.get("forge") or {}) if integration else {}
+        if integration is None or forge.get("installation_id") != invocation.installation_id:
             return self.respond({"detail": "Installation not found"}, status=404)
 
         return self.respond({"link": build_configure_link(integration.external_id)})

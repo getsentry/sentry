@@ -17,12 +17,13 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import unsign
 
 CLOUD_ID = "11111111-2222-3333-4444-555555555555"
+INSTALLATION_ID = "ari:cloud:ecosystem::installation/test"
 
 
 def _invocation(**overrides: str | None) -> ForgeInvocation:
     fields: dict[str, str | None] = {
         "app_id": "ari:cloud:ecosystem::app/test",
-        "installation_id": "ari:cloud:ecosystem::installation/test",
+        "installation_id": INSTALLATION_ID,
         "api_base_url": f"https://api.atlassian.com/ex/jira/{CLOUD_ID}",
         "cloud_id": CLOUD_ID,
         "environment_type": "DEVELOPMENT",
@@ -43,7 +44,12 @@ class JiraForgeConfigureLinkWebhookTest(APITestCase):
 
     def test_returns_signed_configure_link(self, mock_verify: MagicMock) -> None:
         self.create_provider_integration(
-            provider="jira", external_id=CLOUD_ID, metadata={"base_url": "https://example.net"}
+            provider="jira",
+            external_id=CLOUD_ID,
+            metadata={
+                "base_url": "https://example.net",
+                "forge": {"installation_id": INSTALLATION_ID},
+            },
         )
         mock_verify.return_value = _invocation()
 
@@ -72,7 +78,17 @@ class JiraForgeConfigureLinkWebhookTest(APITestCase):
         # Not installed yet, or disabled.
         mock_verify.return_value = _invocation()
         assert self.client.post(self.url, headers=self.headers).status_code == 404
-        self.create_provider_integration(
-            provider="jira", external_id=CLOUD_ID, status=ObjectStatus.DISABLED
+        integration = self.create_provider_integration(
+            provider="jira",
+            external_id=CLOUD_ID,
+            status=ObjectStatus.DISABLED,
+            metadata={"forge": {"installation_id": INSTALLATION_ID}},
+        )
+        assert self.client.post(self.url, headers=self.headers).status_code == 404
+
+        # Installed by a different Forge app or installation.
+        integration.update(status=ObjectStatus.ACTIVE)
+        mock_verify.return_value = _invocation(
+            installation_id="ari:cloud:ecosystem::installation/other"
         )
         assert self.client.post(self.url, headers=self.headers).status_code == 404
