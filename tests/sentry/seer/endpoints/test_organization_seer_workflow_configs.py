@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -34,6 +34,7 @@ from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, Conne
 from sentry.seer.workflows.workflow import (
     ConfigUpdate,
     SeerServiceAccountGrant,
+    SeerWorkflow,
     WorkflowUpdateError,
 )
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
@@ -41,6 +42,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.requests import drf_request_from_request
@@ -104,15 +106,33 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "version": 4,
             "projects": [project.id],
             "monitorIds": [],
-            "agent": None,
+            "serviceAccount": None,
             "environments": ["production"],
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "agentic_triage_v2",
+            "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
         assert response.data["configs"][1]["projects"] == []
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_includes_next_run_of_scheduled_configs(self) -> None:
+        scheduled = self.create_config()
+        with SeerWorkflow(
+            config_id=scheduled.id, organization_id=scheduled.organization_id
+        ).update_config() as update:
+            update.set_enabled(True)
+        unscheduled = self.create_config()
+
+        response = self.get_success_response(self.organization.slug)
+
+        next_runs = {item["id"]: item["nextRunAt"] for item in response.data["configs"]}
+        assert next_runs[str(unscheduled.id)] is None
+        # Spread over the hour after the scheduled 10:00 run.
+        scheduled_for = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        assert scheduled_for <= next_runs[str(scheduled.id)] < scheduled_for + timedelta(hours=1)
 
     def test_id_filter_is_scoped_and_applies_before_pagination(self) -> None:
         self.create_config()
@@ -250,7 +270,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
                 configs, accessible_project_ids=[project_id], has_global_access=True
             )
 
-        assert len(queries) == 2
+        assert len(queries) == 3
         assert [config["dateLastRun"] for config in result["configs"]] == [
             run.date_added for run in runs
         ]
@@ -372,6 +392,20 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, config.id)
 
         assert response.data["createdBy"] == str(self.user.id)
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_returns_next_run_of_scheduled_config(self) -> None:
+        config = self.create_config()
+        with SeerWorkflow(
+            config_id=config.id, organization_id=config.organization_id
+        ).update_config() as update:
+            update.set_enabled(True)
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        # Spread over the hour after the scheduled 10:00 run.
+        scheduled_for = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        assert scheduled_for <= response.data["nextRunAt"] < scheduled_for + timedelta(hours=1)
 
     def test_unavailable_config_returns_404(self) -> None:
         legacy = Factories.create_seer_workflow_config(
@@ -715,7 +749,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, workflow.config_id)
 
-        assert response.data["agent"]["projectIds"] == [accessible.id]
+        assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
         assert service_account_project_ids(get_service_account(workflow.config_id)) == sorted(
             [accessible.id, hidden.id]
         )
@@ -874,7 +908,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             self.organization.slug, workflow.config_id, method="put", monitorIds=[]
         )
 
-        assert response.data["agent"] == {
+        assert response.data["serviceAccount"] == {
             "serviceAccountId": str(account.id),
             "scopes": ["event:read"],
             "projectIds": sorted([self.project.id, additional_project.id]),
@@ -1012,7 +1046,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         self.login_as(user=self.user)
 
     def get_response(self, *args: Any, **params: Any) -> Response:
-        params.setdefault("agent", {"scopes": ["event:read"]})
+        params.setdefault("serviceAccount", {"scopes": ["event:read"]})
         return super().get_response(*args, **params)
 
     def test_feature_disabled_returns_404(self) -> None:
@@ -1036,7 +1070,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "version": 1,
             "projects": [],
             "monitorIds": [],
-            "agent": {
+            "serviceAccount": {
                 "serviceAccountId": str(config.service_account_id),
                 "scopes": ["event:read"],
                 "projectIds": [],
@@ -1046,6 +1080,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "filters": {},
             "outputPolicy": {},
             "seededDefault": None,
+            "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
             "createdBy": str(self.user.id),
@@ -1079,7 +1114,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             strategy="breached_metric_investigation",
             name="Checkout errors",
             monitorIds=[monitor.id],
-            agent=agent,
+            serviceAccount=agent,
             status_code=201,
         )
 
@@ -1087,7 +1122,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert account.name.startswith("Seer: Checkout errors ")
         assert service_account_project_ids(account) == [self.project.id, additional_project.id]
         assert SeerWorkflowConfig.objects.get(id=response.data["id"]).version == 1
-        assert response.data["agent"] == {"serviceAccountId": str(account.id), **agent}
+        assert response.data["serviceAccount"] == {"serviceAccountId": str(account.id), **agent}
         assert response.data["projects"] == [self.project.id]
         assert response.data["monitorIds"] == [monitor.id]
 
@@ -1097,14 +1132,14 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization.slug,
             strategy="agentic_triage_v2",
             projectIds=[self.project.id],
-            agent={"scopes": ["event:read"], "allProjects": True},
+            serviceAccount={"scopes": ["event:read"], "allProjects": True},
             status_code=201,
         )
 
         account = get_service_account(int(response.data["id"]))
         assert account.name.startswith("Seer automation ")
         assert account.all_projects
-        assert response.data["agent"] == {
+        assert response.data["serviceAccount"] == {
             "serviceAccountId": str(account.id),
             "scopes": ["event:read"],
             "projectIds": [],
@@ -1122,7 +1157,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.get_error_response(
                 self.organization.slug,
                 strategy="agentic_triage_v2",
-                agent={"scopes": ["event:read"]},
+                serviceAccount={"scopes": ["event:read"]},
                 status_code=400,
             )
 
@@ -1134,7 +1169,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug,
             strategy="agentic_triage_v2",
-            agent={
+            serviceAccount={
                 "scopes": ["project:read", "event:read", "event:read"],
                 "projectIds": [self.project.id, self.project.id],
             },
@@ -1144,8 +1179,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         account = get_service_account(int(response.data["id"]))
         assert account.scope_list == ["event:read", "project:read"]
         assert service_account_project_ids(account) == [self.project.id]
-        assert response.data["agent"]["scopes"] == ["event:read", "project:read"]
-        assert response.data["agent"]["projectIds"] == [self.project.id]
+        assert response.data["serviceAccount"]["scopes"] == ["event:read", "project:read"]
+        assert response.data["serviceAccount"]["projectIds"] == [self.project.id]
 
     def test_agent_grants_are_limited_to_the_callers_access(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/"
@@ -1156,7 +1191,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         lacks_scope = self.client.post(
             url,
-            {"strategy": "agentic_triage_v2", "agent": {"scopes": ["org:admin"]}},
+            {"strategy": "agentic_triage_v2", "serviceAccount": {"scopes": ["org:admin"]}},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
@@ -1164,17 +1199,19 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             url,
             {
                 "strategy": "agentic_triage_v2",
-                "agent": {"scopes": ["event:read"], "allProjects": True},
+                "serviceAccount": {"scopes": ["event:read"], "allProjects": True},
             },
             format="json",
             HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
         assert lacks_scope.status_code == 403
-        assert lacks_scope.data["detail"] == "You can't give an agent scopes you don't have."
+        assert (
+            lacks_scope.data["detail"] == "You can't give a service account scopes you don't have."
+        )
         assert all_projects_without_role.status_code == 403
         assert all_projects_without_role.data["detail"] == (
-            "Only a role with access to all projects can give an agent all projects."
+            "Only a role with access to all projects can give a service account all projects."
         )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):

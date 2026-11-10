@@ -209,7 +209,8 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_autofix_agent,
             trigger_push_changes,
         )
-        from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+        from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -227,7 +228,9 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
             try:
-                existing_state = get_autofix_agent_state(group.organization, group.id)
+                existing_state = get_autofix_agent_state(
+                    group.organization, group.id, sources=(AUTOFIX_FEATURE_ID,)
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -309,6 +312,16 @@ class SeerAutofixOperator[CachePayloadT]:
                 ).capture():
                     self.entrypoint.on_trigger_autofix_error(error=error)
                 lifecycle.record_failure(failure_reason=error)
+                return
+            except SeerOutOfCreditsException:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(
+                        error="Your organization does not have enough Seer credits"
+                    )
+                lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(

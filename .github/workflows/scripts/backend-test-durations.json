@@ -21,8 +21,6 @@
     "tests/sentry/ai_monitoring/test_message_normalizer.py": 0.9,
     "tests/sentry/ai_monitoring/test_tasks.py": 35.0,
     "tests/sentry/ai_monitoring/test_utils.py": 0.2,
-    "tests/sentry/ai_monitoring/transcript/test_builder.py": 0.1,
-    "tests/sentry/ai_monitoring/transcript/test_pagination.py": 97.9,
     "tests/sentry/analytics/test_base.py": 8.7,
     "tests/sentry/analytics/test_event.py": 7.0,
     "tests/sentry/api/bases/test_organization.py": 85.8,

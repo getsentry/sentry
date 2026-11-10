@@ -1,7 +1,7 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -21,11 +21,11 @@ import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import {inboxItemsApiOptions} from './inboxApiOptions';
+import {inboxItemsApiOptions, updateInboxItemsMutationOptions} from './inboxApiOptions';
 import {InboxFilterMenu, InboxFilterPills} from './inboxFilters';
 import {InboxItemList} from './inboxItemList';
 import {InboxItemPreview} from './inboxItemPreview';
-import type {InboxFilters, InboxSubject} from './types';
+import type {InboxFilters, InboxItem, InboxSubject} from './types';
 import {useInboxFilters} from './useInboxFilters';
 import {getInboxSubjectFromPath, hasInboxFilters} from './utils';
 
@@ -33,6 +33,46 @@ const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
 const INBOX_LIST_DEFAULT_SIZE = 480;
 const INBOX_LIST_MIN_SIZE = 320;
 const INBOX_LIST_MAX_SIZE = 640;
+
+interface UseMarkInboxItemReadOnViewOptions {
+  isPending: boolean;
+  item: InboxItem | undefined;
+  subject: InboxSubject | null;
+}
+
+function useMarkInboxItemReadOnView({
+  subject,
+  item,
+  isPending,
+}: UseMarkInboxItemReadOnViewOptions) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const {mutate: updateInboxItems} = useMutation(
+    updateInboxItemsMutationOptions({organization, queryClient})
+  );
+  // Last activity seen per subject when it was marked read, so a failed request is not
+  // retried in a loop. Undefined means it was marked before its item was loaded.
+  const attemptedRef = useRef(new Map<string, string | undefined>());
+
+  const isUnread = item?.isUnread;
+  const lastActivityAt = item?.lastActivityAt;
+
+  useEffect(() => {
+    if (!subject || isPending || isUnread === false) {
+      return;
+    }
+    const subjectKey = `${subject.subjectType}:${subject.subjectId}`;
+    const attemptedActivity = attemptedRef.current.get(subjectKey);
+    const alreadyAttempted =
+      attemptedRef.current.has(subjectKey) &&
+      (attemptedActivity === undefined || attemptedActivity === lastActivityAt);
+
+    attemptedRef.current.set(subjectKey, lastActivityAt);
+    if (!alreadyAttempted) {
+      updateInboxItems({subject, update: {isRead: true}});
+    }
+  }, [subject, isPending, isUnread, lastActivityAt, updateInboxItems]);
+}
 
 interface InboxListBodyProps {
   filters: InboxFilters;
@@ -53,6 +93,19 @@ function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBody
     isFetchingNextPage,
   } = useInfiniteQuery(queryOptions);
   const items = data?.pages.flatMap(page => page.json) ?? [];
+
+  const selectedItem = selectedSubject
+    ? items.find(
+        item =>
+          item.subjectType === selectedSubject.subjectType &&
+          item.subjectId === selectedSubject.subjectId
+      )
+    : undefined;
+  useMarkInboxItemReadOnView({
+    subject: selectedSubject,
+    item: selectedItem,
+    isPending,
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -81,14 +134,6 @@ function InboxListBody({filters, onClearFilters, selectedSubject}: InboxListBody
       />
     );
   }
-
-  const selectedItem = selectedSubject
-    ? items.find(
-        item =>
-          item.subjectType === selectedSubject.subjectType &&
-          item.subjectId === selectedSubject.subjectId
-      )
-    : undefined;
 
   return (
     <ListItemCheckboxProvider

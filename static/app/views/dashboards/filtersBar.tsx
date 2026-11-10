@@ -286,7 +286,8 @@ export function FiltersBar({
     });
   };
   const queryPriorityLabel =
-    queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');
+    queryPriorityOptions.find(option => option.value === priority)?.label ??
+    t('Balanced Querying');
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -453,12 +454,12 @@ export function FiltersBar({
               <OverlayTrigger.Button
                 {...triggerProps}
                 icon={<IconTimer />}
-                aria-label={t('Query priority: %s', queryPriorityLabel)}
+                aria-label={t('Query Speed: %s', queryPriorityLabel)}
               >
                 {queryPriorityLabel}
               </OverlayTrigger.Button>
             )}
-            menuTitle={t('Query priority')}
+            menuTitle={t('Query Speed')}
             menuWidth={240}
             options={queryPriorityOptions}
           />

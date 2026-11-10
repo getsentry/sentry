@@ -29,7 +29,7 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {getTransactionSummaryParentCrumbs} from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {eventsRouteWithQuery} from './transactionEvents/utils';
@@ -172,7 +172,9 @@ export function TransactionHeader({
       headerTitle: {
         type: 'page-title' as const,
         label: transactionName,
-        leadingGraphic: project && <IdBadge project={project} avatarSize={16} hideName />,
+        leadingGraphic: project && (
+          <IdBadge disableLink project={project} avatarSize={16} hideName />
+        ),
       },
       hideDefaultTabs: true,
       tabs: {
@@ -180,7 +182,7 @@ export function TransactionHeader({
         tabList,
         value: currentTab,
       },
-      breadcrumbs: getTabCrumbs({
+      breadcrumbs: getTransactionSummaryParentCrumbs({
         location,
         organization,
         transaction: {
@@ -188,7 +190,7 @@ export function TransactionHeader({
           project: projectId,
         },
         view,
-      }),
+      }).map(({label, to}) => ({type: 'link' as const, label, to})),
       headerActions: (
         <Fragment>
           {metricsCardinality?.isLoading ? null : (

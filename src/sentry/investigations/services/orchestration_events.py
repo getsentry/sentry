@@ -13,6 +13,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
+from sentry.inbox.notebook import record_notebook_completed
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -287,6 +288,23 @@ def _set_projection(
     projection_error = projection.get("error")
     if projection_error is None or isinstance(projection_error, dict):
         run.error = deepcopy(projection_error)
+
+
+def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
+    """The caller holds the notebook/run locks and commits the marker with the inbox event."""
+    if run.status != InvestigationOrchestrationStatus.COMPLETED or _notebook_writes_are_fenced(
+        run, event_generation=run.generation
+    ):
+        return
+    control = _control(run)
+    if control.get("inboxCompletedGeneration", 0) >= run.generation:
+        return
+    seer_run = run.seer_run
+    assert seer_run is not None and seer_run.seer_run_state_id is not None
+    # Remember skipped completions too: enabling recording or restoring access must
+    # not backfill old notifications when Seer replays a completed projection.
+    control["inboxCompletedGeneration"] = run.generation
+    record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
 
 
 def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
@@ -917,6 +935,8 @@ def _apply_generation_event(
     else:
         return False, "unsupported_event_type"
 
+    if _event_carries_projection(event):
+        _record_completed_inbox_event(run)
     run.heartbeat_at = timezone.now()
     return True, None
 
@@ -1280,6 +1300,7 @@ def _synchronize_orchestration_projection(
                         )
                     if notebook_changed:
                         _bump_notebook(run, writes)
+            _record_completed_inbox_event(run)
             schedule_investigation_updates(run.investigation_id, database)
         run.date_updated = timezone.now()
         run.save(

@@ -282,6 +282,25 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         )
         assert response.data["config"]["comparisonDelta"] == 300
 
+    def test_percent_type_without_comparison_delta(self) -> None:
+        data = {
+            **self.valid_data,
+            "config": {"detectionType": AlertRuleDetectionType.PERCENT.value},
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data["config"] == [
+            ErrorDetail(
+                string="`comparisonDelta` is required when `detectionType` is 'percent'.",
+                code="invalid",
+            )
+        ]
+
     def test_invalid_group_type(self) -> None:
         data = {**self.valid_data, "type": "invalid_type"}
         response = self.get_error_response(

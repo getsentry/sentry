@@ -219,15 +219,15 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <BreadcrumbsDataSection event={event} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
-          <OurlogsSection event={event} group={group} project={project} />
+          <OurlogsSection event={event} group={group} />
         </Feature>
       </ErrorBoundary>
       <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
         <Feature features="tracemetrics-enabled" organization={organization}>
-          <MetricsSection event={event} group={group} project={project} />
+          <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
       {issueTypeConfig.trace.enabled &&

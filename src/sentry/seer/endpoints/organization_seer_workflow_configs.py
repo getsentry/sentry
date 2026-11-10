@@ -25,6 +25,7 @@ from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
+from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -81,11 +82,13 @@ class SeerWorkflowConfigResponse(TypedDict):
     version: int
     projects: list[int]
     monitorIds: list[int]
-    agent: SeerServiceAccountResponse | None
+    serviceAccount: SeerServiceAccountResponse | None
     environments: list[str]
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
+    # When the automation next runs on its schedule, or None if it doesn't run on one.
+    nextRunAt: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
@@ -126,7 +129,9 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
     def validate(self, data: dict[str, Any]) -> SeerServiceAccountGrant:
         if data["allProjects"] and data["projectIds"]:
             raise serializers.ValidationError(
-                {"projectIds": "An agent with access to all projects can't also list projects."}
+                {
+                    "projectIds": "A service account with access to all projects can't also list projects."
+                }
             )
         return SeerServiceAccountGrant(
             scopes=sorted(set(data["scopes"])),
@@ -151,9 +156,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         allow_empty=True,
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
-    # TODO(telkins): Rename the agent request and response fields and the grant error
-    # messages to service account, with a matching frontend change.
-    agent = ServiceAccountGrantSerializer()
+    serviceAccount = ServiceAccountGrantSerializer()
     # Metric automations only; their projects come from the connected monitors.
     monitorIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -351,6 +354,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``name`` is the user-supplied name, omitted if unset.
         ``createdBy`` is the ID of the user who created the config, omitted if unset.
         ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
+        ``nextRunAt`` is when the automation next runs on its schedule, or null if it
+        isn't scheduled to run.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -394,16 +399,16 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         """Create a Seer automation workflow.
 
-        ``strategy`` and ``agent`` are required. ``enabled`` defaults to false, ``schedule`` to
-        daily, and ``environments`` to all. ``name`` is optional. Omitting
+        ``strategy`` and ``serviceAccount`` are required. ``enabled`` defaults to false,
+        ``schedule`` to daily, and ``environments`` to all. ``name`` is optional. Omitting
         ``projectIds`` selects no projects. Use ``[-1]`` for all projects.
 
         Metric automations (``breached_metric_investigation``) take ``monitorIds``
         instead of ``projectIds``; their projects come from the connected monitors, and
         the caller needs read access to each monitor's project.
 
-        ``agent`` sets the scopes and projects investigations run with, on a service
-        account created for the automation.
+        ``serviceAccount`` sets the scopes and projects investigations run with, on a
+        service account created for the automation.
 
         The number of automations per organization is capped, and creation is rate
         limited. Failures past request validation, such as reaching the cap, return an
@@ -434,7 +439,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
-        grant: SeerServiceAccountGrant = data["agent"]
+        grant: SeerServiceAccountGrant = data["serviceAccount"]
         check_can_grant_service_account(grant, request, organization, self)
         extras = SeerWorkflowConfigExtras(
             name=data.get("name"),
@@ -747,6 +752,7 @@ def serialize_workflow_configs(
         has_global_access=has_global_access,
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
+    next_run_times = get_next_run_times(configs)
     return {
         "configs": [
             serialize_workflow_config(
@@ -759,6 +765,7 @@ def serialize_workflow_configs(
                     if config.service_account_id
                     else None
                 ),
+                next_run_at=next_run_times.get(config.id),
             )
             for config in configs
         ]
@@ -805,6 +812,22 @@ def get_config_last_runs(
     ]
 
 
+def get_next_run_times(configs: Sequence[SeerWorkflowConfig]) -> dict[int, datetime | None]:
+    """When each config next runs on its schedule, keyed by config id."""
+    by_organization: defaultdict[int, list[int]] = defaultdict(list)
+    for config in configs:
+        by_organization[config.organization_id].append(config.id)
+    return {
+        config_id: info.next_fire_at
+        for organization_id, config_ids in by_organization.items()
+        for config_id, info in get_schedules(
+            organization_id=organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=config_ids,
+        ).items()
+    }
+
+
 def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
@@ -812,6 +835,7 @@ def serialize_workflow_config(
     connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
+    next_run_at: datetime | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
@@ -830,7 +854,7 @@ def serialize_workflow_config(
         "version": config.version,
         "projects": project_ids,
         "monitorIds": monitor_ids,
-        "agent": service_account,
+        "serviceAccount": service_account,
         "environments": filters.environments,
         "filters": convert_dict_key_case(
             {
@@ -842,6 +866,7 @@ def serialize_workflow_config(
         ),
         "outputPolicy": config.output_policy,
         "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
+        "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
@@ -895,10 +920,11 @@ def check_can_grant_service_account(
     # No service_account:write check: the automation owns the account, and requiring it
     # would stop Members from creating automations.
     if set(grant.scopes) - request.access.scopes:
-        raise PermissionDenied("You can't give an agent scopes you don't have.")
+        raise PermissionDenied("You can't give a service account scopes you don't have.")
     if grant.all_projects:
         _require_global_role(
-            request, "Only a role with access to all projects can give an agent all projects."
+            request,
+            "Only a role with access to all projects can give a service account all projects.",
         )
     else:
         denied = _check_project_access(

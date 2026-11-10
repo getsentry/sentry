@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
@@ -9,10 +11,9 @@ import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -59,20 +60,20 @@ const useCrashFreeRate = (props: Props) => {
   // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request
   // https://github.com/getsentry/sentry/pull/22770#issuecomment-758595553
 
-  const currentQuery = useApiQuery<SessionApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const currentQuery = useQuery({
+    ...apiOptions.as<SessionApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sessions/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...commonQuery,
           ...normalizeDateTimeParams(datetime),
         },
-      },
-    ],
-    {staleTime: Infinity, enabled: isEnabled}
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: isEnabled,
+  });
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
     start: datetime.start,
@@ -80,24 +81,21 @@ const useCrashFreeRate = (props: Props) => {
     period: datetime.period,
   });
 
-  const previousQuery = useApiQuery<SessionApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const previousQuery = useQuery({
+    ...apiOptions.as<SessionApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sessions/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...commonQuery,
           statsPeriodStart: doubledPeriod,
           statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isPreviousPeriodEnabled,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: isEnabled && isPreviousPeriodEnabled,
+  });
 
   return {
     crashFreeRate: currentQuery.data,

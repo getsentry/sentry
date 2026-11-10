@@ -63,7 +63,8 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
 export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
   const spanId = props.node.id;
 
-  const childrenCount = getChildrenCount(props.node);
+  const childrenCount =
+    props.node.directVisibleChildren.length || props.node.children.length;
 
   const icon = (
     <PlatformIcon platform={props.projects[props.node.projectSlug ?? ''] ?? 'default'} />
@@ -101,7 +102,7 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
               <TraceChildrenButton
                 icon={
                   <TraceIcons.Chevron
-                    direction={props.node.expanded ? 'down' : 'right'}
+                    direction={props.node.canCollapse ? 'down' : 'right'}
                   />
                 }
                 onDoubleClick={props.onExpandDoubleClick}
@@ -150,12 +151,4 @@ export function TraceEAPSpanRow(props: TraceRowProps<EapSpanNode>) {
       </div>
     </div>
   );
-}
-
-function getChildrenCount(node: EapSpanNode) {
-  if (node.value.is_transaction && !node.expanded) {
-    return node.children.length - node.directVisibleChildren.length;
-  }
-
-  return node.children.length;
 }

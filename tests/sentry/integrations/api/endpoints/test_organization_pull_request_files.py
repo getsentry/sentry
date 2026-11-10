@@ -2,6 +2,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
+from django.test import override_settings
 from scm.errors import (
     ProviderNotFound,
     RateLimitExceeded,
@@ -11,7 +12,9 @@ from scm.errors import (
 )
 
 from sentry.testutils.cases import APITestCase
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
+_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 _MAKE_SCM = "sentry.integrations.api.endpoints.organization_pull_request_files.make_scm"
 
 
@@ -153,6 +156,27 @@ class OrganizationPullRequestFilesTest(APITestCase):
 
     def test_non_numeric_pull_request_id_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, "not-a-number", status_code=404)
+
+    def test_api_token_is_rejected(self) -> None:
+        token = self.create_user_auth_token(self.user, scope_list=["org:read"])
+        self.get_error_response(
+            self.organization.slug,
+            self.pull_request.id,
+            status_code=403,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+    @override_settings(SEER_API_SHARED_SECRET=_SECRET)
+    def test_viewer_context_is_rejected(self) -> None:
+        context = encode_viewer_context(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id)), key=_SECRET
+        )
+        self.get_error_response(
+            self.organization.slug,
+            self.pull_request.id,
+            status_code=403,
+            extra_headers={"HTTP_X_VIEWER_CONTEXT": context},
+        )
 
     @mock.patch(_MAKE_SCM)
     def test_inactive_repository_returns_404(self, mock_make_scm: MagicMock) -> None:

@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from sentry.service_accounts.models import ServiceAccount
-from sentry.service_accounts.services.service_account.model import RpcServiceAccount
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountToken
+from sentry.service_accounts.services.service_account.model import (
+    RpcServiceAccount,
+    RpcServiceAccountToken,
+)
 
 
 def serialize_service_account(
@@ -17,4 +20,16 @@ def serialize_service_account(
         is_active=service_account.is_active,
         all_projects=service_account.all_projects,
         project_ids=sorted(project_ids),
+    )
+
+
+def serialize_service_account_token(token: ServiceAccountToken) -> RpcServiceAccountToken:
+    return RpcServiceAccountToken(
+        id=token.id,
+        service_account_id=token.service_account_id,
+        organization_id=token.organization_id,
+        token_hashed=token.token_hashed,
+        scope_list=list(token.scope_list or []),
+        date_expires=token.date_expires,
+        date_deactivated=token.date_deactivated,
     )

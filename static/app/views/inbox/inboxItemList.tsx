@@ -74,7 +74,9 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
               />
             </Flex>
             <Flex column="2" row="1">
-              {item.isUnread && <UnreadIndicator />}
+              {item.isUnread && (
+                <UnreadIndicator data-test-id="unread-inbox-item-indicator" />
+              )}
             </Flex>
             <Flex column="3" row="1" gap="md" align="center" justify="between">
               <Flex gap="sm" align="center" minWidth={0}>

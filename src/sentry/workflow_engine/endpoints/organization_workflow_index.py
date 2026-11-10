@@ -77,6 +77,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.types import DetectorId
@@ -93,6 +94,9 @@ SORT_COL_MAP = {
     "lastTriggered": "last_triggered",
 }
 
+VISIBLE_WORKFLOW_TYPE_VALUES = {workflow_type.value for workflow_type in VISIBLE_WORKFLOW_TYPES}
+
+
 workflow_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "action"},
@@ -101,6 +105,27 @@ workflow_search_config = SearchConfig.create_from(
     free_text_key="query",
 )
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
+
+
+def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[Workflow.Type]:
+    """
+    Handle the requested `type` value
+    - If not specified, all visible types are returned
+    - Reject any value that is not a visible type
+    """
+    if not raw_types:
+        return VISIBLE_WORKFLOW_TYPES
+
+    invalid_types = [
+        raw_type for raw_type in raw_types if raw_type not in VISIBLE_WORKFLOW_TYPE_VALUES
+    ]
+
+    if invalid_types:
+        raise serializers.ValidationError(
+            {"type": [f"Invalid workflow type(s): {', '.join(invalid_types)}"]}
+        )
+
+    return frozenset(Workflow.Type(raw_type) for raw_type in raw_types)
 
 
 class OrganizationWorkflowPermission(OrganizationPermission):
@@ -122,7 +147,9 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
             kwargs["workflow"] = Workflow.objects.get(
-                organization=kwargs["organization"], id=validated_workflow_id
+                organization=kwargs["organization"],
+                id=validated_workflow_id,
+                type__in=VISIBLE_WORKFLOW_TYPES,
             )
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
@@ -155,8 +182,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         Helper function to filter workflows based on request parameters.
         Project filtering is ALWAYS applied to ensure users can only
         access workflows connected to projects they have access to.
+        Only workflow types in VISIBLE_WORKFLOW_TYPES are ever returned.
         """
-        queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
+        visible_types = parse_visible_workflow_types(request.GET.getlist("type"))
+
+        queryset: QuerySet[Workflow] = Workflow.objects.filter(
+            organization_id=organization.id, type__in=visible_types
+        )
 
         if raw_idlist := request.GET.getlist("id"):
             ids = to_valid_int_id_list("id", raw_idlist)
@@ -226,15 +258,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             request, organization, include_all_accessible=include_all_accessible
         )
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
-        # Detached workflows are organization-level and do not match a specific
-        # project filter. ID filters take precedence over project filters, and the
-        # all-project sentinels are equivalent to no project filter.
-        has_specific_project_filter = (
-            not request.GET.getlist("id")
-            and requested_projects.has_values
-            and not requested_projects.has_all_projects_sentinel
-        )
-        if not has_specific_project_filter:
+        # Detached workflows aren't connected to any project, so they only match
+        # requests that aren't scoped to projects: ID lookups and the all-projects
+        # sentinels. A request without project params is scoped to member projects.
+        if request.GET.getlist("id") or requested_projects.has_all_projects_sentinel:
             accessible_workflows |= Q(detectorworkflow__isnull=True)
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
@@ -287,6 +314,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             WorkflowParams.QUERY,
             WorkflowParams.ID,
             WorkflowParams.DETECTOR,
+            WorkflowParams.TYPE,
             OrganizationParams.PROJECT,
             VisibilityParams.PER_PAGE,
             CursorQueryParam,

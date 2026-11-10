@@ -109,7 +109,7 @@ class WorkflowData:
 
 def deduplicate_workflows(organization: Organization) -> None:
     workflows = (
-        Workflow.objects.filter(organization=organization)
+        Workflow.objects.filter(organization=organization, type=Workflow.Type.ALERT)
         .select_related("when_condition_group")
         .prefetch_related(
             Prefetch(

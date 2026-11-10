@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -62,11 +62,11 @@ describe('DomainViewHeader', () => {
 
     const overviewTab = screen.getByRole('tab', {name: 'Overview'});
     const networkRequestsTab = screen.getByRole('tab', {name: 'Network Requests'});
-    expect(overviewTab.firstChild).toHaveAttribute(
+    expect(overviewTab).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/insights/frontend/domainBaseUrl?environment=prod&project=1&statsPeriod=14d`
     );
-    expect(networkRequestsTab.firstChild).toHaveAttribute(
+    expect(networkRequestsTab).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/insights/frontend/http/?environment=prod&project=1&statsPeriod=14d`
     );
@@ -90,6 +90,62 @@ describe('DomainViewHeader', () => {
     expect(screen.getByText('domainTitle')).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Overview'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Network Requests'})).not.toBeInTheDocument();
+  });
+
+  it('renders the title without a parent trail when there are no additional breadcrumbs', async () => {
+    render(
+      <DomainViewHeader
+        domainBaseUrl="domainBaseUrl"
+        domainTitle="domainTitle"
+        modules={[ModuleName.HTTP]}
+        selectedModule={undefined}
+      />,
+      {organization, initialRouterConfig: baseRouterConfig}
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'domainTitle', level: 1})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+  });
+
+  it('renders the domain and additional breadcrumbs as parents of the title', async () => {
+    render(
+      <DomainViewHeader
+        domainBaseUrl="/domainBaseUrl/"
+        domainTitle="domainTitle"
+        headerTitle="Screen Name"
+        modules={[ModuleName.HTTP]}
+        selectedModule={undefined}
+        additionalBreadCrumbs={[
+          {type: 'link', label: 'Mobile Vitals', to: '/mobile-vitals/'},
+        ]}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...baseRouterConfig,
+          location: {
+            ...baseRouterConfig.location,
+            query: {project: ['1'], statsPeriod: '14d', transaction: '123'},
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'Screen Name', level: 1})
+    ).toBeInTheDocument();
+
+    const breadcrumbs = screen.getByRole('list');
+    expect(within(breadcrumbs).getByRole('link', {name: 'domainTitle'})).toHaveAttribute(
+      'href',
+      '/domainBaseUrl/?project=1&statsPeriod=14d'
+    );
+    expect(
+      within(breadcrumbs).getByRole('link', {name: 'Mobile Vitals'})
+    ).toHaveAttribute('href', '/mobile-vitals/');
+    expect(within(breadcrumbs).queryByText('Screen Name')).not.toBeInTheDocument();
   });
 
   it('renders a new badge only for mobile vitals', () => {

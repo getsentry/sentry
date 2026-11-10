@@ -43,6 +43,8 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAdminPermission,)
+    # Keys show their secret and take any scope, so a service account could exceed its own.
+    requires_user = True
 
     def convert_args(
         self, request: Request, api_key_id: str, *args: object, **kwargs: object

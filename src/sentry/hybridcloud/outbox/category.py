@@ -98,6 +98,7 @@ class OutboxCategory(IntEnum):
     SERVICE_ACCOUNT_UPDATE = 50
     ORGANIZATION_PROVISION_ANALYTICS = 51
     SERVICE_ACCOUNT_CREATE = 52
+    SERVICE_ACCOUNT_TOKEN_UPDATE = 53
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -325,6 +326,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,
             OutboxCategory.SERVICE_ACCOUNT_UPDATE,
+            OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE,
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,

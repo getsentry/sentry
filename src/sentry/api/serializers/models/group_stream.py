@@ -14,6 +14,7 @@ from sentry import features, release_health, tsdb
 from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
@@ -31,7 +32,10 @@ from sentry.api.serializers.models.group import (
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import StatsPeriod
 from sentry.eventtypes import EventTypeStr
-from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.api.serializers.models.external_issue import (
+    ExternalIssueResponse,
+    ExternalIssueSerializer,
+)
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.derived.serialization import GroupDerivedDataResponse
 from sentry.issues.grouptype import GroupCategory
@@ -285,10 +289,25 @@ class _Filtered(TypedDict):
     ]
     stats: NotRequired[
         Annotated[
-            dict[str, Any],
+            dict[str, list[list[float]]],
             ApiDescription(
                 "Counts of matching events over the requested stats period, keyed by the period, as [timestamp, count] pairs"
             ),
+        ]
+    ]
+
+
+class _Lifetime(TypedDict):
+    count: Annotated[str, ApiDescription("Number of events in the issue")]
+    userCount: Annotated[int, ApiDescription("Number of users affected by the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
+    stats: NotRequired[
+        Annotated[
+            None,
+            ApiDescription("Always null. Only included when a stats period is requested"),
         ]
     ]
 
@@ -377,7 +396,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     issueCategory: NotRequired[
         Annotated[str, ApiDescription("Issue category, such as error or performance")]
     ]
-    metadata: NotRequired[Annotated[dict[str, Any], ApiDescription("Issue metadata")]]
+    metadata: NotRequired[Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]]
     numComments: NotRequired[Annotated[int, ApiDescription("Number of comments on the issue")]]
     assignedTo: NotRequired[
         Annotated[
@@ -429,7 +448,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     # from the serializer itself
     stats: NotRequired[
         Annotated[
-            dict[str, Any],
+            dict[str, list[list[float]]],
             ApiDescription(
                 "Event counts over the requested stats period, keyed by the period, as [timestamp, count] pairs. Omitted when stats is collapsed"
             ),
@@ -437,7 +456,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     ]
     lifetime: NotRequired[
         Annotated[
-            dict[str, Any],
+            _Lifetime,
             ApiDescription(
                 "Event count, user count, and first and last seen times over the issue's lifetime. Omitted when stats or lifetime is collapsed"
             ),
@@ -477,7 +496,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     ]
     integrationIssues: NotRequired[
         Annotated[
-            list[dict[str, Any]],
+            list[ExternalIssueResponse],
             ApiDescription(
                 "External issues linked through integrations. Only included when requested with expand"
             ),
@@ -485,7 +504,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     ]
     sentryAppIssues: NotRequired[
         Annotated[
-            list[dict[str, Any]],
+            list[PlatformExternalIssueSerializerResponse],
             ApiDescription(
                 "External issues linked through Sentry apps. Only included when requested with expand"
             ),
@@ -662,7 +681,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             serialized_external_issues = serialize(
                 external_issues, serializer=ExternalIssueSerializer()
             )
-            integration_issues_by_group_id: dict[int, list[dict[str, Any]]] = defaultdict(list)
+            integration_issues_by_group_id: dict[int, list[ExternalIssueResponse]] = defaultdict(
+                list
+            )
             for external_issue, serialized_external_issue in zip(
                 external_issues, serialized_external_issues
             ):

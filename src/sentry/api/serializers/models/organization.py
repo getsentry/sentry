@@ -6,8 +6,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import JSONField
-from django.db.models.functions import Cast
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -25,6 +23,7 @@ from sentry.api.serializers.models.role import (
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.utils import generate_locality_url
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import NumericId, Slug, hex_id, numeric_id, slug
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
@@ -53,27 +52,18 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     ROLLBACK_ENABLED_DEFAULT,
-    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
-    TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.dynamic_sampling.utils import (
-    get_org_sample_rate,
-    has_custom_dynamic_sampling,
-    has_dynamic_sampling,
-    is_organization_mode_sampling,
-    is_project_mode_sampling,
-)
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
@@ -86,7 +76,7 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
 from sentry.types.cell import get_locality_name_for_cell
-from sentry.users.api.serializers.user import SerializedAvatarFields
+from sentry.users.api.serializers.user import AvatarTypeName, SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -121,6 +111,21 @@ class _Links(TypedDict):
     regionUrl: Annotated[str, ApiDescription("Base URL of the API for the organization's region")]
 
 
+# The keys that src/sentry/receivers/onboarding.py has written over time. It no
+# longer writes any, but older rows still carry them.
+class OnboardingTaskDataResponse(TypedDict, total=False):
+    invited_member_id: Annotated[
+        int, ApiDescription("ID of the member whose invite completed the invite_member task")
+    ]
+    platform: Annotated[
+        str | None, ApiDescription("Platform of the first event, for the first_event task")
+    ]
+    plugin: Annotated[str, ApiDescription("Slug of the plugin enabled for the task")]
+    providers: Annotated[
+        list[str], ApiDescription("Integration providers installed for the integrations task")
+    ]
+
+
 class OnboardingTasksSerializerResponse(TypedDict):
     # TODO: literal/enum
     task: Annotated[str | None, ApiDescription("Onboarding task key, such as create_project")]
@@ -130,7 +135,8 @@ class OnboardingTasksSerializerResponse(TypedDict):
     ]
     dateCompleted: Annotated[datetime, ApiDescription("When the task was completed or skipped")]
     data: Annotated[
-        object, ApiDescription("Extra data recorded for the task, which depends on the task")
+        OnboardingTaskDataResponse,
+        ApiDescription("Data recorded for the task. Most tasks record none, so it's often empty"),
     ]
 
 
@@ -152,8 +158,8 @@ class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
 
 
 class OrganizationSummarySerializerResponse(OrganizationSummarySerializerResponseOptional):
-    id: Annotated[str, ApiDescription("Organization ID")]
-    slug: Annotated[str, ApiDescription("Organization slug")]
+    id: Annotated[NumericId, ApiDescription("Organization ID")]
+    slug: Annotated[Slug, ApiDescription("Organization slug")]
     status: Annotated[_Status, ApiDescription("Organization status")]
     name: Annotated[str, ApiDescription("Organization name, or its slug when it has no name")]
     dateCreated: Annotated[datetime, ApiDescription("When the organization was created (ISO 8601)")]
@@ -408,8 +414,10 @@ class ControlSiloOrganizationMappingSerializer(
             # URL must point at that cell's locality rather than the local
             # control silo.
             avatar: SerializedAvatarFields = {
-                "avatarType": avatar_type,
-                "avatarUuid": avatar_replica.avatar_ident if avatar_type == "upload" else None,
+                "avatarType": cast(AvatarTypeName, avatar_type),
+                "avatarUuid": (
+                    hex_id(avatar_replica.avatar_ident) if avatar_type == "upload" else None
+                ),
                 "avatarUrl": avatar_replica.absolute_url(),
             }
         else:
@@ -562,7 +570,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         if attrs.get("avatar"):
             avatar: SerializedAvatarFields = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
+                "avatarUuid": hex_id(attrs["avatar"].ident) if attrs["avatar"].file_id else None,
                 "avatarUrl": attrs["avatar"].absolute_url(),
             }
         else:
@@ -575,8 +583,8 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
         context: OrganizationSummarySerializerResponse = {
-            "id": str(obj.id),
-            "slug": obj.slug,
+            "id": numeric_id(obj.id),
+            "slug": slug(obj.slug),
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
             "dateCreated": obj.date_added,
@@ -655,14 +663,12 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     # TODO: replace with enum/literal
     role: Annotated[str, ApiDescription("Deprecated, use orgRole")]
     orgRole: Annotated[str, ApiDescription("The requesting user's role in the organization")]
-    targetSampleRate: Annotated[
-        float, ApiDescription("Target sample rate for dynamic sampling, from 0 to 1")
+    planSampleRate: Annotated[
+        float, ApiDescription("Sample rate of the organization's plan, from 0 to 1")
     ]
-    samplingMode: Annotated[
-        str, ApiDescription("Where dynamic sampling target rates are set: organization or project")
+    desiredSampleRate: Annotated[
+        float, ApiDescription("Sample rate dynamic sampling aims for, from 0 to 1")
     ]
-    planSampleRate: float
-    desiredSampleRate: float
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
     consoleSdkInviteQuota: int
@@ -782,7 +788,10 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     hideAiFeatures: Annotated[
         bool, ApiDescription("Whether AI features are hidden for the organization")
     ]
-    aggregatedDataConsent: bool
+    aggregatedDataConsent: Annotated[
+        bool,
+        ApiDescription("Whether the organization agreed to let Sentry use its data in aggregate"),
+    ]
     genAIConsent: bool
     isDynamicallySampled: Annotated[
         bool,
@@ -913,24 +922,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 
         is_dynamically_sampled = False
         sample_rate = None
-        if has_custom_dynamic_sampling(obj):
-            if is_organization_mode_sampling(obj):
-                sample_rate = obj.get_option(
-                    "sentry:target_sample_rate",
-                    quotas.backend.get_blended_sample_rate(organization_id=obj.id),
-                )
-                is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
-            elif is_project_mode_sampling(obj):
-                is_dynamically_sampled = (
-                    ProjectOption.objects.filter(
-                        project__organization=obj,
-                        key="sentry:target_sample_rate",
-                    )
-                    .annotate(value_as_json=Cast("value", output_field=JSONField(null=True)))
-                    .filter(value_as_json__lt=1.0)
-                    .exists()
-                )
-        elif has_dynamic_sampling(obj):
+        if has_dynamic_sampling(obj):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
@@ -1066,14 +1058,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             },
         )
 
-        if has_custom_dynamic_sampling(obj, actor=user):
-            context["targetSampleRate"] = float(
-                obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
-            )
-            context["samplingMode"] = str(
-                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            )
-
         context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
             "sentry:ingest-through-trusted-relays-only",
             INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
@@ -1100,16 +1084,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
-
-        if is_project_mode_sampling(obj):
-            desired_sample_rate = None
-        else:
-            desired_sample_rate, _ = get_org_sample_rate(
-                org_id=obj.id, default_sample_rate=sample_rate
-            )
-
-        if desired_sample_rate is not None:
-            context["desiredSampleRate"] = desired_sample_rate
+            context["desiredSampleRate"] = sample_rate
 
         return context
 

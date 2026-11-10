@@ -200,6 +200,7 @@ export type SeerAnalyticsEventsParameters = {
     has_code_review_beta: boolean;
     has_legacy_seer: boolean;
     has_seat_based_seer: boolean;
+    has_token_based_seer: boolean;
   };
   'seer.explorer.block_copied': Record<string, unknown>;
   'seer.explorer.feedback_submitted': {

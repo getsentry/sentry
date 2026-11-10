@@ -22,7 +22,10 @@ class ReleaseFileSerializerResponse(TypedDict):
     ]
     name: Annotated[str, ApiDescription("Name of the file, usually its URL")]
     dist: Annotated[str | None, ApiDescription("Name of the distribution the file belongs to")]
-    headers: Annotated[dict[str, object], ApiDescription("HTTP headers stored with the file")]
+    headers: Annotated[
+        dict[str, str],
+        ApiDescription("HTTP headers stored with the file, such as Content-Type and Sourcemap"),
+    ]
     size: Annotated[int | None, ApiDescription("Size of the file in bytes")]
     sha1: Annotated[str | None, ApiDescription("SHA-1 checksum of the file")]
     dateCreated: Annotated[datetime, ApiDescription("When the file was uploaded (ISO 8601)")]

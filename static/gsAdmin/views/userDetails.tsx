@@ -1,18 +1,18 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useModal} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -32,34 +32,32 @@ export function UserDetails() {
   const {userId} = useParams<{userId: string}>();
   const queryClient = useQueryClient();
 
-  const makeFetchUserQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/', {
-      path: {userId},
-    }),
-  ];
-  const makeFetchUserIdentitiesQueryKey = (): ApiQueryKey => [
-    getApiUrl('/users/$userId/user-identities/', {
-      path: {userId},
-    }),
-  ];
-  const makeFetchTokensQueryKey = (): ApiQueryKey => [
-    getApiUrl('/api-tokens/'),
-    {query: {userId}},
-  ];
+  const userQueryOptions = apiOptions.as<User>()('/users/$userId/', {
+    path: {userId},
+    staleTime: 0,
+  });
 
   const {
     data: user,
     isPending: isUserPending,
     isError: isUserError,
     refetch: refetchUser,
-  } = useApiQuery<User>(makeFetchUserQueryKey(), {staleTime: 0});
+  } = useQuery(userQueryOptions);
+
+  const identitiesQueryOptions = apiOptions.as<UserIdentityConfig[]>()(
+    '/users/$userId/user-identities/',
+    {path: {userId}, staleTime: 0}
+  );
 
   const {
     data: identities,
     isPending: isIdentitiesPending,
     isError: isIdentitiesError,
     refetch: refetchIdentities,
-  } = useApiQuery<UserIdentityConfig[]>(makeFetchUserIdentitiesQueryKey(), {
+  } = useQuery(identitiesQueryOptions);
+
+  const tokensQueryOptions = apiOptions.as<InternalAppApiToken[]>()('/api-tokens/', {
+    query: {userId},
     staleTime: 0,
   });
 
@@ -68,9 +66,7 @@ export function UserDetails() {
     isPending: isTokensPending,
     isError: isTokensError,
     refetch: refetchTokens,
-  } = useApiQuery<InternalAppApiToken[]>(makeFetchTokensQueryKey(), {
-    staleTime: 0,
-  });
+  } = useQuery(tokensQueryOptions);
 
   const refetchData = () => {
     refetchUser();
@@ -91,7 +87,15 @@ export function UserDetails() {
     onSuccess: (data, params) => {
       toast.dismiss();
       toast.success(`User account has been updated with ${JSON.stringify(params)}`);
-      setApiQueryData(queryClient, makeFetchUserQueryKey(), data);
+      queryClient.setQueryData(userQueryOptions.queryKey, previous =>
+        data === undefined
+          ? previous
+          : {
+              ...previous,
+              headers: previous?.headers ?? {},
+              json: data,
+            }
+      );
     },
     onError: () => {
       toast.error('There was an internal error with updating the user account.');
@@ -108,8 +112,12 @@ export function UserDetails() {
     },
     onSuccess: (_data, token) => {
       toast.success('Token has been revoked.');
-      const newTokens = tokens?.filter((tkn: any) => tkn.id !== token.id) ?? [];
-      setApiQueryData(queryClient, makeFetchTokensQueryKey(), newTokens);
+      const newTokens = tokens?.filter(tkn => tkn.id !== token.id) ?? [];
+      queryClient.setQueryData(tokensQueryOptions.queryKey, previous => ({
+        ...previous,
+        headers: previous?.headers ?? {},
+        json: newTokens,
+      }));
     },
     onError: () => {
       toast.error('Unable to revoke token.');
@@ -130,7 +138,7 @@ export function UserDetails() {
       toast.dismiss();
       const action = params.action === 'suspend' ? 'suspended' : 'unsuspended';
       toast.success(`User account has been ${action}.`);
-      queryClient.invalidateQueries({queryKey: makeFetchUserQueryKey()});
+      queryClient.invalidateQueries({queryKey: userQueryOptions.queryKey});
     },
     onError: () => {
       toast.dismiss();
@@ -165,10 +173,14 @@ export function UserDetails() {
           toast.success('Authenticator has been removed.');
           const authenticators =
             user?.authenticators?.filter(a => a.id !== auth.id) ?? [];
-          setApiQueryData(queryClient, makeFetchUserQueryKey(), {
-            ...user,
-            authenticators,
-          });
+          queryClient.setQueryData(userQueryOptions.queryKey, previous => ({
+            ...previous,
+            headers: previous?.headers ?? {},
+            json: {
+              ...user,
+              authenticators,
+            },
+          }));
         } catch {
           toast.error('Unable to remove authenticator from account.');
         }
@@ -206,7 +218,11 @@ export function UserDetails() {
             identities?.filter(
               i => i.id !== identity.id || i.category !== identity.category
             ) ?? [];
-          setApiQueryData(queryClient, makeFetchUserIdentitiesQueryKey(), newIdentities);
+          queryClient.setQueryData(identitiesQueryOptions.queryKey, previous => ({
+            ...previous,
+            headers: previous?.headers ?? {},
+            json: newIdentities,
+          }));
         } catch {
           toast.error('Unable to remove identity from account.');
         }
@@ -260,7 +276,11 @@ export function UserDetails() {
                 {...deps}
                 user={user}
                 onSubmit={(newUser: User) => {
-                  setApiQueryData(queryClient, makeFetchUserQueryKey(), newUser);
+                  queryClient.setQueryData(userQueryOptions.queryKey, previous => ({
+                    ...previous,
+                    headers: previous?.headers ?? {},
+                    json: newUser,
+                  }));
                 }}
               />
             ));
