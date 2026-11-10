@@ -1,5 +1,7 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofix/types';
@@ -10,6 +12,7 @@ import type {
   SolutionArtifact,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {seerCreditCheckApiOptions} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
@@ -1098,6 +1101,62 @@ describe('ArtifactCard', () => {
         runId: 123,
         userContext: 'Try the other repo',
       });
+    });
+
+    it('holds the PR feedback form disabled when the org cannot afford another iteration', async () => {
+      const creditsOrganization = OrganizationFixture({
+        features: [
+          'autofix-pr-iteration-manual',
+          'seer-credit-checks',
+          'token-billed-seer-enabled',
+        ],
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_pr_iteration'})],
+        body: {hasEnoughCredits: false},
+      });
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <CodeChangesCard
+            groupId="1"
+            autofix={{
+              ...mockAutofixWithRunState,
+              runState: {
+                run_id: 123,
+                blocks: [],
+                status: 'completed',
+                updated_at: '2026-01-01T00:00:00Z',
+                repo_pr_states: {'org/repo': makePR()},
+              },
+            }}
+            section={makeSection(
+              'code_changes',
+              'completed',
+              [],
+              [makeAssistantBlock('The relevant files are not in the connected repo.')]
+            )}
+          />
+        </QueryClientProvider>,
+        {organization: creditsOrganization}
+      );
+
+      // Nothing is checked until the form opens.
+      expect(creditCheck).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', {name: 'Add context & retry'}));
+
+      // The form is disabled while the check is in flight too, so wait for the answer.
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(creditsOrganization, 'autofix_pr_iteration')
+              .queryKey
+          )?.status
+        ).toBe('success')
+      );
+      expect(screen.getByRole('textbox')).toBeDisabled();
     });
 
     it('does not offer a code-changes reset when PR creation failed', () => {
