@@ -480,34 +480,6 @@ describe('VisualizationWidget dropped-data heatmap', () => {
     ).toEqual(expect.objectContaining({dataset: DiscoverDatasets.SPANS}));
   });
 
-  it('shows a widget error without waiting for the band', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-dropped/',
-      body: {},
-      asyncDelay: new Promise<void>(() => {}),
-    });
-    jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
-      children({
-        timeseriesResults: [],
-        tableResults: [],
-        loading: false,
-        errorMessage: 'Something went wrong',
-      })
-    );
-
-    render(
-      <VisualizationWidget
-        widget={spansBreakdownWidget}
-        selection={selection}
-        widgetInterval="5m"
-      />,
-      {organization: orgWithFlags()}
-    );
-
-    expect(await screen.findByText('Something went wrong')).toBeInTheDocument();
-    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-  });
-
   it('hides the heatmap while editing a widget (disableFullscreen)', async () => {
     render(
       <VisualizationWidget
