@@ -378,6 +378,88 @@ describe('Inbox', () => {
     expect(checkbox).not.toBeChecked();
   });
 
+  describe('bulk actions', () => {
+    function renderInbox() {
+      return render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+    }
+
+    it('selects and deselects all items', async () => {
+      renderInbox();
+
+      const selectAll = await screen.findByRole('checkbox', {name: 'Select all'});
+      await screen.findByRole('link', {name: /Checkout latency regression/});
+      expect(
+        screen.queryByRole('button', {name: 'Mark as read'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(selectAll);
+
+      expect(selectAll).toBeChecked();
+      expect(screen.getByText('3 selected')).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', {name: 'Select Checkout latency regression'})
+      ).toBeChecked();
+      expect(screen.getByRole('button', {name: 'Mark as read'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Filter'})).not.toBeInTheDocument();
+
+      await userEvent.click(selectAll);
+
+      expect(selectAll).not.toBeChecked();
+      expect(
+        screen.queryByRole('button', {name: 'Mark as read'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Filter'})).toBeInTheDocument();
+    });
+
+    it('marks the selected items as read', async () => {
+      renderInbox();
+
+      await userEvent.click(
+        await screen.findByRole('checkbox', {
+          name: 'Select OperationalError: could not connect to server',
+        })
+      );
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Mark as read'}));
+
+      expect(markReadRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({method: 'PUT', query: {id: ['2']}, data: {isRead: true}})
+      );
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
+      expect(screen.queryByText('1 selected')).not.toBeInTheDocument();
+    });
+
+    it('removes all selected items', async () => {
+      const removeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      renderInbox();
+
+      await screen.findByRole('link', {name: /Checkout latency regression/});
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+
+      expect(removeRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({method: 'DELETE', query: {id: ['1', '2', '3']}})
+      );
+      expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
+      expect(await screen.findByText('Removed 3 items')).toBeInTheDocument();
+    });
+  });
+
   describe('filters', () => {
     it('filters by subject', async () => {
       const filteredRequest = MockApiClient.addMockResponse({

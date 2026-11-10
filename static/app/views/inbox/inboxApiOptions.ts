@@ -132,6 +132,52 @@ function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
   };
 }
 
+function getInboxCountQueryKey(organization: Organization) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/inbox/count/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
+}
+
+export function removeInboxItemsMutationOptions({
+  organization,
+  queryClient,
+}: {
+  organization: Organization;
+  queryClient: QueryClient;
+}) {
+  const queryKey = getInboxListsQueryKey(organization);
+
+  return mutationOptions({
+    mutationFn: ({ids}: {ids: string[]}) =>
+      fetchMutation<void>({
+        method: 'DELETE',
+        url: getApiUrl('/organizations/$organizationIdOrSlug/inbox/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        options: {query: {id: ids}},
+      }),
+    onMutate: async ({ids}) => {
+      await updateCachedInboxItems({
+        organization,
+        queryClient,
+        target: {selection: ids},
+        updateItem: () => null,
+      });
+    },
+    onSettled: (_data, error) => {
+      queryClient.invalidateQueries({
+        queryKey,
+        // Removed items are already dropped from the cache, so lists are only refetched
+        // to restore them when the request fails.
+        refetchType: error ? 'active' : 'none',
+      });
+      queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
+    },
+  });
+}
+
 /**
  * Updates the read state of, or restores, the targeted inbox items.
  */
@@ -175,13 +221,7 @@ export function updateInboxItemsMutationOptions({
         // are only marked stale in case they loaded during the request.
         refetchType: error || update.undoRemoval ? 'active' : 'none',
       });
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/inbox/count/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      });
+      queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
     },
   });
 }
