@@ -415,55 +415,51 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
     });
 
-    it.each([
-      ['notebook.user_mentioned', 'Investigation mentioned you'],
-      ['notebook.team_mentioned', 'Investigation mentioned your team'],
-    ] as const)(
-      'filters by multiple notification types including %s',
-      async (eventType, label) => {
-        const filteredRequest = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/inbox/',
-          match: [
-            MockApiClient.matchQuery({
-              event_type: ['issue.user_assigned', eventType],
-            }),
-          ],
-          body: [
-            issueItem,
-            InboxItemFixture({
-              ...notebookItem,
-              eventTypes: [eventType],
-              latestEvent: {
-                ...notebookItem.latestEvent,
-                type: eventType,
-                data: {blockId: null, commentId: '1'},
-              },
-            }),
-          ],
-        });
+    it('filters by multiple notification types', async () => {
+      const filteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [
+          MockApiClient.matchQuery({
+            event_type: [
+              'issue.user_assigned',
+              'notebook.user_mentioned',
+              'notebook.team_mentioned',
+            ],
+          }),
+        ],
+        body: [issueItem, notebookItem],
+      });
 
-        const {router} = render(<Inbox />, {
-          organization,
-          initialRouterConfig: {
-            location: {pathname: '/organizations/org-slug/inbox/'},
-            routes: INBOX_ROUTES,
-          },
-        });
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
 
-        await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
-        await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
-        await userEvent.click(
-          screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
-        );
-        await userEvent.click(screen.getByRole('menuitemradio', {name: label}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
+      );
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Investigation mentioned you'})
+      );
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Investigation mentioned your team'})
+      );
 
-        await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
-        expect(router.location.query).toEqual({
-          eventType: ['issue.user_assigned', eventType],
-        });
-        expect(screen.getByText('Issue assigned to you +1')).toBeInTheDocument();
-      }
-    );
+      await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
+      expect(router.location.query).toEqual({
+        eventType: [
+          'issue.user_assigned',
+          'notebook.user_mentioned',
+          'notebook.team_mentioned',
+        ],
+      });
+      expect(screen.getByText('Issue assigned to you +2')).toBeInTheDocument();
+    });
 
     it('loads filters from the url and removes them', async () => {
       const filteredRequest = MockApiClient.addMockResponse({
