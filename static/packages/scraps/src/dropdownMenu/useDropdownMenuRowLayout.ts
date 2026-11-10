@@ -89,10 +89,6 @@ export function useDropdownMenuRowLayout({
     [collection, itemsAfterSections, sectionsByKey, size, sectionRowSpace]
   );
 
-  // The virtualizer re-renders the component that calls it on every scroll.
-  // Calling it here, rather than in `DropdownMenuList`, keeps those re-renders
-  // to the rows: the list's state and handlers keep their identity, so a row
-  // that did not change is not re-rendered.
   const virtual = useVirtualCollection({
     collection,
     enabled: virtualized,
