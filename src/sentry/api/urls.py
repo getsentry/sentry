@@ -6,9 +6,6 @@ from django.urls import URLPattern, URLResolver, re_path
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     OrganizationAgentHandoffEndpoint,
 )
-from sentry.agent_handoff.endpoints.organization_agent_handoff_preview import (
-    OrganizationAgentHandoffPreviewEndpoint,
-)
 from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
@@ -2681,11 +2678,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/onboarding-tasks/$",
         OrganizationOnboardingTaskEndpoint.as_view(),
         name="sentry-api-0-organization-onboardingtasks",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts-preview/$",
-        OrganizationAgentHandoffPreviewEndpoint.as_view(),
-        name="sentry-api-0-organization-agent-handoff-preview",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/agent-handoff/prompts/$",
