@@ -1268,10 +1268,8 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. It checks only the project's newest bundles, up
-# to this many. 0 reads the organization's debug-ID rows instead, until one is in a bundle of the
-# project, which for a project without any means all of them. Capped at 10,000.
+# No longer read: the source map debugger checks `ProjectArtifactBundle.has_debug_ids` instead.
+# Stays registered until the options automator no longer sets it.
 register(
     "sourcemaps.source-map-debug.debug-id-check-max-bundles",
     type=Int,
