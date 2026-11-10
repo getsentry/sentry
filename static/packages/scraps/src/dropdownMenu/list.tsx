@@ -249,7 +249,7 @@ function DropdownMenuRows({
 }: DropdownMenuRowsProps) {
   const theme = useTheme();
   const size = itemProps.size ?? 'md';
-  // The space items in a section get from `spaceAbove`.
+  // The space above each item of a section but the first, see `DropdownMenuSection`.
   const sectionRowSpace = parseFloat(theme.space[SECTION_ITEM_SPACE]);
 
   // Top-level items right after a section. Their row starts with a separator.

@@ -22,6 +22,30 @@ import {
 
 import {DropdownMenuContext} from './context';
 
+/**
+ * Data attributes `DropdownMenuSection` spaces its items by: every item of a
+ * section gets `data-section-item`, and the first one also gets
+ * `data-first-in-section`. Marking the first item, rather than relying on
+ * `:first-child`, keeps the spacing right in a virtualized menu, where spacer
+ * elements sit between the rows.
+ */
+function getSectionItemAttributes(
+  node: Node<MenuItemProps>,
+  state: TreeState<MenuItemProps>
+) {
+  const section =
+    node.parentKey === null || node.parentKey === undefined
+      ? null
+      : state.collection.getItem(node.parentKey);
+  if (section?.type !== 'section') {
+    return {};
+  }
+  return {
+    'data-section-item': true,
+    'data-first-in-section': isAfterFirstInSection(node, section) ? undefined : true,
+  };
+}
+
 export type DropdownMenuSearchOptions = {placeholder?: string};
 
 export type DropdownMenuContentSizeOptions = {
@@ -302,12 +326,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     <ListItem
       ref={mergeRefs(ref, itemRef, rowProps?.ref)}
       data-index={rowProps?.['data-index']}
-      spaceAbove={isAfterFirstInSection(
-        node,
-        node.parentKey === null || node.parentKey === undefined
-          ? null
-          : state.collection.getItem(node.parentKey)
-      )}
+      {...getSectionItemAttributes(node, state)}
       as={renderAs}
       label={itemLabel}
       leadingItems={

@@ -68,7 +68,7 @@ export function getMountedIndexes({
 
 /**
  * Whether `node` is an item of `section` other than its first. These are the
- * items a menu spaces from the item above, see `spaceAbove` on `ListItem`.
+ * items a menu spaces from the item above, see `DropdownMenuSection`.
  */
 export function isAfterFirstInSection<T>(
   node: Node<T>,

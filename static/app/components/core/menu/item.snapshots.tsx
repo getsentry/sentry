@@ -58,18 +58,6 @@ describe('ListItem', () => {
     );
 
     it.snapshot(
-      'section-gap',
-      () => (
-        <SectionList padding="md" width="300px">
-          <ListItem size={size} label="First in section" />
-          <ListItem size={size} label="Spaced from the item above" spaceAbove />
-          <ListItem size={size} label="Spaced from the item above" spaceAbove />
-        </SectionList>
-      ),
-      {tags: {area: 'core', size, spaceAbove: 'true'}}
-    );
-
-    it.snapshot(
       'reserved-leading-slot',
       () => (
         <SectionList padding="md" width="300px">

@@ -178,7 +178,7 @@ type Priority = 'primary' | 'danger' | 'default';
 const TRAILING_ACTION_INSET = 'lg';
 const TRAILING_ACTION_SPACE = '3xl';
 
-/** Space token between the items of a menu section. See `spaceAbove`. */
+/** Space token between the items of a dropdown menu section. */
 export const SECTION_ITEM_SPACE = '2xs';
 
 const ITEM_PADDING_BY_SIZE = {
@@ -413,17 +413,6 @@ interface OtherProps<T extends React.ElementType> {
 interface MenuListItemProps<T extends React.ElementType = 'li'>
   extends ListItemProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
-  /**
-   * Adds `SECTION_ITEM_SPACE` above the item, as top padding on its `<li>`.
-   * Set it on every item of a section except the first, to space the items
-   * apart.
-   *
-   * This replaces a `gap` on the section's list. A virtualized list inserts
-   * spacer elements between its rows, and a `gap` would add space around them
-   * too. Padding is also measured as part of the row's height. Hover and press
-   * are handled by the inner content, so the space is not clickable.
-   */
-  spaceAbove?: boolean;
 }
 
 /** Renders the shared visual shell for menu and select items. */
@@ -447,7 +436,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   onDetailsHoverChange,
   tooltip,
   tooltipOptions,
-  spaceAbove = false,
   ref,
   trailingActionRef,
   trailingActionWrapperProps,
@@ -514,7 +502,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
 
   return (
     <MenuItemWrap
-      spaceAbove={spaceAbove}
       hasTrailingAction={Boolean(trailingAction)}
       isFocused={isFocused || isDetailsActive}
       aria-disabled={disabled}
@@ -830,17 +817,12 @@ const StyledOverlay = styled(Overlay)<{
   overflow: auto;
 `;
 
-const MenuItemWrap = styled('li')<{
-  hasTrailingAction: boolean;
-  isFocused: boolean;
-  spaceAbove: boolean;
-}>`
+const MenuItemWrap = styled('li')<{hasTrailingAction: boolean; isFocused: boolean}>`
   position: ${p => (p.hasTrailingAction ? 'relative' : 'static')};
   ${p => p.hasTrailingAction && p.isFocused && 'z-index: 1;'}
   list-style-type: none;
   margin: 0;
-  padding: ${p => (p.spaceAbove ? p.theme.space[SECTION_ITEM_SPACE] : 0)}
-    ${p => p.theme.space.xs} 0;
+  padding: 0 ${p => p.theme.space.xs};
   cursor: pointer;
   scroll-margin: ${p => p.theme.space.xs} 0;
 

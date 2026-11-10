@@ -1,8 +1,14 @@
 import type * as React from 'react';
+import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
-import {SectionGroup, SectionLabel, SectionList} from '@sentry/scraps/menu';
+import {
+  SECTION_ITEM_SPACE,
+  SectionGroup,
+  SectionLabel,
+  SectionList,
+} from '@sentry/scraps/menu';
 import type {VirtualRowProps} from '@sentry/scraps/useVirtualCollection';
 
 import type {MenuItemProps} from './item';
@@ -46,7 +52,19 @@ export function DropdownMenuSection({
         {separator}
         {heading}
       </div>
-      <SectionList {...groupProps}>{children}</SectionList>
+      <DropdownMenuSectionList {...groupProps}>{children}</DropdownMenuSectionList>
     </SectionGroup>
   );
 }
+
+/**
+ * Spaces the items of a section apart with top padding on every item but the
+ * first, marked by `DropdownMenuItem`. A `gap` would also space the spacer
+ * elements of a virtualized menu, and padding is measured as part of the
+ * row's height.
+ */
+const DropdownMenuSectionList = styled(SectionList)`
+  & > [data-section-item]:not([data-first-in-section]) {
+    padding-top: ${p => p.theme.space[SECTION_ITEM_SPACE]};
+  }
+`;

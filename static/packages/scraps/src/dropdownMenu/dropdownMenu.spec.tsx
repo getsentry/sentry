@@ -1040,6 +1040,39 @@ describe('DropdownMenu', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('marks the first item of a section, which is not spaced from the item above', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Menu"
+        items={[
+          {key: 'top', label: 'Top'},
+          {
+            key: 'section',
+            label: 'Section',
+            children: [
+              {key: 'first', label: 'First'},
+              {key: 'second', label: 'Second'},
+            ],
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+    // jsdom does not resolve the section's child selector against the item's
+    // padding shorthand, so check the attributes the selector matches.
+    const row = (name: string) =>
+      // oxlint-disable-next-line testing-library/no-node-access -- The attributes are on the item's row, around its menuitem.
+      screen.getByRole('menuitemradio', {name}).closest('li')!;
+    expect(row('Top')).not.toHaveAttribute('data-section-item');
+    expect(row('First')).toHaveAttribute('data-section-item');
+    expect(row('First')).toHaveAttribute('data-first-in-section');
+    expect(row('Second')).toHaveAttribute('data-section-item');
+    expect(row('Second')).not.toHaveAttribute('data-first-in-section');
+  });
+
   describe('virtualization', () => {
     // jsdom does not lay out or scroll. Give elements a height so the menu has a
     // viewport and room to scroll, and make scrollTo move the scroll position
