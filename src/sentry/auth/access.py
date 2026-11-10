@@ -37,6 +37,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import (
+    RpcOrganization,
     RpcOrganizationAccessContext,
     RpcOrganizationResourceIds,
     RpcTeamMember,
@@ -1337,6 +1338,16 @@ def from_request(
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
 
 
+def _sentry_app_scopes(
+    scope_list: Iterable[str], organization: Organization | RpcOrganization
+) -> frozenset[str]:
+    # Sentry App scopes aren't capped by member role scopes, so add granular
+    # scopes only where the organization's roles grant them too.
+    if features.has("organizations:granular-permission-scopes", organization):
+        return translate_deprecated_scopes(scope_list)
+    return frozenset(scope_list)
+
+
 # only used internally
 def _from_sentry_app(user: User, organization: Organization | None = None) -> Access:
     if not organization:
@@ -1353,7 +1364,7 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
         return NoAccess()
 
     return OrganizationGlobalMembership(
-        organization, translate_deprecated_scopes(sentry_app.scope_list), sso_is_valid=True
+        organization, _sentry_app_scopes(sentry_app.scope_list, organization), sso_is_valid=True
     )
 
 
@@ -1378,7 +1389,7 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
             ),
             permissions=[],
         ),
-        scopes=translate_deprecated_scopes(installation.sentry_app.scope_list),
+        scopes=_sentry_app_scopes(installation.sentry_app.scope_list, context.organization),
     )
 
 
