@@ -56,11 +56,11 @@ export function getInvestigationDetailQueryOptions(
   investigationId: string
 ) {
   return apiOptions.as<InvestigationDetail>()(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/',
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/',
     {
       path: {
         organizationIdOrSlug: organizationSlug,
-        investigationId,
+        notebookId: investigationId,
       },
       staleTime: 30_000,
     }
@@ -80,9 +80,9 @@ export function investigationCommentsQueryOptions({
   blockId?: string;
 }) {
   return apiOptions.as<InvestigationComment[]>()(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/comments/',
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
     {
-      path: {organizationIdOrSlug: organizationSlug, investigationId},
+      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
       query: {blockId, per_page: INVESTIGATION_COMMENTS_PAGE_SIZE},
       staleTime: 0,
     }
@@ -125,8 +125,8 @@ function investigationCommentUrl(
   commentId: string
 ) {
   return getApiUrl(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/comments/$commentId/',
-    {path: {organizationIdOrSlug: organizationSlug, investigationId, commentId}}
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/$commentId/',
+    {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId, commentId}}
   );
 }
 
@@ -225,9 +225,9 @@ export function investigationCommentCountsQueryOptions(
   investigationId: string
 ) {
   return apiOptions.as<Record<string, number>>()(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/comment-counts/',
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comment-counts/',
     {
-      path: {organizationIdOrSlug: organizationSlug, investigationId},
+      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
       staleTime: 0,
     }
   );
@@ -245,11 +245,11 @@ export function investigationExecutionDetailQueryOptions({
   organizationSlug: string;
 }) {
   return apiOptions.as<InvestigationExecutionDetail>()(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/blocks/$blockId/executions/$executionId/',
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/blocks/$blockId/executions/$executionId/',
     {
       path: {
         organizationIdOrSlug: organizationSlug,
-        investigationId,
+        notebookId: investigationId,
         blockId,
         executionId,
       },
@@ -263,11 +263,11 @@ export function investigationTitleGenerationQueryOptions(
   investigationId: string
 ) {
   return apiOptions.as<InvestigationTitleGeneration>()(
-    '/organizations/$organizationIdOrSlug/notebooks/$investigationId/title-generation/',
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/title-generation/',
     {
       path: {
         organizationIdOrSlug: organizationSlug,
-        investigationId,
+        notebookId: investigationId,
       },
       staleTime: 0,
     }
@@ -287,10 +287,10 @@ export function investigationPresenceQueryOptions(
     heartbeatIntervalMs: number;
     total: number;
     viewers: InvestigationViewer[];
-  }>()('/organizations/$organizationIdOrSlug/notebooks/$investigationId/presence/', {
+  }>()('/organizations/$organizationIdOrSlug/notebooks/$notebookId/presence/', {
     path: {
       organizationIdOrSlug: organizationSlug,
-      investigationId,
+      notebookId: investigationId,
     },
     query: {limit},
     method: 'PUT',
@@ -312,11 +312,11 @@ export function investigationOrchestrationQueryOptions(
   investigationId: string
 ) {
   return apiOptions.as<InvestigationOrchestration>()(
-    '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/',
+    '/organizations/$organizationIdOrSlug/investigations/$notebookId/orchestration/',
     {
       path: {
         organizationIdOrSlug: organizationSlug,
-        investigationId,
+        notebookId: investigationId,
       },
       staleTime: 0,
     }
@@ -349,11 +349,11 @@ export function useInvestigationOrchestrationCommandMutation(
     mutationFn: ({command, expectedWorkflowVersion, requestId}) =>
       fetchMutation<InvestigationOrchestrationCommandResponse>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
+          '/organizations/$organizationIdOrSlug/investigations/$notebookId/orchestration/commands/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId,
+              notebookId: investigationId,
             },
           }
         ),
@@ -518,11 +518,11 @@ export function useRenameInvestigationMutation(
 
       return fetchMutation<InvestigationDetail>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId,
+              notebookId: investigationId,
             },
           }
         ),
@@ -573,11 +573,11 @@ export function useDeleteInvestigationBlockMutation(
     mutationFn: ({block, investigationVersion}) => {
       return fetchMutation<void>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/blocks/$blockId/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/blocks/$blockId/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId,
+              notebookId: investigationId,
               blockId: block.id,
             },
           }
@@ -714,21 +714,21 @@ function getActionRequestUrl(
   actionRequestId: string,
   command: ActionRequestCommand
 ) {
-  const path = {organizationIdOrSlug: organizationSlug, investigationId, actionRequestId};
+  const path = {organizationIdOrSlug: organizationSlug, notebookId: investigationId, actionRequestId};
   switch (command) {
     case 'apply':
       return getApiUrl(
-        '/organizations/$organizationIdOrSlug/notebooks/$investigationId/action-requests/$actionRequestId/apply/',
+        '/organizations/$organizationIdOrSlug/notebooks/$notebookId/action-requests/$actionRequestId/apply/',
         {path}
       );
     case 'recheck':
       return getApiUrl(
-        '/organizations/$organizationIdOrSlug/notebooks/$investigationId/action-requests/$actionRequestId/recheck/',
+        '/organizations/$organizationIdOrSlug/notebooks/$notebookId/action-requests/$actionRequestId/recheck/',
         {path}
       );
     case 'retry-follow-up':
       return getApiUrl(
-        '/organizations/$organizationIdOrSlug/notebooks/$investigationId/action-requests/$actionRequestId/retry-follow-up/',
+        '/organizations/$organizationIdOrSlug/notebooks/$notebookId/action-requests/$actionRequestId/retry-follow-up/',
         {path}
       );
   }
@@ -855,11 +855,11 @@ export function useStopInvestigationExecutionMutation(
     mutationFn: ({blockId, executionId}) =>
       fetchMutation<void>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/blocks/$blockId/executions/$executionId/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/blocks/$blockId/executions/$executionId/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId,
+              notebookId: investigationId,
               blockId,
               executionId,
             },
@@ -900,11 +900,11 @@ export function useResumeInvestigationExecutionMutation(
     mutationFn: ({blockId, executionId, inputId, responseData}) =>
       fetchMutation<void>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/blocks/$blockId/executions/$executionId/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/blocks/$blockId/executions/$executionId/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId,
+              notebookId: investigationId,
               blockId,
               executionId,
             },
@@ -939,11 +939,11 @@ export function useSetInvestigationFavoriteMutation(
     ({investigation, shouldFavorite}: FavoriteVariables) =>
       fetchMutation<void>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/favorite/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/favorite/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId: investigation.id,
+              notebookId: investigation.id,
             },
           }
         ),
@@ -963,11 +963,11 @@ export function useDuplicateInvestigationMutation(
     investigation =>
       fetchMutation<InvestigationListItem>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/duplicate/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/duplicate/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId: investigation.id,
+              notebookId: investigation.id,
             },
           }
         ),
@@ -986,11 +986,11 @@ export function useDeleteInvestigationMutation(
     investigation =>
       fetchMutation<void>({
         url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/notebooks/$investigationId/',
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/',
           {
             path: {
               organizationIdOrSlug: organizationSlug,
-              investigationId: investigation.id,
+              notebookId: investigation.id,
             },
           }
         ),
