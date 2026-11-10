@@ -231,6 +231,27 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
         assert "scopes" in response.data["detail"]
         assert not ServiceAccountToken.objects.exists()
 
+    def test_create_rejects_scopes_the_caller_lacks(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, name="admin-bot", scope_list=["org:admin", "org:read"]
+        )
+        self.login_as_role("manager")
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["org:read", "org:admin"],
+                status_code=400,
+            )
+
+        assert response.data["detail"]["scopes"] == [
+            "You can't grant scopes you don't have: org:admin"
+        ]
+        assert not ServiceAccountToken.objects.exists()
+
     def test_create_requires_name_and_scopes(self) -> None:
         with self.feature(FEATURE_FLAG):
             response = self.get_error_response(

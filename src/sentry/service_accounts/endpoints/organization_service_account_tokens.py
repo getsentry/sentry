@@ -90,7 +90,7 @@ class ServiceAccountTokenCreateSerializer(serializers.Serializer):
     scopes = serializers.ListField(
         child=serializers.CharField(),
         allow_empty=False,
-        help_text="Scopes granted to the token. Each must already be granted to the account.",
+        help_text="Scopes granted to the token. Each must be granted to the account and held by you.",
     )
     expiresAt = serializers.DateTimeField(
         required=False,
@@ -105,10 +105,17 @@ class ServiceAccountTokenCreateSerializer(serializers.Serializer):
 
     def validate_scopes(self, scopes: list[str]) -> list[str]:
         service_account: ServiceAccount = self.context["service_account"]
-        ungrantable = set(scopes) - set(service_account.scope_list)
-        if ungrantable:
+        missing_on_account = set(scopes) - set(service_account.scope_list)
+        if missing_on_account:
             raise serializers.ValidationError(
-                "The service account doesn't have scopes: " + ", ".join(sorted(ungrantable))
+                "The service account doesn't have scopes: " + ", ".join(sorted(missing_on_account))
+            )
+        # A token is a bearer credential handed to the caller, so it must not carry
+        # scopes the caller couldn't use themselves.
+        missing_on_caller = set(scopes) - self.context["access"].scopes
+        if missing_on_caller:
+            raise serializers.ValidationError(
+                "You can't grant scopes you don't have: " + ", ".join(sorted(missing_on_caller))
             )
         return sorted(set(scopes))
 
@@ -206,7 +213,8 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
         in `token`. It's the only time the token is returned.
         """
         serializer = ServiceAccountTokenCreateSerializer(
-            data=request.data, context={"service_account": service_account}
+            data=request.data,
+            context={"service_account": service_account, "access": request.access},
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
