@@ -239,6 +239,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^account/settings/social/associate/[^/]+/$'),
   new RegExp('^auth/sso/account/settings/social/associate/complete/[^/]+/$'),
   new RegExp('^out/$'),
+  new RegExp('^tr/[^/]+/$'),
   new RegExp('^settings/organization/auth/configure/$'),
   new RegExp('^organizations/[^/]+/auth/configure/$'),
   new RegExp('^avatar/[^/]+/$'),
