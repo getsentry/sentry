@@ -86,6 +86,12 @@ export interface DropdownMenuListProps
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
   /**
+   * Whether only the items near the viewport are rendered. Computed by
+   * `DropdownMenuContent` from `virtualizeThreshold`, so it is not part of the
+   * public API: consumers set the threshold instead.
+   */
+  isVirtualized?: boolean;
+  /**
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
@@ -99,13 +105,6 @@ export interface DropdownMenuListProps
     value: string;
   };
   size?: MenuItemProps['size'];
-  /**
-   * Item count compared with `virtualizeThreshold`. Defaults to the number of
-   * items in the menu. `DropdownMenuContent` passes the count before a search
-   * filters the items, so a menu keeps virtualizing while it is searched: the
-   * matches of a long menu can still be too many to render at once.
-   */
-  virtualizeItemCount?: number;
   /**
    * Number of items, counting the items inside sections, above which only the
    * items near the viewport are rendered. Submenus inherit the threshold of
@@ -411,8 +410,9 @@ function DropdownMenuList({
   overlayState,
   overlayPositionProps,
   zIndex,
+  isVirtualized: virtualized = false,
+  // Only provided to submenus through context, which inherit it.
   virtualizeThreshold,
-  virtualizeItemCount,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
@@ -439,9 +439,6 @@ function DropdownMenuList({
   const hasLeadingItems = items.some(
     node => node.value?.leadingItems || node.value?.isSelected !== undefined
   );
-  const virtualized =
-    (virtualizeItemCount ?? items.length) >
-    (virtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
@@ -776,7 +773,10 @@ function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
   }, []);
 }
 
-export type DropdownMenuContentProps = Omit<DropdownMenuListProps, 'searchState'> & {
+export type DropdownMenuContentProps = Omit<
+  DropdownMenuListProps,
+  'searchState' | 'isVirtualized'
+> & {
   items: MenuItemProps[];
   search?: DropdownMenuSearchOptions;
 };
@@ -805,7 +805,13 @@ export function DropdownMenuContent({
       search && searchValue ? filterMenuItems(activeItems, searchValue) : activeItems,
     [activeItems, search, searchValue]
   );
+  // Counts the items before a search filters them, so a menu keeps
+  // virtualizing while it is searched: the matches of a long menu can still be
+  // too many to render at once.
   const activeItemCount = useMemo(() => countMenuItems(activeItems), [activeItems]);
+  const resolvedVirtualizeThreshold = virtualizeThreshold ?? inheritedVirtualizeThreshold;
+  const isVirtualized =
+    activeItemCount > (resolvedVirtualizeThreshold ?? DEFAULT_VIRTUALIZE_THRESHOLD);
   const defaultDisabledKeys = useMemo(
     () => getDisabledKeys(visibleItems),
     [visibleItems]
@@ -816,8 +822,8 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      virtualizeThreshold={virtualizeThreshold ?? inheritedVirtualizeThreshold}
-      virtualizeItemCount={search ? activeItemCount : undefined}
+      isVirtualized={isVirtualized}
+      virtualizeThreshold={resolvedVirtualizeThreshold}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
       }
