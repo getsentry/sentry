@@ -498,10 +498,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         return Response(result["configs"][0], status=201)
 
 
-class _ConfigChangedError(Exception):
-    pass
-
-
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
@@ -581,8 +577,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are. It commits with the other fields and
-          sets ``updatedBy``; the account is updated in control right after. If the
-          automation is saved by someone else meanwhile, nothing is saved and it returns a 409.
+          sets ``updatedBy``; the account is updated in control right after.
 
         Failures past request validation return a 400 with a generic detail. Returns the
         updated config in the same shape as an item in the list endpoint's ``configs``.
@@ -629,35 +624,14 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 raise PermissionDenied(detail=denied)
 
         grant: SeerServiceAccountGrant | None = serializer.validated_data.get("serviceAccount")
-        current_account: RpcServiceAccount | None = None
         if grant is not None:
             check_can_grant_service_account(grant, request, organization, self)
-            current_account = workflow.get_service_account()
-            if current_account is None:
-                logger.warning(
-                    "seer.workflow_config.service_account_missing",
-                    extra={"organization_id": organization.id, "config_id": workflow.config_id},
-                )
-                return Response(
-                    {"detail": "Couldn't update the automation's service account."}, status=400
-                )
-            grant = _with_no_access_service_account_projects(
-                grant,
-                current_account,
-                request=request,
-                organization=organization,
-                endpoint=self,
-            )
-            if _grant_matches(current_account, grant):
-                grant = None
+        grant_changed = False
 
         # Updates are done in one txn. Error cases must raise instead of early return,
         # so the transaction can rollback.
         try:
             with workflow.update_config() as update:
-                if current_account is not None and update.config.version != config.version:
-                    raise _ConfigChangedError
-
                 all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
                 config_all_projects = SeerWorkflowFilters.parse_obj(
                     update.config.filters
@@ -726,7 +700,15 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     )
 
                 if grant is not None:
-                    update.set_service_account_grant(grant)
+                    grant_changed = update.set_service_account_grant(
+                        _keep_hidden_service_account_projects(
+                            grant,
+                            update.current_service_account_grant(),
+                            request=request,
+                            organization=organization,
+                            endpoint=self,
+                        )
+                    )
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -734,11 +716,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     extras.updated_by = "bot" if user_id is None else user_id
                     update.set_extras(extras)
 
-        except _ConfigChangedError:
-            return Response(
-                {"detail": "The automation changed while saving. Reload it and try again."},
-                status=409,
-            )
         except WorkflowUpdateError as e:
             logger.info(
                 "seer.workflow_config.update_rejected",
@@ -752,21 +729,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         account: RpcServiceAccount | None = None
         if grant is not None:
-            assert current_account is not None
-            audit_service_account(
-                self,
-                request,
-                organization,
-                current_account.copy(
-                    update={
-                        "scope_list": list(grant.scopes),
-                        "project_ids": [] if grant.all_projects else list(grant.project_ids),
-                        "all_projects": grant.all_projects,
-                    }
-                ),
-                "SERVICE_ACCOUNT_EDIT",
-            )
             account = workflow.get_service_account()
+            if grant_changed and account is not None:
+                audit_service_account(self, request, organization, account, "SERVICE_ACCOUNT_EDIT")
 
         config = workflow.get_config()
         return Response(self.serialize(request, organization, config, account))
@@ -1022,18 +987,18 @@ def _require_global_role(request: Request, detail: str) -> None:
         raise PermissionDenied(detail)
 
 
-def _with_no_access_service_account_projects(
+def _keep_hidden_service_account_projects(
     grant: SeerServiceAccountGrant,
-    current: RpcServiceAccount,
+    current: SeerServiceAccountGrant,
     *,
     request: Request,
     organization: Organization,
     endpoint: OrganizationEndpoint,
 ) -> SeerServiceAccountGrant:
     """
-    Return the grant plus the current account's active projects the caller can't read.
-    Narrowing an all-projects account needs the same global role as granting all projects,
-    and adding scopes to an account with projects the caller can't read is denied.
+    Add back the account's current projects the caller can't see, since a PUT only replaces
+    the projects they can see. Narrowing an all-projects account needs a global role, and
+    scopes can't be added while the account has projects the caller can't see.
     """
     if grant.all_projects:
         return grant
@@ -1043,33 +1008,28 @@ def _with_no_access_service_account_projects(
             "Only a role with access to all projects can narrow a service account's projects.",
         )
         return grant
-    current_project_ids = list(
+
+    readable = {
+        project.id
+        for project in endpoint.get_projects(request, organization, include_all_accessible=True)
+        if request.access.has_project_scope(project, "project:read")
+    }
+    hidden = set(
         Project.objects.filter(
             organization_id=organization.id,
             id__in=current.project_ids,
             status=ObjectStatus.ACTIVE,
-        ).values_list("id", flat=True)
+        )
+        .exclude(id__in=readable)
+        .values_list("id", flat=True)
     )
-    project_ids = _with_no_access_project_ids(
-        grant.project_ids,
-        current_project_ids,
-        request=request,
-        organization=organization,
-        endpoint=endpoint,
-    )
-    if set(project_ids) - set(grant.project_ids) and set(grant.scopes) - set(current.scope_list):
+    if not hidden:
+        return grant
+    if set(grant.scopes) - set(current.scopes):
         raise PermissionDenied(
             "You can't add scopes to a service account that has projects you can't access."
         )
-    return replace(grant, project_ids=project_ids)
-
-
-def _grant_matches(account: RpcServiceAccount, grant: SeerServiceAccountGrant) -> bool:
-    return (
-        set(account.scope_list) == set(grant.scopes)
-        and account.all_projects == grant.all_projects
-        and (grant.all_projects or set(account.project_ids) == set(grant.project_ids))
-    )
+    return replace(grant, project_ids=sorted({*grant.project_ids, *hidden}))
 
 
 def audit_service_account(

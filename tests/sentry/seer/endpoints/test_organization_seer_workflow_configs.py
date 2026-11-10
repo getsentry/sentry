@@ -38,7 +38,6 @@ from sentry.seer.workflows.workflow import (
     WorkflowUpdateError,
 )
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
-from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
@@ -811,7 +810,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                     scopes=["event:read"], project_ids=[kept.id, deleted.id]
                 )
             )
-        deleted.delete()
+        Project.objects.filter(id=deleted.id).update(status=ObjectStatus.PENDING_DELETION)
 
         self.get_success_response(
             self.organization.slug,
@@ -835,7 +834,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 status_code=400,
             )
 
-        assert response.data == {"detail": "Couldn't update the automation's service account."}
+        assert response.data == {"detail": "Couldn't update the automation."}
         config.refresh_from_db()
         assert config.service_account_id is None
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -892,38 +891,6 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 ).count()
                 == 1
             )
-
-    @with_feature("organizations:service-accounts")
-    def test_put_service_account_returns_409_when_saved_meanwhile(self) -> None:
-        with outbox_runner():
-            workflow = self.create_metric_workflow()
-        version = workflow.get_config().version
-        read_account = SeerWorkflow.get_service_account
-
-        def read_then_save_elsewhere(seer_workflow: SeerWorkflow) -> RpcServiceAccount | None:
-            account = read_account(seer_workflow)
-            SeerWorkflowConfig.objects.filter(id=seer_workflow.config_id).update(
-                version=version + 1
-            )
-            return account
-
-        with (
-            patch.object(SeerWorkflow, "get_service_account", read_then_save_elsewhere),
-            outbox_runner(),
-        ):
-            self.get_error_response(
-                self.organization.slug,
-                workflow.config_id,
-                method="put",
-                enabled=True,
-                serviceAccount={"scopes": ["project:read"], "allProjects": True},
-                status_code=409,
-            )
-
-        config = workflow.get_config()
-        assert not config.enabled
-        assert config.version == version + 1
-        assert get_service_account(workflow.config_id).scope_list == ["event:read"]
 
     @with_feature("organizations:service-accounts")
     def test_service_account_with_scopes_the_caller_lacks_changes_nothing(self) -> None:

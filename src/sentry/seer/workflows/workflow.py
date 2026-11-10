@@ -35,6 +35,7 @@ from sentry.seer.workflows.schedule import sync_schedule
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
     InvalidScopeError,
+    ServiceAccountProjectReplica,
     ServiceAccountReplica,
     validate_grantable_scopes,
 )
@@ -509,23 +510,53 @@ class ConfigUpdate:
         self.config.extras = new_extras
         self.mark("extras")
 
-    def set_service_account_grant(self, grant: SeerServiceAccountGrant) -> None:
+    def current_service_account_grant(self) -> SeerServiceAccountGrant:
+        """The scopes and projects the automation's service account has, read from the replica."""
+        replica = self._service_account_replica()
+        return SeerServiceAccountGrant(
+            scopes=tuple(replica.scope_list),
+            project_ids=tuple(
+                sorted(
+                    ServiceAccountProjectReplica.objects.filter(
+                        service_account=replica
+                    ).values_list("project_id", flat=True)
+                )
+            ),
+            all_projects=replica.all_projects,
+        )
+
+    def set_service_account_grant(self, grant: SeerServiceAccountGrant) -> bool:
         """Replace the scopes and projects of the automation's service account.
 
-        The account is updated in control when the transaction commits. Callers must authorize
-        the grant and audit it.
+        Returns whether the grant changed. The account is updated in control when the
+        transaction commits. Callers must authorize the grant and audit the change.
         """
         _validate_service_account_grant(self.config.organization_id, grant)
-        if self.config.service_account_id is None:
-            raise WorkflowUpdateError("The automation doesn't have a service account")
+        if _same_grant(self.current_service_account_grant(), grant):
+            return False
         service_account_grant_update_outbox(
             organization_id=self.config.organization_id,
-            service_account_id=self.config.service_account_id,
+            service_account_id=self._service_account_replica().service_account_id,
             scope_list=grant.scopes,
             project_ids=grant.project_ids,
             all_projects=grant.all_projects,
         ).save()
         self.mark_related_changed()
+        return True
+
+    def _service_account_replica(self) -> ServiceAccountReplica:
+        replica = (
+            ServiceAccountReplica.objects.filter(
+                service_account_id=self.config.service_account_id,
+                organization_id=self.config.organization_id,
+                is_active=True,
+            ).first()
+            if self.config.service_account_id is not None
+            else None
+        )
+        if replica is None:
+            raise WorkflowUpdateError("The automation doesn't have a service account")
+        return replica
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         """Replace the selected projects, bumping the version only when the selection changes.
@@ -591,6 +622,14 @@ def _validate_service_account_grant(organization_id: int, grant: SeerServiceAcco
         validate_grantable_scopes(grant.scopes)
     except InvalidScopeError as e:
         raise WorkflowUpdateError(" ".join(e.messages)) from e
+
+
+def _same_grant(a: SeerServiceAccountGrant, b: SeerServiceAccountGrant) -> bool:
+    return (
+        set(a.scopes) == set(b.scopes)
+        and a.all_projects == b.all_projects
+        and (a.all_projects or set(a.project_ids) == set(b.project_ids))
+    )
 
 
 def _service_account_name(config_id: int, automation_name: str | None) -> str:
