@@ -3,13 +3,62 @@ import os
 import sys
 
 import click
-import sentry_sdk
 
 import sentry
 from sentry.utils.imports import import_string
 
+# Commands import lazily: importing all of them up front costs about a second,
+# which every invocation paid before click even parsed argv.
+_COMMANDS = {
+    "backup": "sentry.runner.commands.backup.backup",
+    "export": "sentry.runner.commands.backup.export",
+    "import": "sentry.runner.commands.backup.import_",
+    "cleanup": "sentry.runner.commands.cleanup.cleanup",
+    "config": "sentry.runner.commands.config.config",
+    "configoptions": "sentry.runner.commands.configoptions.configoptions",
+    "createflag": "sentry.runner.commands.createflag.createflag",
+    "createissueflag": "sentry.runner.commands.createflag.createissueflag",
+    "createorg": "sentry.runner.commands.createorg.createorg",
+    "createproject": "sentry.runner.commands.createproject.createproject",
+    "createuser": "sentry.runner.commands.createuser.createuser",
+    "devserver": "sentry.runner.commands.devserver.devserver",
+    "django": "sentry.runner.commands.django.django",
+    "exec": "sentry.runner.commands.exec.exec_",
+    "sendmail": "sentry.runner.commands.sendmail.sendmail",
+    "execfile": "sentry.runner.commands.execfile.execfile",
+    "files": "sentry.runner.commands.files.files",
+    "help": "sentry.runner.commands.help.help",
+    "init": "sentry.runner.commands.init.init",
+    "impact": "sentry.runner.commands.impact.impact",
+    "migrations": "sentry.runner.commands.migrations.migrations",
+    "migrate_debugfiles_to_objectstore": "sentry.runner.commands.migrate_debugfiles_to_objectstore.migrate_debugfiles_to_objectstore",
+    "repair": "sentry.runner.commands.repair.repair",
+    "rpcschema": "sentry.runner.commands.rpcschema.rpcschema",
+    "run": "sentry.runner.commands.run.run",
+    "start": "sentry.runner.commands.start.start",
+    "tsdb": "sentry.runner.commands.tsdb.tsdb",
+    "upgrade": "sentry.runner.commands.upgrade.upgrade",
+    "permissions": "sentry.runner.commands.permissions.permissions",
+    "devservices": "sentry.runner.commands.devservices.devservices",
+    "performance": "sentry.runner.commands.performance.performance",
+    "spans": "sentry.runner.commands.spans.spans",
+    "write-hashes": "sentry.runner.commands.spans.write_hashes",
+    "notifications": "sentry.runner.commands.notifications.notifications",
+    "deletions": "sentry.runner.commands.deletions.deletions",
+}
 
-@click.group(context_settings={"max_content_width": 150})
+
+class _SentryGroup(click.Group):
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        return sorted({*self.commands, *_COMMANDS})
+
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
+        if cmd_name not in self.commands and cmd_name in _COMMANDS:
+            self.add_command(import_string(_COMMANDS[cmd_name]), cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+
+@click.group(cls=_SentryGroup, context_settings={"max_content_width": 150})
 @click.option(
     "--config",
     default="",
@@ -31,50 +80,6 @@ def cli(config: str) -> None:
     if config:
         os.environ["SENTRY_CONF"] = config
     os.environ.setdefault("SENTRY_CONF", "~/.sentry")
-
-
-# TODO(mattrobenolt): Autodiscover commands?
-for cmd in map(
-    import_string,
-    (
-        "sentry.runner.commands.backup.backup",
-        "sentry.runner.commands.backup.export",
-        "sentry.runner.commands.backup.import_",
-        "sentry.runner.commands.cleanup.cleanup",
-        "sentry.runner.commands.config.config",
-        "sentry.runner.commands.configoptions.configoptions",
-        "sentry.runner.commands.createflag.createflag",
-        "sentry.runner.commands.createflag.createissueflag",
-        "sentry.runner.commands.createorg.createorg",
-        "sentry.runner.commands.createproject.createproject",
-        "sentry.runner.commands.createuser.createuser",
-        "sentry.runner.commands.devserver.devserver",
-        "sentry.runner.commands.django.django",
-        "sentry.runner.commands.exec.exec_",
-        "sentry.runner.commands.sendmail.sendmail",
-        "sentry.runner.commands.execfile.execfile",
-        "sentry.runner.commands.files.files",
-        "sentry.runner.commands.help.help",
-        "sentry.runner.commands.init.init",
-        "sentry.runner.commands.impact.impact",
-        "sentry.runner.commands.migrations.migrations",
-        "sentry.runner.commands.migrate_debugfiles_to_objectstore.migrate_debugfiles_to_objectstore",
-        "sentry.runner.commands.repair.repair",
-        "sentry.runner.commands.rpcschema.rpcschema",
-        "sentry.runner.commands.run.run",
-        "sentry.runner.commands.start.start",
-        "sentry.runner.commands.tsdb.tsdb",
-        "sentry.runner.commands.upgrade.upgrade",
-        "sentry.runner.commands.permissions.permissions",
-        "sentry.runner.commands.devservices.devservices",
-        "sentry.runner.commands.performance.performance",
-        "sentry.runner.commands.spans.spans",
-        "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.notifications.notifications",
-        "sentry.runner.commands.deletions.deletions",
-    ),
-):
-    cli.add_command(cmd)
 
 
 def _make_django_command(
@@ -128,6 +133,8 @@ def main() -> None:
     }
     # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
     if os.environ.get("SENTRY_DEVSERVICES_DSN"):
+        import sentry_sdk
+
         # We do this here because `configure_structlog` executes later
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
         logger = logging.getLogger(__name__)
