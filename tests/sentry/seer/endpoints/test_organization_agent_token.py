@@ -638,13 +638,11 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 
 class ServiceAccountGap(StrEnum):
-    NO_MEMBERSHIP = "checks the caller's own membership or org role, which a service account lacks"
     NO_TEAM_ACCESS = "service accounts reach no teams in v1"
 
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
-    "EventAttachmentDetails": ServiceAccountGap.NO_MEMBERSHIP,
     "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
