@@ -60,7 +60,7 @@ function ToolOutputContent({
         <Text as="div" size="sm" monospace>
           <StructuredData
             value={output.value}
-            config={{...STRUCTURED_DATA_CONFIG, renderString}}
+            config={{...STRUCTURED_DATA_CONFIG, renderStringNode: renderString}}
             maxDefaultDepth={MAX_DEFAULT_DEPTH}
             autoCollapseLimit={AUTO_COLLAPSE_LIMIT}
             initialExpandedPaths={[
