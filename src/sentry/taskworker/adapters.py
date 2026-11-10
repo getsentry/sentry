@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import signal
 import threading
 from collections.abc import Iterator, MutableMapping
 from typing import Any
@@ -17,6 +18,7 @@ import orjson
 from arroyo.backends.kafka import KafkaProducer
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
+from django.db import connections
 from sentry_sdk import capture_exception
 from taskbroker_client.metrics import DatadogMetrics, MetricsBackend, NoOpMetricsBackend
 from taskbroker_client.router import TaskRouter as LibraryRouter
@@ -25,7 +27,7 @@ from taskbroker_client.types import AtMostOnceStore
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.viewer_context import (
     ViewerContext,
@@ -172,6 +174,64 @@ def clear_local_caches() -> None:
         GroupMeta.objects.clear_local_cache()
     except Exception:
         logger.exception("taskworker.clear_local_caches.failed")
+
+
+class DatabaseConnectionResetHook:
+    """
+    ContextHook that closes every open database connection when a task raises.
+
+    The processing deadline is raised from a SIGALRM handler, so it can land
+    inside Django's transaction cleanup and leave a connection mid-transaction
+    with autocommit off. Every later task on that worker child then fails
+    until the child is recycled. Closing the connections on error makes the
+    next task reconnect from a clean state.
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        except BaseException:
+            reset_database_connections()
+            raise
+
+
+def reset_database_connections() -> None:
+    """Close every open database connection, whatever state it was left in."""
+    # This runs inside the task's deadline alarm. Block SIGALRM so a deadline
+    # can't interrupt the reset and leave a connection half closed; a deadline
+    # that comes due meanwhile is raised as soon as the mask is restored.
+    previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGALRM})
+    try:
+        for conn in connections.all(initialized_only=True):
+            if conn.connection is None:
+                continue
+            # No atomic block can be open once the error has left the task, so
+            # either flag being set means an interrupted Atomic.__exit__ leaked it.
+            leaked_transaction = (
+                conn.in_atomic_block or conn.autocommit != conn.settings_dict["AUTOCOMMIT"]
+            )
+            metrics.incr(
+                "taskworker.db_connection.reset",
+                tags={"alias": conn.alias, "leaked_transaction": leaked_transaction},
+                sample_rate=1.0,
+            )
+            # close() keeps a connection that is still in an atomic block, and the
+            # next query on it fails. connect() resets the rest of the state.
+            conn.in_atomic_block = False
+            conn.closed_in_transaction = False
+            try:
+                conn.close()
+            except Exception:
+                logger.exception(
+                    "taskworker.db_connection.reset_failed", extra={"alias": conn.alias}
+                )
+                conn.connection = None
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
 
 
 _producers: dict[str, SingletonProducer] = {}
