@@ -644,13 +644,25 @@ class SeerOperatorTest(TestCase):
         mock_check_seer_credits.assert_not_called()
 
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
-    @patch("sentry.seer_credit.backend.check_seer_credits")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
-    def test_can_trigger_autofix_skips_credit_check_without_quota(
-        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    def test_can_trigger_autofix_skips_quota_check_for_token_billed_orgs(
+        self, mock_quota: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
-        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
-        mock_check_seer_credits.assert_not_called()
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_check_seer_credits.assert_called_once()
+        mock_quota.assert_not_called()
+
+    @patch("sentry.seer.autofix.feature.dispatch.is_free_cohort_org", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_skips_quota_check_for_free_cohort_orgs(
+        self, mock_quota: MagicMock, _mock_free_cohort: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_quota.assert_not_called()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access: MagicMock) -> None:

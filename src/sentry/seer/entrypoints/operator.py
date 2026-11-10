@@ -4,7 +4,7 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.inbox.issue import record_issue_pr_ready_for_review
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
 from sentry.inbox.types import InboxActor
@@ -27,8 +27,14 @@ from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
-from sentry.seer.credits import SeerOperation, can_run_seer_operation
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import check_autofix_billing
+from sentry.seer.autofix.utils import (
+    AutofixStoppingPoint,
+    get_automation_handoff,
+    is_issue_category_eligible,
+)
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -162,24 +168,22 @@ class SeerAutofixOperator[CachePayloadT]:
     def can_trigger_autofix(cls, *, group: Group) -> bool:
         """
         Checks if a group is permitted to trigger autofix.
-        Validates Seer access for the organization, the issue category, autofix quota, and
-        Seer credits for the root cause step.
+        Validates Seer access for the organization, the issue category, and that the
+        organization can pay for the root cause step.
         """
-        from sentry import quotas
-        from sentry.seer.autofix.utils import is_free_cohort_org, is_issue_category_eligible
-
-        return (
-            has_seer_access(group.organization)
-            and is_issue_category_eligible(group)
-            and (
-                is_free_cohort_org(group.organization)
-                or quotas.backend.check_seer_quota(
-                    org_id=group.organization.id,
-                    data_category=DataCategory.SEER_AUTOFIX,
-                )
+        if not has_seer_access(group.organization) or not is_issue_category_eligible(group):
+            return False
+        try:
+            check_autofix_billing(
+                group.organization,
+                SeerOperation.AUTOFIX_ROOT_CAUSE,
+                is_new_run=True,
+                # Free cohort orgs have no subscription, so the quota check always fails for them.
+                skip_quota_for_free_cohort=True,
             )
-            and can_run_seer_operation(group.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
-        )
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
+            return False
+        return True
 
     def trigger_autofix(
         self,
@@ -212,7 +216,6 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_autofix_agent,
             trigger_push_changes,
         )
-        from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
