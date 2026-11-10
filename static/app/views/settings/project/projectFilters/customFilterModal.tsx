@@ -56,7 +56,8 @@ type ConditionType =
   | 'metric_name'
   | 'log_message'
   | 'release'
-  | 'ip_address';
+  | 'ip_address'
+  | 'transaction_name';
 
 // How a condition compares its values to the field, as the API names it. `glob`
 // matches each value as a glob pattern. The literal operators read every character
@@ -168,6 +169,11 @@ type ConditionSpec = {
   // Values are addresses and ranges, not text: the field "matches" them or "does
   // not match" them, and the query builder offers no wildcard.
   exact?: boolean;
+  // Organization feature the API needs before it accepts the condition. Without it
+  // the condition is not on offer.
+  feature?: string;
+  // What the value dropdown says a value is under "is", in place of the generic hint.
+  valueHint?: string;
 };
 
 // Declaration order is the order of the key menu. Keep the conditions every data
@@ -208,6 +214,16 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     label: t('Log Message'),
     placeholder: t('Glob pattern, e.g. *DEBUG*'),
     description: t('Matches the body of the log.'),
+  },
+  transaction_name: {
+    dataType: 'span',
+    feature: 'inbound-filters-transaction-name',
+    label: t('Transaction Name'),
+    placeholder: t('Glob pattern, e.g. */health*'),
+    valueHint: t('The exact name, or a pattern with * as a wildcard, e.g. */health*'),
+    description: t(
+      'Matches the transaction name of a request and drops the transaction along with all of its spans. Names are compared ignoring case. Start patterns with * and match both the raw URL and the route, e.g. */health*, since some spans may report the URL before the route is known.'
+    ),
   },
   release: {
     comparable: true,
@@ -253,28 +269,47 @@ export function getCondition(property: string): ConditionSpec {
 }
 
 // A data type offers the conditions that read its own fields, plus the ones every
-// data type carries. The catch-all offers only the latter.
-function getPropertyOptions(dataType: FilterDataType): PropertyOption[] {
+// data type carries. The catch-all offers only the latter. A condition behind a
+// feature is on offer only to organizations that have it.
+function getPropertyOptions(
+  dataType: FilterDataType,
+  organization: Organization
+): PropertyOption[] {
   return CONDITION_TYPES.filter(value => {
-    const owner = getCondition(value).dataType;
-    return owner === undefined || owner === dataType;
+    const {dataType: owner, feature} = getCondition(value);
+    return (
+      (owner === undefined || owner === dataType) &&
+      (!feature || organization.features.includes(feature))
+    );
   }).map(value => ({value, label: getCondition(value).label}));
 }
 
-// The query builder reads conditions as search filter keys. Each data type gets its
-// own stable key set, since the builder re-parses whenever the reference changes.
-const FILTER_KEYS = new Map<FilterDataType, TagCollection>();
+const CONDITION_FEATURES = [
+  ...new Set(CONDITION_TYPES.flatMap(type => CONDITIONS[type].feature ?? [])),
+];
 
-function getFilterKeys(dataType: FilterDataType): TagCollection {
-  let keys = FILTER_KEYS.get(dataType);
+// The query builder reads conditions as search filter keys. Each data type and set
+// of condition features gets its own stable key set, since the builder re-parses
+// whenever the reference changes.
+const FILTER_KEYS = new Map<string, TagCollection>();
+
+function getFilterKeys(
+  dataType: FilterDataType,
+  organization: Organization
+): TagCollection {
+  const cacheKey = [
+    dataType,
+    ...CONDITION_FEATURES.filter(feature => organization.features.includes(feature)),
+  ].join(':');
+  let keys = FILTER_KEYS.get(cacheKey);
   if (!keys) {
     keys = Object.fromEntries(
-      getPropertyOptions(dataType).map(({value}) => [
+      getPropertyOptions(dataType, organization).map(({value}) => [
         value,
         {key: value, name: value, kind: FieldKind.FIELD},
       ])
     );
-    FILTER_KEYS.set(dataType, keys);
+    FILTER_KEYS.set(cacheKey, keys);
   }
   return keys;
 }
@@ -298,7 +333,7 @@ function getValueHint(spec: ConditionSpec, operator: TermOperator): string | und
     return t('A release with a version, e.g. 1.2.0 or myapp@1.2.0');
   }
   if (operator === TermOperator.DEFAULT || operator === TermOperator.EQUAL) {
-    return t('The exact text, or a pattern with * as a wildcard');
+    return spec.valueHint ?? t('The exact text, or a pattern with * as a wildcard');
   }
   return undefined;
 }
@@ -489,10 +524,11 @@ type ConditionsTranslation =
 // a token `tokenToCondition` refuses.
 function parseConditionQuery(
   query: string,
-  dataType: FilterDataType
+  dataType: FilterDataType,
+  organization: Organization
 ): ConditionsTranslation {
   const parsed = parseQueryBuilderValue(query, getFieldDefinitionGetter(dataType), {
-    filterKeys: getFilterKeys(dataType),
+    filterKeys: getFilterKeys(dataType, organization),
     disallowFreeText: true,
     disallowLogicalOperators: true,
     disallowUnsupportedFilters: true,
@@ -537,6 +573,16 @@ function conditionsToQuery(conditions: CustomInboundFilterCondition[]): string {
   return conditions.map(conditionToToken).join(' ');
 }
 
+function getQueryPlaceholder(
+  dataType: FilterDataType,
+  organization: Organization
+): string {
+  if (getFilterKeys(dataType, organization).transaction_name) {
+    return t('e.g. transaction_name:*/health*');
+  }
+  return t('e.g. error_message:*timeout* release:<2.0.0');
+}
+
 // Conditions match patterns the user writes, so there are no values to suggest.
 function getNoTagValues(): Promise<string[]> {
   return Promise.resolve([]);
@@ -566,10 +612,14 @@ function getAvailableDataTypeOptions(organization: Organization): DataTypeOption
 
 // How the modal edits the conditions as one text. `format` renders the stored
 // conditions for editing and `parse` reads the edited text back, or says why the
-// API would reject it.
+// API would reject it. The organization's features decide which conditions it offers.
 type ConditionEditor = {
   format: (conditions: CustomInboundFilterCondition[]) => string;
-  parse: (text: string, dataType: FilterDataType) => ConditionsTranslation;
+  parse: (
+    text: string,
+    dataType: FilterDataType,
+    organization: Organization
+  ) => ConditionsTranslation;
 };
 
 // A filter made here edits its conditions as a search query, one filter token per
@@ -607,7 +657,7 @@ function getConditionEditor(
   return legacyCondition ? getLineListEditor(legacyCondition) : QUERY_EDITOR;
 }
 
-function getFilterSchema(editor: ConditionEditor) {
+function getFilterSchema(editor: ConditionEditor, organization: Organization) {
   return z
     .object({
       name: z.string().trim().min(1, t('Give the filter a name')),
@@ -615,7 +665,7 @@ function getFilterSchema(editor: ConditionEditor) {
       conditions: z.string(),
     })
     .superRefine((values, ctx) => {
-      const {problem} = editor.parse(values.conditions, values.dataType);
+      const {problem} = editor.parse(values.conditions, values.dataType, organization);
       if (problem) {
         ctx.addIssue({code: 'custom', path: ['conditions'], message: problem});
       }
@@ -657,9 +707,10 @@ function filterToFormValues(
 function getCompleteDraft(
   editor: ConditionEditor,
   values: FilterFormValues,
-  filterId: string | undefined
+  filterId: string | undefined,
+  organization: Organization
 ): CustomInboundFilterDraft | undefined {
-  const {conditions} = editor.parse(values.conditions, values.dataType);
+  const {conditions} = editor.parse(values.conditions, values.dataType, organization);
   if (!conditions) {
     return undefined;
   }
@@ -817,7 +868,10 @@ function CustomFilterModal({
   // modal edits the lines of the condition.
   const legacyCondition = filter?.legacyFilter ? filter.conditions[0] : undefined;
   const editor = useMemo(() => getConditionEditor(legacyCondition), [legacyCondition]);
-  const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
+  const filterSchema = useMemo(
+    () => getFilterSchema(editor, organization),
+    [editor, organization]
+  );
   const defaultValues = filter
     ? filterToFormValues(filter, editor)
     : {name: '', dataType: 'error' as const, conditions: ''};
@@ -833,7 +887,8 @@ function CustomFilterModal({
         name: values.name.trim(),
         dataType: values.dataType,
         // The schema already refused a text that does not translate.
-        conditions: editor.parse(values.conditions, values.dataType).conditions ?? [],
+        conditions:
+          editor.parse(values.conditions, values.dataType, organization).conditions ?? [],
       };
       return filter
         ? fetchMutation<CustomInboundFilter>({
@@ -887,7 +942,7 @@ function CustomFilterModal({
   const lastSuggestion = useRef({draftKey: '', name: ''});
 
   const suggestName = (values: FilterFormValues) => {
-    const draft = getCompleteDraft(editor, values, filter?.id);
+    const draft = getCompleteDraft(editor, values, filter?.id, organization);
     const draftKey = JSON.stringify(draft);
     const nameIsOpen =
       values.name.trim() === '' || values.name === lastSuggestion.current.name;
@@ -1029,16 +1084,14 @@ function CustomFilterModal({
                               key={dataType}
                               label={t('Conditions')}
                               initialQuery={queryField.state.value}
-                              filterKeys={getFilterKeys(dataType)}
+                              filterKeys={getFilterKeys(dataType, organization)}
                               fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                               getTagValues={getNoTagValues}
                               onChange={value => queryField.handleChange(value)}
                               onBlur={onBlur}
                               disabled={disabled}
                               searchSource="custom_inbound_filter"
-                              placeholder={t(
-                                'e.g. error_message:*timeout* release:<2.0.0'
-                              )}
+                              placeholder={getQueryPlaceholder(dataType, organization)}
                               invalidMessages={CONDITION_QUERY_MESSAGES}
                               disallowFreeText
                               disallowLogicalOperators
@@ -1060,9 +1113,12 @@ function CustomFilterModal({
                               .join(' ')}
                           </Text>
                         )}
-                      {(parseConditionQuery(conditions, dataType).conditions ?? []).some(
-                        condition => RAW_ERROR_PROPERTIES.has(condition.type)
-                      ) && <ObfuscatedErrorWarning project={project} />}
+                      {(
+                        parseConditionQuery(conditions, dataType, organization)
+                          .conditions ?? []
+                      ).some(condition => RAW_ERROR_PROPERTIES.has(condition.type)) && (
+                        <ObfuscatedErrorWarning project={project} />
+                      )}
                     </queryField.Layout.Stack>
                   )}
                 </form.AppField>
