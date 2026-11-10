@@ -303,7 +303,7 @@ const config: Config.InitialOptions = {
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/tests/js/sentry-test/setupNuqs.ts',
-    '<rootDir>/tests/js/sentry-test/setupContentEditable.ts',
+    '<rootDir>/static/packages/scraps/test/env/setupContentEditable.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],

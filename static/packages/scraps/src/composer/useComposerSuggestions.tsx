@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useId, useMemo, useRef} from 'react';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {Item} from '@react-stately/collections';
@@ -145,7 +146,8 @@ export function useComposerSuggestions({
     activeDescendant,
     collectionProps,
     focusedKey,
-    getItem: (key: React.Key) => items.find(item => item.key === key),
+    getItem: (key: React.Key): SuggestionListItem | undefined =>
+      items.find(item => item.key === key),
     count: items.length,
     listBoxId,
     listBoxRef,

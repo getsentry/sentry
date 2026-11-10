@@ -39,6 +39,49 @@ export function getRenderableMentions({mentions, text}: ComposerValue): Mention[
   return renderable;
 }
 
+export function sliceComposerValue(
+  value: ComposerValue,
+  {start, end}: {end: number; start: number}
+): ComposerValue {
+  return {
+    text: value.text.slice(start, end),
+    mentions: getRenderableMentions(value)
+      .filter(mention => mention.start >= start && mention.end <= end)
+      .map(mention => ({
+        ...mention,
+        start: mention.start - start,
+        end: mention.end - start,
+      })),
+  };
+}
+
+export function replaceComposerValue(
+  value: ComposerValue,
+  {start, end}: {end: number; start: number},
+  fragment: ComposerValue
+): ComposerValue {
+  const mentions = getRenderableMentions(value);
+  const shift = fragment.text.length - (end - start);
+  return {
+    text: value.text.slice(0, start) + fragment.text + value.text.slice(end),
+    mentions: [
+      ...mentions.filter(mention => mention.end <= start),
+      ...getRenderableMentions(fragment).map(mention => ({
+        ...mention,
+        start: mention.start + start,
+        end: mention.end + start,
+      })),
+      ...mentions
+        .filter(mention => mention.start >= end)
+        .map(mention => ({
+          ...mention,
+          start: mention.start + shift,
+          end: mention.end + shift,
+        })),
+    ],
+  };
+}
+
 export function isSameComposerValue(a: ComposerValue, b: ComposerValue): boolean {
   if (a === b) {
     return true;

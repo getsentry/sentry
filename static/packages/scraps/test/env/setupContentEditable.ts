@@ -1,3 +1,15 @@
+// jsdom omits ClipboardEvent, which Lexical uses to distinguish paste input.
+if (typeof ClipboardEvent === 'undefined') {
+  globalThis.ClipboardEvent = class ClipboardEvent extends Event {
+    readonly clipboardData: DataTransfer | null;
+
+    constructor(type: string, options: ClipboardEventInit = {}) {
+      super(type, options);
+      this.clipboardData = options.clipboardData ?? null;
+    }
+  };
+}
+
 // jsdom has no layout, so it omits Range geometry. Rich text editors such as
 // Lexical measure the caret after every update to keep it scrolled into view.
 if (typeof Range.prototype.getBoundingClientRect !== 'function') {

@@ -17,7 +17,7 @@ import {
   SharedTriggerComposerDemo,
   SizesComposerDemo,
   SubmitComposerDemo,
-} from './__stories__/demos';
+} from 'sentry/components/core/composer/__stories__/demos';
 
 export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
@@ -317,3 +317,33 @@ Composer accepts the shared form `size` values and grows with its content. Const
 <Storybook.Demo overflow="visible">
   <SizesComposerDemo />
 </Storybook.Demo>
+
+## Clipboard and file drops
+
+`onCopy` receives the selected text and mentions as a `ComposerValue` fragment, with mention offsets starting at the fragment's beginning. Write the clipboard formats your application supports and return `true` to handle the copy. The same handler supplies clipboard data when the selection is cut; Composer removes the selection afterward.
+
+`onPaste` receives clipboard data and the selected fragment. Return a validated `ComposerValue` fragment to replace that selection as one undoable edit. Return nothing to use the default plain-text paste. Clipboard decoding and payload validation belong to the application.
+
+```jsx
+<Composer
+  value={value}
+  onChange={setValue}
+  plugins={mentionPlugins}
+  onCopy={({clipboardData, value: fragment}) => {
+    clipboardData.setData('text/plain', fragment.text);
+    clipboardData.setData('application/x-composer', JSON.stringify(fragment));
+    return true;
+  }}
+  onPaste={({clipboardData}) => decodeAndValidateClipboardFragment(clipboardData)}
+/>
+```
+
+`onFilesDrop` receives files dropped on the editor. Composer enables the file drop and keeps the files out of the editable text. Keep upload state and an attachments bar in application components above or beside Composer. Drag-enter, drag-leave, and drag-over props are available for dropzone feedback.
+
+These handlers use browser data and Composer values. Consumers do not register Lexical commands or access the editor instance.
+
+## Document format
+
+The current value is plain text plus mention ranges. A source's `renderMention` can render an interactive React component, but each mention remains an atomic inline item. Arbitrary embed properties, block structure, and text formatting are not represented in `ComposerValue`.
+
+Lexical's editor state is private. A richer persisted document format can be introduced independently of that implementation. Inline Markdown preview should derive its presentation from document content, rather than give React ownership of editable text nodes.

@@ -322,6 +322,10 @@
     "./pagination": {
       "types": "./dist/pagination/index.d.ts",
       "import": "./dist/pagination/index.js"
+    },
+    "./composer": {
+      "types": "./dist/composer/index.d.ts",
+      "import": "./dist/composer/index.js"
     }
   },
   "publishConfig": {
@@ -341,6 +345,8 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
+    "@lexical/history": "0.52.0",
+    "@lexical/plain-text": "0.52.0",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
@@ -352,6 +358,7 @@
     "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
+    "@react-aria/selection": "3.28.1",
     "@react-aria/separator": "3.5.1",
     "@react-aria/slider": "3.9.1",
     "@react-aria/tabs": "3.12.1",
@@ -378,6 +385,7 @@
     "focus-trap": "8.2.2",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
+    "lexical": "0.52.0",
     "prismjs": "^1.30.0",
     "query-string": "7.0.1",
     "react-error-boundary": "^6.1.6",

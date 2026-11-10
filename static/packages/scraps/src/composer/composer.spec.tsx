@@ -1,15 +1,53 @@
+/* eslint-disable testing-library/no-node-access -- Lexical input tests simulate DOM selection and inspect atomic mention nodes. */
+import type * as React from 'react';
 import {useState} from 'react';
-
-import {placeCaret} from 'sentry-test/contentEditable';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {ThemeProvider} from '@emotion/react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {act, render, screen, within} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {
   Composer,
   type ComposerPlugin,
+  type ComposerProps,
   type Mention,
   type ComposerValue,
   type ComposerSource,
 } from '@sentry/scraps/composer';
+import {lightTheme} from '@sentry/scraps/theme';
+import {
+  TranslationContextProvider,
+  type TranslationContextValue,
+} from '@sentry/scraps/translation';
+
+import {placeCaret} from '../../test/contentEditable';
+
+const translations: TranslationContextValue = {
+  t: (template, ...args) => {
+    let index = 0;
+    return template.replace(/%s/g, () => {
+      const value = args[index++];
+      return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+    });
+  },
+  tct: template => template,
+};
+
+function ComposerProviders({children}: {children: React.ReactNode}) {
+  const [queryClient] = useState(
+    () => new QueryClient({defaultOptions: {queries: {retry: false}}})
+  );
+
+  return (
+    <ThemeProvider theme={lightTheme}>
+      <QueryClientProvider client={queryClient}>
+        <TranslationContextProvider value={translations}>
+          {children}
+        </TranslationContextProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+}
 
 interface PersonSuggestion {
   id: string;
@@ -89,11 +127,12 @@ function ControlledComposer({
   sources = [MEMBER_SOURCE],
   initialValue = '',
   initialMentions = [],
+  ...props
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
   sources?: ReadonlyArray<ComposerSource<unknown>>;
-}) {
+} & Pick<ComposerProps, 'onCopy' | 'onPaste' | 'onFilesDrop'>) {
   const [value, setValue] = useState<ComposerValue>({
     text: initialValue,
     mentions: initialMentions,
@@ -102,6 +141,7 @@ function ControlledComposer({
   return (
     <div>
       <Composer
+        {...props}
         aria-label="Comment"
         plugins={makePlugins(sources)}
         value={value}
@@ -150,6 +190,95 @@ function composeAtEnd(editor: HTMLElement, text: string) {
 }
 
 describe('Composer', () => {
+  it('copies, cuts, and pastes structured mentions with one-step paste undo', async () => {
+    const user = userEvent.setup();
+    const value: ComposerValue = {
+      text: 'Hi @Alice Example',
+      mentions: [
+        {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 3, end: 17},
+      ],
+    };
+    const mime = 'application/x-composer';
+    render(
+      <ControlledComposer
+        initialValue={value.text}
+        initialMentions={value.mentions}
+        onCopy={({clipboardData, value: selectedValue}) => {
+          clipboardData.setData(mime, JSON.stringify(selectedValue));
+          clipboardData.setData('text/plain', selectedValue.text);
+          return true;
+        }}
+        onPaste={({clipboardData}) => (clipboardData.getData(mime) ? value : undefined)}
+      />,
+      {wrapper: ComposerProviders}
+    );
+
+    const textbox = getEditor();
+    await user.click(textbox);
+    await user.keyboard('{Control>}a{/Control}');
+    const clipboard = await user.copy();
+    expect(clipboard?.getData(mime)).toBe(JSON.stringify(value));
+    expect(clipboard?.getData('text/plain')).toBe(value.text);
+
+    await user.cut();
+    expect(getEditorValue()).toHaveTextContent(/^\|$/);
+    await user.paste(clipboard);
+    expect(getEditorValue()).toHaveTextContent('Hi @Alice Example|user:1');
+    expect(within(textbox).getByText('@Alice Example')).toBeVisible();
+    await user.keyboard('{Control>}z{/Control}');
+    expect(getEditorValue()).toHaveTextContent(/^\|$/);
+  });
+
+  it('uses plain-text paste when the handler does not return a fragment', async () => {
+    const user = userEvent.setup();
+    render(<ControlledComposer initialValue="Draft " onPaste={() => {}} />, {
+      wrapper: ComposerProviders,
+    });
+    const textbox = getEditor();
+    await user.click(textbox);
+    placeCaret(textbox);
+    await user.paste('plain\ntext');
+    expect(getEditorValue()).toHaveTextContent('Draft plain text|');
+  });
+
+  it('uses updated paste handlers without resetting the draft', async () => {
+    const user = userEvent.setup();
+    const {rerender} = render(
+      <ControlledComposer onPaste={() => ({text: 'first ', mentions: []})} />,
+      {wrapper: ComposerProviders}
+    );
+    await user.click(getEditor());
+    await user.paste('clipboard text');
+    rerender(<ControlledComposer onPaste={() => ({text: 'second', mentions: []})} />);
+    await user.paste('clipboard text');
+    expect(getEditorValue()).toHaveTextContent('first second|');
+  });
+
+  it('hands dropped files to the caller without editing the draft', () => {
+    const file = new File(['attachment'], 'example.txt', {type: 'text/plain'});
+    const onFilesDrop = jest.fn();
+    render(<ControlledComposer initialValue="Draft" onFilesDrop={onFilesDrop} />, {
+      wrapper: ComposerProviders,
+    });
+    const dataTransfer = {files: [file], types: ['Files']};
+    const dragOver = Object.assign(
+      new Event('dragover', {bubbles: true, cancelable: true}),
+      {dataTransfer}
+    );
+    const drop = Object.assign(new Event('drop', {bubbles: true, cancelable: true}), {
+      dataTransfer,
+    });
+    act(() => {
+      getEditor().dispatchEvent(dragOver);
+      getEditor().dispatchEvent(drop);
+    });
+
+    expect(dragOver.defaultPrevented).toBe(true);
+    expect(drop.defaultPrevented).toBe(true);
+    expect(onFilesDrop).toHaveBeenCalledWith([file]);
+    expect(getEditorValue()).toHaveTextContent('Draft|');
+  });
+
   it('shows the placeholder only while the value is empty', async () => {
     function PlaceholderComposer() {
       const [value, setValue] = useState<ComposerValue>({text: 'Draft', mentions: []});
@@ -163,7 +292,7 @@ describe('Composer', () => {
         />
       );
     }
-    render(<PlaceholderComposer />);
+    render(<PlaceholderComposer />, {wrapper: ComposerProviders});
     const textbox = getEditor();
     expect(textbox).not.toHaveAttribute('data-empty');
     expect(textbox).toHaveAttribute('aria-placeholder', 'Write something');
@@ -189,7 +318,7 @@ describe('Composer', () => {
         />
       );
     }
-    render(<RefChangingComposer />);
+    render(<RefChangingComposer />, {wrapper: ComposerProviders});
     const textbox = getEditor();
     const paragraph = textbox.querySelector('p');
 
@@ -208,7 +337,8 @@ describe('Composer', () => {
         plugins={[MENTION_PLUGIN]}
         value={{text: 'Fixed', mentions: []}}
         onChange={onChange}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -228,7 +358,8 @@ describe('Composer', () => {
         plugins={[MENTION_PLUGIN]}
         value={{text: 'Draft', mentions: []}}
         onChange={onChange}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
     const textbox = getEditor();
     act(() => textbox.focus());
@@ -249,7 +380,7 @@ describe('Composer', () => {
   });
 
   it('selects a suggestion with the arrow keys', async () => {
-    render(<ControlledComposer />);
+    render(<ControlledComposer />, {wrapper: ComposerProviders});
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
@@ -271,7 +402,7 @@ describe('Composer', () => {
   });
 
   it('dismisses suggestions without changing the draft', async () => {
-    render(<ControlledComposer />);
+    render(<ControlledComposer />, {wrapper: ComposerProviders});
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
@@ -285,7 +416,7 @@ describe('Composer', () => {
   });
 
   it('selects the current suggestion with Tab', async () => {
-    render(<ControlledComposer />);
+    render(<ControlledComposer />, {wrapper: ComposerProviders});
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -297,7 +428,7 @@ describe('Composer', () => {
   });
 
   it('deletes a mention as one unit and restores it with undo', async () => {
-    render(<ControlledComposer />);
+    render(<ControlledComposer />, {wrapper: ComposerProviders});
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -321,7 +452,8 @@ describe('Composer', () => {
         initialMentions={[
           {id: 'user:1', sourceId: 'members', start: 0, end: 14, text: '@Alice Example'},
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -343,7 +475,8 @@ describe('Composer', () => {
         initialMentions={[
           {id: 'user:1', sourceId: 'members', start: 4, end: 18, text: '@Alice Example'},
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const mention = getEditor().querySelector('[data-mention]');
@@ -385,7 +518,8 @@ describe('Composer', () => {
             ),
           },
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -430,7 +564,8 @@ describe('Composer', () => {
             ),
           },
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Swap @Alice Example'}));
@@ -464,7 +599,8 @@ describe('Composer', () => {
             ),
           },
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     await userEvent.click(getEditor());
@@ -477,7 +613,7 @@ describe('Composer', () => {
   });
 
   it('inserts line breaks with Enter when suggestions are closed', async () => {
-    render(<ControlledComposer />);
+    render(<ControlledComposer />, {wrapper: ComposerProviders});
 
     await userEvent.type(getEditor(), 'first{Enter}second{Shift>}{Enter}{/Shift}third');
 
@@ -494,7 +630,8 @@ describe('Composer', () => {
         initialMentions={[
           {id: 'user:1', sourceId: 'members', start: 11, end: 25, text: '@Alice Example'},
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     expect(getEditorValue()).toHaveTextContent(`${text}|user:1`, {
@@ -510,7 +647,8 @@ describe('Composer', () => {
         initialMentions={[
           {id: 'user:1', sourceId: 'members', start: 6, end: 20, text: '@Alice Example'},
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     expect(getEditor()).toHaveTextContent('Hello @Alice');
@@ -526,7 +664,9 @@ describe('Composer', () => {
         onChange={jest.fn()}
       />
     );
-    const {rerender} = render(renderComposer({text: 'Draft', mentions: []}));
+    const {rerender} = render(renderComposer({text: 'Draft', mentions: []}), {
+      wrapper: ComposerProviders,
+    });
 
     rerender(
       renderComposer({
@@ -557,7 +697,8 @@ describe('Composer', () => {
       <ControlledComposer
         initialValue="Continue with @Alice Example"
         initialMentions={[restoredMention]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -571,7 +712,9 @@ describe('Composer', () => {
   });
 
   it('merges suggestions from sources sharing a trigger', async () => {
-    render(<ControlledComposer sources={[MEMBER_SOURCE, TEAM_SOURCE]} />);
+    render(<ControlledComposer sources={[MEMBER_SOURCE, TEAM_SOURCE]} />, {
+      wrapper: ComposerProviders,
+    });
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@a');
@@ -590,7 +733,7 @@ describe('Composer', () => {
   });
 
   it('shows an empty state when a source has no matches', async () => {
-    render(<ControlledComposer initialValue="@missing" />);
+    render(<ControlledComposer initialValue="@missing" />, {wrapper: ComposerProviders});
     await userEvent.click(getEditor());
     placeCaret(getEditor());
     expect(await screen.findByText('No suggestions found')).toBeVisible();
@@ -605,7 +748,8 @@ describe('Composer', () => {
         value={{text: '@al', mentions: []}}
         onChange={() => {}}
         onKeyDown={onKeyDown}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -625,7 +769,9 @@ describe('Composer', () => {
   });
 
   it('only matches a restrictToStart trigger at the very start of the text', async () => {
-    render(<ControlledComposer sources={[COMMAND_SOURCE]} initialValue="hi there " />);
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} initialValue="hi there " />, {
+      wrapper: ComposerProviders,
+    });
 
     const textbox = getEditor();
     await userEvent.click(textbox);
@@ -636,7 +782,9 @@ describe('Composer', () => {
   });
 
   it('shows restrictToStart suggestions when the trigger is the first character', async () => {
-    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />, {
+      wrapper: ComposerProviders,
+    });
 
     const textbox = getEditor();
     await userEvent.type(textbox, '/sni');
@@ -652,7 +800,8 @@ describe('Composer', () => {
         initialMentions={[
           {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 5, end: 19},
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -667,7 +816,9 @@ describe('Composer', () => {
   });
 
   it('runs onSelect to insert a snippet at the trigger position', async () => {
-    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />, {
+      wrapper: ComposerProviders,
+    });
 
     const textbox = getEditor();
     await userEvent.type(textbox, '/sni');
@@ -681,7 +832,8 @@ describe('Composer', () => {
       <ControlledComposer
         sources={[{...COMMAND_SOURCE, restrictToStart: false}]}
         initialValue="Before /sni after"
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
     const textbox = getEditor();
     await userEvent.click(textbox);
@@ -695,7 +847,9 @@ describe('Composer', () => {
   });
 
   it('allows repeating a command after clearing the editor', async () => {
-    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />, {
+      wrapper: ComposerProviders,
+    });
     const textbox = getEditor();
 
     await userEvent.type(textbox, '/new');
@@ -710,7 +864,9 @@ describe('Composer', () => {
   });
 
   it('allows repeating a command after inserting a snippet', async () => {
-    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />, {
+      wrapper: ComposerProviders,
+    });
     const textbox = getEditor();
 
     await userEvent.type(textbox, '/sni');
@@ -729,7 +885,8 @@ describe('Composer', () => {
       <ControlledComposer
         sources={[COMMAND_SOURCE, {...MEMBER_SOURCE, trigger: '/'}]}
         initialValue="hello "
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
     await userEvent.click(getEditor());
     placeCaret(getEditor());
@@ -754,7 +911,8 @@ describe('Composer', () => {
             end: 19,
           },
         ]}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
     const textbox = getEditor();
     await userEvent.click(textbox);
@@ -772,7 +930,9 @@ describe('Composer', () => {
 
   it('dismisses suggestions after an action that leaves the editor unchanged', async () => {
     const onSelect = jest.fn();
-    render(<ControlledComposer sources={[{...COMMAND_SOURCE, onSelect}]} />);
+    render(<ControlledComposer sources={[{...COMMAND_SOURCE, onSelect}]} />, {
+      wrapper: ComposerProviders,
+    });
     const textbox = getEditor();
     await userEvent.type(textbox, '/new');
     expect(await screen.findByRole('option', {name: '/new'})).toBeVisible();
@@ -804,7 +964,8 @@ describe('Composer', () => {
         value={{text: '@que', mentions: []}}
         onChange={() => {}}
         onKeyDown={onKeyDown}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();
@@ -828,7 +989,8 @@ describe('Composer', () => {
         value={{text: 'Draft', mentions: []}}
         onChange={onChange}
         onKeyDown={onKeyDown}
-      />
+      />,
+      {wrapper: ComposerProviders}
     );
 
     const textbox = getEditor();

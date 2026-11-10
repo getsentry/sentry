@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {
   useCallback,
   useEffectEvent,
@@ -29,7 +30,7 @@ import {
 
 import {Container} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useTranslation} from '@sentry/scraps/translation';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
@@ -51,6 +52,7 @@ import {
 import {isSameComposerValue, type ComposerValue} from './model';
 import {CaretAnchor, ComposerEditor, SuggestionListBox, SuggestionStatus} from './styles';
 import type {ComposerProps} from './types';
+import {useComposerClipboard} from './useComposerClipboard';
 import {useComposerSuggestions} from './useComposerSuggestions';
 
 /** Marks updates that apply the controlled value, so they are not reported back. */
@@ -84,7 +86,7 @@ function isSameTrigger(a: ActiveTrigger | null, b: ActiveTrigger | null) {
 
 function hasFocus(editor: LexicalEditor) {
   const root = editor.getRootElement();
-  return root !== null && root.ownerDocument.activeElement === root;
+  return root?.ownerDocument.activeElement === root;
 }
 
 function useComposerEditor(
@@ -236,6 +238,9 @@ export function Composer({
   value: inputValue,
   plugins,
   onChange,
+  onCopy,
+  onPaste,
+  onFilesDrop,
   onKeyDown,
   minHeight,
   placeholder,
@@ -383,6 +388,8 @@ export function Composer({
     // keeps its previous value also restores the editor.
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [editor, inputValue, reportVersion, resetHistory]);
+
+  useComposerClipboard(editor, {onCopy, onPaste, onFilesDrop});
 
   const {
     overlayProps,

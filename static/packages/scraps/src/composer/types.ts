@@ -1,4 +1,4 @@
-import type React from 'react';
+import type * as React from 'react';
 import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from '@sentry/scraps/theme';
@@ -85,9 +85,21 @@ export interface ComposerPlugin {
   id: string;
 }
 
+export interface ComposerClipboardEvent {
+  clipboardData: DataTransfer;
+  /** Selected text and mentions, with mention offsets relative to this fragment. */
+  value: ComposerValue;
+}
+
 export interface ComposerProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
-  'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
+  | 'children'
+  | 'contentEditable'
+  | 'defaultValue'
+  | 'onBeforeInput'
+  | 'onChange'
+  | 'onCopy'
+  | 'onPaste'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
   onChange: (value: ComposerValue) => void;
@@ -96,6 +108,12 @@ export interface ComposerProps extends Omit<
   /** Controlled editor text and structured mention ranges. */
   value: ComposerValue;
   minHeight?: number;
+  /** Return true after writing clipboard data. Also handles the copy part of a cut. */
+  onCopy?(event: ComposerClipboardEvent): boolean | void;
+  /** Receives dropped files before the editor handles the drop. Upload state stays with the caller. */
+  onFilesDrop?(files: readonly File[]): void;
+  /** Return a fragment to replace the selection as one undoable edit, or nothing for plain-text paste. */
+  onPaste?(event: ComposerClipboardEvent): ComposerValue | void;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
   size?: FormSize;

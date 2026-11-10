@@ -462,12 +462,6 @@ importers:
       '@intercom/messenger-js-sdk':
         specifier: ^0.0.18
         version: 0.0.18
-      '@lexical/history':
-        specifier: 0.52.0
-        version: 0.52.0(@typescript/typescript6@6.0.2)
-      '@lexical/plain-text':
-        specifier: 0.52.0
-        version: 0.52.0(@typescript/typescript6@6.0.2)
       '@r4ai/remark-callout':
         specifier: ^0.6.2
         version: 0.6.2
@@ -687,9 +681,6 @@ importers:
       jsonrepair:
         specifier: ^3.15.0
         version: 3.15.0
-      lexical:
-        specifier: 0.52.0
-        version: 0.52.0(@typescript/typescript6@6.0.2)
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -1155,6 +1146,12 @@ importers:
       '@floating-ui/react-dom':
         specifier: ^2.1.9
         version: 2.1.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@lexical/history':
+        specifier: 0.52.0
+        version: 0.52.0(@typescript/typescript6@6.0.2)
+      '@lexical/plain-text':
+        specifier: 0.52.0
+        version: 0.52.0(@typescript/typescript6@6.0.2)
       '@react-aria/button':
         specifier: 3.15.1
         version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1188,6 +1185,9 @@ importers:
       '@react-aria/radio':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/selection':
+        specifier: 3.28.1
+        version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/separator':
         specifier: 3.5.1
         version: 3.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1266,6 +1266,9 @@ importers:
       input-otp:
         specifier: ^1.5.0
         version: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      lexical:
+        specifier: 0.52.0
+        version: 0.52.0(@typescript/typescript6@6.0.2)
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
