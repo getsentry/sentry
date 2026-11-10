@@ -1,6 +1,9 @@
 import logging
 import os
+import shutil
 import sys
+import sysconfig
+from collections.abc import Sequence
 
 import click
 
@@ -47,6 +50,31 @@ _COMMANDS = {
     "deletions": "sentry.runner.commands.deletions.deletions",
 }
 
+# Set on the Sentry CLI we exec, so a second server `sentry` on PATH can't hand
+# the command back and loop.
+_FALLBACK_ENV = "SENTRY_SERVER_CLI_FALLBACK"
+
+
+def _exec_sentry_cli(args: Sequence[str]) -> None:
+    """
+    Hand a command this CLI doesn't have to the Sentry CLI
+    (https://cli.sentry.dev), which is also called `sentry`. Inside a checkout
+    the virtualenv shadows it on PATH. Returns if there's no other `sentry`.
+    """
+    if os.environ.get(_FALLBACK_ENV):
+        return
+    own_bin = os.path.realpath(sysconfig.get_path("scripts"))
+    path = os.pathsep.join(
+        p
+        for p in os.environ.get("PATH", "").split(os.pathsep)
+        if p and os.path.realpath(p) != own_bin
+    )
+    other = shutil.which("sentry", path=path)
+    if other is None:
+        return
+    os.environ[_FALLBACK_ENV] = "1"
+    os.execv(other, ["sentry", *args])
+
 
 class _SentryGroup(click.Group):
     def list_commands(self, ctx: click.Context) -> list[str]:
@@ -56,6 +84,13 @@ class _SentryGroup(click.Group):
         if cmd_name not in self.commands and cmd_name in _COMMANDS:
             self.add_command(import_string(_COMMANDS[cmd_name]), cmd_name)
         return super().get_command(ctx, cmd_name)
+
+    def resolve_command(
+        self, ctx: click.Context, args: list[str]
+    ) -> tuple[str | None, click.Command | None, list[str]]:
+        if args and not args[0].startswith("-") and self.get_command(ctx, args[0]) is None:
+            _exec_sentry_cli(args)
+        return super().resolve_command(ctx, args)
 
 
 @click.group(cls=_SentryGroup, context_settings={"max_content_width": 150})
