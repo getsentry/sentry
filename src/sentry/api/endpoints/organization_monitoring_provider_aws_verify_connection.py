@@ -26,7 +26,9 @@ from sentry.api.serializers.rest_framework.base import (
 from sentry.constants import ObjectStatus
 from sentry.integrations.aws.client import (
     AWS_MCP_REGIONS,
+    AWS_NOT_CONFIGURED_MESSAGE,
     AWS_ROLE_ARN_MESSAGE,
+    AWS_VERIFICATION_MESSAGE,
     AwsVerifyConnectionResult,
     parse_role_arn,
     verify_aws_connection,
@@ -132,11 +134,17 @@ class OrganizationMonitoringProviderAwsVerifyConnectionEndpoint(OrganizationEndp
 
         try:
             result = verify_aws_connection(data["role_arn"], external_id, data["region"])
-        except IntegrationConfigurationError as exc:
-            # This cell's Seer workload identity is not configured.
-            return Response({"detail": str(exc)}, status=404)
-        except IntegrationError as exc:
-            return Response({"detail": str(exc)}, status=502)
+        except IntegrationConfigurationError:
+            # This cell's Seer workload identity is not configured. Respond with a
+            # fixed message so no exception text reaches the client.
+            logger.warning(
+                "aws.verify_connection_not_configured",
+                extra={"organization_id": organization.id},
+            )
+            return Response({"detail": AWS_NOT_CONFIGURED_MESSAGE}, status=404)
+        except IntegrationError:
+            # verify_aws_connection already logs the underlying failure.
+            return Response({"detail": AWS_VERIFICATION_MESSAGE}, status=502)
 
         try:
             _record_verification_result(organization, data, result)
