@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from django.db import router, transaction
+from django.db import OperationalError, router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
@@ -20,6 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
+from sentry.utils.db import statement_timeout
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
@@ -78,10 +79,44 @@ def cadence_tick() -> None:
             if selected < TICK_BATCH_SIZE:
                 return
             if time.monotonic() - start >= TICK_CLAIM_SECONDS:
+                metrics.incr("cadence.tick.time_limit_reached", sample_rate=1.0)
                 logger.warning("cadence.tick.time_limit_reached", extra={"claimed": claimed_count})
                 return
     finally:
         metrics.distribution("cadence.tick.claimed", claimed_count)
+        metrics.timing("cadence.tick.duration", time.monotonic() - start, sample_rate=1.0)
+
+
+@instrumented_task(
+    name="sentry.cadence.tasks.record_cadence_backlog_metrics",
+    namespace=issues_tasks,
+    processing_deadline_duration=10,
+    silo_mode=SiloMode.CELL,
+)
+def record_cadence_backlog_metrics() -> None:
+    """Sample the oldest overdue firing, including while the tick is disabled."""
+    now = timezone.now()
+    # Read the primary's firing-time index without locking rows or counting the backlog.
+    database = router.db_for_write(ScheduledTrigger)
+    try:
+        with statement_timeout(database, timedelta(seconds=2)):
+            oldest = (
+                ScheduledTrigger.objects.using(database)
+                .filter(next_fire_at__lte=now)
+                .order_by("next_fire_at", "id")
+                .values_list("next_fire_at", flat=True)
+                .first()
+            )
+    except OperationalError:
+        metrics.incr("cadence.backlog.query_failed", sample_rate=1.0)
+        logger.exception("cadence.backlog.query_failed")
+        return
+    metrics.gauge(
+        "cadence.backlog.oldest_overdue_age",
+        (now - oldest).total_seconds() if oldest is not None else 0.0,
+        sample_rate=1.0,
+        unit="second",
+    )
 
 
 def _claim_batch(
@@ -147,6 +182,7 @@ def _claim_batch(
                         trigger_type=trigger_type,
                         target_id=trigger.target_id,
                         scheduled_for=scheduled_for,
+                        fire_at=fire_at,
                     ),
                     fire_at=fire_at,
                 )
@@ -160,8 +196,8 @@ def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None
     Call each trigger type's action with its firings. One type's failure doesn't affect
     others.
     """
-    dispatched_at = timezone.now()
     for trigger_type, claimed_firings in claimed.items():
+        dispatched_at = timezone.now()
         tags = {"trigger_type": trigger_type.value}
         for claimed_firing in claimed_firings:
             # Measured from when the firing was due, so a trigger's offset isn't counted as lag.
@@ -186,3 +222,5 @@ def _dispatch_type(
             "cadence.trigger.dispatch_failed",
             extra={"trigger_type": trigger_type.value, "firing_count": len(firings)},
         )
+    else:
+        metrics.incr("cadence.trigger.dispatched", amount=len(firings), tags=tags, sample_rate=1.0)

@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.db import OperationalError
+
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType, ScheduleType
 from sentry.cadence.registry import (
     TriggerFiring,
@@ -10,7 +12,7 @@ from sentry.cadence.registry import (
     trigger_type_registry,
 )
 from sentry.cadence.spread import fire_offset, offset_of
-from sentry.cadence.tasks import _claim_batch, _Cursor, cadence_tick
+from sentry.cadence.tasks import _claim_batch, _Cursor, cadence_tick, record_cadence_backlog_metrics
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -73,6 +75,7 @@ class CadenceTickTestCase(TestCase):
             trigger_type=SEER_WORKFLOW,
             target_id=trigger.target_id,
             scheduled_for=scheduled_for,
+            fire_at=trigger.next_fire_at,
         )
 
     def dispatched(self) -> list[TriggerFiring]:
@@ -186,9 +189,17 @@ class CadenceTickTest(CadenceTickTestCase):
         with (
             patch("sentry.cadence.tasks.TICK_BATCH_SIZE", 2),
             patch("sentry.cadence.tasks.TICK_CLAIM_SECONDS", 0),
+            patch("sentry.cadence.tasks.metrics.incr") as mock_incr,
         ):
             cadence_tick()
 
+        assert cadence_metric_calls(mock_incr) == [
+            (
+                ("cadence.trigger.dispatched",),
+                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+            ),
+            (("cadence.tick.time_limit_reached",), {"sample_rate": 1.0}),
+        ]
         assert self.action.call_count == 1
         assert [ctx.target_id for ctx in self.dispatched()] == [
             triggers[4].target_id,
@@ -282,7 +293,10 @@ class CadenceTickTest(CadenceTickTestCase):
     @freeze_time(NOW)
     @patch("sentry.utils.metrics.timing")
     @patch("sentry.cadence.tasks.metrics.distribution")
-    def test_records_metrics(self, mock_distribution: MagicMock, mock_timing: MagicMock) -> None:
+    @patch("sentry.cadence.tasks.metrics.incr")
+    def test_records_metrics(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock, mock_timing: MagicMock
+    ) -> None:
         self.create_trigger(NOW - timedelta(seconds=12))
         self.create_trigger(NOW - timedelta(seconds=5))
         self.create_trigger(NOW + timedelta(minutes=1))
@@ -306,6 +320,47 @@ class CadenceTickTest(CadenceTickTestCase):
             if c[0][0] == "cadence.trigger.dispatch_duration"
         ]
         assert timing_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
+        assert cadence_metric_calls(mock_incr) == [
+            (
+                ("cadence.trigger.dispatched",),
+                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+            ),
+        ]
+
+    @freeze_time(NOW)
+    def test_tick_duration_includes_action_time(self) -> None:
+        self.create_trigger(NOW)
+        with (
+            patch("sentry.cadence.tasks.time.monotonic", return_value=100.0) as monotonic,
+            patch("sentry.cadence.tasks.metrics.timing") as timing,
+        ):
+            self.action.side_effect = lambda _: monotonic.configure_mock(return_value=105.0)
+            cadence_tick()
+
+        timing.assert_any_call("cadence.tick.duration", 5.0, sample_rate=1.0)
+
+    def test_later_trigger_types_include_time_spent_in_earlier_actions(self) -> None:
+        with freeze_time(NOW) as clock:
+            self.create_trigger(NOW)
+            later = self.create_trigger(NOW, target_id=100)
+            ScheduledTrigger.objects.filter(id=later.id).update(
+                trigger_type=ScheduledTriggerType.LOG
+            )
+            self.action.side_effect = lambda _: clock.shift(timedelta(seconds=7))
+            with patch("sentry.cadence.tasks.metrics.distribution") as distribution:
+                cadence_tick()
+
+        assert cadence_metric_calls(distribution) == [
+            (
+                ("cadence.trigger.dispatch_lag", 0.0),
+                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+            ),
+            (
+                ("cadence.trigger.dispatch_lag", 7.0),
+                {"tags": {"trigger_type": "log"}, "unit": "second"},
+            ),
+            (("cadence.tick.claimed", 2), {}),
+        ]
 
     @freeze_time(NOW)
     def test_kill_switch(self) -> None:
@@ -317,6 +372,66 @@ class CadenceTickTest(CadenceTickTestCase):
         self.action.assert_not_called()
         trigger.refresh_from_db()
         assert trigger.next_fire_at == NOW - timedelta(minutes=1)
+
+
+class CadenceBacklogMetricsTest(CadenceTickTestCase):
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.metrics.gauge")
+    def test_reports_oldest_overdue_and_zero_after_draining(self, gauge: MagicMock) -> None:
+        self.create_trigger(NOW - timedelta(seconds=45))
+        self.create_trigger(NOW - timedelta(seconds=10))
+        self.create_trigger(NOW + timedelta(minutes=1))
+        self.create_trigger(None)
+
+        record_cadence_backlog_metrics()
+
+        gauge.assert_called_once_with(
+            "cadence.backlog.oldest_overdue_age", 45.0, sample_rate=1.0, unit="second"
+        )
+        cadence_tick()
+        gauge.reset_mock()
+
+        record_cadence_backlog_metrics()
+
+        gauge.assert_called_once_with(
+            "cadence.backlog.oldest_overdue_age", 0.0, sample_rate=1.0, unit="second"
+        )
+
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.metrics.gauge")
+    def test_reports_zero_for_empty_table(self, gauge: MagicMock) -> None:
+        record_cadence_backlog_metrics()
+
+        gauge.assert_called_once_with(
+            "cadence.backlog.oldest_overdue_age", 0.0, sample_rate=1.0, unit="second"
+        )
+
+    @freeze_time(NOW)
+    @patch("sentry.cadence.tasks.metrics.gauge")
+    def test_reports_backlog_when_tick_disabled(self, gauge: MagicMock) -> None:
+        self.create_trigger(NOW - timedelta(minutes=2))
+
+        with override_options({"cadence.tick.enabled": False}):
+            record_cadence_backlog_metrics()
+
+        gauge.assert_called_once_with(
+            "cadence.backlog.oldest_overdue_age", 120.0, sample_rate=1.0, unit="second"
+        )
+
+    def test_query_failure_does_not_report_zero_backlog(self) -> None:
+        with (
+            patch.object(
+                ScheduledTrigger.objects, "using", side_effect=OperationalError("timeout")
+            ),
+            patch("sentry.cadence.tasks.metrics.gauge") as gauge,
+            patch("sentry.cadence.tasks.metrics.incr") as incr,
+            patch("sentry.cadence.tasks.logger") as logger,
+        ):
+            record_cadence_backlog_metrics()
+
+        gauge.assert_not_called()
+        incr.assert_called_once_with("cadence.backlog.query_failed", sample_rate=1.0)
+        logger.exception.assert_called_once_with("cadence.backlog.query_failed")
 
 
 class CadenceTickSpreadTest(CadenceTickTestCase):

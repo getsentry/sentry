@@ -23,6 +23,9 @@ class TriggerFiring:
     # The firing's scheduled time, not including its offset within the spread window.
     # Stable across duplicate deliveries of the same firing, so it can be used to deduplicate.
     scheduled_for: datetime
+    # Actual due time when claimed, including spreading. Older callers may omit it.
+    # This is diagnostic data; scheduled_for remains the stable deduplication key.
+    fire_at: datetime | None = None
 
 
 # A trigger action is called with a batch of firings, all of the action's trigger type.
