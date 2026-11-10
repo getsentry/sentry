@@ -4,12 +4,12 @@ import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';

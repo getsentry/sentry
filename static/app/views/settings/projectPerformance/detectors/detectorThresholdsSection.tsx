@@ -1,9 +1,9 @@
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 

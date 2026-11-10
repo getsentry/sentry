@@ -378,8 +378,8 @@ class ServiceAccountTokenTest(TestCase):
 @all_silo_test
 class ServiceAccountTokenReplicaServiceTest(TestCase):
     """
-    Calls `upsert_replicated_service_account_token` directly. Nothing calls it from the
-    token's outbox yet: that caller ships separately, after this method is deployed.
+    Calls `upsert_replicated_service_account_token` directly, so each test controls when
+    the replica is written.
     """
 
     def setUp(self) -> None:
@@ -438,9 +438,6 @@ class ServiceAccountTokenReplicaServiceTest(TestCase):
         assert outbox.cell_name == cell_name
 
     def test_upsert_creates_replica(self) -> None:
-        # setUp drained the token's outbox, which has no handler yet.
-        assert self.get_replica() is None
-
         self.upsert()
 
         replica = self.get_replica()
@@ -494,3 +491,58 @@ class ServiceAccountTokenReplicaServiceTest(TestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         assert self.get_replica() is None
+
+
+class ServiceAccountTokenOutboxReplicationTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account = ServiceAccount.objects.create(
+                organization_id=self.organization.id,
+                name="ci",
+                scope_list=["org:read", "project:read"],
+            )
+            self.token = ServiceAccountToken.objects.create(
+                service_account=self.service_account,
+                organization_id=self.organization.id,
+                name="deploys",
+                token_hashed="hashed-token",
+                token_last_characters="abcd",
+                scope_list=["project:read"],
+                created_by=self.user,
+            )
+        self.token_id = self.token.id
+
+    def get_replica(self) -> ServiceAccountTokenReplica | None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            return ServiceAccountTokenReplica.objects.filter(token_id=self.token_id).first()
+
+    def test_create_replicates_token(self) -> None:
+        replica = self.get_replica()
+        assert replica is not None
+        assert replica.token_hashed == "hashed-token"
+        assert replica.scope_list == ["project:read"]
+
+    def test_revoke_updates_replica(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.token.update(date_deactivated=timezone.now())
+
+        replica = self.get_replica()
+        assert replica is not None
+        assert replica.date_deactivated == self.token.date_deactivated
+
+    def test_missing_account_replica_does_not_block_outbox(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            ServiceAccountReplica.objects.filter(
+                service_account_id=self.service_account.id
+            ).delete()
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.token.update(name="deploys-2")
+
+        assert self.get_replica() is None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not ControlOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE
+            ).exists()

@@ -16,7 +16,8 @@ from pydantic import BaseModel, Field
 from sentry.issues.impact.types import ImpactCitation
 
 # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
-SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
+# `int` comes first so pydantic keeps pr_number an int; with `str` first it coerced it to one.
+SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, int | str]]
 
 
 class GroupActorType(IntEnum):
