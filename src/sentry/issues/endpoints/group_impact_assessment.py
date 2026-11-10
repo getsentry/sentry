@@ -37,7 +37,7 @@ class GroupImpactAssessmentResponse(TypedDict):
 @cell_silo_endpoint
 class GroupImpactAssessmentEndpoint(GroupAiEndpoint):
     owner = ApiOwner.ISSUES
-    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"POST": ApiPublishStatus.EXPERIMENTAL}
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
