@@ -1,5 +1,7 @@
 import pytest
+from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
     ServiceAccount,
@@ -7,6 +9,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
 )
+from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -42,6 +45,18 @@ class ServiceAccountServiceTest(TestCase):
                 all_projects=False,
                 created_by_id=self.user.id,
             ).id
+
+    def queue_grant_update(
+        self, service_account_id: int, scope_list: list[str], *, all_projects: bool = False
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                service_account_grant_update_outbox(
+                    organization_id=self.organization.id,
+                    service_account_id=service_account_id,
+                    scope_list=scope_list,
+                    all_projects=all_projects,
+                ).save()
 
     def test_create_service_account(self) -> None:
         with outbox_runner():
@@ -211,6 +226,29 @@ class ServiceAccountServiceTest(TestCase):
         assert account is None
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+
+    def test_grant_update_outbox_applies_the_latest_grant(self) -> None:
+        account_id = self.create()
+
+        with outbox_runner():
+            self.queue_grant_update(account_id, ["project:read"])
+            self.queue_grant_update(account_id, ["event:read", "project:read"], all_projects=True)
+
+        account = service_account_service.get_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+        assert account is not None
+        assert account.scope_list == ["event:read", "project:read"]
+        assert account.all_projects
+
+        with outbox_runner():
+            self.queue_grant_update(account_id, ["service_account:write"])
+
+        account = service_account_service.get_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+        assert account is not None
+        assert account.scope_list == ["event:read", "project:read"]
 
     def test_delete_service_account_only_in_its_organization(self) -> None:
         account_id = self.create()

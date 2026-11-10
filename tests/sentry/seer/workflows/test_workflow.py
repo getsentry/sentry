@@ -1,9 +1,10 @@
-from typing import Any
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 import pytest
 from django.db import router, transaction
 
+from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxDatabaseError, outbox_context
@@ -31,11 +32,12 @@ from sentry.service_accounts.models import (
     ServiceAccountProject,
     ServiceAccountReplica,
 )
-from sentry.service_accounts.outbox import create_owned_service_account
+from sentry.service_accounts.outbox import ServiceAccountCreatePayload, create_owned_service_account
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
@@ -236,7 +238,7 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
     def pending_outbox(self) -> CellOutbox:
         return CellOutbox.objects.get(category=OutboxCategory.SERVICE_ACCOUNT_CREATE)
 
-    def pending_payload(self) -> dict[str, Any]:
+    def pending_payload(self) -> ServiceAccountCreatePayload:
         payload = self.pending_outbox().payload
         assert payload is not None
         return payload
@@ -816,3 +818,72 @@ class SeerWorkflowServiceAccountTest(TestCase):
             self.workflow.resolve_service_account()
         self.config.refresh_from_db()
         assert self.config.service_account_id == self.account.id
+
+
+class SeerWorkflowScheduleSyncTest(TestCase):
+    def next_scheduled_for(self, config: SeerWorkflowConfig) -> datetime | None:
+        info = get_schedules(
+            organization_id=config.organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=[config.id],
+        ).get(config.id)
+        return info.next_scheduled_for if info else None
+
+    def set_enabled(self, config: SeerWorkflowConfig, enabled: bool) -> SeerWorkflowConfig:
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        with workflow.update_config() as update:
+            update.set_enabled(enabled)
+        return workflow.get_config()
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_enabling_schedules(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+
+        updated = self.set_enabled(config, True)
+
+        assert updated.enabled
+        assert updated.version == 2
+        assert self.next_scheduled_for(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+
+    def test_disabling_unschedules(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        self.set_enabled(config, True)
+
+        updated = self.set_enabled(config, False)
+
+        assert not updated.enabled
+        assert updated.version == 3
+        assert self.next_scheduled_for(config) is None
+
+    def test_unchanged_does_not_bump_version_but_repairs_schedule(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+        )
+
+        updated = self.set_enabled(config, True)
+
+        assert updated.version == 1
+        assert self.next_scheduled_for(config) is not None
+
+    def test_unscheduled_strategy_is_not_scheduled(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+
+        self.set_enabled(config, True)
+
+        assert self.next_scheduled_for(config) is None
+
+    def test_delete_unschedules(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        )
+        self.set_enabled(config, True)
+
+        SeerWorkflow(config_id=config.id, organization_id=config.organization_id).delete()
+
+        assert self.next_scheduled_for(config) is None

@@ -19,7 +19,6 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_redis_script,
-    redis_clusters,
     validate_dynamic_cluster,
 )
 
@@ -92,11 +91,10 @@ class RedisBackend(Backend):
 
     def __init__(self, **options: Any) -> None:
         cluster_name = options.get("cluster", "default")
-        self.is_redis_cluster, _, options = get_dynamic_cluster_from_options(
-            "SENTRY_DIGESTS_OPTIONS", options
+        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_DIGESTS_OPTIONS", options, decode_responses=False
         )
         options.pop("cluster", None)
-        self.cluster = redis_clusters.get_binary(cluster_name)
         self.locks = LockManager(RedisClusterLockBackend(cluster_name))
 
         self.namespace = options.pop("namespace", "d")

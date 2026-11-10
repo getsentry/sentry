@@ -99,6 +99,7 @@ class MetricBreachTrigger(BaseModel):
     observed_at: datetime
     environment: str | None = None
     group_id: int
+    group_short_id: str | None = None
     project_id: int
     invocation_source: Literal["wfe"] = "wfe"
     binding_id: int
@@ -298,6 +299,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 observed_at=occurrence.detection_time,
                 environment=event.get_tag("environment"),
                 group_id=group.id,
+                group_short_id=group.qualified_short_id,
                 project_id=group.project_id,
                 binding_id=binding.id,
                 workflow_id=workflow_id,
