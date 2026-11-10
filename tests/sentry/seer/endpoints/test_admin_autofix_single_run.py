@@ -133,7 +133,6 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True)
-        self.create_member(organization=self.organization, user=self.user, role="owner")
         self.login_as(self.user)
         self.detector.update(config={"detection_type": AlertRuleDetectionType.STATIC.value})
         self.config = Factories.create_seer_workflow_config(
@@ -148,7 +147,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
             return super().get_response(*args, **params)
 
     @patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
-    def test_creates_fresh_issues_with_resolvable_context(self, publish: MagicMock) -> None:
+    def test_staff_without_membership_can_create_fresh_issues(self, publish: MagicMock) -> None:
         state = self.create_detector_state(
             detector=self.detector,
             is_triggered=True,

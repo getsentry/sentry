@@ -5,7 +5,7 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,7 +16,6 @@ from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.access import from_request
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
@@ -106,9 +105,6 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
             )
         except Organization.DoesNotExist:
             raise NotFound
-        access = from_request(request, organization)
-        if not access.has_scope("event:write"):
-            raise PermissionDenied
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
         try:
@@ -116,8 +112,6 @@ class SeerAdminMetricBreachesEndpoint(Endpoint):
                 id=values["monitorId"], project__organization_id=organization.id
             )
         except Detector.DoesNotExist:
-            raise NotFound
-        if detector.project is not None and not access.has_project_access(detector.project):
             raise NotFound
         try:
             context = prepare_synthetic_breach(organization, detector)
