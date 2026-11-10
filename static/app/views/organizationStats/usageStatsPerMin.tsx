@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import type {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
@@ -37,24 +37,18 @@ export function UsageStatsPerMin({
     data: orgStats,
     isPending,
     isError,
-  } = useApiQuery<UsageSeries>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          statsPeriod: '5m', // Any value <1h will return current hour's data
-          interval: '1m',
-          groupBy: ['category', 'outcome'],
-          project: projectIds,
-          field: ['sum(quantity)'],
-        },
+  } = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        statsPeriod: '5m', // Any value <1h will return current hour's data
+        interval: '1m',
+        groupBy: ['category', 'outcome'],
+        project: projectIds,
+        field: ['sum(quantity)'],
       },
-    ],
-    {
       staleTime: 0,
-    }
+    })
   );
 
   if (isPending || isError || !orgStats || orgStats.intervals.length === 0) {
