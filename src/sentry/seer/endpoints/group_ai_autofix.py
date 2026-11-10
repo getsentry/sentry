@@ -32,6 +32,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import acting_user, acting_user_id
 from sentry.issues.action_log import (
     action_context_scope,
@@ -66,7 +67,7 @@ from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
-from sentry.seer.autofix.prompt_redaction import can_see_autofix_prompts, redact_autofix_prompts
+from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
 from sentry.seer.autofix.single_run import is_single_run, is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
@@ -673,8 +674,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 )
 
         run = get_seer_run(state.run_id, group.organization)
-        redacted = redact_autofix_prompts(state, can_see_prompts=can_see_autofix_prompts(request))
-        blocks = [block.dict() for block in redacted.blocks]
+        visible = state if has_elevated_mode(request) else redact_autofix_prompts(state)
+        blocks = [block.dict() for block in visible.blocks]
         return Response(
             {
                 "autofix": {

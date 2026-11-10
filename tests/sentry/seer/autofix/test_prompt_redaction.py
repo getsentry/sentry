@@ -30,7 +30,7 @@ def test_keeps_single_run_messages() -> None:
         _block(2, "user", "Nice, make a code fix", "single_run"),
     )
 
-    redacted = redact_autofix_prompts(state, can_see_prompts=False)
+    redacted = redact_autofix_prompts(state)
 
     assert _contents(redacted) == ["Fix issue ABC-1", "Found it.", "Nice, make a code fix"]
 
@@ -42,7 +42,7 @@ def test_hides_every_step_prompt_in_a_step_by_step_run() -> None:
         _block(2, "user", "Plan a solution ...", "solution"),
     )
 
-    redacted = redact_autofix_prompts(state, can_see_prompts=False)
+    redacted = redact_autofix_prompts(state)
 
     assert _contents(redacted) == [
         AUTOFIX_PROMPT_PLACEHOLDER,
@@ -54,6 +54,4 @@ def test_hides_every_step_prompt_in_a_step_by_step_run() -> None:
 def test_keeps_a_plain_chat_message() -> None:
     state = _state(_block(0, "user", "What is this error about?"))
 
-    assert _contents(redact_autofix_prompts(state, can_see_prompts=False)) == [
-        "What is this error about?"
-    ]
+    assert _contents(redact_autofix_prompts(state)) == ["What is this error about?"]

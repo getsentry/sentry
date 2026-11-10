@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import acting_user, acting_user_id
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
@@ -36,7 +37,7 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.feature.dispatch import continue_single_run
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
-from sentry.seer.autofix.prompt_redaction import can_see_autofix_prompts, redact_autofix_prompts
+from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
 from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
@@ -332,9 +333,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
-            session = redact_autofix_prompts(
-                state, can_see_prompts=can_see_autofix_prompts(request)
-            )
+            session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(
                 SeerAgentChatStateResponse(
                     session=session,
