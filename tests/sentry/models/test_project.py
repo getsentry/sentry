@@ -594,28 +594,27 @@ class TestProjectTransfer(TestCase):
         self,
     ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            from_integration = self.create_integration(
-                organization=self.from_org, external_id="from-slack", provider="slack"
+            # One Integration shared by both orgs: it stays active and the source org's link
+            # stays active, so only the destination org's disabled link should stop the remap.
+            integration = self.create_integration(
+                organization=self.from_org, external_id="shared-slack", provider="slack"
             )
-            # The shared Integration stays active while the destination org's link is disabled.
-            self.create_integration(
-                organization=self.to_org,
-                external_id="to-slack",
-                provider="slack",
-                oi_params={"status": ObjectStatus.DISABLED},
-            )
+            with outbox_runner():
+                to_org_integration = integration.add_organization(self.to_org)
+            assert to_org_integration is not None
+            to_org_integration.update(status=ObjectStatus.DISABLED)
 
         condition_group = self.create_data_condition_group(organization=self.from_org)
         self.create_workflow_data_condition_group(
             workflow=self.workflow, condition_group=condition_group
         )
-        action = self.create_action(integration_id=from_integration.id, status=ObjectStatus.ACTIVE)
+        action = self.create_action(integration_id=integration.id, status=ObjectStatus.ACTIVE)
         self.create_data_condition_group_action(action=action, condition_group=condition_group)
 
         self.project.transfer_to(organization=self.to_org)
 
         action.refresh_from_db()
-        assert action.integration_id == from_integration.id
+        assert action.integration_id == integration.id
         assert action.status == ObjectStatus.DISABLED
 
     def test_transfer_to_organization_disables_messaging_action_without_alert_rule_feature(
