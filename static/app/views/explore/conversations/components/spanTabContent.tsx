@@ -1,6 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {renderScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 
@@ -27,6 +28,7 @@ export function SpanTabContent({
       maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
       autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
       clip={clip}
+      renderString={renderScrubbedText}
     />
   );
 }
