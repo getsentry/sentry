@@ -73,7 +73,7 @@ function MobilePrimaryNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <PrimaryNavigation.Sidebar>
+      <PrimaryNavigation.Sidebar style={{paddingBottom: 'env(safe-area-inset-bottom)'}}>
         <PrimaryNavigation.SidebarHeader>
           {organization &&
             (isSettingsNavigation ? (
