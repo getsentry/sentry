@@ -24,9 +24,13 @@ SET_COMPRESSION = re.compile(
     re.M,
 )
 
-# Table storage parameters (e.g. per-table autovacuum settings) are set with
-# RunSQL and can't be expressed on models, so the squashed state never has them.
-TABLE_STORAGE_PARAMS = re.compile(r"^\)\nWITH \([^;]*\);$", re.M)
+# Table storage parameters are set with RunSQL and can't be expressed on
+# models, so the squashed state never has them. Only ignore the ones we've opted
+# into, so any new storage parameter still shows up as drift.
+TABLE_STORAGE_PARAMS = re.compile(r"^\)\nWITH \(([^;]*)\);$", re.M)
+IGNORED_TABLE_STORAGE_PARAMS = frozenset(
+    ("autovacuum_analyze_scale_factor", "autovacuum_analyze_threshold")
+)
 
 
 def _remove_migrations_tables(s: str) -> str:
@@ -37,8 +41,16 @@ def _remove_set_compression(s: str) -> str:
     return SET_COMPRESSION.sub("", s)
 
 
+def _table_storage_params_replacement(m: re.Match[str]) -> str:
+    names = {param.split("=", 1)[0] for param in m[1].split(", ")}
+    if names <= IGNORED_TABLE_STORAGE_PARAMS:
+        return ");"
+    else:
+        return m[0]
+
+
 def _remove_table_storage_params(s: str) -> str:
-    return TABLE_STORAGE_PARAMS.sub(");", s)
+    return TABLE_STORAGE_PARAMS.sub(_table_storage_params_replacement, s)
 
 
 def norm(s: str) -> dict[str, str]:
