@@ -15,7 +15,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class SeerCreditCheckSerializer(serializers.Serializer[dict[str, str]]):
-    feature = serializers.ChoiceField(choices=[feature.value for feature in SeerFeature])
     operation = serializers.ChoiceField(choices=[operation.value for operation in SeerOperation])
 
 
@@ -46,8 +45,13 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        feature = SeerFeature(serializer.validated_data["feature"])
         operation = SeerOperation(serializer.validated_data["operation"])
+        # TODO: Let the UI pass the feature once it can tell agentic triage runs apart.
+        feature = (
+            SeerFeature.EXPLORER
+            if operation == SeerOperation.AGENT_CHAT_MESSAGE
+            else SeerFeature.AUTOFIX
+        )
         return Response(
             {"hasEnoughCredits": can_run_seer_operation(organization, feature, operation)}
         )
