@@ -54,6 +54,9 @@ class Provider(PipelineProvider["AuthHelper"], abc.ABC):
 
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
+    # Leave the provider out of the provider list (instead of showing it as an upsell)
+    # when the organization doesn't have required_feature.
+    hidden_without_required_feature = False
 
     def __init__(self, **config: Any) -> None:
         super().__init__()
