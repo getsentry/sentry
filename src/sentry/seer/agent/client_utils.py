@@ -91,6 +91,7 @@ class UserOrgContext(TypedDict):
 
 class AgentChatRequest(TypedDict):
     organization_id: int
+    billing_feature: NotRequired[int]
     query: str
     run_id: int | None
     insert_index: int | None

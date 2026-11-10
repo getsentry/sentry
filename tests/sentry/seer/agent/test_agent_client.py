@@ -5,6 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.utils import timezone
 from pydantic import BaseModel
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -308,11 +311,16 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = self._mock_run_response(run_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Query", on_page_context="some context").seer_run_state_id
+        run_id = client.start_run(
+            "Query",
+            on_page_context="some context",
+            billing_feature=SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+        ).seer_run_state_id
 
         assert run_id == 789
         call_args = mock_post.call_args
         assert call_args is not None
+        assert call_args.args[0]["billing_feature"] == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")

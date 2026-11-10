@@ -422,6 +422,7 @@ class SeerAgentClient:
         ui_tools: str | None = None,
         record_in_history: bool = True,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        billing_feature: int | None = None,
     ) -> SeerRun:
         """
         Start a new Seer Agent session.
@@ -476,6 +477,9 @@ class SeerAgentClient:
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
+
+        if billing_feature is not None:
+            chat_body["billing_feature"] = billing_feature
 
         if self.reasoning_effort is not None:
             chat_body["reasoning_effort"] = self.reasoning_effort

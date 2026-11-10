@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
@@ -1311,6 +1314,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_non_slack_category_does_not_use_code_mode(self, mock_client_cls: MagicMock) -> None:
+        self.entrypoint.key = SeerEntrypointKey.SLACK
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client.latest_run.return_value = None
@@ -1326,6 +1330,10 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+        assert (
+            mock_client.start_run.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+        )
 
     def _trigger_slack(self, mock_client_cls: Mock) -> None:
         mock_client = Mock()
