@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import timedelta
 from io import BytesIO
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -313,6 +314,8 @@ class ManualSizeAnalysisComparisonTest(_CompareTaskHelpers, TestCase):
     def test_manual_comparison_failed_upload_leaves_no_file(self) -> None:
         head_artifact, pairs = self._create_comparable_pair()
         self._create_pending_rows(pairs)
+        an_hour_ago = timezone.now() - timedelta(hours=1)
+        PreprodArtifactSizeComparison.objects.update(date_updated=an_hour_ago)
 
         with patch.object(File, "putfile", side_effect=OSError("bucket unreachable")):
             with pytest.raises(OSError):
@@ -323,6 +326,10 @@ class ManualSizeAnalysisComparisonTest(_CompareTaskHelpers, TestCase):
             PreprodArtifactSizeComparison.State.PENDING,
             PreprodArtifactSizeComparison.State.PROCESSING,
         ]
+        claimed_comparison = PreprodArtifactSizeComparison.objects.get(
+            state=PreprodArtifactSizeComparison.State.PROCESSING
+        )
+        assert claimed_comparison.date_updated > an_hour_ago
         assert self._result_files() == []
 
 
