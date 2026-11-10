@@ -778,6 +778,65 @@ def get_supported_operators(condition_type: ConditionType) -> list[ConditionOper
     return [operator for operator in ConditionOperator if operator in operators]
 
 
+@dataclass(frozen=True)
+class _Condition:
+    type: ConditionType
+    operator: ConditionOperator | None
+    values: list[str]
+
+
+def _parse_conditions(conditions: list[dict[str, Any]]) -> list[_Condition] | None:
+    """
+    The stored conditions, or None if one has a condition type, operator, or value shape
+    unknown to this revision, or is a version comparison without exactly one value.
+    """
+    parsed: list[_Condition] = []
+    for condition in conditions:
+        try:
+            condition_type = ConditionType(condition.get("type", ""))
+            operator = ConditionOperator(condition["operator"]) if "operator" in condition else None
+        except ValueError:
+            return None
+
+        values = condition.get("value")
+        if not (isinstance(values, list) and values and all(isinstance(v, str) for v in values)):
+            return None
+        if operator in COMPARISON_OPERATORS and len(values) != 1:
+            return None
+
+        parsed.append(_Condition(condition_type, operator, values))
+
+    return parsed
+
+
+def _match_conditions(
+    conditions: Sequence[_Condition], matchers: _ConditionMatchers
+) -> list[RuleCondition] | None:
+    """
+    The Relay condition for each condition, or None if `matchers` has no field for one
+    or the field does not take its operator.
+    """
+    rule_conditions: list[RuleCondition] = []
+    for condition in conditions:
+        matcher = matchers.get(condition.type)
+        operator = condition.operator
+        if matcher is None or (operator is not None and operator not in matcher.operators):
+            return None
+        negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
+        if negated is None:
+            rule_conditions.append(matcher.match(operator, condition.values))
+        else:
+            rule_conditions.append(_negation(matcher, negated, condition.values))
+
+    return rule_conditions
+
+
+def _all_of(rule_conditions: list[RuleCondition]) -> RuleCondition:
+    if len(rule_conditions) == 1:
+        return rule_conditions[0]
+    return {"op": "and", "inner": rule_conditions}
+
+
 def _custom_filter_condition(
     conditions: list[dict[str, Any]], data_type: str | None
 ) -> RuleCondition | None:
@@ -801,33 +860,15 @@ def _custom_filter_condition(
     except ValueError:
         return None
 
-    rule_conditions: list[RuleCondition] = []
-    for condition in conditions:
-        try:
-            condition_type = ConditionType(condition.get("type", ""))
-            operator = ConditionOperator(condition["operator"]) if "operator" in condition else None
-        except ValueError:
-            return None
+    parsed = _parse_conditions(conditions)
+    if parsed is None:
+        return None
 
-        values = condition.get("value")
-        if not (isinstance(values, list) and values and all(isinstance(v, str) for v in values)):
-            return None
+    rule_conditions = _match_conditions(parsed, matchers)
+    if rule_conditions is None:
+        return None
 
-        matcher = matchers.get(condition_type)
-        if matcher is None or (operator is not None and operator not in matcher.operators):
-            return None
-        if operator in COMPARISON_OPERATORS and len(values) != 1:
-            return None
-        negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
-        if negated is None:
-            rule_conditions.append(matcher.match(operator, values))
-        else:
-            rule_conditions.append(_negation(matcher, negated, values))
-
-    if len(rule_conditions) == 1:
-        return rule_conditions[0]
-
-    return {"op": "and", "inner": rule_conditions}
+    return _all_of(rule_conditions)
 
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
