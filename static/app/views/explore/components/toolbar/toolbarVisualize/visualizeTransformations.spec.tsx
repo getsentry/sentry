@@ -283,5 +283,23 @@ describe('VisualizeTransformations', () => {
       expect(option).toHaveAttribute('aria-disabled', 'true');
       expect(option).toHaveTextContent('Select a single project');
     });
+
+    it('shows the status note on the row', () => {
+      render(
+        <AnomaliesTransformationRow
+          anomalies={{
+            enabled: true,
+            onChange: jest.fn(),
+            disabledReason: null,
+            note: 'Detecting anomalies…',
+          }}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByRole('group', {name: 'Anomalies'})).toHaveTextContent(
+        'Detecting anomalies…'
+      );
+    });
   });
 });

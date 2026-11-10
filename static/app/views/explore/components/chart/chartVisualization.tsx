@@ -41,6 +41,11 @@ interface ChartVisualizationProps {
    */
   plottables?: Plottable[];
   /**
+   * Extra HTML appended to the tooltip for a timestamp, after the incomplete
+   * bucket note
+   */
+  renderTooltipDetails?: (seriesNames: string[], timestamp: number) => string;
+  /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
    */
@@ -107,6 +112,7 @@ export function ChartVisualization({
   droppedData,
   isDroppedDataLoading = false,
   plottables: plottablesOverride,
+  renderTooltipDetails,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
@@ -118,10 +124,18 @@ export function ChartVisualization({
   // mounts mid-load must not seed it, or it would draw without the band.
   const previousPlottables = usePrevious(isLoading ? [] : plottables, isLoading);
   const previousDroppedData = usePrevious(isLoading ? undefined : droppedData, isLoading);
-  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
+  const renderIncompleteBucketDetails = useIncompleteBucketTooltipDetails(
     chartInfo.series,
     chartInfo.timeseriesResult.meta?.ingestion?.completeThrough
   );
+  const renderTooltipSeriesDetails = useMemo(() => {
+    if (!renderIncompleteBucketDetails || !renderTooltipDetails) {
+      return renderIncompleteBucketDetails ?? renderTooltipDetails;
+    }
+    return (seriesNames: string[], timestamp: number) =>
+      renderIncompleteBucketDetails(seriesNames, timestamp) +
+      renderTooltipDetails(seriesNames, timestamp);
+  }, [renderIncompleteBucketDetails, renderTooltipDetails]);
 
   const activePlottables = isLoading ? previousPlottables : plottables;
   const activeDroppedData = isLoading ? previousDroppedData : droppedData;

@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
@@ -27,6 +28,10 @@ import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {
+  AnomalyMarkers,
+  makeAnomalyTooltipDetails,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/anomalyMarkers';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -47,7 +52,10 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useExploreAnomalies} from 'sentry/views/explore/hooks/useExploreAnomalies';
+import {
+  useExploreAnomalies,
+  type ExploreAnomaliesStatus,
+} from 'sentry/views/explore/hooks/useExploreAnomalies';
 import {
   type RPCQueryExtras,
   type SamplingMode,
@@ -111,6 +119,14 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 ];
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
+
+const ANOMALY_STATUS_NOTES: Record<ExploreAnomaliesStatus, string | undefined> = {
+  idle: undefined,
+  loading: t('Detecting anomalies…'),
+  empty: t('Needs at least 7 days of history'),
+  error: t("Couldn't detect anomalies"),
+  ready: undefined,
+};
 
 // Several aggregates over the top groups can share a chart, which can put
 // dozens of series in one tooltip.
@@ -308,6 +324,7 @@ function Chart({
   const visualize = visualizes[0]!;
 
   const organization = useOrganization();
+  const theme = useTheme();
   const showTransformationControls =
     visualize.visible &&
     visualize.chartType !== ChartType.HEATMAP &&
@@ -322,17 +339,13 @@ function Chart({
   const droppedData = useDroppedDataLayer({dataset, interval});
 
   const [showAnomalies, setShowAnomalies] = useState(false);
-  const anomalies: AnomaliesToggle = {
-    enabled: showAnomalies,
-    onChange: setShowAnomalies,
-    disabledReason: getAnomalyDetectionDisabledReason({
-      datetime: selection.datetime,
-      groupBys,
-      interval,
-      projects: selection.projects,
-      yAxisCount: visualizes.length,
-    }),
-  };
+  const anomaliesDisabledReason = getAnomalyDetectionDisabledReason({
+    datetime: selection.datetime,
+    groupBys,
+    interval,
+    projects: selection.projects,
+    yAxisCount: visualizes.length,
+  });
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -369,16 +382,58 @@ function Chart({
 
   const plottables = useChartInfosPlottables(chartInfos);
 
-  // TODO: score the history and draw the anomalies on the chart
-  useExploreAnomalies({
-    enabled: showTransformationControls && anomalies.enabled && !anomalies.disabledReason,
+  const detectedAnomalies = useExploreAnomalies({
+    currentTimeSeries: chartInfo.series,
+    enabled:
+      showTransformationControls &&
+      showAnomalies &&
+      !anomaliesDisabledReason &&
+      !chartInfo.timeseriesResult.isError,
     extrapolate,
-    isMainChartLoaded:
-      !chartInfo.timeseriesResult.isPending && !chartInfo.timeseriesResult.isError,
+    isMainChartLoaded: !chartInfo.timeseriesResult.isPending,
     query,
     queryExtras,
     visualize,
   });
+  const anomalies: AnomaliesToggle = {
+    enabled: showAnomalies,
+    onChange: setShowAnomalies,
+    disabledReason: anomaliesDisabledReason,
+    note: ANOMALY_STATUS_NOTES[detectedAnomalies.status],
+  };
+
+  // Shading is drawn on top of the chart's own series, which load and render
+  // without waiting for it.
+  const firstPlottable = plottables[0];
+  const plottablesWithAnomalies = useMemo(
+    () =>
+      firstPlottable && detectedAnomalies.anomalyPeriods.length > 0
+        ? [
+            ...plottables,
+            new AnomalyMarkers({
+              periods: detectedAnomalies.anomalyPeriods,
+              dataType: firstPlottable.dataType,
+              dataUnit: firstPlottable.dataUnit,
+            }),
+          ]
+        : plottables,
+    [detectedAnomalies.anomalyPeriods, firstPlottable, plottables]
+  );
+  const renderAnomalyTooltipDetails = useMemo(
+    () =>
+      makeAnomalyTooltipDetails({
+        anomalousTimestamps: detectedAnomalies.anomalousTimestamps,
+        periods: detectedAnomalies.anomalyPeriods,
+        theme,
+        utc: selection.datetime.utc ?? false,
+      }),
+    [
+      detectedAnomalies.anomalousTimestamps,
+      detectedAnomalies.anomalyPeriods,
+      selection.datetime.utc,
+      theme,
+    ]
+  );
 
   const Title = (
     <Widget.WidgetTitle
@@ -498,7 +553,8 @@ function Chart({
               key={chartRemountKey}
               chartInfo={chartInfo}
               chartRef={chartRef}
-              plottables={plottables}
+              plottables={plottablesWithAnomalies}
+              renderTooltipDetails={renderAnomalyTooltipDetails}
               tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
               isDroppedDataLoading={droppedData.isLoading}

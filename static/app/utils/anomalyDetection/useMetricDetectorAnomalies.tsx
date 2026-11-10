@@ -8,30 +8,17 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import type {Anomaly} from 'sentry/views/alerts/types';
 
+import {
+  removeOverlappingHistoricalData,
+  type AnomalyDataPoint,
+  type EventAnomalyPayload,
+} from './anomalyDetectionPayload';
+
 const ANOMALY_DETECTION_THRESHOLD_TYPE_MAP = {
   [AlertRuleThresholdType.ABOVE]: 'up',
   [AlertRuleThresholdType.BELOW]: 'down',
   [AlertRuleThresholdType.ABOVE_AND_BELOW]: 'both',
 } as const;
-
-type EventAnomalyPayload = {
-  config: {
-    direction: 'up' | 'down' | 'both';
-    /**
-     * So far expected_seasonality is not used
-     */
-    expected_seasonality: 'auto';
-    sensitivity: 'low' | 'medium' | 'high';
-    /**
-     * Time period in minutes (why)
-     */
-    time_period: number;
-  };
-  current_data: Array<[timestamp: number, {count: number}]>;
-  historical_data: Array<[timestamp: number, {count: number}]>;
-  organization_id: string;
-  project_id: string;
-};
 
 interface UseMetricDetectorAnomaliesProps {
   enabled: boolean;
@@ -46,13 +33,13 @@ interface UseMetricDetectorAnomaliesProps {
   thresholdType: AlertRuleThresholdType | undefined;
 }
 
-function transformSeriesToDataPoints(series: Series[]): Array<[number, {count: number}]> {
+function transformSeriesToDataPoints(series: Series[]): AnomalyDataPoint[] {
   if (series.length === 0 || !series[0]?.data?.length) {
     return [];
   }
 
   const seriesData = series[0].data;
-  const dataPoints: Array<[number, {count: number}]> = seriesData.map(({name, value}) => [
+  const dataPoints: AnomalyDataPoint[] = seriesData.map(({name, value}) => [
     Number(name) / 1000,
     {count: Number(value) || 0},
   ]);
@@ -75,13 +62,9 @@ export function useMetricDetectorAnomalies({
   const currentData = transformSeriesToDataPoints(series);
   const historicalData = transformSeriesToDataPoints(historicalSeries);
 
-  // Filter out historical data that overlaps with current data
-  const startOfCurrentTimeframe = currentData.reduce(
-    (value, [timestamp]) => (value < timestamp ? value : timestamp),
-    Infinity
-  );
-  const filteredHistoricalData = historicalData.filter(
-    ([timestamp]) => timestamp < startOfCurrentTimeframe
+  const filteredHistoricalData = removeOverlappingHistoricalData(
+    currentData,
+    historicalData
   );
 
   const payload: EventAnomalyPayload = {

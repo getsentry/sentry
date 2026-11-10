@@ -29,6 +29,7 @@ import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
+import {AnomalyMarkers, makeAnomalyTooltipDetails} from './plottables/anomalyMarkers';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
@@ -681,6 +682,57 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
             />
           </MediumWidget>
         </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Anomalies', () => {
+    const theme = useTheme();
+    const values = sampleThroughputTimeSeries.values;
+    const interval = sampleThroughputTimeSeries.meta.interval;
+    const periods = [
+      {
+        start: values[10]!.timestamp,
+        end: values[13]!.timestamp,
+        priority: 'high' as const,
+      },
+      {
+        start: values[30]!.timestamp,
+        end: values[30]!.timestamp + interval,
+        priority: 'medium' as const,
+      },
+    ];
+    return (
+      <Fragment>
+        <p>
+          The <Storybook.JSXNode name="AnomalyMarkers" /> plottable marks anomalous
+          periods like the monitor chart does: a bar along the bottom of the chart and a
+          line where each period starts. High confidence periods are red, low confidence
+          ones are yellow. Hover a marked bucket to see when the anomaly started and
+          ended. Pass it the data type and unit of the chart's series so it shares their Y
+          axis.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Line(sampleThroughputTimeSeries),
+              new AnomalyMarkers({
+                periods,
+                dataType: 'rate',
+                dataUnit: RateUnit.PER_SECOND,
+              }),
+            ]}
+            renderTooltipSeriesDetails={makeAnomalyTooltipDetails({
+              anomalousTimestamps: new Set(
+                [10, 11, 12, 13, 30].map(index => values[index]!.timestamp)
+              ),
+              periods,
+              theme,
+              utc: false,
+            })}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });

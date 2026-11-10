@@ -241,6 +241,10 @@ export interface AnomaliesToggle {
   disabledReason: string | null;
   enabled: boolean;
   onChange: (enabled: boolean) => void;
+  /**
+   * A short status shown next to the row, e.g. while detecting
+   */
+  note?: string;
 }
 
 const ANOMALIES_OPTION_VALUE = 'anomalies';
@@ -334,9 +338,9 @@ export function AnomaliesTransformationRow({anomalies}: AnomaliesTransformationR
         onClick={() => anomalies.onChange(false)}
       />
       <Text size="sm">{t('Anomalies')}</Text>
-      {anomalies.disabledReason ? (
+      {anomalies.disabledReason || anomalies.note ? (
         <Text size="sm" variant="muted">
-          {anomalies.disabledReason}
+          {anomalies.disabledReason ?? anomalies.note}
         </Text>
       ) : null}
     </Flex>
