@@ -5,12 +5,19 @@ from unittest.mock import MagicMock, patch
 
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType, ScheduleType
 from sentry.cadence.registry import (
+    TriggerBehavior,
     TriggerFiring,
-    TriggerTypeRegistration,
+    TriggerTarget,
     trigger_type_registry,
 )
 from sentry.cadence.spread import fire_offset, offset_of
-from sentry.cadence.tasks import _claim_batch, _Cursor, cadence_tick
+from sentry.cadence.tasks import (
+    MISSING_TARGET_CHECK_SETTLE_WINDOW,
+    _claim_batch,
+    _Cursor,
+    cadence_tick,
+)
+from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -26,7 +33,7 @@ def cadence_metric_calls(mock: MagicMock) -> list[tuple[tuple[Any, ...], dict[st
     ]
 
 
-def test_every_trigger_type_has_an_action() -> None:
+def test_every_trigger_type_has_a_behavior() -> None:
     assert set(trigger_type_registry.registrations) == set(ScheduledTriggerType)
 
 
@@ -34,15 +41,17 @@ class CadenceTickTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.enterContext(override_options({"cadence.tick.enabled": True}))
-        self.action = MagicMock()
+        self.behavior = MagicMock(spec=TriggerBehavior)
+        self.behavior.find_missing.return_value = ()
+        self.action = self.behavior.hand_off
         # Fire at scheduled times unless a test registers a spread window.
         self.register(timedelta(0))
         self.target_ids = itertools.count(1)
 
     def register(self, spread_window: timedelta) -> None:
-        registration = TriggerTypeRegistration(action=self.action, spread_window=spread_window)
+        self.behavior.spread_window = spread_window
         self.enterContext(
-            patch.dict(trigger_type_registry.registrations, {SEER_WORKFLOW: registration})
+            patch.dict(trigger_type_registry.registrations, {SEER_WORKFLOW: self.behavior})
         )
 
     def create_trigger(
@@ -50,6 +59,7 @@ class CadenceTickTestCase(TestCase):
         next_fire_at: datetime | None = NOW,
         next_scheduled_for: datetime | None = None,
         target_id: int | None = None,
+        organization: Organization | None = None,
         **kwargs: Any,
     ) -> ScheduledTrigger:
         fields: dict[str, Any] = {
@@ -59,7 +69,7 @@ class CadenceTickTestCase(TestCase):
             **kwargs,
         }
         return ScheduledTrigger.objects.create(
-            organization=self.organization,
+            organization=organization or self.organization,
             trigger_type=SEER_WORKFLOW,
             target_id=target_id or next(self.target_ids),
             next_scheduled_for=next_scheduled_for or next_fire_at,
@@ -357,6 +367,149 @@ class CadenceTickTest(CadenceTickTestCase):
         self.action.assert_not_called()
         trigger.refresh_from_db()
         assert trigger.next_fire_at == NOW - timedelta(minutes=1)
+
+
+class CadenceTickMissingTargetTest(CadenceTickTestCase):
+    def target(self, trigger: ScheduledTrigger) -> TriggerTarget:
+        return TriggerTarget(organization_id=trigger.organization_id, target_id=trigger.target_id)
+
+    def create_settled_trigger(
+        self, next_fire_at: datetime = NOW, **kwargs: Any
+    ) -> ScheduledTrigger:
+        """A trigger whose schedule was set just outside the settle window."""
+        with freeze_time(NOW - MISSING_TARGET_CHECK_SETTLE_WINDOW):
+            return self.create_trigger(next_fire_at, **kwargs)
+
+    @freeze_time(NOW)
+    def test_drops_and_deletes_triggers_with_missing_targets(self) -> None:
+        missing = self.create_settled_trigger()
+        healthy = self.create_settled_trigger()
+        self.behavior.find_missing.return_value = [self.target(missing)]
+
+        with patch("sentry.cadence.tasks.metrics.incr") as mock_incr:
+            cadence_tick()
+
+        self.behavior.find_missing.assert_called_once_with(
+            [self.target(missing), self.target(healthy)]
+        )
+        assert self.dispatched() == [self.firing(healthy, NOW)]
+        assert not ScheduledTrigger.objects.filter(id=missing.id).exists()
+        assert ScheduledTrigger.objects.filter(id=healthy.id).exists()
+        mock_incr.assert_called_once_with(
+            "cadence.trigger.missing_target_deleted",
+            amount=1,
+            tags={"trigger_type": "seer_workflow"},
+        )
+
+    @freeze_time(NOW)
+    def test_does_not_check_triggers_set_within_the_settle_window(self) -> None:
+        settled = self.create_settled_trigger()
+        with freeze_time(NOW - MISSING_TARGET_CHECK_SETTLE_WINDOW + timedelta(seconds=1)):
+            recent = self.create_trigger(NOW)
+        self.behavior.find_missing.return_value = [self.target(settled), self.target(recent)]
+
+        cadence_tick()
+
+        self.behavior.find_missing.assert_called_once_with([self.target(settled)])
+        assert self.dispatched() == [self.firing(recent, NOW)]
+        assert ScheduledTrigger.objects.filter(id=recent.id).exists()
+
+    @freeze_time(NOW)
+    def test_firing_does_not_reset_the_settle_window(self) -> None:
+        trigger = self.create_settled_trigger()
+        date_updated = trigger.date_updated
+
+        cadence_tick()
+
+        trigger.refresh_from_db()
+        assert trigger.date_updated == date_updated
+
+    @freeze_time(NOW)
+    def test_does_not_check_when_nothing_has_settled(self) -> None:
+        trigger = self.create_trigger(NOW)
+
+        cadence_tick()
+
+        self.behavior.find_missing.assert_not_called()
+        assert self.dispatched() == [self.firing(trigger, NOW)]
+
+    @freeze_time(NOW)
+    def test_only_deletes_the_missing_organizations_trigger(self) -> None:
+        missing = self.create_settled_trigger(target_id=5)
+        other_org = self.create_organization()
+        same_target = self.create_settled_trigger(target_id=5, organization=other_org)
+        self.behavior.find_missing.return_value = [self.target(missing)]
+
+        cadence_tick()
+
+        assert [f.organization_id for f in self.dispatched()] == [other_org.id]
+        assert not ScheduledTrigger.objects.filter(id=missing.id).exists()
+        assert ScheduledTrigger.objects.filter(id=same_target.id).exists()
+
+    @freeze_time(NOW)
+    def test_skips_hand_off_when_every_target_is_missing(self) -> None:
+        missing = self.create_settled_trigger()
+        self.behavior.find_missing.return_value = [self.target(missing)]
+
+        cadence_tick()
+
+        self.action.assert_not_called()
+        assert not ScheduledTrigger.objects.filter(id=missing.id).exists()
+
+    @freeze_time(NOW)
+    def test_ignores_targets_it_did_not_ask_about(self) -> None:
+        trigger = self.create_settled_trigger()
+        unrelated = self.create_settled_trigger(next_fire_at=NOW + timedelta(minutes=1))
+        self.behavior.find_missing.return_value = [self.target(unrelated)]
+
+        cadence_tick()
+
+        assert self.dispatched() == [self.firing(trigger, NOW)]
+        assert ScheduledTrigger.objects.filter(id=unrelated.id).exists()
+
+    @freeze_time(NOW)
+    def test_failed_check_hands_off_everything(self) -> None:
+        trigger = self.create_settled_trigger()
+        self.behavior.find_missing.side_effect = RuntimeError("boom")
+
+        with patch("sentry.cadence.tasks.logger") as mock_logger:
+            cadence_tick()
+
+        assert self.dispatched() == [self.firing(trigger, NOW)]
+        assert ScheduledTrigger.objects.filter(id=trigger.id).exists()
+        mock_logger.exception.assert_called_once_with(
+            "cadence.trigger.missing_target_check_failed",
+            extra={"trigger_type": "seer_workflow", "target_count": 1},
+        )
+
+    @freeze_time(NOW)
+    def test_failed_delete_hands_off_everything(self) -> None:
+        missing = self.create_settled_trigger()
+        healthy = self.create_settled_trigger()
+        self.behavior.find_missing.return_value = [self.target(missing)]
+
+        with (
+            patch.object(ScheduledTrigger.objects, "filter", side_effect=RuntimeError("boom")),
+            patch("sentry.cadence.tasks.logger") as mock_logger,
+        ):
+            cadence_tick()
+
+        assert self.dispatched() == [self.firing(missing, NOW), self.firing(healthy, NOW)]
+        assert (
+            mock_logger.exception.call_args.args[0] == "cadence.trigger.missing_target_check_failed"
+        )
+
+    @freeze_time(NOW)
+    def test_option_disables_the_check(self) -> None:
+        trigger = self.create_settled_trigger()
+        self.behavior.find_missing.return_value = [self.target(trigger)]
+
+        with override_options({"cadence.missing_target_check.enabled": False}):
+            cadence_tick()
+
+        self.behavior.find_missing.assert_not_called()
+        assert self.dispatched() == [self.firing(trigger, NOW)]
+        assert ScheduledTrigger.objects.filter(id=trigger.id).exists()
 
 
 class CadenceTickSpreadTest(CadenceTickTestCase):

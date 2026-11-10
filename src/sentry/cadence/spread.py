@@ -1,4 +1,4 @@
-"""Spreads each trigger type's firings over its spread window; see `register_trigger_action`."""
+"""Spreads each trigger type's firings over its spread window; see `TriggerBehavior`."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ def spread_window_for(trigger_type: str, min_gap: timedelta) -> timedelta:
     The spread window of a trigger of `trigger_type` whose scheduled times are at least
     `min_gap` apart. Raises NoRegistrationExistsError if the trigger type isn't registered.
     """
-    registration = trigger_type_registry.get(ScheduledTriggerType(trigger_type))
-    return min(registration.spread_window, min_gap / 2)
+    behavior = trigger_type_registry.get(ScheduledTriggerType(trigger_type))
+    return min(behavior.spread_window, min_gap / 2)
 
 
 def fire_offset(

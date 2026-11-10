@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import call, patch
 
 from sentry.cadence.models import ScheduledTriggerType
-from sentry.cadence.registry import TriggerFiring, trigger_type_registry
+from sentry.cadence.registry import TriggerFiring, TriggerTarget, trigger_type_registry
 from sentry.testutils.helpers.datetime import freeze_time
 
 NOW = datetime(2024, 3, 9, 12, 0, tzinfo=UTC)
@@ -21,7 +21,7 @@ def test_log_action_logs_each_firing() -> None:
     ]
 
     with patch("sentry.cadence.actions.logger") as logger:
-        trigger_type_registry.get(ScheduledTriggerType.LOG).action(firings)
+        trigger_type_registry.get(ScheduledTriggerType.LOG).hand_off(firings)
 
     assert logger.info.call_args_list == [
         call(
@@ -35,3 +35,9 @@ def test_log_action_logs_each_firing() -> None:
         )
         for target_id in (3, 4)
     ]
+
+
+def test_log_reports_no_targets_missing() -> None:
+    targets = [TriggerTarget(organization_id=1, target_id=3)]
+
+    assert not trigger_type_registry.get(ScheduledTriggerType.LOG).find_missing(targets)

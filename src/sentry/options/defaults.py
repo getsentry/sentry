@@ -1695,6 +1695,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, firings whose targets their trigger type reports missing are dropped and their
+# triggers deleted. When False, every firing is handed off.
+register(
+    "cadence.missing_target_check.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,

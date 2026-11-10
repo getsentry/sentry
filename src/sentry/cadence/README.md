@@ -8,7 +8,8 @@ Terms used throughout:
 - A **trigger** is identified by (organization, trigger type, target id) and has a
   **schedule**. It is stored, and persists until it's cleared.
 - A trigger **fires** when its schedule comes due. Each occurrence is a **firing**.
-- A trigger type's **action** is called with its firings, and hands them off.
+- A trigger type's **behavior** hands its firings off, and reports which targets no longer
+  exist.
 
 Import only from `sentry.cadence.api`. Everything else in this package can change freely.
 
@@ -61,51 +62,76 @@ disabled or deleted, rather than leaving it to fire and do nothing.
 
 ## Handling firings
 
-Each trigger type has one action, which is called with a batch of that type's firings:
+Each trigger type has one behavior: a `TriggerBehavior` subclass, registered with
+`register_trigger_type`. Its `hand_off` is called with a batch of that type's firings, and its
+`find_missing` reports which of a batch of targets no longer exist:
 
 ```python
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
-from sentry.cadence.api import ScheduledTriggerType, TriggerFiring, register_trigger_action
+from sentry.cadence.api import (
+    ScheduledTriggerType,
+    TriggerBehavior,
+    TriggerFiring,
+    TriggerTarget,
+    missing_targets,
+    register_trigger_type,
+)
 
 
-@register_trigger_action(ScheduledTriggerType.EXAMPLE)
-def hand_off_example_firings(firings: Sequence[TriggerFiring]) -> None:
-    for firing in firings:
-        process_example.delay(
-            organization_id=firing.organization_id,
-            example_config_id=firing.target_id,
-            scheduled_for=firing.scheduled_for.isoformat(),
-        )
+@register_trigger_type(ScheduledTriggerType.EXAMPLE)
+class ExampleTrigger(TriggerBehavior):
+    def hand_off(self, firings: Sequence[TriggerFiring]) -> None:
+        for firing in firings:
+            process_example.delay(
+                organization_id=firing.organization_id,
+                example_config_id=firing.target_id,
+                scheduled_for=firing.scheduled_for.isoformat(),
+            )
+
+    def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
+        return missing_targets(ExampleConfig, targets)
 ```
 
-Actions must only hand firings off, by scheduling a task or publishing a Kafka message,
-nothing more. They are called inline by the scheduler, so a slow action delays every trigger.
-Register actions from the owning app's `AppConfig.ready()` so they are loaded in every
+`register_trigger_type` instantiates the class once, so it raises at import if a required
+method is missing, and the instance must be stateless.
+
+`hand_off` must only hand firings off, by scheduling a task or publishing a Kafka message,
+nothing more. It is called inline by the scheduler, so a slow hand-off delays every trigger.
+Register behaviors from the owning app's `AppConfig.ready()` so they are loaded in every
 process: `set_schedule` raises for a trigger type with no registration, since it needs the
 type's spread window.
 
 Firings are delivered best-effort: a firing is usually delivered once, but may occasionally
-be skipped (for example, if its action raises) or delivered twice.
+be skipped (for example, if its hand-off raises) or delivered twice.
 `TriggerFiring.scheduled_for` is the firing's scheduled time and is the same for a duplicate,
 so use it to deduplicate: for example, `process_example` could skip an
 (`example_config_id`, `scheduled_for`) it has already handled.
 
-To add a trigger type, add it to `ScheduledTriggerType` and register its action. Deploy the
-action before anything creates triggers of the new type: firings of a type with no action are
-lost.
+To add a trigger type, add it to `ScheduledTriggerType` and register its behavior. Deploy the
+behavior before anything creates triggers of the new type: firings of a type with no behavior
+are lost.
 
 `LOG` is a built-in trigger type for validating scheduling, for example in production,
-without touching user data. Its target id can be any id you choose, and its action only logs
+without touching user data. Its target id can be any id you choose, and it only logs
 `cadence.log_trigger.fired` for each firing. See `actions.py`.
+
+### Triggers with missing targets
+
+A target can be deleted without its schedule being cleared. Cadence uses `find_missing` to try
+to clean up triggers whose targets are missing, but makes no promise about when, or whether,
+it does: keep clearing schedules when targets are deleted, and handle firings for targets
+that no longer exist. See `TriggerBehavior.find_missing` for its contract.
 
 ### Spreading load
 
 When firing at exactly the scheduled time matters less than the load a trigger type creates,
-Cadence can spread the type's firings within an acceptable window, set when registering:
+Cadence can spread the type's firings within an acceptable window, set on the behavior:
 
 ```python
-@register_trigger_action(ScheduledTriggerType.EXAMPLE, spread_window=timedelta(hours=1))
+@register_trigger_type(ScheduledTriggerType.EXAMPLE)
+class ExampleTrigger(TriggerBehavior):
+    spread_window = timedelta(hours=1)
 ```
 
 Each of the type's triggers then fires a fixed offset after its scheduled time, in whole
@@ -135,11 +161,11 @@ choose how exact their own schedules must be, they could move to each trigger.
 
 ## Timing
 
-What Cadence promises about when a firing's action is called, relative to when the firing is
+What Cadence promises about when a firing is handed off, relative to when the firing is
 due: its `scheduled_for` plus its offset within its spread window (see "Spreading load").
 Without a spread window, that is just `scheduled_for`.
 
-- **Never early.** An action is never called for a firing before it is due, as measured by
+- **Never early.** A firing is never handed off before it is due, as measured by
   the clock of the worker running the tick. In particular, never before its `scheduled_for`.
 - **Normally within 20 seconds.** The target is a p99 `cadence.trigger.dispatch_lag` under 20
   seconds, measured from when the firing is due. The tick runs every 10 seconds, so most
@@ -156,7 +182,7 @@ Without a spread window, that is just `scheduled_for`.
   meantime are skipped, not caught up. If a very late firing should be handled differently,
   compare `scheduled_for` with the current time, allowing for the spread window.
 
-These cover only the hand-off, when the action is called. When the handed-off work happens,
+These cover only the hand-off, when `hand_off` is called. When the handed-off work happens,
 such as when a scheduled task is picked up, depends on the consumer and isn't covered.
 
 ## How it works
@@ -165,16 +191,21 @@ such as when a scheduled task is picked up, depends on the consumer and isn't co
 (`next_scheduled_for`) and when that firing is due (`next_fire_at`, the scheduled time plus
 the offset). Every 10 seconds the `cadence_tick` task claims rows whose `next_fire_at` has
 passed, in batches (`SELECT ... FOR UPDATE SKIP LOCKED`, so overlapping ticks split the
-work), moves both times forward, commits, and then calls each trigger type's action with
+work), moves both times forward, commits, and then calls each trigger type's `hand_off` with
 that type's firings.
 
 - A trigger that fell behind fires once, late, and then resumes its schedule; firings it
   missed are skipped, not caught up (see "Timing").
-- A failing action is logged and counted, and doesn't affect other trigger types.
+- A failing hand-off is logged and counted, and doesn't affect other trigger types.
 - A row that can't be scheduled (an unknown trigger type, or a stored schedule that no longer
   parses) is logged and unscheduled, so it can't block other rows.
+- Triggers with missing targets are currently cleaned up by the tick, before hand-off, for
+  triggers whose schedule was set over an hour ago. `cadence.missing_target_check.enabled`
+  turns this off.
 - The `cadence.tick.enabled` option is the kill switch, and is **off by default**. While it's
   off, nothing fires.
 - Metrics: `cadence.trigger.dispatch_lag` (how late firings are),
-  `cadence.trigger.dispatch_duration`, `cadence.trigger.dispatch_failed`, and
-  `cadence.tick.claimed`.
+  `cadence.trigger.dispatch_duration`, `cadence.trigger.dispatch_failed`,
+  `cadence.tick.claimed`, and for missing target checks
+  `cadence.trigger.missing_target_deleted`, `cadence.trigger.missing_target_check_duration`
+  and `cadence.trigger.missing_target_check_failed`.
