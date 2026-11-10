@@ -1,4 +1,5 @@
 from sentry.api.serializers.models.projectcodeowners import ProjectCodeOwnersSerializer
+from sentry.api.serializers.models.projectownership import OwnershipSchemaResponse
 from sentry.testutils.cases import TestCase
 
 
@@ -28,7 +29,7 @@ class ProjectCodeOwnersSerializerTest(TestCase):
             self.user,
         )
 
-        expected_schema = {
+        expected_schema: OwnershipSchemaResponse = {
             "$version": 1,
             "rules": [
                 {

@@ -38,6 +38,10 @@ from sentry.investigations.services.orchestration import (
     command_can_be_resent,
     rebuild_orchestration_source,
 )
+from sentry.investigations.telemetry import (
+    record_action_request_applied,
+    record_action_request_suggested,
+)
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,
@@ -178,6 +182,7 @@ def _upsert(
             action_payload=action,
             **display,
         )
+        record_action_request_suggested(row)
     elif row.state == NotebookActionRequestState.APPLIED:
         changed = False
     else:
@@ -197,6 +202,7 @@ def _upsert(
             update_fields.extend(
                 ["action_kind", "action_payload", "state", "error", "reason", "followup_request_id"]
             )
+            record_action_request_suggested(row)
         elif row.state == NotebookActionRequestState.SUPERSEDED and row.error is None:
             row.state = NotebookActionRequestState.SUGGESTED
             update_fields.append("state")
@@ -427,6 +433,7 @@ def _complete_action_request(
             else None
         ),
     )
+    record_action_request_applied(action_request)
 
 
 def complete_action_requests(

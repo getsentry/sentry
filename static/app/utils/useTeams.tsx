@@ -7,11 +7,12 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {isActiveSuperuser} from './isActiveSuperuser';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
 
 type State = {
   /**

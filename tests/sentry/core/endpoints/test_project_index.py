@@ -309,7 +309,7 @@ class ProjectsListTest(APITestCase):
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    def get_installed_unpublished_sentry_app_access_token(self) -> ApiToken:
+    def get_installed_unpublished_sentry_app_access_token(self) -> str:
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         sentry_app = self.create_sentry_app(
             scopes=("project:read",),
@@ -320,7 +320,9 @@ class ProjectsListTest(APITestCase):
         installation = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
-        return installation.api_token.token
+        api_token = installation.api_token
+        assert api_token is not None
+        return api_token.token
 
     def test_valid_with_public_integration(self) -> None:
         token = self.get_installed_unpublished_sentry_app_access_token()
@@ -333,10 +335,10 @@ class ProjectsListTest(APITestCase):
 
     @responses.activate
     def test_deleted_token_with_public_integration(self) -> None:
-        token = self.get_installed_unpublished_sentry_app_access_token()
+        token_str = self.get_installed_unpublished_sentry_app_access_token()
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            token = ApiToken.objects.get(token=token)
+            token = ApiToken.objects.get(token=token_str)
             token.delete()
 
         with self.tasks():

@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconDelete} from '@sentry/icons/delete';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {InfoTip} from '@sentry/scraps/info';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -22,9 +23,8 @@ import type {
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -149,14 +149,15 @@ export function IntegrationExternalMappings(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<CodeOwnersAssociationMappings>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+  } = useQuery(
+    apiOptions.as<CodeOwnersAssociationMappings>()(
+      '/organizations/$organizationIdOrSlug/codeowners-associations/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {provider: integration.provider.key}},
-    ],
-    {staleTime: 0}
+        query: {provider: integration.provider.key},
+        staleTime: 0,
+      }
+    )
   );
 
   if (isPending) {

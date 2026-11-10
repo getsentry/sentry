@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers.models.activity import (
@@ -14,6 +14,7 @@ from sentry.api.serializers.models.activity import (
 )
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log.read_metrics import (
     ActivityReadResult,
@@ -30,6 +31,8 @@ from sentry.types.activity import ActivityType
 
 @cell_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -92,7 +95,10 @@ class GroupNotesEndpoint(GroupEndpoint):
             data["mentions"] = [m.dict() for m in data["mentions"]]
 
         activity = create_comment(
-            group=group, user=request.user, data=data, source=resolve_action_source(request)
+            group=group,
+            user=require_user(request),
+            data=data,
+            source=resolve_action_source(request),
         )
         if activity is None:
             return Response(

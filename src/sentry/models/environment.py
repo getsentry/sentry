@@ -1,5 +1,5 @@
 import re
-from typing import ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self
 from urllib.parse import unquote
 
 from django.db import models
@@ -21,6 +21,9 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 
 @cell_silo_model
@@ -56,7 +59,7 @@ class Environment(Model):
     __repr__ = sane_repr("organization_id", "name")
 
     @classmethod
-    def is_valid_name(cls, value):
+    def is_valid_name(cls, value: str) -> bool:
         """Limit length and reject problematic bytes
 
         If you change the rules here also update the event + monitor check-in ingestion schema in Relay.
@@ -66,17 +69,17 @@ class Environment(Model):
         return OK_NAME_PATTERN.match(value) is not None
 
     @classmethod
-    def get_cache_key(cls, organization_id, name) -> str:
+    def get_cache_key(cls, organization_id: int, name: str) -> str:
         return f"env:2:{organization_id}:{md5_text(name).hexdigest()}"
 
     @classmethod
-    def get_name_or_default(cls, name):
+    def get_name_or_default(cls, name: str | None) -> str:
         if name:
             return name[:ENVIRONMENT_NAME_MAX_LENGTH]
         return ""
 
     @classmethod
-    def get_for_organization_id(cls, organization_id, name):
+    def get_for_organization_id(cls, organization_id: int, name: str | None) -> Self:
         name = cls.get_name_or_default(name)
 
         cache_key = cls.get_cache_key(organization_id, name)
@@ -89,7 +92,13 @@ class Environment(Model):
         return env
 
     @classmethod
-    def get_or_create(cls, project, name, metrics_tags=None, project_metrics_tags=None):
+    def get_or_create(
+        cls,
+        project: "Project",
+        name: str | None,
+        metrics_tags: dict[str, str] | None = None,
+        project_metrics_tags: dict[str, str] | None = None,
+    ) -> Self:
         with metrics.timer("models.environment.get_or_create") as timer_tags:
             name = cls.get_name_or_default(name)
 
@@ -119,7 +128,12 @@ class Environment(Model):
 
             return env
 
-    def add_project(self, project, is_hidden=None, metrics_tags=None):
+    def add_project(
+        self,
+        project: "Project",
+        is_hidden: bool | None = None,
+        metrics_tags: dict[str, str] | None = None,
+    ) -> None:
         cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
@@ -138,7 +152,7 @@ class Environment(Model):
             metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
     @staticmethod
-    def get_name_from_path_segment(segment):
+    def get_name_from_path_segment(segment: str) -> str:
         # In cases where the environment name is passed as a URL path segment,
         # the (case-sensitive) string "none" represents the empty string
         # environment name for historic reasons (see commit b09858f.) In all

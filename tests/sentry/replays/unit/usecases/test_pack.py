@@ -17,12 +17,20 @@ def test_pack_rrweb_video() -> None:
 
 
 def test_unpack_rrweb() -> None:
-    assert unpack(pack(b"hello", None)) == (None, b"hello")
+    video, rrweb = unpack(pack(b"hello", None))
+    assert video is None
+    assert bytes(rrweb) == b"hello"
 
 
 def test_unpack_rrweb_video() -> None:
-    assert unpack(pack(b"hello", b"world")) == (b"world", b"hello")
+    video, rrweb = unpack(pack(b"hello", b"world"))
+    assert video is not None
+    assert bytes(video) == b"world"
+    assert bytes(rrweb) == b"hello"
 
     x = b"\x00" * 1_000_000
     y = b"\xff" * 1_000_000
-    assert unpack(pack(x, y)) == (y, x)
+    video, rrweb = unpack(pack(x, y))
+    assert video is not None
+    assert bytes(video) == y
+    assert bytes(rrweb) == x

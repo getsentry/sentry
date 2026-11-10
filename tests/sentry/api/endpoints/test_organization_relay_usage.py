@@ -1,27 +1,37 @@
 from datetime import datetime, timezone
 from functools import cached_property
+from typing import TypedDict
 
 from django.urls import reverse
 
 from sentry.models.relay import RelayUsage
 from sentry.testutils.cases import APITestCase
+from sentry.users.models.user import User
+
+
+class RelayUsageData(TypedDict):
+    relay_id: str
+    public_key: str
+    version: str
+    first_seen: datetime
+    last_seen: datetime
 
 
 class OrganizationRelayHistoryTest(APITestCase):
     endpoint = "sentry-api-0-organization-relay-usage"
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("test@test.com")
 
-    def _public_keys(self):
+    def _public_keys(self) -> list[str]:
         return [
             "nDJl79SbEYH9-8NEJAI7ezrgYfolPW3Bnkg00k1zOfA",
             "AitWAgB-oHFywmKnUMRKMXcrsyPkESV-5gR-vsMqXgQ",
             "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8",
         ]
 
-    def _history_fixture(self):
+    def _history_fixture(self) -> list[RelayUsageData]:
         pks = self._public_keys()
         return [
             {
@@ -58,7 +68,7 @@ class OrganizationRelayHistoryTest(APITestCase):
         for relay_data in self._history_fixture():
             RelayUsage.objects.create(**relay_data)
 
-    def _set_org_public_keys(self, public_keys):
+    def _set_org_public_keys(self, public_keys: list[str]) -> None:
         self.login_as(user=self.user)
 
         url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])

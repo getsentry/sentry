@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from datetime import timedelta
+from typing import Any
 
 import jwt as pyjwt
 import pytest
@@ -26,11 +27,11 @@ from sentry.viewer_context import (
 
 
 class TestEncodeEarlyAdopterClaim(TestCase):
-    def _claims(self, vc: ViewerContext) -> dict:
+    def _claims(self, vc: ViewerContext) -> dict[str, Any]:
         return pyjwt.decode(encode_viewer_context(vc), "test-secret-key", algorithms=["HS256"])
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_early_adopter_organization_sets_claim(self):
+    def test_early_adopter_organization_sets_claim(self) -> None:
         organization = self.create_organization()
         organization.flags.early_adopter = True
         organization.save()
@@ -42,7 +43,7 @@ class TestEncodeEarlyAdopterClaim(TestCase):
         assert claims["organization_is_early_adopter"] is True
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_early_adopter_claim_in_control_silo(self):
+    def test_early_adopter_claim_in_control_silo(self) -> None:
         with outbox_runner():
             organization = self.create_organization()
             organization.flags.early_adopter = True
@@ -56,7 +57,7 @@ class TestEncodeEarlyAdopterClaim(TestCase):
         assert claims["organization_is_early_adopter"] is True
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_regular_organization_omits_claim(self):
+    def test_regular_organization_omits_claim(self) -> None:
         organization = self.create_organization()
 
         claims = self._claims(
@@ -66,7 +67,7 @@ class TestEncodeEarlyAdopterClaim(TestCase):
         assert "organization_is_early_adopter" not in claims
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_missing_organization_omits_claim(self):
+    def test_missing_organization_omits_claim(self) -> None:
         claims = self._claims(
             ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=987654321)
         )
@@ -74,7 +75,7 @@ class TestEncodeEarlyAdopterClaim(TestCase):
         assert "organization_is_early_adopter" not in claims
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_no_organization_omits_claim(self):
+    def test_no_organization_omits_claim(self) -> None:
         claims = self._claims(ViewerContext(actor=Actor(type=ActorType.SYSTEM)))
 
         assert "organization_is_early_adopter" not in claims
@@ -82,7 +83,7 @@ class TestEncodeEarlyAdopterClaim(TestCase):
 
 class TestEncodeDecodeRoundtrip(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_roundtrip(self):
+    def test_roundtrip(self) -> None:
         vc = ViewerContext(
             organization_id=42, actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=7)
         )
@@ -91,7 +92,7 @@ class TestEncodeDecodeRoundtrip(TestCase):
         assert result == vc
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_roundtrip_minimal(self):
+    def test_roundtrip_minimal(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.SYSTEM))
         token = encode_viewer_context(vc)
         result = decode_viewer_context(token)
@@ -102,7 +103,7 @@ class TestEncodeDecodeRoundtrip(TestCase):
         assert result.actor.type == ActorType.SYSTEM
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_roundtrip_integration(self):
+    def test_roundtrip_integration(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=99)
         token = encode_viewer_context(vc)
         result = decode_viewer_context(token)
@@ -114,7 +115,7 @@ class TestEncodeDecodeRoundtrip(TestCase):
 
 class TestEncodeViewerContext(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_superuser_jwt_lifetime_cannot_exceed_five_minutes(self):
+    def test_superuser_jwt_lifetime_cannot_exceed_five_minutes(self) -> None:
         vc = ViewerContext(
             actor=Actor(
                 type=ActorType.USER,
@@ -127,7 +128,7 @@ class TestEncodeViewerContext(TestCase):
         assert claims["exp"] - claims["iat"] == 300
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_superuser_deadline_is_not_renewed_when_reencoded(self):
+    def test_superuser_deadline_is_not_renewed_when_reencoded(self) -> None:
         deadline = int(time.time()) + 300
         vc = ViewerContext(
             actor=Actor(
@@ -143,7 +144,7 @@ class TestEncodeViewerContext(TestCase):
         assert claims["exp"] == deadline
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_standard_claims_present(self):
+    def test_standard_claims_present(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         token = encode_viewer_context(vc)
 
@@ -154,14 +155,14 @@ class TestEncodeViewerContext(TestCase):
         assert claims["exp"] - claims["iat"] == 900  # default TTL
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_custom_ttl(self):
+    def test_custom_ttl(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         token = encode_viewer_context(vc, ttl=300)
 
         claims = pyjwt.decode(token, options={"verify_signature": False})
         assert claims["exp"] - claims["iat"] == 300
 
-    def test_custom_key_parameter(self):
+    def test_custom_key_parameter(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         token = encode_viewer_context(vc, key="my-custom-key")
         result = decode_viewer_context(token, key="my-custom-key")
@@ -169,13 +170,13 @@ class TestEncodeViewerContext(TestCase):
         assert result.organization_id == 1
 
     @override_settings(SEER_API_SHARED_SECRET="")
-    def test_no_key_raises_value_error(self):
+    def test_no_key_raises_value_error(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         with pytest.raises(ValueError, match="No signing key available"):
             encode_viewer_context(vc)
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_token_field_not_in_jwt(self):
+    def test_token_field_not_in_jwt(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         jwt_token = encode_viewer_context(vc)
 
@@ -188,7 +189,7 @@ class TestEncodeViewerContext(TestCase):
 
 class TestDecodeViewerContext(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
-    def test_expired_token_rejected(self):
+    def test_expired_token_rejected(self) -> None:
         payload = {
             "organization_id": 1,
             "version": 2,
@@ -208,14 +209,14 @@ class TestDecodeViewerContext(TestCase):
         with pytest.raises(pyjwt.exceptions.ExpiredSignatureError):
             decode_viewer_context(expired_token)
 
-    def test_wrong_key_rejected(self):
+    def test_wrong_key_rejected(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         token = encode_viewer_context(vc, key="correct-key")
 
         with pytest.raises(pyjwt.exceptions.InvalidTokenError, match="No verification key"):
             decode_viewer_context(token, key="wrong-key")
 
-    def test_leeway_accepts_nearly_expired(self):
+    def test_leeway_accepts_nearly_expired(self) -> None:
         payload = {
             "organization_id": 1,
             "version": 2,
@@ -233,7 +234,7 @@ class TestDecodeViewerContext(TestCase):
         assert result.organization_id == 1
 
     @override_settings(SEER_API_SHARED_SECRET="")
-    def test_no_verification_key_raises(self):
+    def test_no_verification_key_raises(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=1)
         token = encode_viewer_context(vc, key="some-key")
 
@@ -242,11 +243,11 @@ class TestDecodeViewerContext(TestCase):
 
 
 class TestIsJwtViewerContext(TestCase):
-    def test_jwt_string(self):
+    def test_jwt_string(self) -> None:
         assert is_jwt_viewer_context("eyJhbGciOiJIUzI1NiJ9.eyJmb28iOiJiYXIifQ.sig") is True
 
-    def test_json_string(self):
+    def test_json_string(self) -> None:
         assert is_jwt_viewer_context('{"actor_type": "user", "organization_id": 1}') is False
 
-    def test_empty_string(self):
+    def test_empty_string(self) -> None:
         assert is_jwt_viewer_context("") is False

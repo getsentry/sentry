@@ -17,7 +17,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 class ServiceHookProjectsInputSerializer(serializers.Serializer):
     projects = serializers.ListField(required=True)
 
-    def validate_projects(self, value):
+    def validate_projects(self, value: object) -> list[int]:
         if not isinstance(value, list):
             raise serializers.ValidationError(
                 "Projects must be a list, not %s" % type(value).__name__

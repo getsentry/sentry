@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import sha1
 from uuid import uuid4
 
@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
     PullRequestCommit,
+    ResolvedPullRequest,
     parse_pull_request_url,
 )
 from sentry.models.releasecommit import ReleaseCommit
@@ -246,7 +247,9 @@ class PullRequestRetentionTest(TestCase):
             email="test@example.com",
         )
 
-    def create_pr(self, date_added=None, key=None):
+    def create_pr(
+        self, date_added: datetime | None = None, key: int | str | None = None
+    ) -> PullRequest:
         """Helper to create a PR with specified date"""
         if date_added is None:
             date_added = self.old_date
@@ -262,7 +265,7 @@ class PullRequestRetentionTest(TestCase):
         pr.refresh_from_db()
         return pr
 
-    def create_old_commit(self):
+    def create_old_commit(self) -> Commit:
         """Helper to create a commit that is itself past the cutoff"""
         commit = self.create_commit(
             project=self.project,
@@ -495,7 +498,7 @@ class GetOrCreateFromReferenceTest(TestCase):
         provider: str | None = "github",
         key: int | str = 42,
         repo_external_id: str | None = None,
-    ):
+    ) -> ResolvedPullRequest:
         return PullRequest.objects.get_or_create_from_reference(
             organization_id=self.organization.id,
             repo_name=repo_name,
@@ -691,7 +694,9 @@ class ForProviderPrTest(TestCase):
             organization_id=self.organization.id, repository_id=self.repo.id, key="42"
         )
 
-    def _for_provider_pr(self, *, integration_id: int | None = None, key: int | str = 42):
+    def _for_provider_pr(
+        self, *, integration_id: int | None = None, key: int | str = 42
+    ) -> list[PullRequest]:
         return PullRequest.objects.for_provider_pr(
             external_id=self.external_id,
             integration_id=self.integration_id if integration_id is None else integration_id,

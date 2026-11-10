@@ -30,6 +30,10 @@ from sentry.sentry_apps.utils.errors import (
 from sentry.types.cell import find_all_cell_names, find_cells_for_orgs
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from django.db.models.base import ModelBase
+
     from sentry.models.project import Project
     from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 
@@ -39,7 +43,7 @@ def default_uuid() -> str:
 
 
 class SentryAppInstallationForProviderManager(ParanoidManager["SentryAppInstallation"]):
-    def get_organization_filter_kwargs(self, organization_ids: list[int]):
+    def get_organization_filter_kwargs(self, organization_ids: list[int]) -> dict[str, object]:
         return {
             "organization_id__in": organization_ids,
             "status": SentryAppInstallationStatus.INSTALLED,
@@ -122,11 +126,24 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
     # grant code should be included in the serialization.
     is_new = False
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         self.date_updated = timezone.now()
-        return super().save(*args, **kwargs)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def delete(self, *args, **kwargs):
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         with outbox_context(transaction.atomic(using=router.db_for_write(SentryAppInstallation))):
             for outbox in self.outboxes_for_delete():
                 outbox.save()
@@ -136,9 +153,9 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 for update_outbox in self.outboxes_for_update():
                     update_outbox.save()  # mimics ControlOutboxProducingModel
 
-                return models.Model.delete(self, *args, **kwargs)
+                return models.Model.delete(self, using=using, keep_parents=keep_parents)
 
-            return super().delete(*args, **kwargs)
+            return super().delete(using=using, keep_parents=keep_parents)
 
     @property
     def api_application_id(self) -> int | None:

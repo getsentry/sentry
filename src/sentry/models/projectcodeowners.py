@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from typing import cast
 
 import sentry_sdk
 from django.db import models
@@ -145,13 +146,13 @@ class ProjectCodeOwners(Model):
             return
 
 
-def modify_date_updated(instance, **kwargs):
-    if instance.id is None:
+def modify_date_updated(instance: ProjectCodeOwners, **kwargs: object) -> None:
+    if cast("int | None", instance.id) is None:
         return
     instance.date_updated = timezone.now()
 
 
-def process_resource_change(instance, change, **kwargs):
+def process_resource_change(instance: ProjectCodeOwners, change: str, **kwargs: object) -> None:
     from sentry.models.groupowner import GroupOwner
 
     cache.set(

@@ -27,12 +27,12 @@ class FormatPrCommentTest(TestCase):
 
     def _create_artifact(
         self,
-        artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-        app_id="com.example.app",
-        app_name="MyApp",
-        build_version="1.2.3",
-        build_number=456,
-        installable_app_file_id=1,
+        artifact_type: int = PreprodArtifact.ArtifactType.XCARCHIVE,
+        app_id: str = "com.example.app",
+        app_name: str = "MyApp",
+        build_version: str = "1.2.3",
+        build_number: int = 456,
+        installable_app_file_id: int = 1,
     ) -> PreprodArtifact:
         artifact = PreprodArtifact.objects.create(
             project=self.project,

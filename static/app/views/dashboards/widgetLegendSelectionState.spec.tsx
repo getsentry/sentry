@@ -4,9 +4,9 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {Organization} from 'sentry/types/organization';
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
+import type {DashboardDetails, Widget} from './types';
+import {DisplayType, WidgetType} from './types';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const WIDGET_ID_DELIMITER = ':';

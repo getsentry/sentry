@@ -6,8 +6,8 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -159,7 +159,7 @@ export function copyToClipboard(value: string | number | string[]) {
     return JSON.stringify(val) ?? val.toString();
   }
   navigator.clipboard.writeText(stringifyValue(value)).catch(_ => {
-    addErrorMessage('Error copying to clipboard');
+    toast.error('Error copying to clipboard');
   });
 }
 

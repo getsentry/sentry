@@ -5,8 +5,9 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {SampleImages} from './sampleImages';
 
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
   SpanFields;

@@ -14,7 +14,6 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import type {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -24,9 +23,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withApi} from 'sentry/utils/withApi';
 import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -71,7 +70,6 @@ import {
 } from 'getsentry/views/spendLimits/utils';
 
 type Props = {
-  api: Client;
   location: Location;
   navigate: ReactRouter3Navigate;
   subscription: Subscription;
@@ -90,8 +88,9 @@ export type State = {
 };
 
 function AMCheckout(props: Props) {
+  const api = useApi();
   const organization = useOrganization();
-  const {api, location, navigate, subscription} = props;
+  const {location, navigate, subscription} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -851,4 +850,4 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withApi(withSubscription(AMCheckout));
+export default withSubscription(AMCheckout);

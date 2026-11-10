@@ -6,8 +6,9 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+
+import {makeDetailedProjectQueryKey} from './useDetailedProject';
+import {useUpdateProject} from './useUpdateProject';
 
 describe('useUpdateProject', () => {
   const organization = {slug: 'org-slug'};

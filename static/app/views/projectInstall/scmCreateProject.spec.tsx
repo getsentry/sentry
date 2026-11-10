@@ -31,10 +31,10 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import * as analytics from 'sentry/utils/analytics';
-import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
-import {PlatformDocHeader} from 'sentry/views/projectInstall/platformDocHeader';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from './issueAlertOptions';
+import {PlatformDocHeader} from './platformDocHeader';
 import {ScmCreateProject} from './scmCreateProject';
 
 // Mock the virtualizer so the platform-features manual-picker Select renders.

@@ -3,14 +3,15 @@ import {useCallback, useReducer} from 'react';
 import type {Location} from 'history';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {MEPDataProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {MEPDataProvider} from './metricsEnhancedPerformanceDataContext';
 import {
   MEPSettingContext,
   AutoSampleState,
   MEPState,
   canUseMetricsData,
-} from 'sentry/utils/performance/contexts/useMEPSettingContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './useMEPSettingContext';
 
 const METRIC_SETTING_PARAM = 'metricSetting';
 

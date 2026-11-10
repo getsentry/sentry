@@ -9,7 +9,8 @@ import type {
   LLMContextNodeType,
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+
+import {useAsciiSnapshot} from './useAsciiSnapshot';
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([

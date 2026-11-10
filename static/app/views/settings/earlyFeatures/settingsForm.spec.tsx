@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {EarlyFeaturesSettingsForm} from 'sentry/views/settings/earlyFeatures/settingsForm';
+import {EarlyFeaturesSettingsForm} from './settingsForm';
 
 describe('EarlyFeaturesSettingsForm', () => {
   const organization = OrganizationFixture({access: ['org:write']});

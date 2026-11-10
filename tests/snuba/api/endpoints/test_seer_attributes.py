@@ -283,5 +283,5 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             fields_with_substrings=[],
         )
 
-        expected: dict = {}
+        expected: dict[str, object] = {}
         assert result == expected

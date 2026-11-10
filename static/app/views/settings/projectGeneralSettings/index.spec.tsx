@@ -12,13 +12,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProjectRouteProvider} from 'sentry/views/projects/projectRouteContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
-jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/pageFilters/persistence');
 
 function getField(role: string, name: string) {
@@ -47,6 +47,8 @@ describe('projectGeneralSettings', () => {
   };
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -60,6 +62,11 @@ describe('projectGeneralSettings', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
       method: 'GET',
       body: [],
     });
@@ -243,7 +250,7 @@ describe('projectGeneralSettings', () => {
       )
     );
 
-    expect(addSuccessMessage).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
   });
 
   it('handles errors on transfer project', async () => {
@@ -268,13 +275,13 @@ describe('projectGeneralSettings', () => {
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
 
-    expect(addSuccessMessage).not.toHaveBeenCalled();
-    expect(addErrorMessage).toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
 
     // Check the error message
-    const errorMessage = jest.mocked(addErrorMessage).mock.calls[0]![0];
+    const errorMessage = jest.mocked(toast.error).mock.calls[0]![0];
     if (!isValidElement(errorMessage)) {
-      throw new Error('Expected addErrorMessage to be called with a React element');
+      throw new Error('Expected toast.error to be called with a React element');
     }
     const {container} = render(errorMessage);
     expect(container).toHaveTextContent(
@@ -472,21 +479,6 @@ describe('projectGeneralSettings', () => {
   });
 
   describe('Console Platform Access Control', () => {
-    beforeEach(() => {
-      mockOnChangeSlug.mockClear();
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/environments/',
-        method: 'GET',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/users/',
-        method: 'GET',
-        body: [],
-      });
-    });
-
     it('shows all platform options when all console platforms enabled', async () => {
       const orgWithGamingAccess = OrganizationFixture({
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
@@ -574,15 +566,8 @@ describe('projectGeneralSettings', () => {
   });
 
   it('renders connected repositories panel', async () => {
-    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgWithFlag.slug}/${project.slug}/repo/`,
-      method: 'GET',
-      body: [],
-    });
-
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
-      organization: orgWithFlag,
+      organization,
       initialRouterConfig,
     });
 

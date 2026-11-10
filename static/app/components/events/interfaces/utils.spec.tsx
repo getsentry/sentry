@@ -1,15 +1,16 @@
 import {EventFixture} from 'sentry-fixture/event';
 
+import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
+import {FILTER_MASK} from 'sentry/constants';
+import {EntryType} from 'sentry/types/event';
+
 import {
   getCurlCommand,
   getCurrentThread,
   getThreadById,
   stringifyQueryList,
   userContextToActor,
-} from 'sentry/components/events/interfaces/utils';
-import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
-import {FILTER_MASK} from 'sentry/constants';
-import {EntryType} from 'sentry/types/event';
+} from './utils';
 
 describe('components/interfaces/utils', () => {
   describe('getCurlCommand()', () => {

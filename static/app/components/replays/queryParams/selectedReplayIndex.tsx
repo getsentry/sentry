@@ -1,15 +1,16 @@
-import {createContext, useCallback, useContext} from 'react';
+import {createContext, useContext} from 'react';
 import {parseAsInteger, useQueryState} from 'nuqs';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-
 const SelectedReplayIndexContext = createContext(0);
+
+const parseAsSelectedReplayIndex = parseAsInteger
+  .withDefault(0)
+  .withOptions({clearOnDefault: false});
 
 export function SelectedReplayIndexProvider({children}: {children: React.ReactNode}) {
   const [selectedReplayIndex] = useQueryState(
     'selected_replay_index',
-    parseAsInteger.withDefault(0)
+    parseAsSelectedReplayIndex
   );
 
   return (
@@ -20,24 +21,12 @@ export function SelectedReplayIndexProvider({children}: {children: React.ReactNo
 }
 
 export function useSelectedReplayIndex() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setSelectedReplayIndex] = useQueryState(
+    'selected_replay_index',
+    parseAsSelectedReplayIndex
+  );
 
   const index = useContext(SelectedReplayIndexContext);
 
-  return {
-    index,
-    select: useCallback(
-      (newIndex: number) => {
-        navigate(
-          {
-            pathname: location.pathname,
-            query: {...location.query, selected_replay_index: newIndex},
-          },
-          {replace: true, preventScrollReset: true}
-        );
-      },
-      [location, navigate]
-    ),
-  };
+  return {index, select: setSelectedReplayIndex};
 }

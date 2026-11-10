@@ -16,6 +16,7 @@ from sentry.apidocs.parameters import SentryAppParams
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
+from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.services.user.serial import serialize_generic_user
@@ -49,13 +50,18 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
             409: RESPONSE_CONFLICT,
         },
     )
-    def delete(self, request: Request, installation, external_issue_id) -> Response:
+    def delete(
+        self,
+        request: Request,
+        installation: RpcSentryAppInstallation,
+        external_issue_id: str,
+    ) -> Response:
         """
         Remove the link between a Sentry issue and an external resource created through a
         custom integration (Sentry App) installation.
         """
         try:
-            external_issue_id = int(external_issue_id)
+            issue_id = int(external_issue_id)
         except (ValueError, TypeError):
             raise SentryAppError(
                 message="Invalid external_issue_id format. Expected numeric value.",
@@ -69,7 +75,7 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
         result = sentry_app_cell_service.delete_external_issue(
             organization_id=installation.organization_id,
             installation=installation,
-            external_issue_id=external_issue_id,
+            external_issue_id=issue_id,
             user=rpc_user,
         )
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -30,6 +30,7 @@ from sentry.api.event_search import QueryToken, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -53,29 +54,36 @@ from sentry.utils.snuba import raw_snql_query
 ElementResponseType = TypedDict(
     "ElementResponseType",
     {
-        "alt": str,
-        "aria_label": str,
-        "class": list[str],
-        "component_name": str,
-        "id": str,
-        "role": str,
-        "tag": str,
-        "testid": str,
-        "title": str,
+        "alt": Annotated[str, ApiDescription("`alt` attribute of the element")],
+        "aria_label": Annotated[str, ApiDescription("`aria-label` attribute of the element")],
+        "class": Annotated[list[str], ApiDescription("CSS classes of the element")],
+        "component_name": Annotated[
+            str, ApiDescription("`data-sentry-component` attribute of the element")
+        ],
+        "id": Annotated[str, ApiDescription("`id` attribute of the element")],
+        "role": Annotated[str, ApiDescription("`role` attribute of the element")],
+        "tag": Annotated[str, ApiDescription("HTML tag of the element")],
+        "testid": Annotated[str, ApiDescription("`data-testid` attribute of the element")],
+        "title": Annotated[str, ApiDescription("`title` attribute of the element")],
     },
 )
 
 
 class ReplaySelectorResponseData(TypedDict, total=False):
-    count_dead_clicks: int
-    count_rage_clicks: int
-    dom_element: str
-    element: ElementResponseType
-    project_id: str
+    count_dead_clicks: Annotated[int, ApiDescription("Number of dead clicks on the element")]
+    count_rage_clicks: Annotated[int, ApiDescription("Number of rage clicks on the element")]
+    dom_element: Annotated[
+        str, ApiDescription("CSS selector of the element, built from its tag, ID and classes")
+    ]
+    element: Annotated[ElementResponseType, ApiDescription("Attributes of the clicked element")]
+    project_id: Annotated[str, ApiDescription("ID of the project the clicks were recorded in")]
 
 
 class ReplaySelectorResponse(TypedDict):
-    data: list[ReplaySelectorResponseData]
+    data: Annotated[
+        list[ReplaySelectorResponseData],
+        ApiDescription("Selectors of clicked elements that match the query"),
+    ]
 
 
 @cell_silo_endpoint
@@ -85,10 +93,10 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get_replay_filter_params(self, request, organization):
-        filter_params = self.get_filter_params(request, organization)
-
-        return filter_params
+    def get_replay_filter_params(
+        self, request: Request, organization: Organization
+    ) -> dict[str, Any]:
+        return dict(self.get_filter_params(request, organization))
 
     @extend_schema(
         operation_id="listOrganizationReplaySelectors",
@@ -127,7 +135,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
             if key not in filter_params:
                 filter_params[key] = value
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[dict[str, Any]]:
             try:
                 search_filters = parse_search_query(request.query_params.get("query", ""))
             except InvalidSearchQuery as e:
@@ -158,12 +166,12 @@ def query_selector_collection(
     start: datetime,
     end: datetime,
     sort: str | None,
-    limit: str | None,
-    offset: str | None,
-    environment: list[str],
+    limit: int,
+    offset: int,
+    environment: list[str] | None,
     search_filters: Sequence[QueryToken],
     organization: Organization,
-) -> dict:
+) -> list[dict[str, Any]]:
     """Query aggregated replay collection."""
     if organization:
         tenant_ids = {"organization_id": organization.id}
@@ -182,7 +190,8 @@ def query_selector_collection(
         sort=sort,
         tenant_ids=tenant_ids,
     )
-    return response["data"]
+    data = response["data"]
+    return data
 
 
 def query_selector_dataset(
@@ -190,11 +199,11 @@ def query_selector_dataset(
     start: datetime,
     end: datetime,
     search_filters: Sequence[QueryToken],
-    environment: list[str],
+    environment: list[str] | None,
     pagination: Paginators | None,
     sort: str | None,
     tenant_ids: dict[str, Any] | None = None,
-):
+) -> Mapping[str, Any]:
     query_options = {}
 
     if pagination:
@@ -319,7 +328,9 @@ def query_selector_dataset(
 def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Process the response further into the expected output."""
 
-    def make_selector_name(row) -> str:
+    def make_selector_name(
+        row: dict[str, Any],
+    ) -> str:
         selector = row["click_tag"]
 
         if row["click_id"]:

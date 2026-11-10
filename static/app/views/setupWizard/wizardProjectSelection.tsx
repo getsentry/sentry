@@ -22,14 +22,15 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
-import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
-import type {OrganizationSummaryWithLocality} from 'sentry/views/setupWizard/types';
-import {useCreateProjectFromWizard} from 'sentry/views/setupWizard/utils/useCreateProjectFromWizard';
-import {useOrganizationDetails} from 'sentry/views/setupWizard/utils/useOrganizationDetails';
-import {useOrganizationProjects} from 'sentry/views/setupWizard/utils/useOrganizationProjects';
-import {useOrganizationTeams} from 'sentry/views/setupWizard/utils/useOrganizationTeams';
-import {useUpdateWizardCache} from 'sentry/views/setupWizard/utils/useUpdateWizardCache';
-import {WaitingForWizardToConnect} from 'sentry/views/setupWizard/waitingForWizardToConnect';
+
+import {useCreateProjectFromWizard} from './utils/useCreateProjectFromWizard';
+import {useOrganizationDetails} from './utils/useOrganizationDetails';
+import {useOrganizationProjects} from './utils/useOrganizationProjects';
+import {useOrganizationTeams} from './utils/useOrganizationTeams';
+import {useUpdateWizardCache} from './utils/useUpdateWizardCache';
+import {ProjectLoadingError} from './projectLoadingError';
+import type {OrganizationSummaryWithLocality} from './types';
+import {WaitingForWizardToConnect} from './waitingForWizardToConnect';
 
 const CREATE_PROJECT_VALUE = 'create-new-project';
 

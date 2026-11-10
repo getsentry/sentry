@@ -447,6 +447,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="List a Project's Custom Inbound Filters",
@@ -547,6 +548,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",

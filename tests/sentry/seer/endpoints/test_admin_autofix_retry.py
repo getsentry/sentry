@@ -1,6 +1,9 @@
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from rest_framework.response import Response
+
+from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID
@@ -53,7 +56,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
 
-    def get_response(self, *args, **params):
+    def get_response(self, *args: object, **params: object) -> Response:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
@@ -120,7 +123,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
             ),
         }
 
-        def fetch(run_id, organization):
+        def fetch(run_id: int, organization: Organization) -> SeerRunState:
             if run_id == 7:
                 raise Exception("seer down")
             return states[run_id]

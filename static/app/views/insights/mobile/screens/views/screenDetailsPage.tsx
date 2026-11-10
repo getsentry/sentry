@@ -13,11 +13,12 @@ import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {PlatformizedAppStartsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedAppStartsOverview';
-import {PlatformizedScreenLoadsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenLoadsOverview';
-import {PlatformizedScreenRenderingOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenRenderingOverview';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {PlatformizedAppStartsOverview} from './platformizedAppStartsOverview';
+import {PlatformizedScreenLoadsOverview} from './platformizedScreenLoadsOverview';
+import {PlatformizedScreenRenderingOverview} from './platformizedScreenRenderingOverview';
 
 const screenDetailsParsers = {
   tab: parseAsString,
@@ -114,15 +115,7 @@ function ScreenDetailsPage() {
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
               headerTitle={transactionName}
-              breadcrumbs={[
-                {
-                  label: t('Mobile Vitals'),
-                  to: moduleURL,
-                },
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
+              breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
             />
             <Layout.Body>
               <Layout.Main width="full">

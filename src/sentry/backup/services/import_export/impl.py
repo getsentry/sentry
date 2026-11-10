@@ -5,6 +5,8 @@
 
 import logging
 import traceback
+from collections.abc import Iterator
+from typing import Any
 
 import psycopg2.errors
 import sentry_sdk
@@ -158,7 +160,7 @@ class UniversalImportExportService(ImportExportService):
 
         import_scope = scope.from_rpc()
         in_pk_map = pk_map.from_rpc()
-        filters: list[Filter] = []
+        filters: list[Filter[Any]] = []
         for fb in filter_by:
             if NormalizedModelName(fb.on_model) == batch_model_name:
                 filters.append(fb.from_rpc())
@@ -487,12 +489,14 @@ class UniversalImportExportService(ImportExportService):
 
             max_pk = from_pk
             out_pk_map = PrimaryKeyMap()
-            filters: list[Filter] = []
+            filters: list[Filter[Any]] = []
             for fb in filter_by:
                 if NormalizedModelName(fb.on_model) == batch_model_name:
                     filters.append(fb.from_rpc())
 
-            def filter_objects(queryset_iterator):
+            def filter_objects(
+                queryset_iterator: Iterator[Any],
+            ) -> Iterator[Any]:
                 # Intercept each value from the queryset iterator, ensure that it has the correct
                 # relocation scope and that all of its dependencies have already been exported. If
                 # they have, store it in the `pk_map`, and then yield it again. If they have not, we
@@ -545,7 +549,7 @@ class UniversalImportExportService(ImportExportService):
                             item.normalize_before_relocation_export()
                             yield item
 
-            def yield_objects():
+            def yield_objects() -> Iterator[Any]:
                 q = Q(pk__gt=from_pk)
 
                 # Only do database query filtering if this is a non-global export. If it is a

@@ -1,9 +1,14 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
+
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+
 import {
   getBaseBuildPath,
   getCompareBuildPath,
   getInstallBuildPath,
   getSizeBuildPath,
   getSnapshotPath,
+  sizeComparisonApiOptions,
 } from './buildLinkUtils';
 
 describe('buildLinkUtils', () => {
@@ -97,4 +102,39 @@ describe('buildLinkUtils', () => {
       );
     });
   });
+});
+
+describe('sizeComparisonApiOptions', () => {
+  it.each([undefined, 'head-artifact'])(
+    'waits for both artifact IDs when the head ID is %s',
+    async headArtifactId => {
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/preprodartifacts/size-analysis/compare/head-artifact/base-artifact/',
+        body: {comparisons: []},
+      });
+      const initialProps: {baseArtifactId?: string; headArtifactId?: string} = {
+        headArtifactId,
+      };
+      const {result, rerender} = renderHookWithProviders(
+        ({headArtifactId: headId, baseArtifactId}) =>
+          useQuery(
+            sizeComparisonApiOptions(
+              headId && baseArtifactId
+                ? {organizationSlug: 'org-slug', headArtifactId: headId, baseArtifactId}
+                : skipToken
+            )
+          ),
+        {initialProps}
+      );
+
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(request).not.toHaveBeenCalled();
+
+      rerender({headArtifactId: 'head-artifact', baseArtifactId: 'base-artifact'});
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual({comparisons: []});
+      expect(request).toHaveBeenCalledTimes(1);
+    }
+  );
 });

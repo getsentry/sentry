@@ -1,5 +1,6 @@
 import type {User} from 'sentry/types/user';
-import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+
+import type {MetricRule} from './rules/metric/types';
 
 type Data = Array<[number, Array<{count: number}>]>;
 

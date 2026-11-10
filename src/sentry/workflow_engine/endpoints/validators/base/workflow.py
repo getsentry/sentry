@@ -37,6 +37,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -116,9 +117,10 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return actions, action_filter
 
-    def validate_config(self, value: Any) -> bool:
+    def validate_config[T](self, value: T) -> T:
         schema = Workflow.config_schema
-        return validate_json_schema(value, schema)
+        validate_json_schema(value, schema)
+        return value
 
     def validate_triggers(self, value: InputData) -> InputData:
         if "workflow" in self.context:
@@ -389,7 +391,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         """
         org = self.context["organization"]
         assert isinstance(org, Organization)
-        workflow_count = Workflow.objects.filter(organization_id=org.id).count()
+
+        # hidden workflows do not count towards user limit
+        workflow_count = Workflow.objects.filter(
+            organization_id=org.id, type__in=VISIBLE_WORKFLOW_TYPES
+        ).count()
+
         if features.has("organizations:more-workflows", org):
             max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:

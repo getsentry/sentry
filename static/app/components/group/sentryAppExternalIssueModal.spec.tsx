@@ -8,7 +8,7 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openSentryAppIssueModal} from 'sentry/components/group/sentryAppExternalIssueModal';
+import {openSentryAppIssueModal} from './sentryAppExternalIssueModal';
 
 describe('openSentryAppIssueModal', () => {
   const group = GroupFixture();

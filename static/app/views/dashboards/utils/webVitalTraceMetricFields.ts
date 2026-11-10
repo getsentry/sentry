@@ -2,13 +2,14 @@ import isEqual from 'lodash/isEqual';
 
 import {DurationUnit, FractionUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
 import {
   ORDER,
   type ProjectScore,
   type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
+
+import {traceMetricField} from './prebuiltConfigs/utils/traceMetricField';
 
 const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
   lcp: DurationUnit.MILLISECOND,
@@ -57,6 +58,13 @@ export function webVitalCountField(vital: WebVitals): string {
 
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
+
+export const PERFORMANCE_SCORE_FIELD = 'performance_score(measurements.score.total)';
+export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score(measurements.score.total)';
+
+export function isWebVitalScoreFormula(field: string): boolean {
+  return field === PERFORMANCE_SCORE_FIELD || field === OPPORTUNITY_SCORE_FIELD;
+}
 
 export function isWebVitalScoreBreakdownChart(widgetQuery: WidgetQuery): boolean {
   return isEqual(new Set(widgetQuery.aggregates), new Set(WEB_VITAL_SCORE_FIELDS));

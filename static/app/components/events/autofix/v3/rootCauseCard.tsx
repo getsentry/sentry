@@ -9,22 +9,25 @@ import {Text} from '@sentry/scraps/text';
 import {
   getAutofixArtifactFromSection,
   isRootCauseArtifact,
+  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
-import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
-import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
-import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
-import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
-import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+
+import {ArtifactCard} from './artifactCard';
+import {ArtifactDetails} from './artifactDetails';
+import {ArtifactLoadingDetails} from './artifactLoadingDetails';
+import {AutofixEvidence} from './autofixEvidence';
+import {AutofixResetPrompt} from './autofixResetPrompt';
+import {useAutofixSectionEvidence} from './useAutofixSectionEvidence';
+import {useResetAutofixStep} from './useResetAutofixStep';
+import {useRethinkInChat} from './useRethinkInChat';
+import {useOpenSingleRunChat} from './useToggleSingleRunChat';
+import {artifactToMarkdown} from './utils';
 
 interface RootCauseCardProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -39,6 +42,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   }, [section]);
 
   const {copy} = useCopyToClipboard();
+  const openSingleRunChat = useOpenSingleRunChat();
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -68,7 +72,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
-      allowReset
+      // Single runs reject step restarts; people redo the root cause by replying in the chat.
+      allowReset={!isSingleRunAutofix(autofix.runState)}
       onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
       resetInChat={defined(rethinkInChat)}
     >
@@ -89,6 +94,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           )}
           <ArtifactDetails>
             <SeerMarkdown raw={artifact.data.one_line_description} />
+            {artifact.data.cause ? <SeerMarkdown raw={artifact.data.cause} /> : null}
           </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>
@@ -143,7 +149,16 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              onClick={() => handleReset()}
+              onClick={async () => {
+                if (!isSingleRunAutofix(autofix.runState)) {
+                  handleReset();
+                  return;
+                }
+                const run = await autofix.startStep('root_cause');
+                if (run.isSingleRun) {
+                  openSingleRunChat(run.runId);
+                }
+              }}
             >
               {t('Re-run')}
             </Button>

@@ -20,6 +20,7 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -81,7 +82,7 @@ class DeploySerializer(serializers.Serializer):
         help_text="The optional list of project slugs to create a deploy within. If not provided, deploys are created for all of the release's projects.",
     )
 
-    def validate_environment(self, value):
+    def validate_environment(self, value: str) -> str:
         if not Environment.is_valid_name(value):
             raise serializers.ValidationError("Invalid value for environment")
         return value
@@ -146,6 +147,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listOrganizationReleaseDeploys",
@@ -154,7 +156,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         responses={200: DeployResponseSerializer(many=True)},
     )
     def get(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[list[DeploySerializerResponse]]:
         """
         Returns a list of deploys based on the organization, version, and project.
@@ -175,7 +177,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         projects = self.get_projects(request, organization)
         project_id = [p.id for p in projects]
 
-        if project_id and project_id != "-1":
+        if project_id:
             release_project_envs = release_project_envs.filter(project_id__in=project_id)
 
         deploy_ids = release_project_envs.values_list("last_deploy_id", flat=True)
@@ -197,7 +199,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         responses={201: DeployResponseSerializer, 400: RESPONSE_BAD_REQUEST},
     )
     def post(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[DeploySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a deploy for a given release.
@@ -220,8 +222,8 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(
             request, organization, release, require_all_projects=True
         ):
-            if request.user.is_authenticated:
-                auth = f"user.id: {request.user.id}"
+            if has_user(request.user):
+                auth = f"user.id: {acting_user_id(request.user)}"
             elif request.auth is not None:
                 auth = f"auth.entity_id: {request.auth.entity_id}"
             else:

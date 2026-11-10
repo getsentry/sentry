@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {useTableCursor} from './useTableCursor';
 
 describe('useTableCursor', () => {
   it('should return undefined cursor when query param is not present', () => {

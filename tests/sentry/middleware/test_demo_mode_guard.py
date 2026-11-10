@@ -1,7 +1,8 @@
 from functools import cached_property
+from typing import Any
 from unittest.mock import sentinel
 
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect
 from django.test import RequestFactory
 
 from sentry.middleware.demo_mode_guard import DemoModeGuardMiddleware
@@ -15,11 +16,11 @@ from sentry.users.services.user.service import user_service
 class DemoModeGuardMiddlewareTestCase(TestCase):
     middleware = DemoModeGuardMiddleware(lambda request: sentinel.response)
 
-    def assert_user_equals(self, request):
+    def assert_user_equals(self, request: HttpRequest) -> None:
         assert request.user == user_service.get_user(user_id=self.user.id)
 
     @cached_property
-    def request(self):
+    def request(self) -> Any:
         rv = RequestFactory().get("/")
         rv.session = self.session
         rv.subdomain = None

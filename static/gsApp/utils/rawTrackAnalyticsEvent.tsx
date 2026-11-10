@@ -88,8 +88,7 @@ const getCustomReferrer = () => {
 const getOrganizationId = (
   organization: Organization | string | null
 ): number | undefined | null => {
-  // this should never happen but there are components that use withOrganization
-  // that might end up with an undefined org if used incorrectly
+  // this should never happen, but untyped callers may still pass an undefined org
   if (organization === undefined) {
     // eslint-disable-next-line no-console
     console.warn('Unexpected undefined organization');

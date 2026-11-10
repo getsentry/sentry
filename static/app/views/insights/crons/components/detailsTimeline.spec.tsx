@@ -10,8 +10,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {MonitorStatus, type MonitorEnvironment} from 'sentry/views/insights/crons/types';
+
+import {DetailsTimeline} from './detailsTimeline';
 
 function makeEnvironment(name: string): MonitorEnvironment {
   return {

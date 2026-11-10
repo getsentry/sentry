@@ -4,7 +4,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {
   applyQueryParamsUpdates,
   loadQueryParamsFromLocation,
@@ -12,6 +11,7 @@ import {
 
 import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
 import {DisplayType, type DashboardDetails, type Widget} from './types';
+import {WidgetLegendNameEncoderDecoder} from './widgetLegendNameEncoderDecoder';
 
 type Props = {
   dashboard: DashboardDetails | null;

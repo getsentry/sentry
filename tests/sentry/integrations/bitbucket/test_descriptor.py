@@ -1,4 +1,3 @@
-from sentry.integrations.bitbucket.client import BITBUCKET_KEY
 from sentry.integrations.bitbucket.descriptor import BitbucketDescriptorEndpoint
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -15,6 +14,6 @@ class BitbucketDescriptorEndpointTest(APITestCase):
         response = self.client.get("/extensions/bitbucket/descriptor/")
         assert response.status_code == 200
 
-        assert response.data["key"] == BITBUCKET_KEY
+        assert response.data["key"] == "testserver.bitbucket"
         assert response.data["authentication"]["type"] == "JWT"
         assert response.data["baseUrl"] == "http://testserver"

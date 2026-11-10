@@ -1,13 +1,13 @@
 import {useEffect, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useApiQuery} from 'sentry/utils/queryClient';
+
+import {apiOptions} from './api/apiOptions';
+import {isActiveSuperuser} from './isActiveSuperuser';
 
 interface UseTeamsResult {
   isError: boolean | null;
@@ -15,12 +15,11 @@ interface UseTeamsResult {
   teams: Team[];
 }
 
-function buildUserTeamsQueryKey(orgSlug: string): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/user-teams/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ];
+function buildUserTeamsApiOptions(orgSlug: string) {
+  return apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/user-teams/', {
+    path: {organizationIdOrSlug: orgSlug},
+    staleTime: 0,
+  });
 }
 
 /**
@@ -46,8 +45,9 @@ export function useUserTeams(): UseTeamsResult {
     data: additionalTeams = [],
     isPending,
     isError,
-  } = useApiQuery<Team[]>(buildUserTeamsQueryKey(organization?.slug ?? ''), {
-    staleTime: 0,
+  } = useQuery({
+    ...buildUserTeamsApiOptions(organization?.slug ?? ''),
+
     enabled: queryEnabled,
   });
 

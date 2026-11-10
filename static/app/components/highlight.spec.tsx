@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MultiHighlight} from 'sentry/components/highlight';
+import {MultiHighlight} from './highlight';
 
 describe('MultiHighlight', () => {
   it('highlights every provided term when the text contains multiple terms', () => {

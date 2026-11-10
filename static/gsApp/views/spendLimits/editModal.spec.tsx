@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeClosableHeader,
@@ -82,5 +82,24 @@ describe('SpendLimitsEditModal', () => {
 
     expect(await screen.findByText('Budget is too high.')).toBeInTheDocument();
     expect(props.closeModal).not.toHaveBeenCalled();
+  });
+
+  it('renders the shared price table when the limit is shared', async () => {
+    render(<SpendLimitsEditModal {...makeProps()} />, {organization});
+
+    const table = await screen.findByRole('table', {name: 'Product prices'});
+    const errorsRow = within(table).getByRole('row', {name: /^Errors/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Product', 'Price']);
+    expect(
+      within(errorsRow)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['Errors(50K included)', '*$0.001113/error']);
+    expect(screen.getByText('* starting rate')).toBeInTheDocument();
   });
 });

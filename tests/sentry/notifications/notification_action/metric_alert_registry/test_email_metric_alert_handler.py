@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import asdict
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
@@ -22,6 +22,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import create_open_period, get_latest_open_period
+from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.metric_alert_registry import EmailMetricAlertHandler
@@ -40,8 +41,15 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
     MetricAlertHandlerBase,
 )
 
+_UnpackedSendAlert = tuple[
+    NotificationContext, AlertContext, MetricIssueContext, OpenPeriodContext, Organization, str
+]
+
 
 class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
+    def unpack_kwargs(self, mock_send_alert: mock.MagicMock) -> _UnpackedSendAlert:
+        return cast(_UnpackedSendAlert, super().unpack_kwargs(mock_send_alert))
+
     def setUp(self) -> None:
         self.create_models()
         self.action = self.create_action(

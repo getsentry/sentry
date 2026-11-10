@@ -17,18 +17,24 @@ class TestHookService(TestCase):
         self.sentry_app = self.create_sentry_app(
             organization_id=self.org.id, events=["issue.created"]
         )
+        assert self.sentry_app.application is not None
+        assert self.sentry_app.proxy_user is not None
+        assert self.sentry_app.webhook_url is not None
+        self.application = self.sentry_app.application
+        self.proxy_user = self.sentry_app.proxy_user
+        self.webhook_url = self.sentry_app.webhook_url
 
     def call_create_hook(
         self, project_ids: list[int] | None = None, events: list[str] | None = None
     ) -> RpcServiceHook:
         events = events or ["event.created"]
         return hook_service.create_service_hook(
-            application_id=self.sentry_app.application.id,
-            actor_id=self.sentry_app.proxy_user.id,
+            application_id=self.application.id,
+            actor_id=self.proxy_user.id,
             organization_id=self.org.id,
             project_ids=project_ids,
             events=events,
-            url=self.sentry_app.webhook_url,
+            url=self.webhook_url,
         )
 
     def test_creates_service_hook(self) -> None:
@@ -37,8 +43,8 @@ class TestHookService(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             service_hook = ServiceHook.objects.get(
                 application_id=self.sentry_app.application_id,
-                actor_id=self.sentry_app.proxy_user.id,
-                url=self.sentry_app.webhook_url,
+                actor_id=self.proxy_user.id,
+                url=self.webhook_url,
             )
 
         assert service_hook
@@ -77,20 +83,20 @@ class TestHookService(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CELL):
             hook1 = ServiceHook.objects.get(
-                installation_id=installation1.id, application_id=self.sentry_app.application.id
+                installation_id=installation1.id, application_id=self.application.id
             )
             hook2 = ServiceHook.objects.get(
-                installation_id=installation2.id, application_id=self.sentry_app.application.id
+                installation_id=installation2.id, application_id=self.application.id
             )
-            ServiceHook.objects.filter(application_id=self.sentry_app.application.id).update(
+            ServiceHook.objects.filter(application_id=self.application.id).update(
                 events=["comment.created"]
             )
 
         # Call the update method
         result = hook_service.update_webhook_and_events(
             organization_id=self.org.id,
-            application_id=self.sentry_app.application.id,
-            webhook_url=self.sentry_app.webhook_url,
+            application_id=self.application.id,
+            webhook_url=self.webhook_url,
             events=self.sentry_app.events,
         )
 
@@ -120,10 +126,10 @@ class TestHookService(TestCase):
                 # but it's enough to test the performance of the update
                 hooks_to_create.append(
                     ServiceHook(
-                        application_id=self.sentry_app.application.id,
+                        application_id=self.application.id,
                         actor_id=self.user.id,
                         installation_id=self.user.id,
-                        url=self.sentry_app.webhook_url,
+                        url=self.webhook_url,
                         events=["comment.created", "error.created"],
                     )
                 )
@@ -131,7 +137,7 @@ class TestHookService(TestCase):
 
             assert (
                 ServiceHook.objects.filter(
-                    application_id=self.sentry_app.application.id,
+                    application_id=self.application.id,
                     events=["comment.created", "error.created"],
                 ).count()
                 == 10000
@@ -139,8 +145,8 @@ class TestHookService(TestCase):
 
         result = hook_service.update_webhook_and_events(
             organization_id=self.org.id,
-            application_id=self.sentry_app.application.id,
-            webhook_url=self.sentry_app.webhook_url,
+            application_id=self.application.id,
+            webhook_url=self.webhook_url,
             events=self.sentry_app.events,
         )
 
@@ -148,14 +154,14 @@ class TestHookService(TestCase):
             assert len(result) == 10000
             assert (
                 ServiceHook.objects.filter(
-                    application_id=self.sentry_app.application.id,
+                    application_id=self.application.id,
                     events=self.sentry_app.events,
                 ).count()
                 == 10000
             )
             assert (
                 ServiceHook.objects.filter(
-                    application_id=self.sentry_app.application.id,
+                    application_id=self.application.id,
                     events=["comment.created", "error.created"],
                 ).count()
                 == 0
@@ -164,13 +170,13 @@ class TestHookService(TestCase):
     def test_update_webhook_and_events_without_webhook_url(self) -> None:
         # Create service hooks
         hook1 = self.create_service_hook(
-            application=self.sentry_app.application,
+            application=self.application,
             organization=self.org,
             url="https://example.com",
             events=["issue.created"],
         )
         hook2 = self.create_service_hook(
-            application=self.sentry_app.application,
+            application=self.application,
             organization=self.org,
             url="https://example2.com",
             events=["comment.created"],
@@ -179,7 +185,7 @@ class TestHookService(TestCase):
         # Call update with webhook_url=None (should delete hooks)
         result = hook_service.update_webhook_and_events(
             organization_id=self.org.id,
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             webhook_url=None,
             events=["issue"],
         )
@@ -205,7 +211,7 @@ class TestHookService(TestCase):
         # Try to update hooks for our app (should find no hooks)
         result = hook_service.update_webhook_and_events(
             organization_id=self.org.id,
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             webhook_url="https://new-url.com",
             events=["issue"],
         )
@@ -221,7 +227,7 @@ class TestHookService(TestCase):
 
         with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
+                installation_id=installation.id, application_id=self.application.id
             )
             hook.delete()
 
@@ -229,9 +235,9 @@ class TestHookService(TestCase):
         result = hook_service.create_or_update_webhook_and_events_for_installation(
             installation_id=installation.id,
             organization_id=self.org.id,
-            webhook_url=self.sentry_app.webhook_url,
+            webhook_url=self.webhook_url,
             events=self.sentry_app.events,
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
         )
 
         # Should return one hook
@@ -240,7 +246,7 @@ class TestHookService(TestCase):
         # Verify hook was created in database
         with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
+                installation_id=installation.id, application_id=self.application.id
             )
             assert hook.url == self.sentry_app.webhook_url
             assert hook.events == self.sentry_app.events
@@ -252,7 +258,7 @@ class TestHookService(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
+                installation_id=installation.id, application_id=self.application.id
             )
             hook.events = ["error.created"]
             hook.save()
@@ -261,9 +267,9 @@ class TestHookService(TestCase):
         result = hook_service.create_or_update_webhook_and_events_for_installation(
             installation_id=installation.id,
             organization_id=self.org.id,
-            webhook_url=self.sentry_app.webhook_url,
+            webhook_url=self.webhook_url,
             events=self.sentry_app.events,
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
         )
 
         # Should return one hook
@@ -274,7 +280,7 @@ class TestHookService(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             hooks = ServiceHook.objects.filter(
                 installation_id=installation.id,
-                application_id=self.sentry_app.application.id,
+                application_id=self.application.id,
             )
             assert hooks.count() == 1
             updated_hook = hooks.first()
@@ -288,7 +294,7 @@ class TestHookService(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CELL):
             existing_hook = ServiceHook.objects.get(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
+                installation_id=installation.id, application_id=self.application.id
             )
 
         # Call create_or_update with webhook_url=None (should delete)
@@ -297,7 +303,7 @@ class TestHookService(TestCase):
             organization_id=self.org.id,
             webhook_url=None,
             events=["issue"],
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
         )
 
         # Should return empty list
@@ -314,7 +320,7 @@ class TestHookService(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CELL):
             existing_hook = ServiceHook.objects.get(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
+                installation_id=installation.id, application_id=self.application.id
             )
             existing_hook.delete()
 
@@ -324,7 +330,7 @@ class TestHookService(TestCase):
             organization_id=self.org.id,
             webhook_url=None,
             events=["issue"],
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
         )
 
         # Should return empty list and not raise exception
@@ -344,12 +350,12 @@ class TestHookService(TestCase):
             assert (
                 ServiceHook.objects.filter(
                     installation_id=installation.id,
-                    application_id=self.sentry_app.application.id,
+                    application_id=self.application.id,
                 ).count()
                 == 1
             )
             ServiceHook.objects.create(
-                application_id=self.sentry_app.application.id,
+                application_id=self.application.id,
                 actor_id=installation.id,
                 installation_id=installation.id,
                 organization_id=self.org.id,
@@ -359,7 +365,7 @@ class TestHookService(TestCase):
             assert (
                 ServiceHook.objects.filter(
                     installation_id=installation.id,
-                    application_id=self.sentry_app.application.id,
+                    application_id=self.application.id,
                 ).count()
                 == 2
             )
@@ -368,9 +374,9 @@ class TestHookService(TestCase):
         result = hook_service.create_or_update_webhook_and_events_for_installation(
             installation_id=installation.id,
             organization_id=self.org.id,
-            webhook_url=self.sentry_app.webhook_url,
+            webhook_url=self.webhook_url,
             events=self.sentry_app.events,
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
         )
 
         assert len(result) == 1
@@ -379,7 +385,7 @@ class TestHookService(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             hooks = ServiceHook.objects.filter(
                 installation_id=installation.id,
-                application_id=self.sentry_app.application.id,
+                application_id=self.application.id,
             )
             assert hooks.count() == 1
             hook = hooks.first()
@@ -399,7 +405,7 @@ class TestHookService(TestCase):
         # Manually create a duplicate hook to simulate the concurrency bug
         with assume_test_silo_mode(SiloMode.CELL):
             ServiceHook.objects.create(
-                application_id=self.sentry_app.application.id,
+                application_id=self.application.id,
                 actor_id=installation.id,
                 installation_id=installation.id,
                 organization_id=self.org.id,
@@ -409,7 +415,7 @@ class TestHookService(TestCase):
             assert (
                 ServiceHook.objects.filter(
                     installation_id=installation.id,
-                    application_id=self.sentry_app.application.id,
+                    application_id=self.application.id,
                 ).count()
                 == 2
             )
@@ -420,7 +426,7 @@ class TestHookService(TestCase):
             organization_id=self.org.id,
             webhook_url=None,
             events=["issue"],
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
         )
 
         assert result == []
@@ -429,7 +435,7 @@ class TestHookService(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert not ServiceHook.objects.filter(
                 installation_id=installation.id,
-                application_id=self.sentry_app.application.id,
+                application_id=self.application.id,
             ).exists()
 
 
@@ -442,6 +448,12 @@ class TestHookServiceBulkCreate(TestCase):
         self.sentry_app = self.create_sentry_app(
             organization_id=self.org.id, events=["issue.created"]
         )
+        assert self.sentry_app.application is not None
+        assert self.sentry_app.proxy_user is not None
+        assert self.sentry_app.webhook_url is not None
+        self.application = self.sentry_app.application
+        self.proxy_user = self.sentry_app.proxy_user
+        self.webhook_url = self.sentry_app.webhook_url
 
     def test_bulk_create_service_hooks_for_app_success(self) -> None:
         # Create some installations and organizations
@@ -455,7 +467,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Delete existing hooks to test bulk creation
         with assume_test_silo_mode(SiloMode.CELL):
-            ServiceHook.objects.filter(application_id=self.sentry_app.application.id).delete()
+            ServiceHook.objects.filter(application_id=self.application.id).delete()
 
         # Prepare installation-organization pairs
         installation_org_pairs = [
@@ -469,7 +481,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         result = hook_service.bulk_create_service_hooks_for_app(
             cell_name="us",
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             events=["issue.created", "error.created"],
             installation_organization_ids=installation_org_pairs,
             url="https://example.com/webhook",
@@ -477,9 +489,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Verify hooks were created in database
         with assume_test_silo_mode(SiloMode.CELL):
-            hooks = ServiceHook.objects.filter(
-                application_id=self.sentry_app.application.id
-            ).order_by("id")
+            hooks = ServiceHook.objects.filter(application_id=self.application.id).order_by("id")
             assert hooks.count() == 2
             assert len(result) == 2
 
@@ -503,12 +513,12 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Delete existing hook
         with assume_test_silo_mode(SiloMode.CELL):
-            ServiceHook.objects.filter(application_id=self.sentry_app.application.id).delete()
+            ServiceHook.objects.filter(application_id=self.application.id).delete()
 
         # Call bulk create with expandable events
         result = hook_service.bulk_create_service_hooks_for_app(
             cell_name="us",
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             events=["issue", "comment"],  # These should expand
             installation_organization_ids=[
                 RpcInstallationOrganizationPair(
@@ -530,7 +540,7 @@ class TestHookServiceBulkCreate(TestCase):
         # Call with empty installation list
         result = hook_service.bulk_create_service_hooks_for_app(
             cell_name="us",
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             events=["issue.created"],
             installation_organization_ids=[],
             url="https://example.com/webhook",
@@ -541,9 +551,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Verify no hooks were created
         with assume_test_silo_mode(SiloMode.CELL):
-            hooks_count = ServiceHook.objects.filter(
-                application_id=self.sentry_app.application.id
-            ).count()
+            hooks_count = ServiceHook.objects.filter(application_id=self.application.id).count()
             # Should still have the hooks from setUp (if any)
             assert hooks_count >= 0
 
@@ -555,16 +563,14 @@ class TestHookServiceBulkCreate(TestCase):
         # Verify hook already exists from installation creation
         with assume_test_silo_mode(SiloMode.CELL):
             existing_hook = ServiceHook.objects.get(
-                installation_id=installation.id, application_id=self.sentry_app.application.id
+                installation_id=installation.id, application_id=self.application.id
             )
-            initial_count = ServiceHook.objects.filter(
-                application_id=self.sentry_app.application.id
-            ).count()
+            initial_count = ServiceHook.objects.filter(application_id=self.application.id).count()
 
         # Try to bulk create hook for same installation  should not create duplicate
         result = hook_service.bulk_create_service_hooks_for_app(
             cell_name="us",
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             events=["error.created"],
             installation_organization_ids=[
                 RpcInstallationOrganizationPair(
@@ -578,9 +584,7 @@ class TestHookServiceBulkCreate(TestCase):
 
         # Verify no duplicate hooks were created
         with assume_test_silo_mode(SiloMode.CELL):
-            final_count = ServiceHook.objects.filter(
-                application_id=self.sentry_app.application.id
-            ).count()
+            final_count = ServiceHook.objects.filter(application_id=self.application.id).count()
             assert final_count == initial_count
 
             # Original hook should be unchanged
@@ -614,7 +618,7 @@ class TestHookServiceBulkCreate(TestCase):
         # Call bulk create
         result = hook_service.bulk_create_service_hooks_for_app(
             cell_name="us",
-            application_id=self.sentry_app.application.id,
+            application_id=self.application.id,
             events=["issue.created"],
             installation_organization_ids=installation_org_pairs,
             url="https://bulk-test.com/webhook",
@@ -629,7 +633,7 @@ class TestHookServiceBulkCreate(TestCase):
                 installation_id = pair.installation_id
                 org_id = pair.organization_id
                 hook = ServiceHook.objects.get(
-                    installation_id=installation_id, application_id=self.sentry_app.application.id
+                    installation_id=installation_id, application_id=self.application.id
                 )
                 assert hook.organization_id == org_id
                 assert hook.url == "https://bulk-test.com/webhook"

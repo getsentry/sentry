@@ -11,8 +11,6 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackListHeader} from 'sentry/components/feedback/list/feedbackListHeader';
-import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem';
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
@@ -25,6 +23,9 @@ import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackListHeader} from './feedbackListHeader';
+import {FeedbackListItem} from './feedbackListItem';
 
 function NoFeedback() {
   return (

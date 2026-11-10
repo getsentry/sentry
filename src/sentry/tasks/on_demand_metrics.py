@@ -68,7 +68,8 @@ def _set_currently_processing_batch(current_batch: int) -> None:
 
 
 def _get_previous_processing_batch() -> int:
-    return cache.get(_get_widget_processing_batch_key(), 0)
+    batch = cache.get(_get_widget_processing_batch_key(), 0)
+    return batch
 
 
 def _get_current_processing_batch(total_batches: int) -> int:

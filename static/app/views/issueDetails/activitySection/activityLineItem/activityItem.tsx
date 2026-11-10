@@ -24,6 +24,7 @@ import {getProviderName} from './activityItem/provider';
 import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
+import {ImpactChip} from './chips/impactChip';
 import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
@@ -636,6 +637,18 @@ function getActivityItemContent({
         default:
           return {title: t('Autofix triggered')};
       }
+    case GroupActivityType.IMPACT_ASSESSMENT: {
+      const {level, score} = activity.data;
+      if (level === null || score === null) {
+        return {title: t("Impact wasn't assessed")};
+      }
+      return {
+        title: t('Impact assessed'),
+        details: tct('as [impact]', {
+          impact: <ImpactChip level={level} score={score} />,
+        }),
+      };
+    }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {

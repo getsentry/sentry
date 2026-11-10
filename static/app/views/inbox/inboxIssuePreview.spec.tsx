@@ -8,7 +8,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus} from 'sentry/types/group';
-import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
+
+import {InboxIssuePreview} from './inboxIssuePreview';
 
 describe('InboxIssuePreview', () => {
   const organization = OrganizationFixture();

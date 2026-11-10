@@ -104,7 +104,7 @@ class CursorOriginWebhookTest(APITestCase):
                     "webhook-event-type": event_type,
                 },
             )
-        return response.status_code
+        return int(response.status_code)
 
     def test_an_uninstall_disables_the_integration(self) -> None:
         integration = self.create_integration(
@@ -372,7 +372,7 @@ class CursorOriginWebhookCellTest(APITestCase):
                     "webhook-event-type": "installation.deleted",
                 },
             )
-        return response.status_code
+        return int(response.status_code)
 
     def test_a_delivery_held_in_the_mailbox_is_still_accepted(self) -> None:
         """The window is checked at the edge; a queue wait must not lose the delivery."""

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 import sentry_sdk
@@ -17,6 +18,7 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPosit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
 from sentry.utils import json
 
@@ -75,7 +77,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
-    ):
+    ) -> None:
         """
         Reorders the positions of favorited dashboards for a user in an organization.
         Does NOT add or remove favorited dashboards. Also normalizes the positions
@@ -359,6 +361,21 @@ class DashboardLastVisited(DefaultFieldsModel):
         ]
 
 
+class QueryPriorities(TypesClass):
+    """
+    Which query priority this dashboard should use
+    """
+
+    NORMAL = 0
+    FASTER = 1
+
+    TYPES = [
+        (NORMAL, "normal"),
+        (FASTER, "faster"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
 @cell_silo_model
 class Dashboard(Model):
     """
@@ -386,6 +403,8 @@ class Dashboard(Model):
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # defaults to normal if its null
+    query_priority = BoundedPositiveIntegerField(choices=QueryPriorities.as_choices(), null=True)
 
     MAX_WIDGETS = 30
 
@@ -423,7 +442,7 @@ class Dashboard(Model):
     __repr__ = sane_repr("organization", "title")
 
     @property
-    def favorited_by(self):
+    def favorited_by(self) -> Iterable[int]:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -433,7 +452,7 @@ class Dashboard(Model):
         return user_ids
 
     @favorited_by.setter
-    def favorited_by(self, user_ids):
+    def favorited_by(self, user_ids: Iterable[int]) -> None:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """

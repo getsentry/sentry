@@ -17,10 +17,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
+
+import {getIssueViewQueryParams} from './issueViews/getIssueViewQueryParams';
+import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import type {GroupSearchView} from './types';
 
 type Props = {
   children: React.ReactNode;

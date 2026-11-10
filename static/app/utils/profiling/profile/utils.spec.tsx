@@ -1,7 +1,4 @@
-import {
-  createSentrySampleProfileFrameIndex,
-  memoizeByReference,
-} from 'sentry/utils/profiling/profile/utils';
+import {createSentrySampleProfileFrameIndex, memoizeByReference} from './utils';
 
 describe('createSentrySampleProfileFrameIndex', () => {
   it('dedupes frames', () => {

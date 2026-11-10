@@ -12,6 +12,7 @@ from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
     OrganizationPermission,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import NotRegistered
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import (
@@ -20,7 +21,6 @@ from sentry.integrations.pipeline import (
     initialize_integration_pipeline,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.base import Pipeline
 from sentry.pipeline.types import PipelineStepAction
 from sentry.utils import metrics
 
@@ -40,7 +40,7 @@ class PipelinePermission(OrganizationPermission):
 
 def _get_api_pipeline(
     request: Request, organization: RpcOrganization, pipeline_name: str
-) -> Response | Pipeline:
+) -> Response[dict[str, str]] | IntegrationPipeline | IdentityPipeline:
     """Look up an active API-ready pipeline from the session, or return an error Response."""
     pipelines = {cls.pipeline_name: cls for cls in PIPELINE_CLASSES}
     if pipeline_name not in pipelines:
@@ -127,7 +127,7 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return Response({"detail": "Pipeline does not support API mode."}, status=400)
 
         pipeline.set_api_mode()
-        pipeline.bind_state("user_id", request.user.id)
+        pipeline.bind_state("user_id", acting_user_id(request.user))
 
         metrics.incr(
             "integrations.pipeline_api.initialize",

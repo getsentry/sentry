@@ -2,10 +2,11 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {useReplayProjectSlug} from './useReplayProjectSlug';
 
 interface ViewedByResponse {
   data: {viewed_by: User[]};

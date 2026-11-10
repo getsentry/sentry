@@ -15,10 +15,11 @@ import {Overlay} from '@sentry/scraps/overlay';
 import {DatePicker} from 'sentry/components/calendar';
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
+
+import {parseFilterValueDate} from './parsers/date/parser';
 
 interface SearchBarDatePickerProps extends CustomComboboxMenuProps<
   SelectOptionWithKey<string>

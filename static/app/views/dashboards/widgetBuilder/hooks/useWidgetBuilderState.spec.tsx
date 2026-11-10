@@ -7,12 +7,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  BuilderStateAction,
-  useWidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {BuilderStateAction, useWidgetBuilderState} from './useWidgetBuilderState';
 
 type Query = Record<string, string | number | string[]>;
 
@@ -1560,7 +1558,7 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('transformations', () => {
-    it('updates or clears one aggregate across filters without changing sibling pipelines', () => {
+    it('updates or clears one aggregate across filters without changing sibling transformations', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1590,7 +1588,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('moves equation pipelines when equations are reordered', () => {
+    it('moves equation transformations when equations are reordered', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1610,7 +1608,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{0: ['smooth(sma,3)']}]);
     });
 
-    it('keeps pipelines aligned through duplicate-axis moves, edits, additions, and deletion', () => {
+    it('keeps transformations aligned through duplicate-axis moves, edits, additions, and deletion', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1662,7 +1660,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('removes a filter pipeline and copies the first pipeline for an appended filter', () => {
+    it("removes a filter's transformations and copies the first filter's transformations for an appended filter", () => {
       const {result} = renderWidgetBuilderState({
         yAxis: ['count()'],
         query: ['environment:prod', 'environment:staging', 'environment:dev'],
@@ -1693,7 +1691,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('clears previous pipelines when loading a widget without transformations', () => {
+    it('clears previous transformations when loading a widget without transformations', () => {
       const {result} = renderWidgetBuilderState({
         transformations: '[{"0":["fill(zero)"]}]',
       });
@@ -1709,6 +1707,52 @@ describe('useWidgetBuilderState', () => {
       });
       expect(result.current.state.dataset).toBe(WidgetType.LOGS);
       expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('loads transformations when setting the state', () => {
+      const {result} = renderWidgetBuilderState();
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()', 'count()'],
+            transformations: '[{"1":["fill(zero)"]}]',
+          },
+        });
+      });
+      expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
+    });
+
+    it('clears previous transformations when loading a widget with malformed transformations', () => {
+      const {result} = renderWidgetBuilderState({
+        transformations: '[{"0":["fill(zero)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()'],
+            transformations: '[{"0":"fill(zero)"}]',
+          },
+        });
+      });
+      expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('writes transformations to the URL as JSON', () => {
+      const {result, router} = renderWidgetBuilderState({yAxis: ['count()', 'count()']});
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+          payload: {index: 1, transformations: ['fill(zero)']},
+        });
+      });
+      flushUrlUpdates();
+      expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
     });
 
     it.each([
@@ -1734,7 +1778,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
     });
 
-    it('retains pipelines for timeseries chart changes and clears them on dataset changes', () => {
+    it('retains transformations for timeseries chart changes and clears them on dataset changes', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,

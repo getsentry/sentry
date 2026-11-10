@@ -2,9 +2,10 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {DroppedDataFilterNote} from './droppedDataFilterNote';
 
 describe('DroppedDataFilterNote', () => {
   function setEnvironments(environments: string[]) {
@@ -50,6 +51,21 @@ describe('DroppedDataFilterNote', () => {
 
     expect(
       screen.getByText('Dropped spans are not filtered by search or environment')
+    ).toBeInTheDocument();
+  });
+
+  it('notes the chart environments over the page filter environments', () => {
+    setEnvironments([]);
+    render(
+      <DroppedDataFilterNote
+        dataset={DiscoverDatasets.SPANS}
+        hasUserQuery={false}
+        environments={['production']}
+      />
+    );
+
+    expect(
+      screen.getByText('Dropped spans are not filtered by environment')
     ).toBeInTheDocument();
   });
 

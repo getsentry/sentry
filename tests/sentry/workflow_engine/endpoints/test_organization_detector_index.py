@@ -83,6 +83,15 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @cell_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
+    def test_discovery_exclusion_does_not_hide_existing_rows(self) -> None:
+        with override_detector_api_availability(
+            ErrorGroupType.slug, {DetectorAPIOperation.DISCOVER: False}
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"id": [self.error_detector.id]}
+            )
+        assert [detector["id"] for detector in response.data] == [str(self.error_detector.id)]
+
     def test_simple(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -799,6 +808,33 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"project": self.project.id, "query": "assignee:me"},
         )
         assert {d["name"] for d in response.data} == {assigned_detector.name}
+
+    def test_query_by_assignee_my_teams_without_teams(self) -> None:
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[])
+        self.login_as(user=user)
+        self.create_detector(
+            project=self.project,
+            name="Team Detector",
+            type=MetricIssue.slug,
+            owner_team_id=self.team.id,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "assignee:my_teams"},
+        )
+        assert response.data == []
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!assignee:my_teams"},
+        )
+        assert {d["name"] for d in response.data} == {
+            "Error Monitor",
+            "Issue Stream",
+            "Team Detector",
+        }
 
     def test_query_by_assignee_none(self) -> None:
         user = self.create_user()
@@ -1805,7 +1841,7 @@ class ConvertAssigneeValuesTest(APITestCase):
 
     def test_convert_assignee_values_empty(self) -> None:
         result = convert_assignee_values([], self.projects, self.user)
-        expected = Q()
+        expected = Q(pk__in=[])
         self.assertEqual(str(result), str(expected))
 
 

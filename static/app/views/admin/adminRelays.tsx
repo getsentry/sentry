@@ -1,15 +1,17 @@
 import {useState} from 'react';
 import {IconDelete} from '@sentry/icons/delete';
+import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Confirm} from 'sentry/components/confirm';
 import {ResultGrid, type ResultGridColumn} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
@@ -23,18 +25,23 @@ type RelayRow = {
 };
 
 export default function AdminRelays() {
-  const api = useApi();
   // TODO: Loading not hooked up to anything?
   const [, setLoading] = useState(false);
+
+  const {mutateAsync: deleteRelay} = useMutation({
+    mutationFn: (relayId: string) =>
+      fetchMutation({
+        url: getApiUrl('/relays/$relayId/', {path: {relayId}}),
+        method: 'DELETE',
+      }),
+  });
 
   const onDelete = async (key: string) => {
     setLoading(true);
     try {
-      await api.requestPromise(`/relays/${key}/`, {
-        method: 'DELETE',
-      });
+      await deleteRelay(key);
     } catch {
-      addErrorMessage(t('Unable to delete relay'));
+      toast.error(t('Unable to delete relay'));
       // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);

@@ -8,12 +8,13 @@ import {EmptyState} from '@sentry/scraps/emptyState';
 import {Image} from '@sentry/scraps/image';
 import {Link} from '@sentry/scraps/link';
 
-import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {CreateSampleEventButton} from './onboarding/createSampleEventButton';
 
 type Props = {
   org: Organization;

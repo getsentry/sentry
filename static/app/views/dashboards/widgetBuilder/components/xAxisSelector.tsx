@@ -17,7 +17,6 @@ import {
 } from 'sentry/views/dashboards/constants';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -29,6 +28,8 @@ import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+import {SectionHeader} from './common/sectionHeader';
 
 export function WidgetBuilderXAxisSelector() {
   const organization = useOrganization();

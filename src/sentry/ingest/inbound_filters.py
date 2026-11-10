@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -64,11 +66,11 @@ FILTER_STAT_KEYS_TO_VALUES = {
 }
 
 
-def get_filter_key(flt):
+def get_filter_key(flt: _FilterSpec) -> str:
     return to_camel_case_name(flt.config_name.replace("-", "_"))
 
 
-def get_all_filter_specs():
+def get_all_filter_specs() -> tuple[_FilterSpec, ...]:
     """
     Return metadata about the filters known by Sentry.
 
@@ -88,7 +90,11 @@ def get_all_filter_specs():
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
-def set_filter_state(filter_id, project: Project, state):
+def set_filter_state(
+    filter_id: str,
+    project: Project,
+    state: Mapping[str, Any] | None,
+) -> bool | list[str]:
     flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
@@ -97,7 +103,7 @@ def set_filter_state(filter_id, project: Project, state):
         if state is None:
             state = {}
 
-        option_val: object = "0"
+        option_val: str | list[str] = "0"
         if "active" in state:
             if state["active"]:
                 option_val = "1"
@@ -108,7 +114,7 @@ def set_filter_state(filter_id, project: Project, state):
             project=project, key=f"filters:{filter_id}", value=option_val
         )
 
-        return option_val == "1" if option_val in ("0", "1") else option_val
+        return option_val == "1" if option_val in ("0", "1") else cast("list[str]", option_val)
 
     else:
         # all boolean filters
@@ -127,7 +133,7 @@ def set_filter_state(filter_id, project: Project, state):
         return state.get("active", False)
 
 
-def get_filter_state(filter_id, project):
+def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
     """
     Returns the filter state
 
@@ -165,7 +171,7 @@ class FilterNotRegistered(Exception):
     pass
 
 
-def _filter_from_filter_id(filter_id):
+def _filter_from_filter_id(filter_id: str) -> _FilterSpec | None:
     """
     Returns the corresponding filter for a filter id or None if no filter with the given id found
     """
@@ -194,14 +200,18 @@ class _FilterSpec:
     config_name: the name under which it will be serialized in the config (if None id will be used)
     """
 
-    def __init__(self, id, name, description, serializer_cls=None, config_name=None):
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        description: str,
+        serializer_cls: type[serializers.Serializer] | None = None,
+        config_name: str | None = None,
+    ) -> None:
         self.id = id
         self.name = name
         self.description = description
-        if serializer_cls is None:
-            self.serializer_cls = _FilterSerializer
-        else:
-            self.serializer_cls = serializer_cls
+        self.serializer_cls: type[serializers.Serializer] = serializer_cls or _FilterSerializer
 
         if config_name is None:
             self.config_name = id
@@ -209,7 +219,7 @@ class _FilterSpec:
             self.config_name = config_name
 
 
-def _get_filter_settings(project_config, flt):
+def _get_filter_settings(project_config: Any, flt: _FilterSpec) -> Any:
     """
     Gets the filter options from the relay config or the default option if not specified in the relay config
 

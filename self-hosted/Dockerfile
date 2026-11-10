@@ -13,7 +13,7 @@ ADD --chmod=755 \
 ARG TARGETARCH
 FROM odiff-${TARGETARCH} AS odiff
 
-FROM ghcr.io/getsentry/image-mirror-library-python:3.13.17-slim-trixie AS application
+FROM ghcr.io/getsentry/image-mirror-library-python:3.13.18-slim-trixie AS application
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -42,7 +42,7 @@ ENV PATH="/.venv/bin:$PATH" UV_PROJECT_ENVIRONMENT=/.venv \
     PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
 
-COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff \
+COPY --from=ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 \
     /uv /usr/local/bin/uv
 
 # We don't want uv-managed python, we want to use python from the image.
@@ -106,7 +106,7 @@ USER 0
 # The distroless base has Python at /usr/bin, not /usr/local/bin.
 RUN ln -sf /usr/bin/python3.13 /.venv/bin/python3
 
-FROM us-docker.pkg.dev/sentryio/dhi-mirror/python:3.13.16-debian13 AS distroless
+FROM us-docker.pkg.dev/sentryio/dhi-mirror/python:3.13.18-debian13 AS distroless
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"

@@ -1,3 +1,6 @@
+from collections.abc import Mapping, Sequence
+from typing import Any, Self
+
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.json import prune_empty_keys
@@ -6,13 +9,14 @@ from sentry.utils.safe import get_path, trim
 __all__ = ("Threads",)
 
 
-def get_stacktrace(value, path):
+def get_stacktrace(value: Mapping[str, Any], path: Sequence[str | int]) -> Stacktrace | None:
     # Special case: if the thread has no frames we set the
     # stacktrace to none.  Otherwise this will fail really
     # badly.
     subvalue = get_path(value, *path)
     if subvalue and subvalue.get("frames"):
         return Stacktrace.to_python(subvalue)
+    return None
 
 
 class Threads(Interface):
@@ -20,8 +24,8 @@ class Threads(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data):
-        threads = []
+    def to_python(cls, data: dict[str, Any]) -> Self | None:
+        threads: list[dict[str, Any]] = []
 
         for i, thread in enumerate(data.get("values") or ()):
             if thread is None:
@@ -43,8 +47,8 @@ class Threads(Interface):
 
         return super().to_python({"values": threads})
 
-    def to_json(self):
-        def export_thread(data):
+    def to_json(self) -> dict[str, Any]:
+        def export_thread(data: Mapping[str, Any] | None) -> dict[str, Any] | None:
             if data is None:
                 return None
 
@@ -65,8 +69,10 @@ class Threads(Interface):
 
         return prune_empty_keys({"values": [export_thread(x) for x in self.values]})
 
-    def get_api_context(self, is_public=False, platform=None):
-        def export_thread(data):
+    def get_api_context(
+        self, is_public: bool = False, platform: str | None = None
+    ) -> Mapping[str, Any]:
+        def export_thread(data: Mapping[str, Any]) -> dict[str, Any]:
             rv = {
                 "id": data["id"],
                 "current": data["current"],
@@ -85,7 +91,12 @@ class Threads(Interface):
 
         return {"values": [export_thread(x) for x in self.values]}
 
-    def get_meta_context(self, meta, is_public=False, platform=None):
+    def get_meta_context(
+        self,
+        meta: Mapping[str, Any],
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:
         if meta and "values" not in meta:
             return {"values": meta}
         else:

@@ -16,8 +16,6 @@ import {
 } from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import {AgentsChartsBanner} from 'sentry/views/explore/conversations/components/agentsChartsBanner';
-import {useAgentsChartsState} from 'sentry/views/explore/conversations/components/agentsChartsControls';
 import {useAgentFilter} from 'sentry/views/insights/pages/agents/hooks/useAgentFilter';
 import {
   getAgentRunsFilter,
@@ -25,6 +23,9 @@ import {
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {AgentsChartsBanner} from './agentsChartsBanner';
+import {useAgentsChartsState} from './agentsChartsControls';
 
 const COUNT = `count(${SpanFields.SPAN_DURATION})`;
 const COST = `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`;

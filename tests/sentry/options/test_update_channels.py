@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -20,7 +21,7 @@ from sentry.options.store import OptionsStore
 
 
 @pytest.fixture()
-def manager():
+def manager() -> Iterator[OptionsManager]:
     """
     Initializes an options storage, an options cache and an options manager
     """
@@ -36,7 +37,7 @@ def manager():
 
 
 @pytest.mark.django_db
-def test_drift_conditions(manager) -> None:
+def test_drift_conditions(manager: OptionsManager) -> None:
     """
     Test multiple drift conditions, specifically, validates we can
     always update an option that is not set, we can reset an option
@@ -118,7 +119,7 @@ TEST_CASES_READONLY = [
     TEST_CASES_READONLY,
 )
 def test_non_writable_options(
-    manager_fixture,
+    manager_fixture: str,
     flags: int,
     set_settings_val: bool,
     outcome: NotWritableReason,
@@ -140,7 +141,7 @@ def test_non_writable_options(
 
 
 @pytest.mark.django_db
-def test_legacy_option(manager) -> None:
+def test_legacy_option(manager: OptionsManager) -> None:
     """
     Test the update process of legacy options.
     These options are not registered so we cannot reuse the use cases
