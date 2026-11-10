@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Any, Literal, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.access import Access
@@ -32,14 +32,41 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookSourceType,
 )
+from sentry.seer.models.workflow import SeerWorkflowConfigExtras
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
+from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 from sentry.viewer_context import ActorType
 
 
 class InvestigationCreatorSerializerResponse(TypedDict):
     type: ActorType
     id: str
+
+
+class InvestigationTriggerAutomationResponse(TypedDict):
+    id: str
+    name: str | None
+    strategy: str
+
+
+class InvestigationAutomationTriggerResponse(TypedDict):
+    type: Literal["automation"]
+    automation: InvestigationTriggerAutomationResponse
+    runId: str
+
+
+class InvestigationUserTriggerResponse(TypedDict):
+    type: Literal["user"]
+    user: UserSerializerResponse
+
+
+InvestigationTriggerResponse = (
+    InvestigationAutomationTriggerResponse | InvestigationUserTriggerResponse
+)
 
 
 class InvestigationTemplateSerializerResponse(TypedDict):
@@ -92,11 +119,47 @@ def orchestration_summaries_by_investigation(
     }
 
 
+def automation_triggers_by_investigation(
+    investigations: Sequence[Notebook],
+) -> dict[int, InvestigationAutomationTriggerResponse]:
+    triggers: dict[int, InvestigationAutomationTriggerResponse] = {}
+    # The first link is the run that started the investigation; later runs only touch it.
+    for investigation_id, run_id, config_id, strategy, extras in (
+        SeerWorkflowOutputLink.objects.filter(
+            notebook_id__in=[investigation.id for investigation in investigations],
+            execution__run__workflow_config__isnull=False,
+            execution__run__organization_id=F("notebook__organization_id"),
+        )
+        .order_by("id")
+        .values_list(
+            "notebook_id",
+            "execution__run_id",
+            "execution__run__workflow_config_id",
+            "execution__run__workflow_config__strategy",
+            "execution__run__workflow_config__extras",
+        )
+    ):
+        triggers.setdefault(
+            investigation_id,
+            {
+                "type": "automation",
+                "automation": {
+                    "id": str(config_id),
+                    "name": SeerWorkflowConfigExtras.parse_obj(extras).name,
+                    "strategy": strategy,
+                },
+                "runId": str(run_id),
+            },
+        )
+    return triggers
+
+
 class InvestigationSerializerResponse(TypedDict):
     """
     Investigation summary. version is the notebook concurrency token;
     orchestration.notebookRevision tracks agent report updates independently. IDs are strings
-    and dates are ISO-8601 timestamps.
+    and dates are ISO-8601 timestamps. trigger is the user who created the investigation,
+    else the automation run that started it, else null.
     """
 
     id: str
@@ -114,6 +177,7 @@ class InvestigationSerializerResponse(TypedDict):
     isFavorited: bool
     titleGeneration: InvestigationTitleGenerationSerializerResponse
     orchestration: InvestigationOrchestrationSerializerResponse | None
+    trigger: InvestigationTriggerResponse | None
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -158,15 +222,48 @@ class InvestigationSerializer(Serializer):
             )
 
         orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
+        # Automations reuse an open investigation for the same source and link it too, so a
+        # link only says who started an investigation that no user created.
+        automation_triggers = automation_triggers_by_investigation(
+            [investigation for investigation in item_list if investigation.created_by_id is None]
+        )
+
+        creator_ids = {
+            investigation.created_by_id
+            for investigation in item_list
+            if investigation.created_by_id is not None
+        }
+        creators = (
+            {
+                creator["id"]: creator
+                for creator in user_service.serialize_many(
+                    filter={"user_ids": list(creator_ids)}, as_user=serialize_generic_user(user)
+                )
+            }
+            if creator_ids
+            else {}
+        )
 
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
                 "orchestration": orchestration_by_investigation.get(investigation.id),
+                "trigger": self._trigger(investigation, automation_triggers, creators),
             }
             for investigation in item_list
         }
+
+    @staticmethod
+    def _trigger(
+        investigation: Notebook,
+        automation_triggers: Mapping[int, InvestigationAutomationTriggerResponse],
+        creators: Mapping[str, UserSerializerResponse],
+    ) -> InvestigationTriggerResponse | None:
+        creator = creators.get(str(investigation.created_by_id))
+        if creator is not None:
+            return {"type": "user", "user": creator}
+        return automation_triggers.get(investigation.id)
 
     @override
     def serialize(
@@ -201,6 +298,7 @@ class InvestigationSerializer(Serializer):
             "isFavorited": attrs["is_favorited"],
             "titleGeneration": {"status": obj.title_generation_status},
             "orchestration": attrs["orchestration"],
+            "trigger": attrs["trigger"],
         }
 
 
