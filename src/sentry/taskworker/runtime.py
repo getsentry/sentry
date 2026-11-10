@@ -29,7 +29,6 @@ app = SentryTaskbrokerApp(
     metrics_class=make_metrics(),
     router_class=SentryRouter(),
     at_most_once_store=DjangoCacheAtMostOnceStore(cache),
-    # Hooks exit in reverse order, so the connection reset runs after the others.
     context_hooks=[DatabaseConnectionResetHook(), ViewerContextHook(), LocalCacheClearHook()],
 )
 app.set_config(
