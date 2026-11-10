@@ -15,6 +15,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
@@ -53,12 +54,16 @@ from sentry.workflow_engine.types import (
 
 def fetch_snuba_query(detector: Detector) -> SnubaQuery | None:
     try:
-        source_instance = DataSource.objects.get(detector=detector)
+        source_instance = DataSource.objects.get(
+            detector=detector, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
     except DataSource.DoesNotExist:
         return None
     if source_instance:
         try:
-            query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
+            query_subscription = QuerySubscription.objects.get(
+                id=source_instance.source_id, project_id=detector.linked_project.id
+            )
         except QuerySubscription.DoesNotExist:
             return None
     if query_subscription:
@@ -405,12 +410,16 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         seer_updated: bool = False,
     ) -> None:
         try:
-            source_instance = DataSource.objects.get(detector=instance)
+            source_instance = DataSource.objects.get(
+                detector=instance, type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
         except DataSource.DoesNotExist:
             return
         if source_instance:
             try:
-                query_subscription = QuerySubscription.objects.get(id=source_instance.source_id)
+                query_subscription = QuerySubscription.objects.get(
+                    id=source_instance.source_id, project_id=instance.linked_project.id
+                )
             except QuerySubscription.DoesNotExist:
                 raise serializers.ValidationError("QuerySubscription not found, can't update")
         if query_subscription:
@@ -533,7 +542,13 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             assert isinstance(enabled, bool)
 
             query_subscriptions = QuerySubscription.objects.filter(
-                id__in=[data_source.source_id for data_source in instance.data_sources.all()]
+                id__in=[
+                    data_source.source_id
+                    for data_source in instance.data_sources.filter(
+                        type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+                    )
+                ],
+                project_id=instance.linked_project.id,
             )
             if query_subscriptions:
                 enable_disable_subscriptions(query_subscriptions, enabled)

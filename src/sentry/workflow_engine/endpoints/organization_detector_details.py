@@ -178,9 +178,15 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
                 enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
-        detector_type = request.data.get("type") or detector.type
+        requested_type = request.data.get("type")
+        if requested_type and requested_type != detector.type:
+            return Response(
+                {"type": ["The type of a monitor cannot be changed."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         validator = get_detector_validator(
-            request, detector.linked_project, detector_type, detector, partial=True
+            request, detector.linked_project, detector.type, detector, partial=True
         )
 
         if not validator.is_valid():
