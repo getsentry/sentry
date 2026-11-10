@@ -665,6 +665,50 @@ describe('AutofixRef embed', () => {
       expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true);
     });
 
+    it('offers no next step for a single run, so checks nothing', async () => {
+      mockRun({
+        run_id: 42,
+        feature_id: 'autofix_single_run',
+        status: 'completed',
+        updated_at: '2026-01-01T00:00:00Z',
+        blocks: [
+          {
+            id: 'block-0',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {role: 'assistant', content: 'done', metadata: {step: 'single_run'}},
+            artifacts: [
+              {
+                key: 'single_run_root_cause',
+                reason: 'found',
+                data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+              },
+            ],
+          },
+        ],
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+      const reportOutOfCredits = jest.fn();
+
+      render(
+        <AutofixChatProvider
+          sendMessage={jest.fn()}
+          reportOutOfCredits={reportOutOfCredits}
+        >
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      expect(getButtons('Continue: Plan')).toHaveLength(0);
+      expect(creditCheck).not.toHaveBeenCalled();
+      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true);
+    });
+
     it('does not check credits in a read-only conversation', async () => {
       mockRun(makeRunThrough('root_cause'));
       const creditCheck = MockApiClient.addMockResponse({

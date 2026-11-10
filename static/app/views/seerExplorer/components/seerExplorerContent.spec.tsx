@@ -19,9 +19,11 @@ import {
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {seerCreditCheckApiOptions} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -2388,29 +2390,38 @@ describe('SeerExplorerContent', () => {
 
     describe('an autofix card that cannot afford its next step', () => {
       const groupId = '1';
+      const chatBlocks = [
+        {
+          id: 'msg-1',
+          message: {role: 'user' as const, content: 'Why is JAVASCRIPT-1 happening?'},
+          timestamp: '2024-01-01T00:00:00Z',
+          loading: false,
+        },
+        {
+          id: 'msg-2',
+          message: {
+            role: 'assistant' as const,
+            content: `{% autofixRef %}${JSON.stringify({id: groupId, shortId: 'JAVASCRIPT-1', runId: 42, step: 'root_cause'})}{% /autofixRef %}`,
+          },
+          timestamp: '2024-01-01T00:01:00Z',
+          loading: false,
+        },
+      ];
+
+      // getsentry fills in the CTA; this stand-in shows what it was asked for.
+      function StubOutOfCreditsCta({
+        reason,
+        variant = 'warning',
+      }: SeerOutOfCreditsCtaProps) {
+        return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+      }
 
       beforeEach(() => {
         jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
           ...defaultHookReturn,
           runId: 123,
           sessionData: {
-            blocks: [
-              {
-                id: 'msg-1',
-                message: {role: 'user', content: 'Why is JAVASCRIPT-1 happening?'},
-                timestamp: '2024-01-01T00:00:00Z',
-                loading: false,
-              },
-              {
-                id: 'msg-2',
-                message: {
-                  role: 'assistant',
-                  content: `{% autofixRef %}${JSON.stringify({id: groupId, shortId: 'JAVASCRIPT-1', runId: 42, step: 'root_cause'})}{% /autofixRef %}`,
-                },
-                timestamp: '2024-01-01T00:01:00Z',
-                loading: false,
-              },
-            ],
+            blocks: chatBlocks,
             status: 'completed',
             updated_at: '2024-01-01T00:01:00Z',
           },
@@ -2479,6 +2490,81 @@ describe('SeerExplorerContent', () => {
             screen.queryByTestId('seer-explorer-autofix-out-of-credits')
           ).not.toBeInTheDocument()
         );
+      });
+
+      it('waits for the chat’s own check before showing the autofix CTA', async () => {
+        let answerChatCheck!: () => void;
+        MockApiClient.addMockResponse({
+          url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+          match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+          body: {hasEnoughCredits: true},
+          asyncDelay: new Promise<void>(resolve => {
+            answerChatCheck = resolve;
+          }),
+        });
+        const queryClient = makeTestQueryClient();
+
+        render(
+          <QueryClientProvider client={queryClient}>{contentTree()}</QueryClientProvider>,
+          {organization: creditsOrganization}
+        );
+
+        // The card's answer lands while the chat's is still out. Showing the
+        // card's CTA now could swap it for the chat's a moment later.
+        await waitFor(() =>
+          expect(
+            queryClient.getQueryState(
+              seerCreditCheckApiOptions(creditsOrganization, 'autofix_solution').queryKey
+            )?.status
+          ).toBe('success')
+        );
+        // React Query hands the answer to the card a macrotask later; let it land.
+        await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+        expect(
+          screen.queryByTestId('seer-explorer-autofix-out-of-credits')
+        ).not.toBeInTheDocument();
+
+        act(() => answerChatCheck());
+        expect(
+          await screen.findByTestId('seer-explorer-autofix-out-of-credits')
+        ).toBeInTheDocument();
+      });
+
+      it('leaves the CTA to the card while a question stands in for the composer', async () => {
+        registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+        jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+          ...defaultHookReturn,
+          runId: 123,
+          sessionData: {
+            blocks: chatBlocks,
+            status: 'awaiting_user_input',
+            pending_user_input: {
+              id: 'input-1',
+              input_type: 'ask_user_question',
+              data: {
+                questions: [
+                  {
+                    question: 'Which project should we focus on?',
+                    options: [{label: 'sentry-unreal', description: 'Unreal SDK'}],
+                  },
+                ],
+              },
+            },
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        });
+
+        renderContent();
+
+        expect(
+          await screen.findByText('Which project should we focus on?')
+        ).toBeInTheDocument();
+        expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+          'muted autofix-continue'
+        );
+        expect(
+          screen.queryByTestId('seer-explorer-autofix-out-of-credits')
+        ).not.toBeInTheDocument();
       });
     });
 

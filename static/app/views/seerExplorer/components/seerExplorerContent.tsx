@@ -396,7 +396,9 @@ export function SeerExplorerContent({
   const isSendBlocked = isOutOfCredits || isForwardedQueryWaiting;
   // An autofix card that can't afford its next step keeps its buttons, disabled,
   // and leaves the notice to the composer, where it stays in view. The chat's
-  // own notice wins, so the card's waits for the chat's check to answer.
+  // own notice wins, so the card's waits for the chat's check to answer. While
+  // the approval or question bar stands in for the composer, there's nowhere to
+  // put it, so cards show their own.
   const {isAutofixOutOfCredits, reportOutOfCredits} = useAutofixOutOfCreditsEmbeds();
   let outOfCreditsNotice: ReactNode = null;
   if (isOutOfCredits) {
@@ -886,7 +888,7 @@ export function SeerExplorerContent({
   return (
     <AutofixChatProvider
       isBusy={isPolling}
-      reportOutOfCredits={reportOutOfCredits}
+      reportOutOfCredits={isComposerShown ? reportOutOfCredits : undefined}
       sendMessage={readOnly || isSendBlocked ? undefined : postMessage}
     >
       <Stack

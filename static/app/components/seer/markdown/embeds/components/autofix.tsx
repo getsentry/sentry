@@ -27,6 +27,7 @@ import {
   isPullRequestsSection,
   isCodeChangesSection,
   isRootCauseArtifact,
+  isSingleRunAutofix,
   isSolutionArtifact,
   useExplorerAutofix,
   type AutofixExplorerStep,
@@ -287,7 +288,9 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
    * own section, is what keeps those copies agreeing — and stops a step being
    * offered again once it has run.
    */
-  const nextStep = NEXT_STEP[step];
+  // A single run goes from root cause to code changes on its own, so it never
+  // offers a next step.
+  const nextStep = isSingleRunAutofix(runState ?? null) ? undefined : NEXT_STEP[step];
   const pendingNextStep =
     nextStep && !findStepSection(sections, nextStep) ? nextStep : undefined;
   // A failed create also lands in `repo_pr_states`; that one should stay retryable.
@@ -308,9 +311,11 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
    * state still offers the step it just started.
    */
   const canAct = !!sendMessage && !isPolling && !isBusy && !isRefetching;
-  // Held disabled while checking, so a button is never clickable before the
-  // answer arrives, and while the org can't afford the step.
-  const canContinue = canAct && !creditCheck.isPending && creditCheck.hasEnoughCredits;
+  // Held disabled until this mount's check answers, so a button is never
+  // clickable before the answer arrives, even with an earlier one cached, and
+  // while the org can't afford the step.
+  const canContinue =
+    canAct && creditCheck.hasCheckedSinceMount && creditCheck.hasEnoughCredits;
   // In the Explorer chat the notice sits above the composer, where it stays in
   // view as the chat scrolls. Anywhere else the card shows its own.
   const showsOutOfCreditsNotice = useReportAutofixOutOfCredits(
