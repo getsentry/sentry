@@ -1,3 +1,4 @@
+import {useRef} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,6 +14,8 @@ export const ClassifierDetailsStep = withForm({
   defaultValues: {name: '', resultAttribute: ''},
   props: {} as {onBack: () => void},
   render: function ClassifierDetailsStepRender({form, onBack}) {
+    const attributeInputRef = useRef<HTMLInputElement>(null);
+
     return (
       <WizardStep>
         <form.AppForm form={form}>
@@ -38,10 +41,15 @@ export const ClassifierDetailsStep = withForm({
                   required
                 >
                   <field.Input
+                    ref={attributeInputRef}
                     value={field.state.value}
                     onChange={field.handleChange}
                     leadingItems={
-                      <Text monospace variant="muted">
+                      <Text
+                        monospace
+                        variant="muted"
+                        onClick={() => attributeInputRef.current?.focus()}
+                      >
                         {ENRICHMENT_ATTRIBUTE_PREFIX}
                       </Text>
                     }

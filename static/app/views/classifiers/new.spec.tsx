@@ -300,8 +300,9 @@ describe('NewClassifier', () => {
     renderPage({project: '1', prebuilt: 'tool_failure'});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByText('sentry.enrichment.'));
 
-    expect(await screen.findByText('sentry.enrichment.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveFocus();
   });
 
   it('rejects attribute names with invalid characters', async () => {

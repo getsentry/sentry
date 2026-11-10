@@ -60,9 +60,7 @@ export function InputField({
       {(fieldProps, {indicator}) => (
         <InputGroup style={{flex: 1}}>
           {leadingItems && (
-            <InputGroup.LeadingItems disablePointerEvents>
-              {leadingItems}
-            </InputGroup.LeadingItems>
+            <InputGroup.LeadingItems>{leadingItems}</InputGroup.LeadingItems>
           )}
           <InputGroup.Input
             {...fieldProps}
