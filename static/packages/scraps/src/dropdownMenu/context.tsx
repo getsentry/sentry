@@ -20,6 +20,10 @@ interface DropdownMenuContextValue {
    */
   rootOverlayState?: OverlayState;
   safetyTriangle?: ReturnType<typeof useSafetyTriangle>;
+  /**
+   * `virtualizeThreshold` of the parent menu, inherited by its submenus.
+   */
+  virtualizeThreshold?: number;
 }
 
 export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
