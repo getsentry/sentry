@@ -15,8 +15,8 @@ import {
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trialPromptIsDismissed} from 'getsentry/utils/billing';
+import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import {seerWalletAutoTopUpOptions} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
-import {openSeerTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/topUpModal';
 
 function getEscalation(
   organization: Organization,
@@ -93,7 +93,7 @@ export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCta
       variant={variant}
       escalation={escalation}
       autoReloadEnabled={autoTopUp?.enabled}
-      onConfigureAutoReload={() => openSeerTopUpModal({organization})}
+      onConfigureAutoReload={() => openSeerAutoTopUpModal({organization})}
       onRequestCredits={handleRequestCredits}
       isRequestingCredits={isRequestingCredits}
       hasRequestedCredits={isPromptDismissed[TOP_UP_REQUESTED_PROMPT]}

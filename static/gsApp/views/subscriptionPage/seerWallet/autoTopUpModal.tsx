@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,6 +11,8 @@ import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -28,13 +30,16 @@ import {
 const RELOAD_PRESETS_CENTS = [1000, 2500, 5000, 15000];
 
 interface AutoTopUpModalOptions {
-  autoTopUp: SeerWalletAutoTopUp;
-  creditPriceCents: number;
   organization: Organization;
-  purchasedExpiresAt: string | null;
 }
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
+
+type AutoTopUpFormProps = AutoTopUpModalProps & {
+  autoTopUp: SeerWalletAutoTopUp;
+  creditPriceCents: number;
+  purchasedExpiresAt: string | null;
+};
 
 function parseWholeNumber(value: string) {
   return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
@@ -44,7 +49,61 @@ function toWholeDollarCents(cents: number) {
   return Math.floor(cents / 100) * 100;
 }
 
-export function AutoTopUpModal({
+/**
+ * Seer auto-reload settings. The modal loads the wallet itself so it can be
+ * opened from anywhere; on the billing page the wallet card has already loaded
+ * it, so it shows straight from the cache.
+ */
+function AutoTopUpModal(props: AutoTopUpModalProps) {
+  const {Header, Body, organization} = props;
+  const balanceQuery = useQuery(seerWalletBalanceOptions(organization));
+  const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
+
+  // The wallet only includes credit pricing for billing roles, the only ones
+  // offered auto-reload.
+  const creditPriceCents = balanceQuery.data?.creditPriceCents;
+
+  if (balanceQuery.data && autoTopUpQuery.data && creditPriceCents !== undefined) {
+    return (
+      <AutoTopUpForm
+        {...props}
+        autoTopUp={autoTopUpQuery.data}
+        creditPriceCents={creditPriceCents}
+        purchasedExpiresAt={balanceQuery.data.purchased.expiresAt}
+      />
+    );
+  }
+
+  const isError =
+    balanceQuery.isError ||
+    autoTopUpQuery.isError ||
+    (balanceQuery.data && creditPriceCents === undefined);
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <Heading as="h2" size="xl">
+          {t('Seer auto-reload')}
+        </Heading>
+      </Header>
+      <Body>
+        {isError ? (
+          <LoadingError
+            message={t('Unable to load your Seer credits.')}
+            onRetry={() => {
+              balanceQuery.refetch();
+              autoTopUpQuery.refetch();
+            }}
+          />
+        ) : (
+          <LoadingIndicator />
+        )}
+      </Body>
+    </Fragment>
+  );
+}
+
+function AutoTopUpForm({
   Header,
   Body,
   Footer,
@@ -53,7 +112,7 @@ export function AutoTopUpModal({
   autoTopUp,
   creditPriceCents,
   purchasedExpiresAt,
-}: AutoTopUpModalProps) {
+}: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
   const isTurningOn = !autoTopUp.enabled;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
@@ -316,12 +375,12 @@ function DollarInput({
   );
 }
 
-export const autoTopUpModalCss = css`
+const modalCss = css`
   width: 480px;
 `;
 
 export function openSeerAutoTopUpModal(options: AutoTopUpModalOptions) {
   openModal(deps => <AutoTopUpModal {...deps} {...options} />, {
-    modalCss: autoTopUpModalCss,
+    modalCss,
   });
 }

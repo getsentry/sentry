@@ -20,6 +20,20 @@ function AutoTopUpFixture(
 describe('openSeerAutoTopUpModal', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
   const url = `/customers/${organization.slug}/seer-wallet/auto-top-up/`;
+  const walletUrl = `/customers/${organization.slug}/seer-wallet/`;
+
+  function mockWallet({purchasedExpiresAt = null}: {purchasedExpiresAt?: string | null}) {
+    MockApiClient.addMockResponse({
+      url: walletUrl,
+      body: {
+        balance: 0,
+        creditPriceCents: 1,
+        percentUsed: 1,
+        included: {total: 500, remaining: 0, resetsAt: null},
+        purchased: {total: 0, remaining: 0, expiresAt: purchasedExpiresAt},
+      },
+    });
+  }
 
   function openAutoTopUpModal({
     autoTopUp = AutoTopUpFixture(),
@@ -28,15 +42,10 @@ describe('openSeerAutoTopUpModal', () => {
     autoTopUp?: SeerWalletAutoTopUp;
     purchasedExpiresAt?: string | null;
   } = {}) {
-    renderGlobalModal();
-    act(() =>
-      openSeerAutoTopUpModal({
-        organization,
-        autoTopUp,
-        creditPriceCents: 1,
-        purchasedExpiresAt,
-      })
-    );
+    mockWallet({purchasedExpiresAt});
+    MockApiClient.addMockResponse({url, body: autoTopUp});
+    renderGlobalModal({organization});
+    act(() => openSeerAutoTopUpModal({organization}));
   }
 
   beforeEach(() => {
@@ -219,5 +228,17 @@ describe('openSeerAutoTopUpModal', () => {
     expect(
       await screen.findByText('The daily spending cap must cover at least one top-up.')
     ).toBeInTheDocument();
+  });
+
+  it('offers a retry when the wallet fails to load', async () => {
+    MockApiClient.addMockResponse({url: walletUrl, statusCode: 500, body: {}});
+    MockApiClient.addMockResponse({url, body: AutoTopUpFixture()});
+    renderGlobalModal({organization});
+    act(() => openSeerAutoTopUpModal({organization}));
+
+    expect(
+      await screen.findByText('Unable to load your Seer credits.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 });
