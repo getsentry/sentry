@@ -53,7 +53,6 @@ import {
   type EditorState,
 } from 'lexical';
 
-import {ComposerEditor} from '@sentry/scraps/composer/styles';
 import {Container} from '@sentry/scraps/layout';
 
 import {
@@ -66,6 +65,7 @@ import {
 import {documentFromMarkdown, documentToMarkdown, documentToPlainText} from './markdown';
 import {composerDocumentSchema, parseComposerDocument, type DocumentAtom} from './model';
 import {$createDocumentAtom, DocumentAtomNode, DocumentRenderersContext} from './nodes';
+import {DocumentEditor} from './styles';
 import type {DocumentComposerProps} from './types';
 
 const MIME = 'application/x-sentry-composer-document';
@@ -87,6 +87,7 @@ export function DocumentComposer({
     const instance = createEditor({
       namespace: 'DocumentComposer',
       nodes: [QuoteNode, CodeNode, CodeHighlightNode, DocumentAtomNode],
+      theme: {code: 'language-block'},
       onError: error => {
         throw error;
       },
@@ -362,14 +363,14 @@ export function DocumentComposer({
 
   return (
     <Container position="relative" width="100%">
-      <ComposerEditor
+      <DocumentEditor
         {...props}
         ref={rootRef}
         role="textbox"
         aria-multiline="true"
         contentEditable
         suppressContentEditableWarning
-        onKeyDownCapture={event => {
+        onKeyDownCapture={(event: React.KeyboardEvent<HTMLDivElement>) => {
           onKeyDownCapture?.(event);
           if (
             event.target instanceof Element &&

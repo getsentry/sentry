@@ -245,7 +245,7 @@ export function DocumentComposerDemo() {
             )}
           />
           <Flex gap="md" align="center">
-            <Text as="label" htmlFor="document-spike-files">
+            <Text as="label" htmlFor="document-spike-files" wrap="nowrap">
               Choose attachments
             </Text>
             <Input
