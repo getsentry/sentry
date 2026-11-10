@@ -3,18 +3,23 @@ import type {TokenizerAndRendererExtension, Tokens} from 'marked'; // eslint-dis
 import {escape} from 'sentry/utils';
 
 /**
- * Annotations attach data to a span of text with characters from Unicode's private
- * use area, so they survive parsing the text, like JSON, and never show up in it:
- * an opening mark, the data (each character shifted into the private use area), a
- * separator, the annotated text, and a closing mark.
+ * Annotations attach data to a span of text with characters that survive parsing
+ * the text, like JSON, and never show up in it: an opening mark, the data, a
+ * separator, the annotated text, and a closing mark. The marks are Unicode
+ * noncharacters, which are reserved for internal use and never appear in real
+ * text, unlike the private use area, where icon fonts live. The data is shifted
+ * into the private use area, but is only read between an opening mark and a
+ * separator.
  */
-const OPEN = '\uE000';
-const SEPARATOR = '\uE001';
-const CLOSE = '\uE002';
+const OPEN = '\uFDD0';
+const SEPARATOR = '\uFDD1';
+const CLOSE = '\uFDD2';
 const DATA_OFFSET = 0xe100;
 
-const ANNOTATION_RE = /^\uE000([\uE100-\uE17F]*)\uE001([^\uE000-\uE002]*)\uE002/;
-const MARKS_RE = /\uE000[\uE100-\uE17F]*\uE001|\uE002/g;
+const ANNOTATION_RE = /^\uFDD0([\uE100-\uE17F]*)\uFDD1([^\uFDD0-\uFDD2]*)\uFDD2/;
+// Also matches the marks of an annotation that was cut, like a missing separator.
+const MARKS_RE = /\uFDD0[\uE100-\uE17F]*\uFDD1?|[\uFDD1\uFDD2]/g;
+const ANY_MARK_RE = /[\uFDD0-\uFDD2]/;
 
 export interface AnnotationToken {
   data: string;
@@ -34,7 +39,7 @@ export function annotate(text: string, data: string): string {
 }
 
 export function hasAnnotations(text: string): boolean {
-  return text.includes(OPEN);
+  return ANY_MARK_RE.test(text);
 }
 
 export function stripAnnotations(text: string): string {
@@ -42,15 +47,14 @@ export function stripAnnotations(text: string): string {
 }
 
 /**
- * Truncates text to `maxLength` visible characters, ending in an ellipsis, without
- * cutting through the annotation marks.
+ * Truncates text to `maxLength` visible characters without cutting through the
+ * annotation marks.
  */
 export function truncateAnnotated(text: string, maxLength: number): string {
   if (stripAnnotations(text).length <= maxLength) {
     return text;
   }
-  const ellipsis = '...';
-  let remaining = Math.max(0, maxLength - ellipsis.length);
+  let remaining = maxLength;
   let truncated = '';
   for (const segment of splitAnnotations(text)) {
     if (remaining <= 0) {
@@ -63,7 +67,7 @@ export function truncateAnnotated(text: string, maxLength: number): string {
     truncated += typeof segment === 'string' ? kept : annotate(kept, segment.data);
     remaining -= kept.length;
   }
-  return truncated + ellipsis;
+  return truncated;
 }
 
 export function splitAnnotations(text: string): AnnotationSegment[] {
@@ -72,7 +76,7 @@ export function splitAnnotations(text: string): AnnotationSegment[] {
   while (rest) {
     const start = rest.indexOf(OPEN);
     if (start === -1) {
-      segments.push(rest);
+      segments.push(stripAnnotations(rest));
       break;
     }
     const match = ANNOTATION_RE.exec(rest.slice(start));

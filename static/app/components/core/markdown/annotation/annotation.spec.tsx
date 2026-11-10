@@ -29,10 +29,29 @@ describe('annotations', () => {
     });
   });
 
-  it('truncates by visible characters without cutting the marks', () => {
-    const truncated = truncateAnnotated(text, 10);
+  it('drops the marks of an annotation that was cut', () => {
+    // Cut inside the data, before the separator, and after the opening mark.
+    const cutInData = text.slice(0, text.indexOf('[email]') - 3);
+    const cutInText = text.slice(text.indexOf('[em'));
 
-    expect(stripAnnotations(truncated)).toBe('Mail [e...');
+    expect(splitAnnotations(cutInData)).toEqual(['Mail ']);
+    expect(stripAnnotations(cutInData)).toBe('Mail ');
+    expect(stripAnnotations(cutInText)).toBe('[email] today');
+    expect(splitAnnotations(cutInText)).toEqual(['[email] today']);
+  });
+
+  it('leaves private use characters, like icon font glyphs, alone', () => {
+    const icons = 'build  ok  done';
+
+    expect(hasAnnotations(icons)).toBe(false);
+    expect(stripAnnotations(icons)).toBe(icons);
+    expect(splitAnnotations(icons)).toEqual([icons]);
+  });
+
+  it('truncates by visible characters without cutting the marks', () => {
+    const truncated = truncateAnnotated(text, 7);
+
+    expect(stripAnnotations(truncated)).toBe('Mail [e');
     expect(splitAnnotations(truncated)[1]).toEqual({
       text: '[e',
       data: '{"rule":"@email:replace"}',
