@@ -981,7 +981,7 @@ describe('Results', () => {
       expect(mockHomepageGet).not.toHaveBeenCalled();
     });
 
-    it('Changes the Use as Discover button to a reset button for saved query', async () => {
+    it('removes a saved query as the default', async () => {
       renderMockRequests();
 
       MockApiClient.addMockResponse({
@@ -1035,6 +1035,31 @@ describe('Results', () => {
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('menuitemradio', {name: 'Set as Default'})
+      ).not.toBeInTheDocument();
+
+      const homepageUrl = `/organizations/${organization.slug}/discover/homepage/`;
+      const removeDefault = MockApiClient.addMockResponse({
+        url: homepageUrl,
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      const emptyHomepage = MockApiClient.addMockResponse({
+        url: homepageUrl,
+        method: 'GET',
+        statusCode: 204,
+      });
+
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove Default'}));
+      await waitFor(() => expect(removeDefault).toHaveBeenCalled());
+      await waitFor(() => expect(emptyHomepage).toHaveBeenCalled());
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Discover Context Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Remove Default'})
       ).not.toBeInTheDocument();
     });
 

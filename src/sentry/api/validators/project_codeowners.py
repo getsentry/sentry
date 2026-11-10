@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Collection, Sequence
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from django.db.models.functions import Lower
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
@@ -30,11 +31,28 @@ CODEOWNERS_PROVIDERS = frozenset(
 
 
 class CodeOwnersErrors(TypedDict):
-    missing_user_emails: list[str]
-    missing_external_users: list[str]
-    missing_external_teams: list[str]
-    teams_without_access: list[str]
-    users_without_access: list[str]
+    missing_user_emails: Annotated[
+        list[str],
+        ApiDescription("Email owners in the CODEOWNERS file with no matching Sentry user"),
+    ]
+    missing_external_users: Annotated[
+        list[str],
+        ApiDescription("User owners in the CODEOWNERS file with no external user mapping"),
+    ]
+    missing_external_teams: Annotated[
+        list[str],
+        ApiDescription("Team owners in the CODEOWNERS file with no external team mapping"),
+    ]
+    teams_without_access: Annotated[
+        list[str],
+        ApiDescription("Teams in the CODEOWNERS file that don't have access to the project"),
+    ]
+    users_without_access: Annotated[
+        list[str],
+        ApiDescription(
+            "Users in the CODEOWNERS file who aren't members of a team with access to the project"
+        ),
+    ]
 
 
 def find_missing_associations(

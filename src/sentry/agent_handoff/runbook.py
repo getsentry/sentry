@@ -154,3 +154,11 @@ def render_claim_runbook(*, claim_url: str) -> str:
         unix_claim_command=_code_block(unix_claim_command),
         windows_claim_command=_code_block(windows_claim_command, "powershell"),
     )
+
+
+def render_ip_mismatch_runbook() -> str:
+    return _ENVIRONMENT.get_template("sentry/agent_handoff/ip_mismatch.md").render()
+
+
+def render_onboarding_runbook(*, run_code: str) -> str:
+    return _ENVIRONMENT.get_template("sentry/agent_handoff/onboarding.md").render(run_code=run_code)

@@ -1,18 +1,19 @@
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import (
+    ActivitySerializerResponse,
     _ActivitySentryAppEmbed,
     serialize_activity_source,
     serialize_group_notes,
 )
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
@@ -59,18 +60,26 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Entries written before SeerPullRequestItem kept pr_number an int store it as a string.
+# Reading them through the model turns it back into one.
+_SEER_PULL_REQUEST_ACTION_TYPES = {
+    GroupActionType.SEER_PR_CREATED.value,
+    GroupActionType.SEER_PR_READY_FOR_REVIEW.value,
+}
 
-class GroupActionLogEntrySerializerResponse(TypedDict):
-    id: str
-    # The reference accepted by the notes endpoints, or null for non-comments.
-    commentId: str | None
-    # the serialized acting user when actorType is USER, otherwise null
-    user: dict[str, Any] | None
-    sentry_app: _ActivitySentryAppEmbed | None
-    type: str
-    source: str | None
-    data: dict[str, Any]
-    dateCreated: datetime
+# The stored ID of the other issue in an unmerge, and the key that returns it serialized,
+# as ActivitySerializer does.
+_UNMERGE_GROUP_KEYS = {
+    GroupActionType.UNMERGE_SOURCE.value: ("destination_id", "destination"),
+    GroupActionType.UNMERGE_DESTINATION.value: ("source_id", "source"),
+}
+
+
+class GroupActionLogEntrySerializerResponse(ActivitySerializerResponse):
+    source: Annotated[
+        str | None,
+        ApiDescription("Where the action came from, such as web, api or mcp:<client>"),
+    ]
 
 
 def serialize_first_seen_entry(
@@ -309,6 +318,23 @@ class GroupActionLogEntrySerializer(Serializer):
         else:
             pull_requests = {}
 
+        from sentry.api.serializers.models.group import GroupSerializer
+        from sentry.models.group import Group
+
+        unmerge_group_ids = {
+            item: item.data[_UNMERGE_GROUP_KEYS[item.type][0]]
+            for item in item_list
+            if item.type in _UNMERGE_GROUP_KEYS and item.data
+        }
+        group_list = list(Group.objects.filter(id__in=set(unmerge_group_ids.values())))
+        groups_by_id = {
+            group.id: serialized
+            for group, serialized in zip(
+                group_list,
+                serialize(group_list, user, serializer=GroupSerializer(collapse=["stats"])),
+            )
+        }
+
         return {
             item: {
                 "user": (
@@ -323,6 +349,7 @@ class GroupActionLogEntrySerializer(Serializer):
                 ),
                 "commit": commits.get(item),
                 "pull_request": pull_requests.get(item),
+                "unmerge_group": groups_by_id.get(unmerge_group_ids.get(item)),
             }
             for item in item_list
         }
@@ -345,7 +372,7 @@ class GroupActionLogEntrySerializer(Serializer):
             action = obj.action
             if not isinstance(action, ImpactAssessmentAction):
                 raise TypeError("Impact assessment entry has an unexpected action type")
-            data = {
+            data: dict[str, object] = {
                 "score": action.score,
                 "level": get_impact_level(action.score),
                 "description": action.description,
@@ -362,6 +389,13 @@ class GroupActionLogEntrySerializer(Serializer):
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTION_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
+        elif obj.type in _SEER_PULL_REQUEST_ACTION_TYPES:
+            data = obj.action.json_dict()
+        elif obj.type in _UNMERGE_GROUP_KEYS:
+            data = {
+                "fingerprints": (obj.data or {}).get("fingerprints", []),
+                _UNMERGE_GROUP_KEYS[obj.type][1]: attrs["unmerge_group"],
+            }
         elif obj.type == GroupActionType.MERGE_FROM_OTHER.value:
             # Activity stores merged issues as a list of objects; GALE stores only ids.
             counterpart_group_ids = (obj.data or {}).get("counterpart_group_ids", [])

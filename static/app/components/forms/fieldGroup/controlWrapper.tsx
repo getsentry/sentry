@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FieldControlState} from './fieldControlState';
@@ -5,18 +6,17 @@ import type {FieldGroupProps} from './types';
 
 interface ControlWrapperProps extends Pick<
   FieldGroupProps,
-  | 'alignRight'
-  | 'controlState'
-  | 'flexibleControlStateSize'
-  | 'hideControlState'
-  | 'inline'
+  'controlState' | 'flexibleControlStateSize' | 'hideControlState' | 'inline'
 > {
   children?: React.ReactNode;
+  controlAlign?: ControlAlign;
 }
+
+type ControlAlign = 'start' | 'end';
 
 export function ControlWrapper({
   inline,
-  alignRight,
+  controlAlign,
   controlState,
   children,
   hideControlState,
@@ -24,7 +24,7 @@ export function ControlWrapper({
 }: ControlWrapperProps) {
   return (
     <FieldControlWrapper inline={inline}>
-      <FieldControlStyled alignRight={alignRight}>{children}</FieldControlStyled>
+      <FieldControlStyled controlAlign={controlAlign}>{children}</FieldControlStyled>
 
       {!hideControlState && (
         <FieldControlState flexibleControlStateSize={!!flexibleControlStateSize}>
@@ -41,11 +41,15 @@ const FieldControlWrapper = styled('div')<{inline?: boolean}>`
   ${p => p.inline && `padding-left: ${p.theme.space.xl}`};
 `;
 
-const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
+const FieldControlStyled = styled('div')<{controlAlign?: ControlAlign}>`
   display: flex;
   flex: 1;
   flex-direction: column;
   position: relative;
   max-width: 100%;
-  ${p => (p.alignRight ? 'align-items: flex-end;' : '')};
+  ${p =>
+    p.controlAlign &&
+    css`
+      align-items: flex-${p.controlAlign};
+    `}
 `;
