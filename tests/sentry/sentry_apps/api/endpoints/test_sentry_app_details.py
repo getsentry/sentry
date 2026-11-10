@@ -1,6 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 import orjson
+from django.test import override_settings
+from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry import audit_log, deletions
@@ -24,6 +26,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from sentry.workflow_engine.models.action import Action
 
 
@@ -1146,6 +1149,60 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")
         ).exists()
         assert not SentryAppInstallation.objects.filter(id=installation.id).exists()
+
+    def _service_account_viewer_context(self) -> str:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:admin"]
+        )
+        return encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    @patch("sentry.analytics.record")
+    def test_service_account_delete_unpublished_app(self, record: MagicMock) -> None:
+        self.client.logout()
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.unpublished_app.slug]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_viewer_context(),
+        )
+
+        assert response.status_code == 204, response.content
+        assert_last_analytics_event(
+            record,
+            SentryAppDeletedEvent(
+                user_id=None,
+                organization_id=self.organization.id,
+                sentry_app=self.unpublished_app.slug,
+            ),
+        )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_delete_unpublished_app_with_installs(self) -> None:
+        installation = self.create_sentry_app_installation(
+            organization=self.organization,
+            slug=self.unpublished_app.slug,
+            user=self.user,
+        )
+        self.client.logout()
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.unpublished_app.slug]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_viewer_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        self.unpublished_app.refresh_from_db()
+        assert self.unpublished_app.status == SentryAppStatus.UNPUBLISHED
+        assert SentryAppInstallation.objects.filter(id=installation.id).exists()
 
     @override_options({"staff.ga-rollout": True})
     def test_staff_cannot_delete_published_app(self) -> None:

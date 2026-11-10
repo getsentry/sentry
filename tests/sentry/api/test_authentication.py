@@ -1325,7 +1325,53 @@ class TestViewerContextAuthentication(TestCase):
         assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_service_account_in_control_silo_returns_none(self) -> None:
+    @with_feature("organizations:service-accounts")
+    def test_service_account_authenticates_in_control_silo(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:integrations", "org:read"]
+        )
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            result = ViewerContextAuthentication().authenticate(request)
+
+        assert result is not None
+        user, auth = result
+        assert user == ServiceAccountPrincipal(
+            service_account_id=service_account.id,
+            organization_id=self.organization.id,
+            name=service_account.name,
+        )
+        assert is_service_account_auth(auth)
+        assert auth.entity_id == service_account.id
+        assert auth.organization_id == self.organization.id
+        assert auth.scopes == ["org:integrations", "org:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    @with_feature("organizations:service-accounts")
+    def test_disabled_service_account_in_control_silo_returns_none(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, is_active=False
+        )
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_control_silo_without_feature_returns_none(self) -> None:
         service_account = self.create_service_account(organization=self.organization)
         context = ViewerContext(
             actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
