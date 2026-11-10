@@ -12,7 +12,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import audit_log, features, roles
 from sentry.api.api_owners import ApiOwner
@@ -469,8 +468,15 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     extras=extras,
                     service_account_grant=grant,
                 )
-        except ValueError:
-            logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
+        except WorkflowUpdateError as e:
+            logger.info(
+                "seer.workflow_config.create_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "strategy": strategy.value,
+                    "reason": str(e),
+                },
+            )
             return Response({"detail": "Couldn't create the automation."}, status=400)
 
         account = workflow.get_service_account()
@@ -699,17 +705,29 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     extras.updated_by = "bot" if user_id is None else user_id
                     update.set_extras(extras)
 
-        except ValueError:
-            logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
+        except WorkflowUpdateError as e:
+            logger.info(
+                "seer.workflow_config.update_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "config_id": workflow.config_id,
+                    "reason": str(e),
+                },
+            )
             return Response({"detail": "Couldn't update the automation."}, status=400)
 
         account: RpcServiceAccount | None = None
         if grant is not None:
             try:
                 account = workflow.set_service_account_grant(grant)
-            except WorkflowUpdateError:
-                logger.exception(
-                    "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
+            except WorkflowUpdateError as e:
+                logger.warning(
+                    "seer.workflow_config.service_account_update_rejected",
+                    extra={
+                        "organization_id": organization.id,
+                        "config_id": workflow.config_id,
+                        "reason": str(e),
+                    },
                 )
                 return Response(
                     {"detail": "Couldn't update the automation's service account."}, status=400
