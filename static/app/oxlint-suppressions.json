@@ -2709,7 +2709,7 @@
   },
   "views/discover/results.tsx": {
     "@sentry/prefer-nuqs": {
-      "count": 8
+      "count": 1
     },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
