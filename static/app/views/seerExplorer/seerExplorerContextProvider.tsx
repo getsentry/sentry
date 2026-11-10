@@ -16,6 +16,7 @@ import {getDateFromTimestampAssumeUtc} from 'sentry/utils/dates';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 import {ExplorerDrawerContent} from './components/drawer/explorerDrawerContent';
 import {
@@ -59,9 +60,12 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     onClose: () => setLastViewedAt(Date.now()),
   });
 
-  // Sidebar (split-panel) state. Open state is ephemeral — resets on reload,
-  // like the drawer; only the dock preference persists.
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // Sidebar (split-panel) state. Open state lives in sessionStorage, like the
+  // run id, so a reload keeps the same chat open while new tabs start closed.
+  const [isSidebarOpen, setIsSidebarOpen] = useSessionStorage(
+    'seer-explorer-sidebar-open',
+    false
+  );
   const isSidebarOpenRef = useRef(isSidebarOpen);
   useEffect(() => {
     isSidebarOpenRef.current = isSidebarOpen;
@@ -111,7 +115,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       organization,
       isDrawer: false,
     });
-  }, [getPageReferrer, organization]);
+  }, [getPageReferrer, organization, setIsSidebarOpen]);
 
   // Re-open the active surface (sidebar or drawer) whenever the PiP window closes
   // (native controls, dock button, or programmatically) — unless a full close
@@ -141,7 +145,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       }
       isRedockingRef.current = true;
       if (isSidebarMode) {
-        // oxlint-disable-next-line react/set-state-in-effect
         openSidebar();
       } else {
         openSeerExplorerDrawer();
@@ -264,7 +267,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       return;
     }
     closeSeerExplorerDrawer();
-  }, [pipWindow, isSidebarMode, closePipWindow, closeSeerExplorerDrawer]);
+  }, [
+    pipWindow,
+    isSidebarMode,
+    closePipWindow,
+    setIsSidebarOpen,
+    closeSeerExplorerDrawer,
+  ]);
 
   const toggleSeerExplorer = useCallback(() => {
     if (pipWindow) {
@@ -291,6 +300,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     isSidebarMode,
     isSidebarOpen,
     closePipWindow,
+    setIsSidebarOpen,
     openSidebar,
     toggleSeerExplorerDrawer,
   ]);

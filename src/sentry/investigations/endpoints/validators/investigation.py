@@ -101,14 +101,3 @@ class InvestigationDeleteValidator(StrictCamelSnakeValidator):
         min_value=1,
         help_text="Current investigation version from the latest detail response. Stale versions return 409.",
     )
-
-
-class PermissionsUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    is_editable_by_everyone = serializers.BooleanField()
-    team_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
-
-    def validate_team_ids(self, value: list[int]) -> list[int]:
-        if len(value) != len(set(value)):
-            raise serializers.ValidationError("Team IDs must be unique.")
-        return value

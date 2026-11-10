@@ -62,7 +62,7 @@ import {
   normalizeUserField,
   UserNotInstrumentedTooltip,
 } from './conversationsTable';
-import {ConversationTraceLink} from './conversationTraceLink';
+import {ConversationTraceLink, type ConversationTrace} from './conversationTraceLink';
 import {ToolTag} from './toolTag';
 
 interface ConversationSummaryProps {
@@ -127,19 +127,21 @@ export function ConversationSummary({
   });
 
   // Distinct traces the conversation spans, keyed by trace ID with a
-  // representative span ID to deep-link into the trace view.
+  // representative span to deep-link into the trace view. The span's start
+  // time lets the trace view find the trace regardless of the page's date range.
   const traces = useMemo(() => {
     if (!nodeTraceMap) {
       return [];
     }
-    const seen = new Map<string, string>();
+    const startTimestamps = new Map(nodes.map(node => [node.id, node.startTimestamp]));
+    const seen = new Map<string, ConversationTrace>();
     for (const [spanId, traceId] of nodeTraceMap) {
       if (!seen.has(traceId)) {
-        seen.set(traceId, spanId);
+        seen.set(traceId, {traceId, spanId, timestamp: startTimestamps.get(spanId)});
       }
     }
-    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
-  }, [nodeTraceMap]);
+    return Array.from(seen.values());
+  }, [nodes, nodeTraceMap]);
 
   return (
     <Flex

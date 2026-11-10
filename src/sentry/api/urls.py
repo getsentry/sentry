@@ -48,12 +48,12 @@ from sentry.api.endpoints.organization_releases import (
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_project_span_counts import (
-    OrganizationSamplingProjectSpanCountsEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
+)
+from sentry.api.endpoints.organization_trace_item_attribute_details import (
+    OrganizationTraceItemAttributeDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpoint,
@@ -316,12 +316,6 @@ from sentry.investigations.endpoints.organization_investigation_action_request_r
 from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
     OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
-    OrganizationInvestigationBlockExecutionDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_block_executions import (
-    OrganizationInvestigationBlockExecutionsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
 )
@@ -340,9 +334,6 @@ from sentry.investigations.endpoints.organization_investigation_index import (
 from sentry.investigations.endpoints.organization_investigation_orchestration import (
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_title_generation import (
-    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -474,6 +465,12 @@ from sentry.monitors.endpoints.project_processing_errors_index import (
 from sentry.notebooks.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_execution_details import (
+    OrganizationInvestigationBlockExecutionDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_executions import (
+    OrganizationInvestigationBlockExecutionsEndpoint,
+)
 from sentry.notebooks.endpoints.organization_investigation_block_index import (
     OrganizationInvestigationBlocksEndpoint,
 )
@@ -491,6 +488,9 @@ from sentry.notebooks.endpoints.organization_investigation_favorite import (
 )
 from sentry.notebooks.endpoints.organization_investigation_presence import (
     OrganizationInvestigationPresenceEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_title_generation import (
+    OrganizationInvestigationTitleGenerationEndpoint,
 )
 from sentry.notifications.api.endpoints.notification_actions_available import (
     NotificationActionsAvailableEndpoint,
@@ -862,7 +862,6 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
@@ -1746,16 +1745,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-config-integrations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",
-        OrganizationSamplingProjectRatesEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-project-rates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-root-counts/$",
-        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-root-counts",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
         OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-effective-sample-rate",
@@ -1899,6 +1888,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/merged/$",
         OrganizationTraceItemAttributesMergedEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attributes-merged",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/details/$",
+        OrganizationTraceItemAttributeDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attribute-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/validate/$",

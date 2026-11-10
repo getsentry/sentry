@@ -101,7 +101,20 @@ Describe a serializer field with `help_text`. Write for any API client: say
 
 A field is untyped when its schema is `Any` (`{}`), `dict[str, Any]`, an object
 without properties, or a list of those. Replace it with a TypedDict or a
-concrete type that matches what the endpoint returns.
+concrete type that matches what the endpoint returns. A TypedDict without any
+fields gets `maxProperties: 0`, so it counts as typed: use one for a response
+that is always `{}`.
+
+A few fields hold data whose shape Sentry doesn't define, such as the contexts
+an SDK sent. Type those as `JsonValue` from `sentry.apidocs.formats`: the schema
+lists every JSON type, and the check counts it as typed. Don't use it for a
+field you can type.
+
+When another schema already pins a field down, such as a JSON Schema the code
+validates the data against, build the field's schema from it with
+`Annotated[T, ApiSchema(build)]` instead of copying it into a TypedDict, so the
+two can't drift. `sentry.apidocs.json_schemas` converts a JSON Schema, including
+one from sentry-kafka-schemas, and fails when a property has no description.
 
 `tests/apidocs/test_response_coverage.py` checks this after `make build-api-docs`.
 Fields that already lacked a description or a type are listed in

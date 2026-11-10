@@ -713,6 +713,10 @@ VISUALSTUDIO_APP_SECRET = ""
 VISUALSTUDIO_CLIENT_SECRET = ""
 VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release"]
 
+# Linear integration (OAuth app credentials)
+LINEAR_CLIENT_ID = ""
+LINEAR_CLIENT_SECRET = ""
+
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
     "social_auth.backends.pipeline.social.social_auth_user",
@@ -941,6 +945,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notebooks.tasks",
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
@@ -2655,6 +2660,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
+    "sentry.integrations.linear.integration.LinearIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -3220,6 +3226,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-items": "default",
+    "snuba-llm-proxy-cost": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "taskworker": "default",
