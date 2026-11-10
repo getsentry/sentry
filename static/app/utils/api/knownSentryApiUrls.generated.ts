@@ -397,6 +397,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/sentry-apps/'
   | '/organizations/$organizationIdOrSlug/service-accounts/'
   | '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/'
+  | '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/'
   | '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/viewer-context/'
   | '/organizations/$organizationIdOrSlug/sessions/'
   | '/organizations/$organizationIdOrSlug/shared/groups/$shareId/'
