@@ -1,5 +1,7 @@
 import type {TokenizerAndRendererExtension, Tokens} from 'marked'; // eslint-disable-line no-restricted-imports
 
+import {escape} from 'sentry/utils';
+
 /**
  * Annotations attach data to a span of text with characters from Unicode's private
  * use area, so they survive parsing the text, like JSON, and never show up in it:
@@ -23,7 +25,6 @@ export interface AnnotationToken {
 
 export type AnnotationSegment = string | {data: string; text: string};
 
-/** Annotates `text` with `data`. */
 export function annotate(text: string, data: string): string {
   // Percent-encoding keeps the data within the shifted ASCII range.
   const encoded = Array.from(encodeURIComponent(data), char =>
@@ -36,7 +37,6 @@ export function hasAnnotations(text: string): boolean {
   return text.includes(OPEN);
 }
 
-/** Removes the annotation marks, keeping the annotated text. */
 export function stripAnnotations(text: string): string {
   return hasAnnotations(text) ? text.replace(MARKS_RE, '') : text;
 }
@@ -66,7 +66,6 @@ export function truncateAnnotated(text: string, maxLength: number): string {
   return truncated + ellipsis;
 }
 
-/** Splits text into plain strings and annotated spans, in order. */
 export function splitAnnotations(text: string): AnnotationSegment[] {
   const segments: AnnotationSegment[] = [];
   let rest = text;
@@ -120,14 +119,6 @@ export const annotationExtension: TokenizerAndRendererExtension = {
   },
   // Rendering to HTML keeps just the text.
   renderer(token: Tokens.Generic): string {
-    return escapeHtml(String(token.text));
+    return escape(String(token.text));
   },
 };
-
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
-}
