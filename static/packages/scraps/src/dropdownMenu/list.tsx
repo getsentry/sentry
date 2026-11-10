@@ -330,7 +330,6 @@ function DropdownMenuList({
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
@@ -369,7 +368,6 @@ function DropdownMenuList({
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
-      parentOverlayRef: overlayRef,
       safetyTriangle,
       virtualizeThreshold,
     }),
@@ -406,7 +404,6 @@ function DropdownMenuList({
             {stackProps => (
               <Overlay
                 {...stackProps}
-                ref={overlayRef}
                 onKeyDownCapture={event => {
                   // Handle Escape before React Aria closes the entire menu tree.
                   if (event.key === 'Escape' && parentMenuState && hasFocus) {
@@ -592,7 +589,7 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootOverlayState, parentOverlayRef} = useContext(DropdownMenuContext);
+  const {rootOverlayState} = useContext(DropdownMenuContext);
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
@@ -606,16 +603,6 @@ function DropdownSubmenu({
   } = useOverlay({
     isOpen: state.selectionManager.isSelected(node.key),
     onClose: rootOverlayState?.close,
-    shouldCloseOnInteractOutside: target => {
-      // A press in the parent menu can skip the item hover that normally closes
-      // this submenu, e.g. on a trailing action. Close only this submenu so the
-      // press still reaches its target, instead of closing the whole menu.
-      if (parentOverlayRef?.current?.contains(target)) {
-        state.selectionManager.clearSelection();
-        return false;
-      }
-      return true;
-    },
     disableTrigger: isDisabled,
     position: options.position ?? 'right-start',
     offset: -4,

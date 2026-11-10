@@ -390,6 +390,22 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       trailingAction={trailingAction}
       trailingActionRef={trailingActionRef}
       trailingActionWrapperProps={{
+        // The trailing action sits outside the item's hover area. Close any open
+        // sibling submenu on hover, as hovering the item does, so a press on the
+        // action does not land outside that submenu and close the whole menu.
+        onPointerEnter: event => {
+          const enter = () => {
+            if (!state.selectionManager.isSelected(node.key)) {
+              state.selectionManager.clearSelection();
+            }
+          };
+          if (safetyTriangle) {
+            safetyTriangle.defer(event, enter);
+          } else {
+            enter();
+          }
+        },
+        onPointerLeave: event => safetyTriangle?.leave(event.currentTarget),
         onKeyDown: event => {
           if (event.key === 'ArrowLeft') {
             event.preventDefault();

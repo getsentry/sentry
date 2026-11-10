@@ -1,4 +1,4 @@
-import {createContext, type RefObject} from 'react';
+import {createContext} from 'react';
 import type {TreeState} from '@react-stately/tree';
 
 import type {useOverlay} from '@sentry/scraps/useOverlay';
@@ -14,11 +14,6 @@ interface DropdownMenuContextValue {
    * close the current submenu.
    */
   parentMenuState?: TreeState<MenuItemProps>;
-  /**
-   * Overlay element of the parent menu. A submenu uses it to tell clicks in its
-   * parent menu apart from clicks outside the whole menu system.
-   */
-  parentOverlayRef?: RefObject<HTMLElement | null>;
   /**
    * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
    * close the entire menu system.
