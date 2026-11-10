@@ -498,6 +498,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         return Response(result["configs"][0], status=201)
 
 
+class _ConfigChangedError(Exception):
+    pass
+
+
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
@@ -577,7 +581,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are. It commits with the other fields and
-          sets ``updatedBy``; the account is updated in control right after.
+          sets ``updatedBy``; the account is updated in control right after. If the
+          automation is saved by someone else meanwhile, nothing is saved and it returns a 409.
 
         Failures past request validation return a 400 with a generic detail. Returns the
         updated config in the same shape as an item in the list endpoint's ``configs``.
@@ -650,6 +655,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         # so the transaction can rollback.
         try:
             with workflow.update_config() as update:
+                if current_account is not None and update.config.version != config.version:
+                    raise _ConfigChangedError
+
                 all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
                 config_all_projects = SeerWorkflowFilters.parse_obj(
                     update.config.filters
@@ -726,6 +734,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     extras.updated_by = "bot" if user_id is None else user_id
                     update.set_extras(extras)
 
+        except _ConfigChangedError:
+            return Response(
+                {"detail": "The automation changed while saving. Reload it and try again."},
+                status=409,
+            )
         except WorkflowUpdateError as e:
             logger.info(
                 "seer.workflow_config.update_rejected",
