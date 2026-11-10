@@ -1,4 +1,13 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  startTransition,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -12,7 +21,14 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Footer, Header, Search, Title, ControlContext} from '@sentry/scraps/menu';
+import {
+  Footer,
+  Header,
+  Search,
+  Title,
+  ControlContext,
+  type SearchSubmitTarget,
+} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Spinner} from '@sentry/scraps/spinner';
@@ -22,13 +38,8 @@ import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import type {SingleListProps} from './list';
-import type {
-  SearchConfig,
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-  SelectOptionWithKey,
-} from './types';
-import {getDisabledOptions, getHiddenOptions, getSearchConfig} from './utils';
+import type {SearchConfig, SelectKey, SelectOptionOrSectionWithKey} from './types';
+import {getSearchConfig} from './utils';
 
 // autoFocus react attribute is sync called on render, this causes
 // layout thrashing and is bad for performance. This thin wrapper function
@@ -184,7 +195,6 @@ export function Control<Value extends SelectKey>({
   menuFooter,
   onOpenChange,
   items = [],
-  isOptionDisabled,
   value,
 
   // Select props
@@ -198,7 +208,6 @@ export function Control<Value extends SelectKey>({
   menuRef,
   ...wrapperProps
 }: ControlProps & {
-  isOptionDisabled?: (option: SelectOptionWithKey<Value>) => boolean;
   items?: Array<SelectOptionOrSectionWithKey<Value>>;
   menuRef?: React.Ref<HTMLDivElement>;
   value?: Value | Value[] | undefined;
@@ -223,34 +232,50 @@ export function Control<Value extends SelectKey>({
     normalizedSearch?.onChange?.(newValue);
     setSearchInputValue(newValue);
     if (normalizedSearch?.filter !== false) {
-      setSearch(newValue);
+      // Filter in a transition: the search field updates as soon as a key is
+      // typed, and React can interrupt filtering a long list for the next key.
+      startTransition(() => setSearch(newValue));
     }
   };
 
-  const selectableOptionCount = useMemo(() => {
-    const {hidden: hiddenOptions} = getHiddenOptions(
-      items,
-      search,
-      Infinity,
-      searchFilter
+  /**
+   * Lists that handle Enter in the search input. Composite selects have one per region.
+   */
+  const searchSubmitTargets = useRef(new Set<SearchSubmitTarget>());
+  const registerSearchSubmitTarget = useCallback((target: SearchSubmitTarget) => {
+    searchSubmitTargets.current.add(target);
+    return () => {
+      searchSubmitTargets.current.delete(target);
+    };
+  }, []);
+
+  /**
+   * Selects the only option matching the search query, or moves focus to the first
+   * match when there are several. Asks the lists rather than reading the rendered
+   * options: filtering runs in a transition, so those can lag behind what was typed.
+   */
+  const submitSearch = () => {
+    if (loading) {
+      return;
+    }
+
+    const query = normalizedSearch?.filter === false ? '' : searchInputValue;
+    const matches = [...searchSubmitTargets.current].flatMap(target =>
+      target.getSelectableKeys(query).map(key => ({target, key}))
     );
-    const disabledOptions = new Set(getDisabledOptions(items, isOptionDisabled));
+    const [firstMatch] = matches;
+    if (!firstMatch) {
+      return;
+    }
 
-    return items.reduce((count, item) => {
-      if ('options' in item) {
-        return (
-          count +
-          item.options.filter(
-            option => !hiddenOptions.has(option.key) && !disabledOptions.has(option.key)
-          ).length
-        );
-      }
-
-      return (
-        count + (!hiddenOptions.has(item.key) && !disabledOptions.has(item.key) ? 1 : 0)
-      );
-    }, 0);
-  }, [items, search, searchFilter, isOptionDisabled]);
+    if (matches.length === 1) {
+      firstMatch.target.select(firstMatch.key);
+    } else {
+      // Move focus to the first option, matching the next focus target when tabbing
+      // out of the search input.
+      firstMatch.target.focus(firstMatch.key);
+    }
+  };
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -268,31 +293,7 @@ export function Control<Value extends SelectKey>({
       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         e.preventDefault();
 
-        const firstOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          `li[role="${mode === 'grid' ? 'row' : 'option'}"]:not([aria-disabled="true"])`
-        );
-        const focusOptionList = () => {
-          if (firstOption) {
-            firstOption.focus();
-            return;
-          }
-
-          overlayRef.current
-            ?.querySelector<HTMLUListElement>(
-              `ul[role="${mode === 'grid' ? 'grid' : 'listbox'}"]`
-            )
-            ?.focus();
-        };
-
-        if (selectableOptionCount > 0 && !loading) {
-          if (selectableOptionCount === 1 && firstOption) {
-            firstOption.click();
-          } else {
-            // Move focus to the first option, matching the next focus target when tabbing
-            // out of the search input.
-            focusOptionList();
-          }
-        }
+        submitSearch();
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -464,9 +465,29 @@ export function Control<Value extends SelectKey>({
     return true;
   }, [value]);
 
+  // React Stately returns a new overlay state on every render, with new methods,
+  // since `setOpen` changes with its `onOpenChange`. In the context, that would
+  // re-render every option on each keystroke in the search field. Consumers only
+  // call the methods from event handlers, so keep one object per open state
+  // whose methods call the latest state.
+  const latestOverlayState = useRef(overlayState);
+  useLayoutEffect(() => {
+    latestOverlayState.current = overlayState;
+  });
+  const stableOverlayState = useMemo<OverlayTriggerState>(
+    () => ({
+      isOpen: overlayIsOpen,
+      setOpen: isOpenNext => latestOverlayState.current.setOpen(isOpenNext),
+      open: () => latestOverlayState.current.open(),
+      close: () => latestOverlayState.current.close(),
+      toggle: () => latestOverlayState.current.toggle(),
+    }),
+    [overlayIsOpen]
+  );
+
   const contextValue = useMemo(() => {
     return {
-      overlayState,
+      overlayState: stableOverlayState,
       overlayIsOpen,
       search,
       searchable: searchEnabled,
@@ -474,9 +495,10 @@ export function Control<Value extends SelectKey>({
       disabled,
       searchMatcher: searchFilter,
       highlightSearch,
+      registerSearchSubmitTarget,
     };
   }, [
-    overlayState,
+    stableOverlayState,
     overlayIsOpen,
     search,
     searchEnabled,
@@ -484,6 +506,7 @@ export function Control<Value extends SelectKey>({
     disabled,
     searchFilter,
     highlightSearch,
+    registerSearchSubmitTarget,
   ]);
 
   // A titled header keeps a hidden Clear button so the header doesn't resize when a

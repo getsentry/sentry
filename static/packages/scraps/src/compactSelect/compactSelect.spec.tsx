@@ -3,7 +3,7 @@ import {Fragment, useRef, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -594,6 +594,44 @@ describe('CompactSelect', () => {
       expect(screen.queryByPlaceholderText('Search here…')).not.toBeInTheDocument();
     });
 
+    it('selects the only match when Enter is pressed before filtering commits', async () => {
+      function Component() {
+        const [value, setValue] = useState<string>();
+
+        return (
+          <CompactSelect
+            search
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+              {value: 'opt_three', label: 'Option Three'},
+            ]}
+            value={value}
+            onChange={option => setValue(option.value)}
+          />
+        );
+      }
+
+      render(<Component />, {wrapper: ThemeWrapper});
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      // Matches "Option Two" and "Option Three"
+      await userEvent.type(searchInput, 'Option T');
+
+      // Narrow to a single match and press Enter in the same act, so the
+      // filter transition hasn't committed when Enter is handled.
+      act(() => {
+        fireEvent.change(searchInput, {target: {value: 'Option Tw'}});
+        fireEvent.keyDown(searchInput, {key: 'Enter'});
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Option Two'})).toBeInTheDocument();
+      });
+      expect(screen.queryByPlaceholderText('Search…')).not.toBeInTheDocument();
+    });
+
     it('moves focus to the option list when Enter is pressed with multiple matches', async () => {
       render(
         <CompactSelect
@@ -682,31 +720,6 @@ describe('CompactSelect', () => {
       await userEvent.keyboard('{Enter}');
 
       expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
-      expect(onChange).not.toHaveBeenCalled();
-    });
-
-    it('does not auto-select based on the rendered virtualized options', async () => {
-      const onChange = jest.fn();
-      render(
-        <CompactSelect
-          search
-          virtualizeThreshold={1}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
-          value={undefined}
-          onChange={onChange}
-        />,
-        {wrapper: ThemeWrapper}
-      );
-
-      await userEvent.click(screen.getByRole('button'));
-      const searchInput = screen.getByPlaceholderText('Search…');
-      await waitFor(() => expect(searchInput).toHaveFocus());
-      await userEvent.keyboard('{Enter}');
-
-      expect(screen.getByRole('listbox')).toHaveFocus();
       expect(onChange).not.toHaveBeenCalled();
     });
 
@@ -1983,6 +1996,275 @@ describe('CompactSelect', () => {
       // click on Trailing Button Two, onPointerUpMock is called
       await userEvent.click(screen.getByRole('button', {name: 'Trailing Button Two'}));
       expect(onPointerUpMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('virtualization with sections', () => {
+    // jsdom does not lay out or scroll. Give elements a height so the list has
+    // a viewport and room to scroll, and make scrollTo move the scroll position
+    // like a browser does.
+    const stubs: Array<[typeof Element.prototype, string, PropertyDescriptor]> = [
+      [HTMLElement.prototype, 'offsetHeight', {get: () => 100}],
+      [Element.prototype, 'clientHeight', {get: () => 100}],
+      [Element.prototype, 'scrollHeight', {get: () => 50_000}],
+      [
+        Element.prototype,
+        'scrollTo',
+        {
+          value(this: Element, options?: ScrollToOptions) {
+            this.scrollTop = options?.top ?? this.scrollTop;
+            this.dispatchEvent(new Event('scroll'));
+          },
+        },
+      ],
+    ];
+    const originals = stubs.map(
+      ([target, name]) =>
+        [target, name, Object.getOwnPropertyDescriptor(target, name)] as const
+    );
+
+    beforeEach(() => {
+      for (const [target, name, descriptor] of stubs) {
+        Object.defineProperty(target, name, {configurable: true, ...descriptor});
+      }
+    });
+
+    afterEach(() => {
+      for (const [target, name, descriptor] of originals) {
+        if (descriptor) {
+          Object.defineProperty(target, name, descriptor);
+        } else {
+          Reflect.deleteProperty(target, name);
+        }
+      }
+    });
+
+    const sections = ['A', 'B'].map(section => ({
+      key: section,
+      label: `Section ${section}`,
+      options: Array.from({length: 250}, (_, i) => ({
+        value: `${section}-${i}`,
+        label: `${section} ${i}`,
+      })),
+    }));
+
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'moves focus to the first match of a %s when Enter is pressed with several matches',
+      async (_, mode, optionRole) => {
+        const onChange = jest.fn();
+        render(
+          <CompactSelect
+            search
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={onChange}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        const searchInput = screen.getByPlaceholderText('Search…');
+        await waitFor(() => expect(searchInput).toHaveFocus());
+        await userEvent.keyboard('{Enter}');
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+        expect(onChange).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each([
+      ['list box', undefined, 'group', 'option'],
+      ['grid', 'grid', 'rowgroup', 'row'],
+    ] as const)(
+      'windows a %s with sections and reaches the last section with the keyboard',
+      async (_, mode, sectionRole, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        const sectionA = await screen.findByRole(sectionRole, {name: 'Section A'});
+        expect(within(sectionA).getByRole(optionRole, {name: 'A 0'})).toBeInTheDocument();
+        expect(screen.getAllByRole(optionRole).length).toBeLessThan(500);
+        expect(
+          screen.queryByRole(sectionRole, {name: 'Section B'})
+        ).not.toBeInTheDocument();
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+        await userEvent.keyboard('{End}');
+
+        // The option renders inside its section, which keeps its heading.
+        await waitFor(() =>
+          expect(
+            within(screen.getByRole(sectionRole, {name: 'Section B'})).getByRole(
+              optionRole,
+              {name: 'B 249'}
+            )
+          ).toHaveFocus()
+        );
+      }
+    );
+
+    it.each([
+      ['list box', undefined, 'listbox', 'option'],
+      ['grid', 'grid', 'grid', 'row'],
+    ] as const)(
+      'keeps keyboard focus on an option of a %s scrolled out of view',
+      async (_, mode, listRole, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+
+        // The list scrolls inside a wrapper, which has no role to query.
+        // oxlint-disable-next-line testing-library/no-node-access
+        const scroller = screen.getByRole(listRole).parentElement;
+        if (!scroller) {
+          throw new Error('The list has no scroll wrapper');
+        }
+        // userEvent cannot scroll. The scrollTo stub above fires the scroll
+        // event, like a user scrolling with the wheel or the scrollbar.
+        act(() => scroller.scrollTo({top: 10_000}));
+        await waitFor(() =>
+          expect(screen.queryByRole(optionRole, {name: 'A 1'})).not.toBeInTheDocument()
+        );
+
+        // The focused option stays mounted, so focus stays in the list and the
+        // keyboard keeps working.
+        expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus();
+        await userEvent.keyboard('{ArrowDown}');
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 1'})).toHaveFocus()
+        );
+      }
+    );
+
+    it.each([
+      ['list box', undefined, 'option'],
+      ['grid', 'grid', 'row'],
+    ] as const)(
+      'lets the virtualizer measure the options of a %s',
+      async (_, mode, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        // The virtualizer measures the elements that carry their row's index.
+        expect(await screen.findByRole(optionRole, {name: 'A 0'})).toHaveAttribute(
+          'data-index'
+        );
+      }
+    );
+
+    it('announces the position of a list box option among the visible options', async () => {
+      render(
+        <CompactSelect
+          search
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      // Each section's options form their own set.
+      const first = await screen.findByRole('option', {name: 'A 0'});
+      expect(first).toHaveAttribute('aria-posinset', '1');
+      expect(first).toHaveAttribute('aria-setsize', '250');
+
+      // Only "B 249" matches. The hidden options stay in the collection, but
+      // are not counted.
+      await userEvent.type(screen.getByRole('textbox'), 'B 249');
+      await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+      const match = screen.getByRole('option', {name: 'B 249'});
+      expect(match).toHaveAttribute('aria-posinset', '1');
+      expect(match).toHaveAttribute('aria-setsize', '1');
+    });
+
+    it('announces the position of a grid row among the visible rows', async () => {
+      render(
+        <CompactSelect
+          mode="grid"
+          menuWidth={300}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(await screen.findByRole('grid')).toHaveAttribute('aria-rowcount', '500');
+      expect(screen.getByRole('row', {name: 'A 0'})).toHaveAttribute(
+        'aria-rowindex',
+        '1'
+      );
+
+      // Rows are numbered across sections.
+      await waitFor(() => expect(screen.getByRole('row', {name: 'A 0'})).toHaveFocus());
+      await userEvent.keyboard('{End}');
+      await waitFor(() =>
+        expect(screen.getByRole('row', {name: 'B 249'})).toHaveAttribute(
+          'aria-rowindex',
+          '500'
+        )
+      );
+    });
+
+    it('counts the options inside sections against the threshold', async () => {
+      render(
+        <CompactSelect
+          virtualizeThreshold={500}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(await screen.findAllByRole('option')).toHaveLength(500);
     });
   });
 });

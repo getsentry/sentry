@@ -26,7 +26,7 @@ describe('ListBox', () => {
 
     const listBox = screen.getByRole('listbox');
     // oxlint-disable-next-line testing-library/no-node-access -- Supply geometry on the unlabelled scroll viewport around the listbox.
-    const scrollContainer = listBox.parentElement?.parentElement;
+    const scrollContainer = listBox.parentElement;
     expect(scrollContainer).toBeInTheDocument();
 
     Object.defineProperty(scrollContainer, 'clientHeight', {
@@ -62,7 +62,7 @@ describe('ListBox', () => {
 
     const listBox = screen.getByRole('listbox');
     // oxlint-disable-next-line testing-library/no-node-access -- Supply geometry on the unlabelled scroll viewport around the listbox.
-    const scrollContainer = listBox.parentElement?.parentElement;
+    const scrollContainer = listBox.parentElement;
     expect(scrollContainer).toBeInTheDocument();
 
     Object.defineProperty(scrollContainer, 'clientHeight', {

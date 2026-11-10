@@ -37,6 +37,59 @@ export function hasVisibleLeadingItems(
     });
 }
 
+/** Where a visible option sits in the list, for screen readers. */
+export interface OptionPosition {
+  /** 1-based position among the visible options of its set. */
+  posInSet: number;
+  /** 1-based position among all visible options, across sections. */
+  rowIndex: number;
+  /** Number of visible options in its set. */
+  setSize: number;
+}
+
+/**
+ * Positions of the visible options. A virtualized list only mounts some of its
+ * options, so screen readers cannot count them from the DOM and need
+ * `aria-setsize`/`aria-posinset` (list box) or `aria-rowindex` (grid).
+ *
+ * React Aria's `isVirtualized` sets these from the whole collection, but
+ * options hidden by search or `sizeLimit` stay in the collection, so the counts
+ * would include them. A section's options form their own set, as do the
+ * options outside any section.
+ */
+export function getVisibleOptionPositions(
+  listItems: Iterable<Node<unknown>>,
+  hiddenOptions: ReadonlySet<SelectKey>
+): Map<SelectKey, OptionPosition> {
+  const isVisible = (node: Node<unknown>) => !hiddenOptions.has(node.key as SelectKey);
+  const nodes = [...listItems].filter(isVisible);
+  const sets = [
+    nodes.filter(node => node.type !== 'section'),
+    ...nodes
+      .filter(node => node.type === 'section')
+      .map(section => [...section.childNodes].filter(isVisible)),
+  ];
+  const rowIndexes = new Map(
+    nodes
+      .flatMap(node =>
+        node.type === 'section' ? [...node.childNodes].filter(isVisible) : [node]
+      )
+      .map((node, index) => [node.key, index + 1])
+  );
+
+  const positions = new Map<SelectKey, OptionPosition>();
+  for (const set of sets) {
+    set.forEach((node, index) => {
+      positions.set(node.key as SelectKey, {
+        posInSet: index + 1,
+        setSize: set.length,
+        rowIndex: rowIndexes.get(node.key) ?? 0,
+      });
+    });
+  }
+  return positions;
+}
+
 // Avoid the relatively expensive CSS.escape call for common keys while preserving
 // full escaping for values that are not already simple CSS identifiers.
 const SIMPLE_CSS_IDENTIFIER = /^-?(?!\d)\w[-\w]*$/;
@@ -305,6 +358,29 @@ export function getSortedItems<Value extends SelectKey>(
       (scores.get((b as SelectOptionWithKey<Value>).key) ?? 0) -
       (scores.get((a as SelectOptionWithKey<Value>).key) ?? 0)
   );
+}
+
+/**
+ * Keys of the options that match `search` and can be selected, in the order
+ * they're displayed (best match first).
+ */
+export function getSelectableKeys<Value extends SelectKey>(
+  items: Array<SelectOptionOrSectionWithKey<Value>>,
+  search: string,
+  isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean,
+  searchMatcher?: (
+    option: SelectOptionWithKey<Value>,
+    search: string
+  ) => SearchMatchResult
+): SelectKey[] {
+  const {hidden, scores} = getHiddenOptions(items, search, Infinity, searchMatcher);
+  const disabled = new Set(getDisabledOptions(items, isOptionDisabled));
+  const sortedItems = scores.size > 0 ? getSortedItems(items, scores) : items;
+
+  return sortedItems
+    .flatMap(item => ('options' in item ? item.options : [item]))
+    .filter(option => !hidden.has(option.key) && !disabled.has(option.key))
+    .map(option => option.key);
 }
 
 /**
