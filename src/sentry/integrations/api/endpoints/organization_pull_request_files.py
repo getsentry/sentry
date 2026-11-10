@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, NamedTuple, TypedDict
-from urllib.parse import parse_qs, urlsplit
+from typing import NamedTuple, TypedDict
 
 from rest_framework.exceptions import APIException, ParseError, Throttled
 from rest_framework.request import Request
@@ -10,7 +9,12 @@ from rest_framework.response import Response
 from scm import actions as scm_actions
 from scm.errors import ProviderNotFound, RateLimitExceeded, ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
-from scm.types import FileStatus, GetPullRequestFilesProtocol, PullRequestFile
+from scm.types import (
+    FileStatus,
+    GetPullRequestFilesProtocol,
+    GetPullRequestProtocol,
+    PullRequestFile,
+)
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -25,6 +29,9 @@ from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 
 logger = logging.getLogger(__name__)
+
+# How many times to reread the files when a push lands while they're being read.
+_HEAD_SHA_ATTEMPTS = 3
 
 
 class PullRequestFilesUnavailable(APIException):
@@ -48,8 +55,9 @@ class RepositoryPullRequestFileResponse(PullRequestFileResponse):
 
 class RepositoryPullRequestFilesResponse(TypedDict):
     files: list[RepositoryPullRequestFileResponse]
-    # The commit these files were read at, or None if the provider doesn't say. The provider
-    # can lag behind a push, so this tells a caller whether the files include that push.
+    # The PR's head commit while these files were read, or None if the provider doesn't say or
+    # pushes kept landing mid-read. The provider can lag behind a push, so a caller that
+    # pushed compares this to its own commit to tell whether the files include that push.
     headSha: str | None
 
 
@@ -62,25 +70,48 @@ def _serialize_file(raw_file: PullRequestFile) -> PullRequestFileResponse:
     return {"path": raw_file["filename"], "patch": raw_file["patch"]}
 
 
-def _contents_ref(raw_file: dict[str, Any]) -> str | None:
-    refs = parse_qs(urlsplit(raw_file.get("contents_url") or "").query).get("ref")
-    return refs[0] if refs else None
+def _read_files(scm: GetPullRequestFilesProtocol, pull_request_key: str) -> list[PullRequestFile]:
+    files: list[PullRequestFile] = []
+    for page in iter_all_pages(
+        lambda pagination: scm_actions.get_pull_request_files(
+            scm, pull_request_key, pagination=pagination
+        )
+    ):
+        files.extend(page["data"])
+    return files
 
 
-def _head_sha(raw_files: list[dict[str, Any]]) -> str | None:
+def _read_files_at_one_head(
+    scm: GetPullRequestFilesProtocol, pull_request_key: str
+) -> _PullRequestFiles:
     """
-    The commit the files were read at. GitHub's response has no field for it, but each file's
-    `contents_url` names it. None for providers without that URL (e.g. GitLab), and when the
-    files disagree because a push landed between pages.
+    The files, with the PR's head commit read before and after them. If a push moves the head
+    while the pages are read, the pages may mix commits, so read them all again.
     """
-    refs = {_contents_ref(raw_file) for raw_file in raw_files}
-    return refs.pop() if len(refs) == 1 else None
+    if not isinstance(scm, GetPullRequestProtocol):
+        return _PullRequestFiles(_read_files(scm, pull_request_key), None)
+
+    head_sha = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+    for _ in range(_HEAD_SHA_ATTEMPTS):
+        files = _read_files(scm, pull_request_key)
+        head_sha_after = scm_actions.get_pull_request(scm, pull_request_key)["data"]["head"]["sha"]
+        if head_sha_after == head_sha:
+            return _PullRequestFiles(files, head_sha)
+        head_sha = head_sha_after
+    return _PullRequestFiles(files, None)
 
 
 def _fetch_files(
-    organization_id: int, repository_id: int, pull_request_key: str
+    organization_id: int,
+    repository_id: int,
+    pull_request_key: str,
+    *,
+    with_head_sha: bool = False,
 ) -> _PullRequestFiles:
-    """Every file the pull request changes, as its provider reports them."""
+    """
+    Every file the pull request changes, as its provider reports them. With `with_head_sha`,
+    also the head commit they were read at, which costs two or more extra provider calls.
+    """
     try:
         scm = make_scm(organization_id, repository_id, referrer="pull-request-files")
     except ProviderNotFound:
@@ -93,15 +124,9 @@ def _fetch_files(
         return _PullRequestFiles([], None)
 
     try:
-        files: list[PullRequestFile] = []
-        raw_files: list[dict[str, Any]] = []
-        for page in iter_all_pages(
-            lambda pagination: scm_actions.get_pull_request_files(
-                scm, pull_request_key, pagination=pagination
-            )
-        ):
-            files.extend(page["data"])
-            raw_files.extend(page["raw"]["data"])
+        if with_head_sha:
+            return _read_files_at_one_head(scm, pull_request_key)
+        return _PullRequestFiles(_read_files(scm, pull_request_key), None)
     except ResourceNotFound:
         # The PR is gone on the provider.
         raise ResourceDoesNotExist
@@ -118,7 +143,6 @@ def _fetch_files(
             },
         )
         raise PullRequestFilesUnavailable
-    return _PullRequestFiles(files, _head_sha(raw_files))
 
 
 @cell_silo_endpoint
@@ -186,7 +210,7 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
             raise ResourceDoesNotExist
         repository = matches[0]
 
-        fetched = _fetch_files(organization.id, repository.id, number)
+        fetched = _fetch_files(organization.id, repository.id, number, with_head_sha=True)
         return Response(
             {
                 "files": [

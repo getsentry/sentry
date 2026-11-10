@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -14,26 +15,18 @@ from sentry.testutils.cases import APITestCase
 _MAKE_SCM = "sentry.integrations.api.endpoints.organization_pull_request_files.make_scm"
 
 
-def _page(
-    files: list[dict[str, str | None]],
-    next_cursor: str = "",
-    raw_files: list[dict[str, str]] | None = None,
-) -> dict[str, object]:
+def _page(files: list[dict[str, str | None]], next_cursor: str = "") -> dict[str, object]:
     return {
         "data": files,
-        "raw": {"headers": None, "data": raw_files or []},
+        # Shaped like Cursor Origin's raw page, a dict rather than a list. The endpoint
+        # must not read `raw`, whose shape differs by provider.
+        "raw": {"headers": None, "data": {"files": [], "nextPageToken": next_cursor}},
         "meta": {"next_cursor": next_cursor},
     }
 
 
 def _file(path: str) -> dict[str, str | None]:
     return {"filename": path, "status": "modified", "previous_filename": None, "patch": "@@"}
-
-
-def _github_raw_file(sha: str) -> dict[str, str]:
-    return {
-        "contents_url": f"https://api.github.com/repos/getsentry/sentry/contents/a.py?ref={sha}"
-    }
 
 
 class _FakeScm:
@@ -54,6 +47,21 @@ class _FakeScm:
         if self._error is not None:
             raise self._error
         return self._pages.pop(0)
+
+
+class _FakeScmWithPullRequest(_FakeScm):
+    """A provider that also reports the pull request, and so its head commit."""
+
+    def __init__(self, pages: list[dict[str, object]], head_shas: list[str | None]) -> None:
+        super().__init__(pages=pages)
+        self._head_shas = list(head_shas)
+        self.pull_request_calls: list[str] = []
+
+    def get_pull_request(
+        self, pull_request_id: str, request_options: dict[str, object] | None = None
+    ) -> dict[str, object]:
+        self.pull_request_calls.append(pull_request_id)
+        return {"data": {"head": {"sha": self._head_shas.pop(0), "ref": "feature"}}}
 
 
 class OrganizationPullRequestFilesTest(APITestCase):
@@ -99,6 +107,13 @@ class OrganizationPullRequestFilesTest(APITestCase):
             self.organization.id, self.repo.id, referrer="pull-request-files"
         )
         assert scm.calls[0] == "42"
+
+    @mock.patch(_MAKE_SCM)
+    def test_does_not_read_the_head_commit(self, mock_make_scm: MagicMock) -> None:
+        scm = _FakeScmWithPullRequest(pages=[_page([_file("a.py")])], head_shas=[])
+        mock_make_scm.return_value = scm
+        self.get_success_response(self.organization.slug, self.pull_request.id)
+        assert scm.pull_request_calls == []
 
     @mock.patch(_MAKE_SCM)
     def test_binary_file_patch_is_null(self, mock_make_scm: MagicMock) -> None:
@@ -223,45 +238,72 @@ class OrganizationRepositoryPullRequestFilesTest(APITestCase):
         )
         assert mock_make_scm.return_value.calls == ["42"]
 
-    @mock.patch(_MAKE_SCM)
-    def test_returns_the_commit_the_files_were_read_at(self, mock_make_scm: MagicMock) -> None:
-        mock_make_scm.return_value = _FakeScm(
-            pages=[
-                _page([_file("a.py")], next_cursor="2", raw_files=[_github_raw_file("abc123")]),
-                _page([_file("b.py")], raw_files=[_github_raw_file("abc123")]),
-            ]
-        )
-        response = self.get_success_response(
+    def _get(self) -> Any:
+        return self.get_success_response(
             self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
-        )
-        assert response.data["headSha"] == "abc123"
+        ).data
 
     @mock.patch(_MAKE_SCM)
-    def test_head_sha_is_null_when_a_push_lands_between_pages(
-        self, mock_make_scm: MagicMock
-    ) -> None:
-        mock_make_scm.return_value = _FakeScm(
-            pages=[
-                _page([_file("a.py")], next_cursor="2", raw_files=[_github_raw_file("abc123")]),
-                _page([_file("b.py")], raw_files=[_github_raw_file("def456")]),
-            ]
+    def test_returns_the_head_commit_the_files_were_read_at(self, mock_make_scm: MagicMock) -> None:
+        scm = _FakeScmWithPullRequest(
+            pages=[_page([_file("a.py")], next_cursor="2"), _page([_file("b.py")])],
+            head_shas=["abc123", "abc123"],
         )
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
-        )
-        assert response.data["headSha"] is None
+        mock_make_scm.return_value = scm
+        data = self._get()
+        assert [f["path"] for f in data["files"]] == ["a.py", "b.py"]
+        assert data["headSha"] == "abc123"
+        assert scm.pull_request_calls == ["42", "42"]
 
     @mock.patch(_MAKE_SCM)
-    def test_head_sha_is_null_for_a_provider_that_does_not_say(
+    def test_rereads_the_files_when_a_push_lands_while_reading(
         self, mock_make_scm: MagicMock
     ) -> None:
-        mock_make_scm.return_value = _FakeScm(
-            pages=[_page([_file("a.py")], raw_files=[{"new_path": "a.py"}])]
+        scm = _FakeScmWithPullRequest(
+            pages=[_page([_file("old.py")]), _page([_file("new.py")])],
+            head_shas=["abc123", "def456", "def456"],
         )
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
+        mock_make_scm.return_value = scm
+        data = self._get()
+        assert [f["path"] for f in data["files"]] == ["new.py"]
+        assert data["headSha"] == "def456"
+        assert scm.calls == ["42", "42"]
+
+    @mock.patch(_MAKE_SCM)
+    def test_head_sha_is_null_when_pushes_keep_landing(self, mock_make_scm: MagicMock) -> None:
+        scm = _FakeScmWithPullRequest(
+            pages=[_page([_file("a.py")]), _page([_file("b.py")]), _page([_file("c.py")])],
+            head_shas=["sha1", "sha2", "sha3", "sha4"],
         )
-        assert response.data["headSha"] is None
+        mock_make_scm.return_value = scm
+        data = self._get()
+        assert [f["path"] for f in data["files"]] == ["c.py"]
+        assert data["headSha"] is None
+        assert scm.calls == ["42", "42", "42"]
+
+    @mock.patch(_MAKE_SCM)
+    def test_head_sha_is_null_for_a_provider_without_pull_requests(
+        self, mock_make_scm: MagicMock
+    ) -> None:
+        mock_make_scm.return_value = _FakeScm(pages=[_page([_file("a.py")])])
+        data = self._get()
+        assert [f["path"] for f in data["files"]] == ["a.py"]
+        assert data["headSha"] is None
+
+    @mock.patch(_MAKE_SCM)
+    def test_deleted_files_do_not_change_the_head_sha(self, mock_make_scm: MagicMock) -> None:
+        deleted = {
+            "filename": "gone.py",
+            "status": "removed",
+            "previous_filename": None,
+            "patch": None,
+        }
+        mock_make_scm.return_value = _FakeScmWithPullRequest(
+            pages=[_page([deleted])], head_shas=["abc123", "abc123"]
+        )
+        data = self._get()
+        assert data["files"][0]["status"] == "removed"
+        assert data["headSha"] == "abc123"
 
     def test_requires_repo_and_numeric_number(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
