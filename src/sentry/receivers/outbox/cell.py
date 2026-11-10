@@ -55,6 +55,7 @@ from sentry.service_accounts.outbox import (
     ServiceAccountOwner,
     ServiceAccountOwnerKind,
     create_owned_service_account,
+    update_service_account_grant,
 )
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.types.cell import get_local_cell
@@ -264,6 +265,13 @@ def handle_service_account_create(shard_identifier: int, payload: Any, **kwds: A
         payload,
         _service_account_owner(ServiceAccountOwnerKind(payload["owner_kind"])),
     )
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE)
+def handle_service_account_grant_update(
+    shard_identifier: int, object_identifier: int, payload: Any, **kwds: Any
+) -> None:
+    update_service_account_grant(shard_identifier, object_identifier, payload)
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.SEER_RUN_CREATE)

@@ -1,9 +1,13 @@
 """
-Create a service account from a cell in the same transaction as the cell object that owns it.
+Create or update a service account from a cell in the same transaction as the cell object that
+owns it.
 
 Save ``service_account_create_outbox(...)`` in the owner's transaction. The outbox creates the
 account in control and calls the owner's ``link_service_account``. Add a
 ``ServiceAccountOwnerKind`` and map it in ``receivers/outbox/cell.py`` for each new owner.
+
+Save ``service_account_grant_update_outbox(...)`` in the owner's transaction to replace an
+account's scopes and projects.
 """
 
 from __future__ import annotations
@@ -105,3 +109,48 @@ def create_owned_service_account(
         return
 
     owner.link_service_account(organization_id, owner_id, account.id)
+
+
+def service_account_grant_update_outbox(
+    *,
+    organization_id: int,
+    service_account_id: int,
+    scope_list: Sequence[str],
+    project_ids: Sequence[int] = (),
+    all_projects: bool = False,
+) -> CellOutbox:
+    """The outbox that replaces an account's scopes and projects.
+
+    Save it in the owner's transaction. Callers validate the grant first. Updates to one account
+    coalesce, so only the latest grant is applied. A deleted account is left as it is.
+    """
+    return CellOutbox(
+        shard_scope=OutboxScope.SERVICE_ACCOUNT_SCOPE,
+        shard_identifier=organization_id,
+        category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE,
+        object_identifier=service_account_id,
+        payload={
+            "scope_list": list(scope_list),
+            "project_ids": [] if all_projects else list(project_ids),
+            "all_projects": all_projects,
+        },
+    )
+
+
+def update_service_account_grant(
+    organization_id: int, service_account_id: int, payload: Mapping[str, Any]
+) -> None:
+    """Replace the account's scopes and projects in control. Safe to retry."""
+    try:
+        service_account_service.update_service_account(
+            organization_id=organization_id,
+            service_account_id=service_account_id,
+            scope_list=payload["scope_list"],
+            project_ids=payload["project_ids"],
+            all_projects=payload["all_projects"],
+        )
+    except RpcValidationException:
+        logger.exception(
+            "service_accounts.outbox_grant_update.rejected",
+            extra={"organization_id": organization_id, "service_account_id": service_account_id},
+        )
