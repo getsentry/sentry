@@ -1,9 +1,11 @@
+from datetime import timedelta
 from typing import Any, cast
 from unittest.mock import DEFAULT, MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
+from django.utils import timezone
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
@@ -17,7 +19,11 @@ from sentry.issues.action_log import (
     publish_action,
     publish_actions_from_context_bulk,
 )
-from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
+from sentry.issues.action_log.request import (
+    has_recent_view,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
     ActionSource,
@@ -212,6 +218,64 @@ class TestResolveActionActor(TestCase):
         assert resolve_action_actor(self._request()) == SYSTEM_ACTOR
 
 
+class TestHasRecentView(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.actor = GroupActionActor.user(self.user.id)
+
+    def _create_view(self, **kwargs: Any) -> GroupActionLogEntry:
+        defaults: dict[str, Any] = {
+            "type": GroupActionType.VIEW,
+            "actor_type": self.actor.actor_type,
+            "actor_id": self.actor.actor_id,
+            "source": ActionSource.WEB,
+        }
+        return self.create_group_action_log_entry(group=self.group, **{**defaults, **kwargs})
+
+    def _has_recent_view(self) -> bool:
+        return has_recent_view(
+            self.group.id, source=ActionSource.WEB, actor=self.actor, within=timedelta(days=2)
+        )
+
+    def test_no_entries(self) -> None:
+        assert not self._has_recent_view()
+
+    def test_recent_view(self) -> None:
+        self._create_view()
+        assert self._has_recent_view()
+
+    def test_stale_view(self) -> None:
+        self._create_view(date_added=timezone.now() - timedelta(days=3))
+        assert not self._has_recent_view()
+
+    def test_other_source(self) -> None:
+        self._create_view(source=ActionSource.API)
+        assert not self._has_recent_view()
+
+    def test_other_actor(self) -> None:
+        self._create_view(actor_id=self.user.id + 1)
+        assert not self._has_recent_view()
+
+    def test_other_actor_type(self) -> None:
+        self._create_view(actor_type=GroupActorType.ORG)
+        assert not self._has_recent_view()
+
+    def test_other_action_type(self) -> None:
+        self._create_view(type=GroupActionType.BOOKMARK)
+        assert not self._has_recent_view()
+
+    def test_other_group(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.create_group(),
+            type=GroupActionType.VIEW,
+            actor_type=self.actor.actor_type,
+            actor_id=self.actor.actor_id,
+            source=ActionSource.WEB,
+        )
+        assert not self._has_recent_view()
+
+
 class TestActionContext(TestCase):
     def test_default_is_none(self) -> None:
         assert get_action_context() is None
@@ -399,6 +463,33 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         log.assert_not_logged(UnassignAction)
 
     def test_view_emits_action(self) -> None:
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_logged(ViewAction, group_id=self.group.id)
+
+    def test_view_skipped_when_recently_viewed(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+        )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_not_logged(ViewAction)
+
+    def test_view_emits_when_last_view_is_stale(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
+            date_added=timezone.now() - timedelta(days=3),
+        )
         with capture_action_log() as log:
             response = self.client.get(self.url, format="json")
         assert response.status_code == 200
