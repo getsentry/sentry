@@ -302,9 +302,11 @@ export const SEER_EMBED_SCHEMAS = {
       'prefer at least three points. Use x_axis "time" with ISO 8601 timestamps; ' +
       'timestamps without an offset are read as UTC. Category axes always render as bars. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes. ' +
-      'Use y null for a bucket with no data; never write 0 for missing data. When values come from a ' +
-      "transformed time series, copy each row's filled and smoothed flags onto its point so the chart " +
-      'tooltip can say they were derived rather than observed.',
+      'Use y null for a bucket with no data and copy a null value as null; never write 0 for ' +
+      'missing data. A count of 0 is data, so keep it as 0. When values come from a transformed ' +
+      "time series, copy each row's filled and smoothed flags onto its point (comparisonFilled and " +
+      'comparisonSmoothed for a comparison series) so the chart tooltip can say they were derived ' +
+      'rather than observed.',
     level: ['block'],
     schema: z
       .object({
