@@ -2,6 +2,7 @@ import {
   queryOptions,
   skipToken,
   useMutation,
+  useQuery,
   useQueryClient,
   type UseMutationOptions,
 } from '@tanstack/react-query';
@@ -22,9 +23,7 @@ import type {
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,16 +62,17 @@ export const automationsApiOptions = (
   });
 };
 
-const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-    path: {organizationIdOrSlug: orgSlug, workflowId: automationId},
-  }),
-];
+const automationApiOptions = (orgSlug: string, automationId: string) =>
+  apiOptions.as<Automation>()(
+    '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
+    {path: {organizationIdOrSlug: orgSlug, workflowId: automationId}, staleTime: 0}
+  );
 
 export function useAutomationQuery(automationId: string) {
   const {slug} = useOrganization();
 
-  return useApiQuery<Automation>(makeAutomationQueryKey(slug, automationId), {
+  return useQuery({
+    ...automationApiOptions(slug, automationId),
     staleTime: 0,
     retry: false,
   });
@@ -110,34 +110,25 @@ export function automationFireHistoryApiOptions({
 export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {
   const {slug} = useOrganization();
 
-  return useApiQuery<DataConditionHandler[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/data-conditions/', {
-        path: {organizationIdOrSlug: slug},
-      }),
-      {query: {group: groupType}},
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<DataConditionHandler[]>()(
+      '/organizations/$organizationIdOrSlug/data-conditions/',
+      {path: {organizationIdOrSlug: slug}, query: {group: groupType}, staleTime: Infinity}
+    ),
+    retry: false,
+  });
 }
 
 export function useAvailableActionsQuery() {
   const {slug} = useOrganization();
 
-  return useApiQuery<ActionHandler[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/available-actions/', {
-        path: {organizationIdOrSlug: slug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<ActionHandler[]>()(
+      '/organizations/$organizationIdOrSlug/available-actions/',
+      {path: {organizationIdOrSlug: slug}, staleTime: Infinity}
+    ),
+    retry: false,
+  });
 }
 
 export function useCreateAutomation({
@@ -264,14 +255,9 @@ export function useUpdateAutomation({
       ),
     onSuccess: data => {
       // Update cache with new automation data
-      setApiQueryData(
-        queryClient,
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-            path: {organizationIdOrSlug: org.slug, workflowId: data.id},
-          }),
-        ],
-        data
+      queryClient.setQueryData(
+        automationApiOptions(org.slug, data.id).queryKey,
+        previous => ({...previous, json: data, headers: previous?.headers ?? {}})
       );
       // Invalidate list query
       queryClient.invalidateQueries({

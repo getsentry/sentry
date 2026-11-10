@@ -1,3 +1,4 @@
+import type {RefObject, CSSProperties} from 'react';
 import {
   useContext,
   useEffect,
@@ -100,10 +101,10 @@ function useOverflowTabs({
    * The relatively-positioned wrapper around the list. Its width is the space
    * available to the tabs and is unaffected by the list overflowing.
    */
-  outerWrapRef: React.RefObject<HTMLDivElement | null>;
+  outerWrapRef: RefObject<HTMLDivElement | null>;
   tabItems: TabListItemProps[];
-  tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
-  tabListRef: React.RefObject<HTMLUListElement | null>;
+  tabItemsRef: RefObject<Record<string | number, HTMLLIElement | null>>;
+  tabListRef: RefObject<HTMLUListElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
   // Cached intrinsic widths per tab key. Overflowing tabs render with
@@ -269,7 +270,7 @@ function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
 
 interface TabListProps {
   children: TabListStateOptions<TabListItemProps>['children'];
-  outerWrapStyles?: React.CSSProperties;
+  outerWrapStyles?: CSSProperties;
   variant?: TabProps['variant'];
 }
 

@@ -41,7 +41,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
@@ -454,15 +454,13 @@ function ConfigureIntegration() {
     isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
-  } = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    apiOptions.as<{
+      providers: IntegrationProvider[];
+    }>()('/organizations/$organizationIdOrSlug/config/integrations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    })
   );
   const {
     data: integration,

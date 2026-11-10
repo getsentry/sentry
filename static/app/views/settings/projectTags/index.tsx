@@ -24,7 +24,7 @@ import {t, tct} from 'sentry/locale';
 import type {TagWithTopValues} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -42,19 +42,14 @@ export default function ProjectTags() {
 
   const queryClient = useQueryClient();
 
-  const {
-    data: tags,
-    isPending,
-    isError,
-  } = useQuery(
-    apiOptions.as<TagWithTopValues[]>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/',
-      {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        staleTime: 0,
-      }
-    )
+  const tagsOptions = apiOptions.as<TagWithTopValues[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      staleTime: 0,
+    }
   );
+  const {data: tags, isPending, isError} = useQuery(tagsOptions);
 
   const {mutate} = useMutation<DeleteTagResponse, RequestError, DeleteTagVariables>({
     mutationFn: ({key}: DeleteTagVariables) =>
@@ -69,17 +64,10 @@ export default function ProjectTags() {
         method: 'DELETE',
       }),
     onSuccess: (_, {key}) => {
-      setApiQueryData<TagWithTopValues[]>(
-        queryClient,
-        [
-          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/', {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: project.slug,
-            },
-          }),
-        ],
-        oldTags => oldTags?.filter(tag => tag.key !== key)
+      queryClient.setQueryData(tagsOptions.queryKey, previous =>
+        previous
+          ? {...previous, json: previous.json.filter(tag => tag.key !== key)}
+          : undefined
       );
     },
     onError: () => {

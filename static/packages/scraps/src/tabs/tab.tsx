@@ -1,3 +1,4 @@
+import type {ElementType, Ref} from 'react';
 import {Fragment, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -198,8 +199,8 @@ export interface TabProps extends AriaTabProps {
   overflowing: boolean;
   size: 'md' | 'sm' | 'xs';
   state: TabListState<any>;
-  as?: React.ElementType;
-  ref?: React.Ref<HTMLLIElement>;
+  as?: ElementType;
+  ref?: Ref<HTMLLIElement>;
   tooltipProps?: TooltipProps;
   variant?: 'flat' | 'floating';
 }

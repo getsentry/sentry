@@ -18,7 +18,6 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
-    is_instance_redis_cluster,
     validate_dynamic_cluster,
 )
 
@@ -208,7 +207,7 @@ class RedisBuffer(Buffer):
 
     def __init__(self, incr_batch_size: int = 2, **options: object):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
-            "SENTRY_BUFFER_OPTIONS", options
+            "SENTRY_BUFFER_OPTIONS", options, decode_responses=False
         )
         self.incr_batch_size = incr_batch_size
         assert self.incr_batch_size > 0
@@ -378,7 +377,7 @@ class RedisBuffer(Buffer):
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
+        if self.is_redis_cluster:
             pipe.hsetnx(key, "f", json.dumps(self._dump_values(filters)))
         else:
             pipe.hsetnx(key, "f", pickle.dumps(filters, protocol=5))
@@ -392,7 +391,7 @@ class RedisBuffer(Buffer):
             # e.g. "update score if last_seen or times_seen is changed"
             _validate_json_roundtrip(extra, model)
             for column, value in extra.items():
-                if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
+                if self.is_redis_cluster:
                     pipe.hset(key, "e+" + column, json.dumps(self._dump_value(value)))
                 else:
                     pipe.hset(key, "e+" + column, pickle.dumps(value, protocol=5))
@@ -509,7 +508,7 @@ class RedisBuffer(Buffer):
 
             model = import_string(force_str(values.pop("m")))
 
-            if values["f"].startswith(b"{" if not self.is_redis_cluster else "{"):
+            if values["f"].startswith(b"{"):
                 filters = self._load_values(json.loads(force_str(values.pop("f"))))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
@@ -522,7 +521,7 @@ class RedisBuffer(Buffer):
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
-                    if v.startswith(b"[" if not self.is_redis_cluster else "["):
+                    if v.startswith(b"["):
                         extra_values[k[2:]] = self._load_value(json.loads(force_str(v)))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1

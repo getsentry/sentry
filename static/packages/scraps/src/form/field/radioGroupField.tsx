@@ -16,15 +16,16 @@ import {Text} from '@sentry/scraps/text';
 
 import {useAutoSaveIndicator} from './baseField';
 
-// Radio.Group component
-interface RadioGroupProps {
-  children: React.ReactNode;
-  onChange: (value: string) => void;
-  value: string;
+export interface RadioGroupProps<T extends string> {
+  children: (components: {
+    Item: (props: RadioItemProps<NoInfer<T>>) => React.JSX.Element;
+  }) => React.ReactNode;
+  onChange: (value: NoInfer<T>) => void;
+  value: T;
   disabled?: boolean | string;
 }
 
-function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
+function RadioGroup({children, value, onChange, disabled}: RadioGroupProps<string>) {
   const field = useFieldContext();
   const labelId = useLabelId();
   const autoSaveContext = useAutoSaveContext();
@@ -52,7 +53,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   return (
     <GroupProvider value={contextValue}>
       <Flex role="radiogroup" aria-labelledby={labelId} gap="sm" align="center">
-        {children}
+        {children(radioGroupComponents)}
         {indicator ?? (autoSaveContext ? <Flex width="14px" flexShrink={0} /> : null)}
         <FieldMeta.Status disabled={disabled} />
       </Flex>
@@ -60,14 +61,13 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
   );
 }
 
-// Radio.Item component
-interface RadioItemProps {
+interface RadioItemProps<T extends string> {
   children: React.ReactNode;
-  value: string;
+  value: T;
   description?: React.ReactNode;
 }
 
-function RadioItem({children, value, description}: RadioItemProps) {
+function RadioItem({children, value, description}: RadioItemProps<string>) {
   const {checked, onChange, ...fieldProps} = useGroupItemContext(value);
   const descriptionId = useId();
 
@@ -92,10 +92,10 @@ function RadioItem({children, value, description}: RadioItemProps) {
   );
 }
 
-// Export as namespace
-export function RadioField() {
-  return null;
-}
+const radioGroupComponents = {Item: RadioItem};
 
-RadioField.Group = RadioGroup;
-RadioField.Item = RadioItem;
+// The callback ties the item values to the selected value's type. The runtime
+// components stay shared so that rendering the callback does not remount items.
+export const RadioGroupField = RadioGroup as <T extends string>(
+  props: RadioGroupProps<T>
+) => React.JSX.Element;

@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {createContext, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -22,7 +23,7 @@ interface TabsProps<T>
       | 'onSelectionChange'
       | 'isDisabled'
     > {
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
   /**
    * [Uncontrolled] Default selected tab. Must match the `key` prop on the
