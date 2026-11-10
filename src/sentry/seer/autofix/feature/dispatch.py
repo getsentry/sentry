@@ -13,6 +13,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
@@ -150,9 +151,8 @@ def _org_allows_coding(group: Group) -> bool:
 
 
 def check_autofix_billing(
-    group: Group,
+    organization: Organization,
     operation: SeerOperation,
-    referrer: str | None,
     *,
     is_new_run: bool,
     skip_quota_for_free_cohort: bool = False,
@@ -162,15 +162,11 @@ def check_autofix_billing(
     checked for credits, and everyone else is checked for quota once per run.
     Returns whether the operation uses quota.
     """
-    organization = group.organization
-
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
-        if (
-            features.has("organizations:seer-credit-checks", organization)
-            and referrer != AutofixReferrer.AGENTIC_TRIAGE  # Agentic triage runs stay free.
-            and not has_enough_seer_credits(organization, operation)
-        ):
+        if features.has(
+            "organizations:seer-credit-checks", organization
+        ) and not has_enough_seer_credits(organization, operation):
             raise SeerOutOfCreditsException()
         return False
 
@@ -199,9 +195,8 @@ def continue_single_run(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     check_autofix_billing(
-        group,
+        group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
-        agent_run.run.referrer,
         is_new_run=False,
     )
 
@@ -257,9 +252,8 @@ def trigger_autofix_feature(
     is_new_run = args.existing_run_id is None
     try:
         uses_quota = check_autofix_billing(
-            group,
+            group.organization,
             args.step.seer_operation,
-            args.referrer,
             is_new_run=is_new_run,
             # Free cohort orgs bypass quota only when called from agentic triage
             # (allow_free_cohort=True). Not exposed via the API.
