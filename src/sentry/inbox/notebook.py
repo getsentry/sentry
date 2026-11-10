@@ -54,6 +54,13 @@ inbox_item_type_registry.register(NOTEBOOK.subject_type)(NOTEBOOK)
 NOTEBOOK_COMPLETED = InboxEventType(
     event_type="notebook.completed", item_type=NOTEBOOK, data_class=NotebookCompletedData
 )
+NOTEBOOK_USER_MENTIONED = InboxEventType(
+    event_type="notebook.user_mentioned", item_type=NOTEBOOK, data_class=NotebookMentionedData
+)
+NOTEBOOK_TEAM_MENTIONED = InboxEventType(
+    event_type="notebook.team_mentioned", item_type=NOTEBOOK, data_class=NotebookMentionedData
+)
+# Keep the existing event type available to older clients and retained events.
 NOTEBOOK_MENTIONED = InboxEventType(
     event_type="notebook.mentioned", item_type=NOTEBOOK, data_class=NotebookMentionedData
 )
@@ -64,6 +71,8 @@ NOTEBOOK_PARTICIPANT_ADDED = InboxEventType(
 )
 
 inbox_item_event_type_registry.register(NOTEBOOK_COMPLETED.event_type)(NOTEBOOK_COMPLETED)
+inbox_item_event_type_registry.register(NOTEBOOK_USER_MENTIONED.event_type)(NOTEBOOK_USER_MENTIONED)
+inbox_item_event_type_registry.register(NOTEBOOK_TEAM_MENTIONED.event_type)(NOTEBOOK_TEAM_MENTIONED)
 inbox_item_event_type_registry.register(NOTEBOOK_MENTIONED.event_type)(NOTEBOOK_MENTIONED)
 inbox_item_event_type_registry.register(NOTEBOOK_PARTICIPANT_ADDED.event_type)(
     NOTEBOOK_PARTICIPANT_ADDED

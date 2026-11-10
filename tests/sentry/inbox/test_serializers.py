@@ -150,8 +150,23 @@ class TestNotebookEvents:
                 {"commentId": "123", "blockId": None},
             ),
             (
-                "notebook.mentioned",
+                "notebook.user_mentioned",
+                NotebookMentionedData(summary="Mentioned you", comment_id=123),
+                {"commentId": "123", "blockId": None},
+            ),
+            (
+                "notebook.user_mentioned",
                 NotebookMentionedData(summary="Mentioned you", comment_id=123, block_id=456),
+                {"commentId": "123", "blockId": "456"},
+            ),
+            (
+                "notebook.team_mentioned",
+                NotebookMentionedData(summary="Mentioned your team", comment_id=123),
+                {"commentId": "123", "blockId": None},
+            ),
+            (
+                "notebook.team_mentioned",
+                NotebookMentionedData(summary="Mentioned your team", comment_id=123, block_id=456),
                 {"commentId": "123", "blockId": "456"},
             ),
             (
