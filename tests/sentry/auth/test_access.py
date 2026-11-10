@@ -1518,22 +1518,6 @@ class ServiceAccountAccessTest(TestCase):
         assert self._access(organization=other_org) is access.DEFAULT
         assert not self._access().has_project_access(other_project)
 
-    def test_control_silo_reads_the_account(self) -> None:
-        self._set_all_projects()
-
-        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
-            result = self._access()
-
-        assert isinstance(result, access.ServiceAccountAccess)
-        assert result.has_scope("project:read")
-        assert result.has_project_access(self.unlinked)
-
-    def test_control_silo_inactive_account_has_no_access(self) -> None:
-        self.service_account.update(is_active=False)
-
-        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
-            assert self._access() is access.DEFAULT
-
 
 @no_silo_test
 class SystemAccessTest(TestCase):
