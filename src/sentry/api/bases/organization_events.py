@@ -62,6 +62,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import (
     DATASET_LABELS,
+    ENRICHMENT_ATTRIBUTES_DATASET_LABEL,
     PUBLIC_DATASET_LABELS,
     get_dataset,
 )
@@ -162,6 +163,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not self._occurrences_dataset_allowed(request, organization)
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
+        elif dataset_label == ENRICHMENT_ATTRIBUTES_DATASET_LABEL and not features.has(
+            "organizations:classifiers-ui", organization, actor=request.user
+        ):
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)

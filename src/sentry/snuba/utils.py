@@ -16,6 +16,7 @@ from sentry.snuba import (
     spans_metrics,
     transactions,
 )
+from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
@@ -29,10 +30,13 @@ from sentry.snuba.uptime_results import UptimeResults
 
 logger = logging.getLogger(__name__)
 
+ENRICHMENT_ATTRIBUTES_DATASET_LABEL = "enrichment_attributes"
+
 # Doesn't map 1:1 with real datasets, but rather what we present to users
 # ie. metricsEnhanced is not a real dataset
 DATASET_OPTIONS = {
     "discover": discover,
+    ENRICHMENT_ATTRIBUTES_DATASET_LABEL: EnrichmentAttributes,
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
@@ -55,6 +59,7 @@ DATASET_OPTIONS = {
 }
 DEPRECATED_LABELS = {"ourlogs"}
 FEATURE_FLAGGED_DATASETS = {
+    ENRICHMENT_ATTRIBUTES_DATASET_LABEL,
     SupportedTraceItemType.OCCURRENCES.value,
     SupportedTraceItemType.REPLAYS.value,
 }
@@ -65,6 +70,7 @@ PUBLIC_DATASET_LABELS = sorted(
     if key not in DEPRECATED_LABELS and key not in FEATURE_FLAGGED_DATASETS
 )
 RPC_DATASETS = {
+    EnrichmentAttributes,
     Occurrences,
     OurLogs,
     PreprodSize,

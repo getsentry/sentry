@@ -59,6 +59,7 @@ from sentry.snuba import (
     spans_metrics,
     transactions,
 )
+from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
@@ -74,6 +75,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
     discover,
+    EnrichmentAttributes,
     functions,
     metrics_performance,
     metrics_enhanced_performance,
