@@ -20,8 +20,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,7 +34,6 @@ import {
 } from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
-  SnapshotDetailsApiResponse,
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
@@ -52,6 +49,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {useSnapShotApiOptions} from './snapshotApiOptions';
 import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
@@ -132,28 +130,10 @@ export default function SnapshotsPage() {
     snapshotId: string;
   }>();
 
-  const snapshotApiUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        snapshotId,
-      },
-    }
-  );
+  const snapshotApiOptions = useSnapShotApiOptions();
 
   const {data, isPending, isError} = useQuery({
-    ...apiOptions.as<SnapshotDetailsApiResponse>()(
-      '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          snapshotId,
-        },
-        staleTime: 0,
-      }
-    ),
-    enabled: !!snapshotId,
+    ...snapshotApiOptions,
     // Skip retries on 4xx so error pages render instantly
     retry: (count, err) => {
       if (count >= 3) {
@@ -863,7 +843,6 @@ export default function SnapshotsPage() {
       snapshotId={snapshotId}
       data={data}
       organizationSlug={organization.slug}
-      apiUrl={snapshotApiUrl}
     />
   );
 
