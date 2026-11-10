@@ -46,6 +46,16 @@ function monitorLabel(monitor: MonitorChoice) {
 
 export function SyntheticMetricBreachForm() {
   const localities = getLocalities();
+  const defaultLocality = localities[0]?.url ?? '';
+  const defaultCell = getCells().find(cell => cell.locality_url === defaultLocality);
+  const defaultOrganizations = useQuery(
+    apiOptions.as<OrganizationChoice[]>()('/_admin/cells/$region/customers/', {
+      path: defaultCell ? {region: defaultCell.name} : skipToken,
+      query: {query: 'slug:sentry', per_page: 1},
+      host: defaultLocality,
+      staleTime: 30_000,
+    })
+  );
   const [organizationSearch, setOrganizationSearch] = useState('');
   const [monitorSearch, setMonitorSearch] = useState('');
   const [debouncedOrganizationSearch] = useDebouncedValue(organizationSearch, {
@@ -63,8 +73,8 @@ export function SyntheticMetricBreachForm() {
       }),
   });
   const defaultValues: z.input<typeof breachSchema> = {
-    locality: localities[0]?.url ?? '',
-    organization: null,
+    locality: defaultLocality,
+    organization: defaultOrganizations.data?.find(org => org.slug === 'sentry') ?? null,
     monitor: null,
   };
   const form = useScrapsForm({
@@ -91,7 +101,7 @@ export function SyntheticMetricBreachForm() {
   const organizations = useInfiniteQuery({
     ...apiOptions.asInfinite<OrganizationChoice[]>()('/_admin/cells/$region/customers/', {
       path: cell ? {region: cell.name} : skipToken,
-      query: {query: debouncedOrganizationSearch, per_page: 50},
+      query: {query: debouncedOrganizationSearch, per_page: 50, sortBy: 'members'},
       host: values.locality,
       staleTime: 30_000,
     }),
@@ -108,10 +118,17 @@ export function SyntheticMetricBreachForm() {
       staleTime: 30_000,
     })
   );
-  const organizationOptions = (organizations.data ?? []).map(({id, name, slug}) => ({
-    value: {id, name, slug},
-    label: `${name} (${slug})`,
-  }));
+  const normalizedOrganizationSearch = debouncedOrganizationSearch.trim().toLowerCase();
+  const organizationOptions = (organizations.data ?? [])
+    .toSorted(
+      (a, b) =>
+        Number(b.slug.toLowerCase() === normalizedOrganizationSearch) -
+        Number(a.slug.toLowerCase() === normalizedOrganizationSearch)
+    )
+    .map(({id, name, slug}) => ({
+      value: {id, name, slug},
+      label: `${name} (${slug})`,
+    }));
   if (
     values.organization &&
     !organizations.data?.some(org => org.id === values.organization?.id)
