@@ -52,6 +52,7 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
@@ -840,7 +841,11 @@ def _drain_queued_autofix_feedback(
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
             iteration_id=iteration_id,
         )
-    except (PrIterationNoPullRequestException, SeerPermissionError) as error:
+    except (
+        PrIterationNoPullRequestException,
+        SeerPermissionError,
+        SeerOutOfCreditsException,
+    ) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",
             outcome="skipped",
@@ -849,10 +854,13 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
-        _record_drain_outcome(
-            "skipped_permission" if isinstance(error, SeerPermissionError) else "skipped_no_pr",
-            trigger_source,
-        )
+        if isinstance(error, SeerPermissionError):
+            drain_outcome = "skipped_permission"
+        elif isinstance(error, SeerOutOfCreditsException):
+            drain_outcome = "skipped_out_of_credits"
+        else:
+            drain_outcome = "skipped_no_pr"
+        _record_drain_outcome(drain_outcome, trigger_source)
         # The drain popped the queue, so this iteration will never run.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return

@@ -59,7 +59,7 @@ from sentry.seer.autofix.coding_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
@@ -81,7 +81,15 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
-from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED, get_seer_run, resolve_seer_run
+from sentry.seer.endpoints.utils import (
+    SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+    SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL,
+    SEER_OUT_OF_CREDITS_CODE,
+    SEER_OUT_OF_QUOTA_CODE,
+    SEER_PERMISSION_DENIED,
+    get_seer_run,
+    resolve_seer_run,
+)
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -455,6 +463,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         ),
                         user=acting_user(request.user),
                     )
+                except SeerOutOfCreditsException:
+                    return Response(
+                        {
+                            "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+                            "code": SEER_OUT_OF_CREDITS_CODE,
+                        },
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
+                    )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -583,7 +599,20 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     )
                 except NoSeerQuotaException:
                     return Response(
-                        "No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED
+                        {"detail": "No budget for Seer Autofix.", "code": SEER_OUT_OF_QUOTA_CODE},
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
+                    )
+                except SeerOutOfCreditsException:
+                    return Response(
+                        {
+                            "detail": (
+                                SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL
+                                if resolved_run_id is None
+                                else SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL
+                            ),
+                            "code": SEER_OUT_OF_CREDITS_CODE,
+                        },
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
                     )
                 except SeerPermissionError as e:
                     if _is_unknown_run_id_error(e):
