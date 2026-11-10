@@ -335,6 +335,26 @@ These differences are implemented in [`tasks/workflows.py`](../tasks/workflows.p
 [`get_environment_by_event`](../processors/workflow.py), and
 [`get_preferred_detector`](../processors/detector.py).
 
+## Internal activity matching
+
+`activity_type_in` is an internal Workflow WHEN condition. Its comparison is a
+nonempty JSON array of unique source-kind strings, initially `issue.assigned` and
+`issue.mentioned`. Both user and team assignments match `issue.assigned`. Notes match
+`issue.mentioned` only when their native Activity data contains a nonempty `mentions`
+list. Recipient authorization and delivery belong to actions, not this condition.
+Store `condition_result=True` and use an `any-short` WHEN group when provisioning it.
+
+The handler reads the native Activity without requiring a group or detector, and
+does not match ordinary GroupEvents or unsupported organization events. Investigation
+support can extend `_get_activity_kind` and the allowed comparison values once concrete
+event schemas exist; it must preserve these issue-kind values and native issue inputs.
+Deploy support for new kinds before provisioning or migrating configurations to use them.
+
+Model saves enforce the comparison schema. Bulk writes and historical-model migrations
+must explicitly validate the same contract. Internal visibility is enforced by the API
+protections described below; registering this handler does not enable activity producers,
+create default workflows, or change source lookup.
+
 ## Adding a Condition Type and Handler
 
 This walkthrough is verified against

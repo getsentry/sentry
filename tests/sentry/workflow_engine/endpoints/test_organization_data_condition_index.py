@@ -151,3 +151,17 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
         )
         condition_types = [item["type"] for item in response.data]
         assert Condition.SEER_ACTIVITY_TRIGGER.value in condition_types
+
+
+@cell_silo_test
+class InternalActivityConditionDiscoveryTest(APITestCase):
+    endpoint = "sentry-api-0-organization-data-condition-index"
+
+    def test_activity_type_in_not_discovered(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.organization.slug, group=DataConditionHandler.Group.WORKFLOW_TRIGGER
+        )
+        condition_types = {item["type"] for item in response.data}
+        assert Condition.ACTIVITY_TYPE_IN not in condition_types
+        assert Condition.SEER_ACTIVITY_TRIGGER in condition_types
