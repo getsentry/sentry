@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {keepPreviousData as keepPreviousDataFn, useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
@@ -38,8 +38,6 @@ type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
   end?: string;
-  includeFeatureFlags?: boolean;
-  keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
 };
@@ -102,8 +100,6 @@ const renameConflictingTags = (tags: Map<string, Tag>): TagCollection =>
 export const useFetchIssueTags = ({
   org,
   projectIds,
-  keepPreviousData = false,
-  includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
   const eventsTagsQuery = useQuery({
@@ -113,7 +109,7 @@ export const useFetchIssueTags = ({
       dataset: Dataset.ERRORS,
       ...statsPeriodParams,
     }),
-    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
+    placeholderData: keepPreviousData,
   });
 
   const issuePlatformTagsQuery = useQuery({
@@ -123,7 +119,7 @@ export const useFetchIssueTags = ({
       dataset: Dataset.ISSUE_PLATFORM,
       ...statsPeriodParams,
     }),
-    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
+    placeholderData: keepPreviousData,
   });
 
   // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
@@ -135,8 +131,7 @@ export const useFetchIssueTags = ({
       useCache: true,
       ...statsPeriodParams,
     }),
-    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
-    enabled: includeFeatureFlags,
+    placeholderData: keepPreviousData,
   });
 
   const assignedValues = useAssignedSearchValues();
