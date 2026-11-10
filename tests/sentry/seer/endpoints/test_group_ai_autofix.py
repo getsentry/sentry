@@ -1709,19 +1709,19 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
-    def test_pr_iteration_allowed_on_agentic_triage_run_when_out_of_credits(
+    def test_pr_iteration_checks_credits_under_the_run_billing_feature(
         self,
         mock_run_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_consume: MagicMock,
         mock_check_seer_credits: MagicMock,
     ) -> None:
-        """Runs agentic triage starts aren't billed yet."""
+        """Billing decides whether the run's feature is charged."""
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         self.create_seer_agent_run(run=run, source="autofix", group=group, project=group.project)
@@ -1742,7 +1742,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        mock_check_seer_credits.assert_not_called()
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "agentic_triage"
         mock_enqueue.assert_called_once()
         mock_consume.assert_called_once()
 

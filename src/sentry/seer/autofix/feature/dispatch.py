@@ -173,8 +173,8 @@ def check_autofix_billing(
 ) -> bool:
     """
     Raise if the organization can't pay for the operation. Token-billed orgs are
-    checked for credits, except for runs agentic triage starts, which aren't billed yet.
-    Everyone else is checked for quota once per run. Returns whether the operation uses quota.
+    checked for credits under the run's billing feature, and everyone else is checked for
+    quota once per run. Returns whether the operation uses quota.
     """
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):

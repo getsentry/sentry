@@ -1706,10 +1706,10 @@ class TestTriggerPushChanges(TestCase):
 
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_agentic_triage_run_skips_credit_check(
+    def test_checks_credits_under_the_run_billing_feature(
         self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
         self._push(
@@ -1721,7 +1721,7 @@ class TestTriggerPushChanges(TestCase):
             billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
         )
 
-        mock_check_seer_credits.assert_not_called()
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "agentic_triage"
         mock_post.assert_called_once()
 
     @patch("sentry.seer.agent.client.make_agent_update_request")

@@ -24,7 +24,7 @@ class SeerOperation(StrEnum):
 class SeerBillingFeature(StrEnum):
     """Seer features as tagged on LLM proxy calls, which billing maps to data categories."""
 
-    AGENTIC_TRIAGE = "agentic_triage"  # Not billed yet. Marks the Autofix runs it starts.
+    AGENTIC_TRIAGE = "agentic_triage"  # Marks the Autofix runs agentic triage starts.
     AUTOFIX = "autofix"
     EXPLORER = "explorer"
 
@@ -52,10 +52,7 @@ def has_enough_seer_credits(
     """
     Checks whether the organization has enough Seer credits to run the operation,
     for callers that already checked the credit check and token-billed flags.
-    Agentic triage isn't billed yet, so its runs always have enough credits.
     """
-    if feature == SeerBillingFeature.AGENTIC_TRIAGE:
-        return True
     response = seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
             organization_id=organization.id,
@@ -72,7 +69,6 @@ def can_run_seer_operation(
 ) -> bool:
     """
     Checks whether the organization is token-billed and has enough Seer credits to run the operation.
-    Agentic triage isn't billed yet, so its runs can always run.
     """
     if not features.has("organizations:seer-credit-checks", organization) or not features.has(
         "organizations:token-billed-seer-enabled", organization

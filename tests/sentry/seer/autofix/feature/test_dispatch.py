@@ -406,9 +406,9 @@ class TestTriggerAutofixFeature(TestCase):
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
-    def test_starts_agentic_triage_run_without_checking_credits(
+    def test_starts_agentic_triage_run_under_its_billing_feature(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -430,16 +430,16 @@ class TestTriggerAutofixFeature(TestCase):
             )
 
         assert run is fake_run
-        mock_check_seer_credits.assert_not_called()
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "agentic_triage"
         start_kwargs = MockClient.return_value.start_feature_run.call_args.kwargs
         assert start_kwargs["billing_feature"] == SeerBillingFeature.AGENTIC_TRIAGE
 
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
-    def test_continues_agentic_triage_run_without_checking_credits(
+    def test_continues_agentic_triage_run_under_its_billing_feature(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -468,7 +468,7 @@ class TestTriggerAutofixFeature(TestCase):
             )
 
         assert run is fake_run
-        mock_check_seer_credits.assert_not_called()
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "agentic_triage"
 
     def test_allows_async_dispatch(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -841,11 +841,11 @@ class TestContinueSingleRun(TestCase):
     @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
-    def test_agentic_triage_run_skips_credit_check(
+    def test_checks_credits_under_the_run_billing_feature(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         self._reply(billing_feature=SeerBillingFeature.AGENTIC_TRIAGE)
 
-        mock_check_seer_credits.assert_not_called()
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "agentic_triage"
