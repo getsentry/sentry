@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 import sentry_sdk
+from django.core.signing import BadSignature
 from slack_sdk.errors import SlackApiError
 
 from sentry import analytics
@@ -13,6 +14,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.analytics import SlackIntegrationIdentityLinked
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.views import SALT
 from sentry.integrations.types import (
     ExternalActorSource,
     ExternalProviderEnum,
@@ -23,12 +25,16 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.signing import unsign
 
 ALREADY_LINKED_MESSAGE = "The {slug} team has already been linked to a Slack channel."
 SUCCESS_LINKED_MESSAGE = (
     "The {team} team will now receive issue alert notifications in the {channel} channel."
 )
+
+INVALID_LINK_MESSAGE = "This link is invalid or has expired. Run the command again."
 
 TEAM_LINKING_ROLES = frozenset(["admin", "manager", "owner"])
 
@@ -36,6 +42,10 @@ TEAM_LINKING_ROLES = frozenset(["admin", "manager", "owner"])
 class TeamLinkResult(StrEnum):
     LINKED = "linked"
     ALREADY_LINKED = "already_linked"
+
+
+class InvalidTeamLinkParams(Exception):
+    pass
 
 
 class IdentityProviderNotFound(Exception):
@@ -47,13 +57,40 @@ class IdentityNotFound(Exception):
 
 
 @dataclass(frozen=True)
+class TeamLinkParams:
+    """The Slack context signed into a `/sentry link team` URL."""
+
+    integration_id: int
+    slack_user_id: str
+    channel_id: str
+    channel_name: str
+
+    @classmethod
+    def from_signed(cls, signed_params: str) -> TeamLinkParams:
+        try:
+            params = unsign(signed_params, salt=SALT)
+        except (BadSignature, ValueError) as e:
+            raise InvalidTeamLinkParams from e
+
+        try:
+            return cls(
+                integration_id=int(params["integration_id"]),
+                slack_user_id=params["slack_id"],
+                channel_id=params["channel_id"],
+                channel_name=params["channel_name"],
+            )
+        except (KeyError, TypeError, ValueError) as e:
+            raise InvalidTeamLinkParams from e
+
+
+@dataclass(frozen=True)
 class SlackChannel:
     integration: RpcIntegration
     channel_id: str
     channel_name: str
 
 
-def get_linkable_teams(member: OrganizationMember, user: RpcUser) -> Sequence[Team]:
+def get_linkable_teams(member: OrganizationMember, user: User | RpcUser) -> Sequence[Team]:
     """
     Teams the member may link to a Slack channel. Organization admins, managers,
     and owners may link any of their teams; other members may only link teams

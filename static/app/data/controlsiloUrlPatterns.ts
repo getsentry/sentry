@@ -197,6 +197,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/doc-integrations/[^/]+/$'),
   new RegExp('^api/0/doc-integrations/[^/]+/avatar/$'),
   new RegExp('^api/0/integration-features/$'),
+  new RegExp('^api/0/integrations/slack/link-team/[^/]+/$'),
   new RegExp('^api/0/wizard/$'),
   new RegExp('^api/0/wizard/[^/]+/$'),
   new RegExp('^api/0/internal/beacon/$'),
