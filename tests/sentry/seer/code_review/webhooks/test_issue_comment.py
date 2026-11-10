@@ -8,6 +8,11 @@ from django.http.response import HttpResponseBase
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.seer.code_review.preflight import PreflightDenialReason
+from sentry.seer.code_review.webhooks.issue_comment import (
+    REVIEW_UNAVAILABLE_REPLY,
+    reply_review_unavailable,
+)
 from sentry.seer.webhooks import REVIEW_COMMAND as SENTRY_REVIEW_COMMAND
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
@@ -37,11 +42,15 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             patch(
                 "sentry.integrations.github.client.GitHubApiClient.get_issue_reactions"
             ) as mock_get_issue_reactions,
+            patch(
+                "sentry.integrations.github.client.GitHubApiClient.create_comment"
+            ) as mock_create_comment,
         ):
             mock_get_issue_reactions.return_value = []
             self.mock_reaction = mock_reaction
             self.mock_get_pull_request = mock_get_pull_request
             self.mock_get_issue_reactions = mock_get_issue_reactions
+            self.mock_create_comment = mock_create_comment
             yield
 
     @pytest.fixture(autouse=True)
@@ -158,3 +167,57 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_args = self.mock_seer.call_args
             assert call_args[1]["path"] == "/v1/code_review/review-request"
+
+    def test_replies_when_review_command_is_denied(self) -> None:
+        with self.code_review_setup(features={}), self.tasks():
+            event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND)
+            response = self._send_issue_comment_event(event)
+
+        assert response.status_code == 204
+        self.mock_seer.assert_not_called()
+        self.mock_create_comment.assert_called_once_with(
+            "sentry-ecosystem/repo", "42", {"body": REVIEW_UNAVAILABLE_REPLY}
+        )
+
+    def test_replies_once_per_pull_request(self) -> None:
+        integration = MagicMock()
+        repo = self.create_repo(project=self.project, name="sentry-ecosystem/repo")
+        event = orjson.loads(self._build_issue_comment_event(SENTRY_REVIEW_COMMAND))
+
+        for _ in range(2):
+            reply_review_unavailable(
+                event=event,
+                organization=self.organization,
+                repo=repo,
+                integration=integration,
+                denial_reason=PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW,
+            )
+
+        create_comment = (
+            integration.get_installation.return_value.get_client.return_value.create_comment
+        )
+        create_comment.assert_called_once_with(
+            "sentry-ecosystem/repo", "42", {"body": REVIEW_UNAVAILABLE_REPLY}
+        )
+
+    def test_no_reply_when_denied_comment_is_not_review_command(self) -> None:
+        with self.code_review_setup(features={}), self.tasks():
+            event = self._build_issue_comment_event("Looks good to me")
+            self._send_issue_comment_event(event)
+
+        self.mock_create_comment.assert_not_called()
+
+    def test_no_reply_when_review_command_is_not_on_pull_request(self) -> None:
+        with self.code_review_setup(features={}), self.tasks():
+            event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND, is_pr_comment=False)
+            self._send_issue_comment_event(event)
+
+        self.mock_create_comment.assert_not_called()
+
+    def test_no_reply_when_review_is_allowed(self) -> None:
+        with self.code_review_setup(), self.tasks():
+            event = self._build_issue_comment_event(SENTRY_REVIEW_COMMAND)
+            self._send_issue_comment_event(event)
+
+        self.mock_seer.assert_called_once()
+        self.mock_create_comment.assert_not_called()

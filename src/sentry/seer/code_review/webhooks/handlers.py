@@ -19,7 +19,11 @@ from ..metrics import record_webhook_filtered
 from ..preflight import CodeReviewPreflightService
 from ..utils import get_tags
 from .check_run import handle_check_run_event
-from .issue_comment import handle_issue_comment_event
+from .issue_comment import (
+    handle_issue_comment_event,
+    is_review_request,
+    reply_review_unavailable,
+)
 from .pull_request import handle_pull_request_event
 
 logger = logging.getLogger(__name__)
@@ -117,6 +121,15 @@ def handle_webhook_event(
                 github_event=github_event,
                 github_event_action=event.get("action", "unknown"),
                 reason=preflight.denial_reason,
+            )
+
+        if github_event == GithubWebhookType.ISSUE_COMMENT and is_review_request(event):
+            reply_review_unavailable(
+                event=event,
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                denial_reason=preflight.denial_reason,
             )
 
         if organization.slug == "sentry":

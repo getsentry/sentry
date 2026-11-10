@@ -16,11 +16,23 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.webhooks import SentryReviewCommand, sentry_command
+from sentry.utils.redis import redis_clusters
 
-from ..metrics import WebhookFilteredReason, record_webhook_filtered, record_webhook_received
+from ..metrics import (
+    WebhookFilteredReason,
+    record_review_request_denied,
+    record_webhook_filtered,
+    record_webhook_received,
+)
+from ..preflight import PreflightDenialReason
 from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
 
 logger = logging.getLogger(__name__)
+
+REVIEW_UNAVAILABLE_REPLY = "Sentry code review isn't available for this repository."
+# Anyone who can comment on a public repo can send the command, so cap our replies per PR.
+REVIEW_UNAVAILABLE_REPLY_TTL_SECONDS = 24 * 60 * 60
+REVIEW_UNAVAILABLE_REPLY_KEY_PREFIX = "code_review:unavailable_reply:"
 
 
 class Log(enum.StrEnum):
@@ -28,12 +40,56 @@ class Log(enum.StrEnum):
     NOT_ENABLED = "github.webhook.issue_comment.not-enabled"
     NOT_REVIEW_COMMAND = "github.webhook.issue_comment.not-review-command"
     NOT_PR_COMMENT = "github.webhook.issue_comment.not-pr-comment"
+    UNAVAILABLE_REPLY_FAILED = "github.webhook.issue_comment.unavailable-reply-failed"
 
 
 class GitHubIssueCommentAction(enum.StrEnum):
     CREATED = "created"
     EDITED = "edited"
     DELETED = "deleted"
+
+
+def is_review_request(event: Mapping[str, Any]) -> bool:
+    return (
+        event.get("action") == GitHubIssueCommentAction.CREATED
+        and bool(event.get("issue", {}).get("pull_request"))
+        and isinstance(sentry_command(event.get("comment", {}).get("body")), SentryReviewCommand)
+    )
+
+
+def reply_review_unavailable(
+    *,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration,
+    denial_reason: PreflightDenialReason | None,
+) -> None:
+    """
+    Tell the user who asked for a review that it won't happen, so a denied request
+    doesn't look like a broken integration. The reply doesn't say why, because the
+    reason can reveal the organization's billing state to anyone on a public repo.
+    """
+    record_review_request_denied(GithubWebhookType.ISSUE_COMMENT, denial_reason)
+
+    pr_number = event.get("issue", {}).get("number")
+    if not pr_number:
+        return
+
+    try:
+        is_first_reply = redis_clusters.get("default").set(
+            f"{REVIEW_UNAVAILABLE_REPLY_KEY_PREFIX}{repo.id}:{pr_number}",
+            "1",
+            ex=REVIEW_UNAVAILABLE_REPLY_TTL_SECONDS,
+            nx=True,
+        )
+        if not is_first_reply:
+            return
+
+        client = integration.get_installation(organization_id=organization.id).get_client()
+        client.create_comment(repo.name, str(pr_number), {"body": REVIEW_UNAVAILABLE_REPLY})
+    except Exception:
+        logger.warning(Log.UNAVAILABLE_REPLY_FAILED.value, exc_info=True)
 
 
 def handle_issue_comment_event(

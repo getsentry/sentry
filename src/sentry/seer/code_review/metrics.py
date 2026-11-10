@@ -99,6 +99,27 @@ def record_webhook_filtered(
     )
 
 
+def record_review_request_denied(
+    github_event: GithubWebhookType | str,
+    reason: PreflightDenialReason | None,
+) -> None:
+    """
+    Record that a user explicitly asked for a review and preflight denied it.
+
+    Unlike webhook.filtered, this counts only review commands, not every PR comment.
+    """
+    metrics.incr(
+        f"{METRICS_PREFIX}.review_request.denied",
+        tags={
+            "github_event": (
+                github_event.value if isinstance(github_event, GithubWebhookType) else github_event
+            ),
+            "reason": reason.value if reason else "unknown",
+        },
+        sample_rate=1.0,
+    )
+
+
 def record_webhook_enqueued(
     github_event: GithubWebhookType | str,
     github_event_action: str,
