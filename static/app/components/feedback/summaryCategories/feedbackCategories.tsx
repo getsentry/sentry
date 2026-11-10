@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
@@ -9,11 +10,13 @@ import {useFeedbackCategories} from 'sentry/components/feedback/list/useFeedback
 import {Placeholder} from 'sentry/components/placeholder';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const feedbackSearchParsers = {
+  cursor: parseAsString,
+  query: parseAsString.withDefault(''),
+};
 
 function getSearchTermForLabel(label: string) {
   /**
@@ -43,8 +46,8 @@ export function FeedbackCategories() {
   // but we still need to check that their seer acknowledgement exists
   const {isPending: isOrgSeerSetupPending} = useOrganizationSeerSetup();
 
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{query: currentQuery}, setFeedbackSearch] =
+    useQueryStates(feedbackSearchParsers);
   const organization = useOrganization();
 
   useEffect(() => {
@@ -79,10 +82,6 @@ export function FeedbackCategories() {
     isOrgSeerSetupPending,
   ]);
 
-  const currentQuery = useMemo(
-    () => decodeScalar(location.query.query, ''),
-    [location.query.query]
-  );
   const searchConditions = useMemo(() => new MutableSearch(currentQuery), [currentQuery]);
 
   if (isPending || isOrgSeerSetupPending) {
@@ -138,14 +137,10 @@ export function FeedbackCategories() {
       });
     }
 
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: newSearchConditions.formatString(),
-      },
-    });
+    setFeedbackSearch(
+      {cursor: null, query: newSearchConditions.formatString()},
+      {history: 'push'}
+    );
   };
 
   // TODO: after all feedbacks have the .labels tag, uncomment the feedback count

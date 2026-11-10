@@ -1,12 +1,14 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {useCallback, useMemo} from 'react';
 import dropRightWhile from 'lodash/dropRightWhile';
+import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import type {GridColumnOrder} from 'sentry/components/tables/dataGrid';
-import {decodeInteger, decodeList} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {decodeInteger} from 'sentry/utils/queryString';
+
+// Widths are positional, so blank entries must not be dropped like parseAsStringArray does.
+const widthParser = parseAsNativeArrayOf(parseAsString);
 
 interface Props<Col extends GridColumnOrder<unknown>> {
   columns: Col[];
@@ -15,47 +17,29 @@ interface Props<Col extends GridColumnOrder<unknown>> {
 export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>({
   columns,
 }: Props<Col>) {
-  const location = useLocation();
-  const queryParam = location.query.width;
-  const navigate = useNavigate();
-  const columnsWidthWidths = useMemo(() => {
-    const widths = decodeList(queryParam);
-
-    return columns.map((column, i) => ({
-      ...column,
-      width: decodeInteger(widths[i], column.width ?? COL_WIDTH_UNDEFINED),
-    }));
-  }, [columns, queryParam]);
-
-  // One resize can commit several columns before the URL updates, so later
-  // commits build on earlier ones rather than on the stale location.
-  const pendingWidthsRef = useRef<{location: typeof location; widths: number[]}>(null);
+  const [widthParam, setWidthParam] = useQueryState('width', widthParser);
+  const columnsWidthWidths = useMemo(
+    () =>
+      columns.map((column, i) => ({
+        ...column,
+        width: decodeInteger(widthParam[i], column.width ?? COL_WIDTH_UNDEFINED),
+      })),
+    [columns, widthParam]
+  );
 
   const handleResizeColumn = useCallback(
     (columnIndex: number, resizedColumn: Col) => {
-      const pending = pendingWidthsRef.current;
-      const baseWidths =
-        pending?.location === location
-          ? pending.widths
-          : columnsWidthWidths.map(column => column.width ?? COL_WIDTH_UNDEFINED);
-      const widths = baseWidths.with(
-        columnIndex,
-        resizedColumn.width ?? COL_WIDTH_UNDEFINED
-      );
-      pendingWidthsRef.current = {location, widths};
-
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            width: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
-          },
-        },
-        {replace: true}
-      );
+      // One resize can commit several columns before a rerender, so build on the pending value.
+      setWidthParam(previousWidths => {
+        const widths = columns
+          .map((column, i) =>
+            decodeInteger(previousWidths[i], column.width ?? COL_WIDTH_UNDEFINED)
+          )
+          .with(columnIndex, resizedColumn.width ?? COL_WIDTH_UNDEFINED);
+        return dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED).map(String);
+      });
     },
-    [columnsWidthWidths, location, navigate]
+    [columns, setWidthParam]
   );
 
   return {

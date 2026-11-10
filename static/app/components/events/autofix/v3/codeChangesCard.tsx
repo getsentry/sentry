@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {IconCode} from '@sentry/icons/code';
 import {IconRefresh} from '@sentry/icons/refresh';
+import {useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -23,8 +24,6 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -65,8 +64,7 @@ function getFinalExplanation(section: AutofixSection): string | null {
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [seerDrawerAction, setSeerDrawerAction] = useQueryState('seerDrawerAction');
   // Reporting on an iteration applies to both flows; only the form is manual.
   const hasPrIterationFeature =
     organization.features.includes('autofix-pr-iteration') ||
@@ -140,23 +138,17 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       autofix,
       canReset: isResetEligible,
       initialShouldShowReset:
-        isResetEligible && location.query.seerDrawerAction === 'retry_code_changes',
+        isResetEligible && seerDrawerAction === 'retry_code_changes',
       section,
       step: 'code_changes',
     });
 
   useEffect(() => {
-    if (!shouldShowReset || location.query.seerDrawerAction !== 'retry_code_changes') {
+    if (!shouldShowReset || seerDrawerAction !== 'retry_code_changes') {
       return;
     }
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {...location.query, seerDrawerAction: undefined},
-      },
-      {replace: true, preventScrollReset: true}
-    );
-  }, [location, navigate, shouldShowReset]);
+    setSeerDrawerAction(null);
+  }, [seerDrawerAction, setSeerDrawerAction, shouldShowReset]);
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 

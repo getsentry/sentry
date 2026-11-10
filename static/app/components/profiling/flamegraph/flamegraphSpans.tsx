@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
+import {useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -64,6 +65,7 @@ export function FlamegraphSpans({
   spansRequestState,
 }: FlamegraphSpansProps) {
   const location = useLocation();
+  const [spanId] = useQueryState('spanId');
   const organization = useOrganization();
   const flamegraphTheme = useFlamegraphTheme();
   const flamegraphSearch = useFlamegraphSearch();
@@ -186,7 +188,7 @@ export function FlamegraphSpans({
     spansRequestState.isError,
   ]);
 
-  // When spans render, check for span_id presence in qs.
+  // When spans render, check for spanId presence in the URL.
   // If it is present, highlight the span and zoom to it. This allows
   // us to link to specific spans via id without knowing their exact
   // without knowing their exact position in the view.
@@ -195,16 +197,15 @@ export function FlamegraphSpans({
       return;
     }
 
-    const span_id = qs.parse(window.location.search).spanId;
-    if (!span_id) {
+    if (!spanId) {
       return;
     }
 
     const span = spanChart.spans.find(s => {
-      if (s.node.span[SpanFields.SPAN_ID] === span_id) {
+      if (s.node.span[SpanFields.SPAN_ID] === spanId) {
         return true;
       }
-      if (s.node.span[SpanFields.TRANSACTION_EVENT_ID] === span_id) {
+      if (s.node.span[SpanFields.TRANSACTION_EVENT_ID] === spanId) {
         return true;
       }
       return false;
@@ -217,7 +218,7 @@ export function FlamegraphSpans({
     selectedSpansRef.current = [span];
     canvasPoolManager.dispatch('highlight span', [span ? [span] : null, 'selected']);
     canvasPoolManager.dispatch('zoom at span', [span, 'exact']);
-  }, [canvasPoolManager, spansView, spanChart]);
+  }, [canvasPoolManager, spansView, spanChart, spanId]);
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {

@@ -1,16 +1,22 @@
 import {useMemo} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
-
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
 } from './gettingStartedDoc/types';
+
+export function usePlatformOptionsQueryStates(platformOptions?: BasePlatformOptions) {
+  return useQueryStates(
+    Object.fromEntries(
+      Object.keys(platformOptions ?? {}).map(key => [key, parseAsString])
+    )
+  );
+}
 
 /**
  * Hook that returns the currently selected platform option values from the URL
@@ -19,7 +25,7 @@ import type {
 export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOptions>(
   platformOptions?: PlatformOptions
 ): SelectedPlatformOptions<PlatformOptions> {
-  const {query} = useLocation();
+  const [query] = usePlatformOptionsQueryStates(platformOptions);
 
   return useMemo(() => {
     if (!platformOptions) {
@@ -79,22 +85,12 @@ export function PlatformOptionsControl({
   platformOptions,
   onChange,
 }: PlatformOptionsControlProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setPlatformOptionsQuery] = usePlatformOptionsQueryStates(platformOptions);
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
     onChange?.({[key]: value});
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      },
-      {replace: true}
-    );
+    setPlatformOptionsQuery({[key]: value});
   };
 
   return (

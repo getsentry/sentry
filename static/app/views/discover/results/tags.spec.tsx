@@ -269,7 +269,51 @@ describe('Tags', () => {
       })
     ).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/homepage/?query=%21color%3A%5Bred%2C%20blue%2C%20green%2C%20yellow%5D'
+      '/organizations/org-slug/discover/homepage/?query=!color:[red,+blue,+green,+yellow]'
+    );
+  });
+
+  it('keeps other params when excluding top tag values from an existing query', async () => {
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: 'event.type:csp',
+      ...commonQueryConditions,
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        totalValues={30}
+        organization={org}
+        location={defaultLocation}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/discover/homepage/',
+            query: {project: ['1', '2'], query: 'event.type:csp'},
+          },
+        },
+      }
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Expand color tag distribution'})
+    );
+
+    expect(
+      screen.getByRole('link', {
+        name: 'Other color tag values, 16% of all events. View other tags.',
+      })
+    ).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/discover/homepage/?project=1&project=2&query=event.type:csp+!color:[red,+blue,+green,+yellow]'
     );
   });
 

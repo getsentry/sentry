@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
+import {createLoader, parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -11,7 +12,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRICS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/metrics/constants';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
@@ -25,6 +25,11 @@ import {
   useMetricsIssueSection,
   NUMBER_ABBREVIATED_METRICS,
 } from './useMetricsIssueSection';
+
+const metricsDrawerParser = parseAsBoolean.withDefault(false);
+const loadMetricsDrawerParam = createLoader({
+  [METRICS_DRAWER_QUERY_PARAM]: metricsDrawerParser,
+});
 
 export function MetricsSection({event}: {event: Event}) {
   const organization = useOrganization();
@@ -42,7 +47,7 @@ export function MetricsSection({event}: {event: Event}) {
   return (
     <LazyRender
       disabled={
-        location.query[METRICS_DRAWER_QUERY_PARAM] === 'true' ||
+        loadMetricsDrawerParam(location.search)[METRICS_DRAWER_QUERY_PARAM] ||
         location.hash === `#${SectionKey.METRICS}`
       }
       observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
@@ -57,8 +62,15 @@ export function MetricsSection({event}: {event: Event}) {
 
 function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}) {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const location = useLocation();
+  // GlobalDrawer closes from the router location, which nuqs values can lag behind.
+  const isDrawerInUrl = loadMetricsDrawerParam(location.search)[
+    METRICS_DRAWER_QUERY_PARAM
+  ];
+  const [, setIsDrawerInUrl] = useQueryState(
+    METRICS_DRAWER_QUERY_PARAM,
+    metricsDrawerParser
+  );
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const {result, error} = useMetricsIssueSection({traceId});
@@ -72,21 +84,11 @@ function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}
       organization,
     });
 
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [METRICS_DRAWER_QUERY_PARAM]: 'true',
-        },
-      },
-      {replace: true}
-    );
+    setIsDrawerInUrl(true);
   };
 
   useEffect(() => {
-    const shouldOpenDrawer = location.query[METRICS_DRAWER_QUERY_PARAM] === 'true';
-    if (shouldOpenDrawer) {
+    if (isDrawerInUrl) {
       openDrawer(
         () => (
           <TraceViewMetricsProviderWrapper traceSlug={traceId}>
@@ -96,27 +98,21 @@ function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}
         {
           ariaLabel: 'metrics drawer',
           drawerKey: 'metrics-issue-drawer',
+          shouldCloseOnLocationChange: nextLocation =>
+            !loadMetricsDrawerParam(nextLocation.search ?? '')[
+              METRICS_DRAWER_QUERY_PARAM
+            ],
           shouldCloseOnInteractOutside: element => {
             const viewAllButton = viewAllButtonRef.current;
             return !viewAllButton?.contains(element);
           },
           onClose: () => {
-            navigate(
-              {
-                ...location,
-                query: {
-                  ...location.query,
-                  [METRICS_DRAWER_QUERY_PARAM]: undefined,
-                },
-              },
-              {replace: true}
-            );
+            setIsDrawerInUrl(false);
           },
         }
       );
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [location.query, traceId, event, openDrawer, navigate, location]);
+  }, [isDrawerInUrl, traceId, event, openDrawer, setIsDrawerInUrl]);
 
   if (!result.data || result.data.length === 0 || error) {
     return null;

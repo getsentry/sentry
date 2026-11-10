@@ -1,13 +1,12 @@
 import {useEffect} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
 
 const issueTrackingFilterKey = 'issueTrackingFilter';
 
 export function useIssueTrackingFilter() {
-  const location = useLocation();
-  const issueTrackingQueryParam = location.query.issueTracking;
+  const [issueTrackingQueryParam] = useQueryState('issueTracking');
   const [issueTracking, setIssueTracking] = useLocalStorageState(
     issueTrackingFilterKey,
     'all'
@@ -17,7 +16,7 @@ export function useIssueTrackingFilter() {
     : issueTracking;
 
   useEffect(() => {
-    if (typeof issueTrackingQueryParam === 'string') {
+    if (issueTrackingQueryParam !== null) {
       setIssueTracking(issueTrackingQueryParam);
     }
   }, [issueTrackingQueryParam, setIssueTracking]);

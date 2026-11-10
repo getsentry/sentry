@@ -267,11 +267,6 @@
       "count": 1
     }
   },
-  "components/events/autofix/v3/codeChangesCard.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "components/events/breadcrumbs/breadcrumbsDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -504,15 +499,7 @@
       "count": 1
     }
   },
-  "components/events/metrics/metricsSection.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    }
-  },
   "components/events/ourlogs/ourlogsSection.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    },
     "@sentry/scraps/no-manual-table": {
       "count": 1
     }
@@ -617,11 +604,6 @@
   },
   "components/feedback/list/feedbackListItem.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
-  "components/feedback/summaryCategories/feedbackCategories.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -1033,16 +1015,6 @@
   "components/onboarding/gettingStartedDoc/step.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "components/onboarding/platformOptionDropdown.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "components/onboarding/platformOptionsControl.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
     }
   },
   "components/onboarding/scm/scmPlatformFeaturesCore.spec.tsx": {
@@ -1789,11 +1761,6 @@
       "count": 3
     }
   },
-  "components/tables/dataGrid/useQueryBasedColumnResize.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "components/tables/keyValueTable/keyValueTable.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -1864,11 +1831,6 @@
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "components/updatedEmptyState.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
     }
   },
   "components/version.spec.tsx": {

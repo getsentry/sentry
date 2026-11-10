@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSliders} from '@sentry/icons/sliders';
+import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
@@ -18,6 +19,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ProfileChunkAttachmentsButton} from './profileChunkAttachmentsButton';
 
+const continuousProfileParsers = {
+  end: parseAsString,
+  profilerId: parseAsString,
+  start: parseAsString,
+};
+
+const serializeContinuousProfileParams = createSerializer(continuousProfileParsers);
+
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;
   profileType: 'transaction profile' | 'continuous profile';
@@ -28,6 +37,7 @@ function FlamegraphOptionsMenu({
   profileType,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
   const location = useLocation();
+  const [{end, profilerId, start}] = useQueryStates(continuousProfileParsers);
   const organization = useOrganization();
   const {colorCoding} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
@@ -50,30 +60,16 @@ function FlamegraphOptionsMenu({
     });
   };
 
-  const continuousLocationDescriptor = useMemo(
-    () => {
-      if (
-        typeof location.query.start !== 'string' ||
-        typeof location.query.end !== 'string' ||
-        typeof location.query.profilerId !== 'string'
-      ) {
-        return null;
-      }
+  const continuousLocationDescriptor = useMemo(() => {
+    if (start === null || end === null || profilerId === null) {
+      return null;
+    }
 
-      return {
-        start: new Date(location.query.start).toISOString(),
-        end: new Date(location.query.end).toISOString(),
-      };
-    },
-    // DO NOT CHANGE THE DEPENDENCY LIST TO `[location.query]`
-    //
-    // Not 100% sure what's causing it yet but when interacting with the flamegraph,
-    // sometimes, the `location.query` reference changes non stop causing an
-    // Maximum update depth exceeded error.
-    //
-    // By depenending on the individual values, which are strings, this becomes stable.
-    [location.query.profilerId, location.query.start, location.query.end]
-  );
+    return {
+      start: new Date(start).toISOString(),
+      end: new Date(end).toISOString(),
+    };
+  }, [profilerId, start, end]);
 
   return (
     <Fragment>
@@ -99,13 +95,13 @@ function FlamegraphOptionsMenu({
       {continuousLocationDescriptor ? (
         <LinkButton
           to={{
-            ...location,
-            query: {
-              ...location.query,
+            pathname: location.pathname,
+            search: serializeContinuousProfileParams(location.search, {
               start: new Date(
                 new Date(continuousLocationDescriptor.start).getTime() - 30 * 60 * 1000
               ).toISOString(),
-            },
+            }),
+            hash: location.hash,
           }}
           size="xs"
           icon={<IconChevron direction="left" />}
@@ -116,13 +112,13 @@ function FlamegraphOptionsMenu({
       {continuousLocationDescriptor ? (
         <LinkButton
           to={{
-            ...location,
-            query: {
-              ...location.query,
+            pathname: location.pathname,
+            search: serializeContinuousProfileParams(location.search, {
               end: new Date(
                 new Date(continuousLocationDescriptor.end).getTime() + 30 * 60 * 1000
               ).toISOString(),
-            },
+            }),
+            hash: location.hash,
           }}
           size="xs"
           icon={<IconChevron direction="right" />}

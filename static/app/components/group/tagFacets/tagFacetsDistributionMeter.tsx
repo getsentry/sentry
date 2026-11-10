@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
+import {createSerializer, parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Container} from '@sentry/scraps/layout';
@@ -19,6 +20,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {appendExcludeTagValuesCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const serializeQuery = createSerializer({query: parseAsString});
 
 const MAX_SEGMENTS = 4;
 const TOOLTIP_DELAY = 800;
@@ -39,6 +42,7 @@ export function TagFacetsDistributionMeter({
   const theme = useTheme();
   const colors = theme.chart.getColorPalette(4);
   const location = useLocation();
+  const [currentQuery] = useQueryState('query');
   const organization = useOrganization();
   const [expanded, setExpanded] = useState(!!expandByDefault);
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
@@ -48,13 +52,14 @@ export function TagFacetsDistributionMeter({
   const hasOther = totalVisible < totalValues;
 
   const query = appendExcludeTagValuesCondition(
-    location.query.query,
+    currentQuery,
     title,
     topSegments.map(({value}) => value)
   );
   const excludeTopSegmentsUrl: LocationDescriptor = {
-    ...location,
-    query: {...location.query, query},
+    pathname: location.pathname,
+    search: serializeQuery(location.search, {query}),
+    hash: location.hash,
   };
 
   if (hasOther) {

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {IconSearch} from '@sentry/icons/search';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -23,7 +24,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -68,7 +68,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       },
     })
   );
-  const location = useLocation();
+  const [sort] = useQueryState('sort');
 
   // issue list params we want to preserve in the search
   const queryParams = useMemo(
@@ -78,9 +78,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       statsPeriod: eventView.statsPeriod,
       project: eventView.project,
       environment: eventView.environment,
-      sort: location.query.sort,
+      sort: sort ?? undefined,
     }),
-    [location.query, eventView]
+    [sort, eventView]
   );
 
   const generateAction = useCallback(

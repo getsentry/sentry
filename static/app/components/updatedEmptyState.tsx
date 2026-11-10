@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import {parseAsInteger, useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
 import {useShallow} from 'zustand/react/shallow';
 
@@ -16,11 +17,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GuidedSteps} from './guidedSteps/guidedSteps';
@@ -85,8 +83,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const theme = useTheme();
   const api = useApi();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -212,15 +209,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             <Container padding="3xl">
               <SetupTitle project={project} />
               <GuidedSteps
-                initialStep={decodeInteger(location.query.guidedStep)}
+                initialStep={guidedStep ?? undefined}
                 onStepChange={step => {
-                  navigate({
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      guidedStep: step,
-                    },
-                  });
+                  setGuidedStep(step, {history: 'push'});
                 }}
               >
                 {steps.map((step, index) => {

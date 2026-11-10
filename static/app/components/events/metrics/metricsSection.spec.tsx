@@ -8,6 +8,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  waitForDrawerToHide,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -317,14 +318,83 @@ describe('MetricsSection', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'View more'}));
 
-    const aside = screen.getByRole('complementary', {name: 'metrics drawer'});
+    const aside = await screen.findByRole('complementary', {name: 'metrics drawer'});
     expect(aside).toBeInTheDocument();
 
     // Check that the drawer contains the expected elements
-    expect(within(aside).getByText('Application Metrics')).toBeInTheDocument();
+    expect(await within(aside).findByText('Application Metrics')).toBeInTheDocument();
     expect(
       within(aside).getByPlaceholderText('Search application metrics for this trace')
     ).toBeInTheDocument();
+  });
+
+  it('keeps the drawer open after writing it to the URL and removes it on close', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: Array.from({length: 10}, (_, i) => ({
+          [TraceMetricKnownFieldKey.ID]: `metric-${i}`,
+          [TraceMetricKnownFieldKey.PROJECT_ID]: project.id,
+          [TraceMetricKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+          [TraceMetricKnownFieldKey.TRACE]: TRACE_ID,
+          [TraceMetricKnownFieldKey.METRIC_NAME]: `metric.name.${i}`,
+          [TraceMetricKnownFieldKey.METRIC_TYPE]: 'counter',
+          [TraceMetricKnownFieldKey.METRIC_VALUE]: i * 10,
+          [TraceMetricKnownFieldKey.TIMESTAMP]: '2025-01-01T12:00:00.000Z',
+        })),
+        meta: {fields: {}, units: {}},
+      },
+    });
+
+    const {router} = render(<MetricsSection event={event} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+          query: {project: project.id},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'View more'}));
+    await waitFor(() => expect(router.location.query.metricsDrawer).toBe('true'));
+    expect(router.historyAction).toBe('REPLACE');
+    expect(
+      await screen.findByRole('complementary', {name: 'metrics drawer'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => expect(router.location.query).toEqual({project: project.id}));
+    expect(
+      screen.queryByRole('complementary', {name: 'metrics drawer'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the drawer through unrelated navigation and closes it when metricsDrawer is dropped', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [], meta: {fields: {}, units: {}}},
+    });
+    const pathname = `/organizations/${organization.slug}/issues/${group.id}/`;
+
+    const {router} = render(<MetricsSection event={event} />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname, query: {project: project.id, metricsDrawer: 'true'}},
+      },
+    });
+    expect(
+      await screen.findByRole('complementary', {name: 'metrics drawer'})
+    ).toBeInTheDocument();
+
+    router.navigate(`${pathname}?project=${project.id}&metricsDrawer=true&cursor=1`);
+    expect(
+      screen.getByRole('complementary', {name: 'metrics drawer'})
+    ).toBeInTheDocument();
+
+    router.navigate(`${pathname}?project=${project.id}`);
+    await waitForDrawerToHide('metrics drawer');
   });
 
   it('does not show view more button when there are 5 or fewer metrics', async () => {

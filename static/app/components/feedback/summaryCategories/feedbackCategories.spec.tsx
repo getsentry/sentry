@@ -164,6 +164,35 @@ describe('FeedbackCategories', () => {
       );
     });
 
+    it('pushes the new query and drops the cursor when a category is clicked', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/feedback-categories/',
+        body: {
+          categories: mockCategories,
+          numFeedbacksContext: 35,
+          success: true,
+        },
+      });
+
+      const {router} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/test',
+            query: {query: 'is:unresolved', cursor: '0:25:0', mailbox: 'ignored'},
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByText('Performance'));
+
+      expect(router.historyAction).toBe('PUSH');
+      expect(router.location.query).toEqual({
+        query: expect.stringMatching(/^is:unresolved ai_categorization\.labels:/),
+        mailbox: 'ignored',
+      });
+    });
+
     it('removes filter when selected category is clicked again', async () => {
       const initialQuery = `ai_categorization.labels:${WildcardOperators.CONTAINS}["\\"Design\\"","\\"UI\\"","\\"User Interface\\""]`;
 
