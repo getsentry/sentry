@@ -52,14 +52,14 @@ export function MailboxPicker({onChange, value}: Props) {
   };
 
   const MAILBOXES = [
-    {key: 'unresolved', label: t('Inbox')},
-    {key: 'resolved', label: t('Resolved')},
+    {key: 'unresolved', label: t('Inbox'), tooltip: undefined},
+    {key: 'resolved', label: t('Resolved'), tooltip: undefined},
     {
       key: 'ignored',
       label: t('Spam'),
       tooltip: getSpamTooltip(),
     },
-  ];
+  ] as const;
 
   const filteredMailboxes = MAILBOXES;
 
@@ -72,7 +72,6 @@ export function MailboxPicker({onChange, value}: Props) {
         onChange={onChange}
       >
         {filteredMailboxes.map(mailbox => {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           const count = data?.[mailbox.key];
           const display = count && count >= 100 ? '99+' : count;
           const title =
