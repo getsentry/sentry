@@ -4,7 +4,11 @@ from unittest.mock import MagicMock, patch
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
-from sentry.middleware.ai_agent import AIAgentMiddleware, _accepts_markdown
+from sentry.middleware.ai_agent import (
+    AIAgentMiddleware,
+    _accepts_markdown,
+    _build_cli_mcp_args,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -34,6 +38,17 @@ class AcceptsMarkdownTest(TestCase):
         assert _accepts_markdown(request) is True
 
 
+class CliMcpArgsTest(TestCase):
+    def test_scoped_to_org(self) -> None:
+        assert _build_cli_mcp_args("my-org", None) == ["mcp", "my-org/"]
+
+    def test_scoped_to_project(self) -> None:
+        assert _build_cli_mcp_args("my-org", "my-project") == ["mcp", "my-org/my-project"]
+
+    def test_unscoped_without_org(self) -> None:
+        assert _build_cli_mcp_args(None, None) == ["mcp"]
+
+
 class AIAgentMiddlewareTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -59,6 +74,21 @@ class AIAgentMiddlewareTest(TestCase):
         assert "# Sentry" in content
         assert "https://mcp.sentry.dev/mcp/test-org" in content
 
+    def test_cli_mcp_is_listed_before_remote_mcp(self) -> None:
+        request = self.make_anonymous_request(
+            "/organizations/test-org/issues/", HTTP_ACCEPT="text/markdown"
+        )
+
+        content = self.middleware(request).content.decode()
+
+        assert "curl https://cli.sentry.dev/install -fsS | bash" in content
+        assert "sentry auth login" in content
+        assert "claude mcp add sentry -- sentry mcp test-org/\n" in content
+        assert '"command": "sentry"' in content
+        assert content.index("## MCP Server via the Sentry CLI (recommended)") < content.index(
+            "## Remote MCP Server"
+        )
+
     def test_includes_project_in_mcp_url(self) -> None:
         request = self.make_anonymous_request(
             "/organizations/my-org/projects/my-project/", HTTP_ACCEPT="text/markdown"
@@ -67,7 +97,9 @@ class AIAgentMiddlewareTest(TestCase):
         response = self.middleware(request)
 
         assert response.status_code == 200
-        assert "https://mcp.sentry.dev/mcp/my-org/my-project" in response.content.decode()
+        content = response.content.decode()
+        assert "https://mcp.sentry.dev/mcp/my-org/my-project" in content
+        assert "claude mcp add sentry -- sentry mcp my-org/my-project\n" in content
 
     def test_base_mcp_url_without_org_context(self) -> None:
         request = self.make_anonymous_request("/settings/", HTTP_ACCEPT="text/markdown")
@@ -75,7 +107,9 @@ class AIAgentMiddlewareTest(TestCase):
         response = self.middleware(request)
 
         assert response.status_code == 200
-        assert "https://mcp.sentry.dev/mcp" in response.content.decode()
+        content = response.content.decode()
+        assert "https://mcp.sentry.dev/mcp" in content
+        assert "claude mcp add sentry -- sentry mcp\n" in content
 
     def test_authenticated_user_passes_through(self) -> None:
         request = self.factory.get("/organizations/test-org/", HTTP_ACCEPT="text/markdown")

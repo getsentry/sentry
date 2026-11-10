@@ -13,8 +13,27 @@ logger = logging.getLogger(__name__)
 PATH_PATTERN = re.compile(r"^/organizations/([^/]+)/(?:projects/([^/]+)/)?")
 
 
-def _build_mcp_config(org_slug: str | None, project_slug: str | None) -> dict[str, Any]:
-    """Build the MCP server configuration object."""
+def _build_cli_mcp_args(org_slug: str | None, project_slug: str | None) -> list[str]:
+    """Build `sentry mcp` args, scoped with an `<org>/` or `<org>/<project>` target."""
+    if not org_slug:
+        return ["mcp"]
+    return ["mcp", f"{org_slug}/{project_slug or ''}"]
+
+
+def _build_cli_mcp_config(args: list[str]) -> dict[str, Any]:
+    """Build the stdio MCP server configuration that runs the Sentry CLI."""
+    return {
+        "mcpServers": {
+            "sentry": {
+                "command": "sentry",
+                "args": args,
+            }
+        }
+    }
+
+
+def _build_remote_mcp_config(org_slug: str | None, project_slug: str | None) -> dict[str, Any]:
+    """Build the remote (HTTP + OAuth) MCP server configuration."""
     path_segments = ["https://mcp.sentry.dev/mcp"]
     if org_slug:
         path_segments.append(org_slug)
@@ -41,8 +60,10 @@ def _build_ai_agent_guidance(request: HttpRequest) -> str:
     """Build context-aware guidance based on the request path."""
     org_slug, project_slug = _extract_org_project_from_path(request.path)
 
-    mcp_config = _build_mcp_config(org_slug, project_slug)
-    mcp_config_json = json.dumps(mcp_config, indent=2)
+    cli_mcp_args = _build_cli_mcp_args(org_slug, project_slug)
+    mcp_command = " ".join(["sentry", *cli_mcp_args])
+    cli_config_json = json.dumps(_build_cli_mcp_config(cli_mcp_args), indent=2)
+    remote_config_json = json.dumps(_build_remote_mcp_config(org_slug, project_slug), indent=2)
 
     return f"""\
 # Sentry
@@ -50,22 +71,37 @@ def _build_ai_agent_guidance(request: HttpRequest) -> str:
 You've hit the web UI. It's HTML meant for humans, not machines.
 Here's what you actually want:
 
-## MCP Server (recommended)
+## MCP Server via the Sentry CLI (recommended)
 
 The fastest way to give your agent structured access to Sentry.
-OAuth-authenticated, HTTP streaming, no HTML parsing required.
+Install the CLI, log in once, then register `sentry mcp` as a stdio MCP server.
+It uses the CLI login, so the MCP config needs no token.
+
+```bash
+curl https://cli.sentry.dev/install -fsS | bash
+sentry auth login
+claude mcp add sentry -- {mcp_command}
+```
+
+Other MCP clients take the same command:
 
 ```json
-{mcp_config_json}
+{cli_config_json}
+```
+
+The CLI also queries issues and analyzes errors straight from the terminal.
+
+Docs: https://cli.sentry.dev
+
+## Remote MCP Server
+
+No install needed: connect over HTTP and authenticate with OAuth.
+
+```json
+{remote_config_json}
 ```
 
 Docs: https://mcp.sentry.dev
-
-## CLI
-
-Query issues and analyze errors from the terminal.
-
-https://cli.sentry.dev
 
 ## REST API
 
