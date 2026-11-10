@@ -1,8 +1,9 @@
 from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import CodingAgentProviderType
@@ -172,7 +173,7 @@ class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
         """Called when the investigation failed to start."""
         ...
 
-    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+    def on_trigger_investigation_success(self, *, investigation: Notebook) -> None:
         """Called when a new investigation was created."""
         ...
 

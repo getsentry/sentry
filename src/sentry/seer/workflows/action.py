@@ -32,8 +32,7 @@ class SeerWorkflowActionHandler(ActionHandler):
     @override
     def execute(invocation: ActionInvocation) -> None:
         event = invocation.event_data.event
-        state = invocation.event_data.group_state
-        if not isinstance(event, GroupEvent) or state is None or not state["is_new"]:
+        if not isinstance(event, GroupEvent):
             return
         group = invocation.event_data.group
         extra: dict[str, object] = {
@@ -44,20 +43,18 @@ class SeerWorkflowActionHandler(ActionHandler):
             "workflow_id": invocation.workflow_id,
             "action_id": invocation.action.id,
         }
-        binding = (
-            SeerWorkflowTriggerBinding.objects.filter(
-                workflow_config__organization_id=group.project.organization_id,
-                trigger_action=invocation.action,
-            )
-            .select_related("workflow_config")
-            .first()
-        )
+        binding = SeerWorkflowTriggerBinding.objects.filter(
+            workflow_config__organization_id=group.project.organization_id,
+            trigger_action=invocation.action,
+        ).first()
         if binding is None:
             _record_trigger_outcome("ignored", extra, reason="missing_binding")
             return
 
         extra.update(workflow_config_id=binding.workflow_config_id, binding_id=binding.id)
-        admission = BreachedMetricWorkflow(binding.workflow_config).accept(
+        admission = BreachedMetricWorkflow(
+            config_id=binding.workflow_config_id, organization_id=group.project.organization_id
+        ).accept(
             group,
             event,
             binding=binding,

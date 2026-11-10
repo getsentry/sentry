@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -27,12 +29,14 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_simple_perf(self) -> None:
         event = self.create_performance_issue(
-            tags=[["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]],
+            tags=cast(
+                "dict[str, Any]", [["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]]
+            ),
             fingerprint="group1",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
         self.create_performance_issue(
-            tags=[["foo", "guux"], ["sentry:release", "releaseme"]],
+            tags=cast("dict[str, Any]", [["foo", "guux"], ["sentry:release", "releaseme"]]),
             fingerprint="group1",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
@@ -66,6 +70,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 

@@ -11,10 +11,6 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, register
 from sentry.auth.access import Access
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationActionRequestAnchorType,
-    InvestigationBlock,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRerun,
@@ -27,6 +23,12 @@ from sentry.investigations.services.action_kinds import (
 )
 from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
 from sentry.investigations.services.orchestration import follow_up_can_be_retried
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookActionRequestAnchorType,
+    NotebookBlock,
+)
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -87,14 +89,14 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     dateCreated: datetime
 
 
-@register(InvestigationActionRequest)
+@register(NotebookActionRequest)
 class InvestigationActionRequestSerializer(
     Serializer[InvestigationActionRequestSerializerResponse]
 ):
     def __init__(
         self,
         access: Access | None = None,
-        investigations: Sequence[Investigation] | None = None,
+        investigations: Sequence[Notebook] | None = None,
         **kwargs: Any,
     ) -> None:
         self.access = access
@@ -103,25 +105,25 @@ class InvestigationActionRequestSerializer(
 
     def _cannot_apply_reasons(
         self,
-        item_list: Sequence[InvestigationActionRequest],
+        item_list: Sequence[NotebookActionRequest],
         user: User | RpcUser | AnonymousUser,
     ) -> dict[int, CannotApplyReason | None]:
-        investigation_ids = {item.investigation_id for item in item_list}
+        investigation_ids = {item.notebook_id for item in item_list}
         investigations = {
             investigation.id: investigation
             for investigation in (
                 self.investigations
                 if self.investigations is not None
-                else Investigation.objects.filter(id__in=investigation_ids).select_related(
+                else Notebook.objects.filter(id__in=investigation_ids).select_related(
                     "organization"
                 )
             )
         }
         access = self.access
         reasons: dict[int, CannotApplyReason | None] = {}
-        by_kind: dict[str, list[InvestigationActionRequest]] = defaultdict(list)
+        by_kind: dict[str, list[NotebookActionRequest]] = defaultdict(list)
         for item in item_list:
-            reason = shared_cannot_apply_reason(investigations[item.investigation_id], item)
+            reason = shared_cannot_apply_reason(investigations[item.notebook_id], item)
             if reason is not None:
                 reasons[item.id] = reason
             elif access is None:
@@ -141,27 +143,27 @@ class InvestigationActionRequestSerializer(
         return reasons
 
     def _anchored_block_ids(
-        self, item_list: Sequence[InvestigationActionRequest]
+        self, item_list: Sequence[NotebookActionRequest]
     ) -> dict[tuple[int, str], str]:
         keys = {
             item.anchor_id
             for item in item_list
-            if item.anchor_type == InvestigationActionRequestAnchorType.BLOCK and item.anchor_id
+            if item.anchor_type == NotebookActionRequestAnchorType.BLOCK and item.anchor_id
         }
         if not keys:
             return {}
         return {
             (investigation_id, key): str(block_id)
-            for investigation_id, key, block_id in InvestigationBlock.objects.filter(
-                investigation_id__in={item.investigation_id for item in item_list},
-                stable_agent_key__in=keys,
+            for investigation_id, key, block_id in NotebookBlock.objects.filter(
+                notebook_id__in={item.notebook_id for item in item_list},
+                producer_key__in=keys,
                 deleted_at__isnull=True,
-            ).values_list("investigation_id", "stable_agent_key", "id")
+            ).values_list("notebook_id", "producer_key", "id")
             if key is not None
         }
 
     def _follow_ups(
-        self, item_list: Sequence[InvestigationActionRequest]
+        self, item_list: Sequence[NotebookActionRequest]
     ) -> dict[tuple[int, UUID], InvestigationActionRequestFollowUpResponse]:
         request_ids = {
             item.followup_request_id for item in item_list if item.followup_request_id is not None
@@ -179,7 +181,7 @@ class InvestigationActionRequestSerializer(
             for investigation_id, request_id, command_type, status, error, rerun in (
                 InvestigationOrchestrationCommand.objects.filter(
                     orchestration_run__investigation_id__in={
-                        item.investigation_id for item in item_list
+                        item.notebook_id for item in item_list
                     },
                     request_id__in=request_ids,
                 ).values_list(
@@ -196,10 +198,10 @@ class InvestigationActionRequestSerializer(
     @override
     def get_attrs(
         self,
-        item_list: Sequence[InvestigationActionRequest],
+        item_list: Sequence[NotebookActionRequest],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[InvestigationActionRequest, dict[str, Any]]:
+    ) -> MutableMapping[NotebookActionRequest, dict[str, Any]]:
         reasons = self._cannot_apply_reasons(item_list, user)
         anchored_blocks = self._anchored_block_ids(item_list)
         follow_ups = self._follow_ups(item_list)
@@ -218,13 +220,13 @@ class InvestigationActionRequestSerializer(
             item: {
                 "cannot_apply_reason": reasons.get(item.id, CannotApplyReason.UNSUPPORTED_ACTION),
                 "block_id": (
-                    anchored_blocks.get((item.investigation_id, item.anchor_id or ""))
-                    if item.anchor_type == InvestigationActionRequestAnchorType.BLOCK
+                    anchored_blocks.get((item.notebook_id, item.anchor_id or ""))
+                    if item.anchor_type == NotebookActionRequestAnchorType.BLOCK
                     else None
                 ),
                 "applied_by": appliers.get(str(item.applied_by_id)),
                 "follow_up": (
-                    follow_ups.get((item.investigation_id, item.followup_request_id))
+                    follow_ups.get((item.notebook_id, item.followup_request_id))
                     if item.followup_request_id is not None
                     else None
                 ),
@@ -235,7 +237,7 @@ class InvestigationActionRequestSerializer(
     @override
     def serialize(
         self,
-        obj: InvestigationActionRequest,
+        obj: NotebookActionRequest,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -243,7 +245,7 @@ class InvestigationActionRequestSerializer(
         return {
             "id": str(obj.id),
             "key": obj.key,
-            "reportRevision": obj.report_revision,
+            "reportRevision": obj.producer_revision,
             "primary": obj.primary,
             "anchor": (
                 {"type": obj.anchor_type, "id": obj.anchor_id, "blockId": attrs["block_id"]}

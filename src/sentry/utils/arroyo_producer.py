@@ -5,6 +5,7 @@ import os
 import threading
 from collections import deque
 from collections.abc import Callable
+from typing import TypedDict, Unpack
 
 from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import (
@@ -22,6 +23,10 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 _ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
+
+
+class _KafkaProducerKwargs(TypedDict, total=False):
+    use_simple_futures: bool
 
 
 class SingletonProducer:
@@ -101,9 +106,9 @@ class SingletonProducer:
 def get_arroyo_producer(
     name: str,
     topic: Topic | str,
-    additional_config: dict | None = None,
+    additional_config: dict[str, object] | None = None,
     exclude_config_keys: list[str] | None = None,
-    **kafka_producer_kwargs,
+    **kafka_producer_kwargs: Unpack[_KafkaProducerKwargs],
 ) -> KafkaProducer:
     """
     Get an arroyo producer for a given topic.

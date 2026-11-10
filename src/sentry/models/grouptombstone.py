@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import cast
 
 from django.db import models
 from django.utils import timezone
@@ -35,7 +35,7 @@ class GroupTombstone(Model):
     )
     message = models.TextField()
     culprit = models.CharField(max_length=MAX_CULPRIT_LENGTH, blank=True, null=True)
-    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+    data: models.Field[dict[str, object] | None, dict[str, object] | None] = GzippedDictField(
         blank=True, null=True
     )
     actor_id = BoundedPositiveIntegerField(null=True)
@@ -46,18 +46,18 @@ class GroupTombstone(Model):
         app_label = "sentry"
         db_table = "sentry_grouptombstone"
 
-    def get_event_type(self):
+    def get_event_type(self) -> str:
         """
         Return the type of this issue.
 
         See ``sentry.eventtypes``.
         """
-        return self.data.get("type", "default")
+        return cast(dict[str, str], self.data).get("type", "default")
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> dict[str, object]:
         """
         Return the metadata of this issue.
 
         See ``sentry.eventtypes``.
         """
-        return self.data["metadata"]
+        return cast(dict[str, dict[str, object]], self.data)["metadata"]

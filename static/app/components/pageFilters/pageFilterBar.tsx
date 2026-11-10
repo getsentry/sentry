@@ -10,6 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 // and not just for PageFilters as the name indicates.
 interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
   condensed?: boolean;
+  size?: keyof Theme['form'];
 }
 
 export const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
@@ -24,7 +25,13 @@ export const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) =
   );
 })``;
 
-const StyledPageFilterBar = styled(Flex)<{listSize: number; condensed?: boolean}>`
+const StyledPageFilterBar = styled(Flex, {
+  shouldForwardProp: prop => prop !== 'size',
+})<{
+  listSize: number;
+  condensed?: boolean;
+  size?: PageFilterBarProps['size'];
+}>`
   ${p => pageFilterBarStyles(p)};
 `;
 
@@ -43,6 +50,7 @@ const pageFilterBarStyles = (p: {
   listSize: number;
   theme: Theme;
   condensed?: boolean;
+  size?: PageFilterBarProps['size'];
 }) => css`
   /* No idea what this is supposed to style, but I am afraid to remove it */
   & > *:hover::after,
@@ -82,7 +90,7 @@ except in mobile */
     `
   }
 
-  height: ${p.theme.form.md.height};
+  height: ${p.theme.form[p.size ?? 'md'].height};
 
   & button[aria-haspopup] {
     height: 100%;

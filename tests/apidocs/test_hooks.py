@@ -32,11 +32,16 @@ from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
 @pytest.mark.django_db
 def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     with patched_settings({"PREPROCESSING_HOOKS": []}):
-        endpoints = CustomEndpointEnumerator().get_api_endpoints()
+        endpoints = CustomEndpointEnumerator().collect_endpoints()
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(
-        path.startswith("/api/0/organizations/{organization_id_or_slug}/investigations/")
+        path.startswith(
+            (
+                "/api/0/organizations/{organization_id_or_slug}/investigations/",
+                "/api/0/organizations/{organization_id_or_slug}/notebooks/",
+            )
+        )
         for path, _regex, _method, _callback in selected
     )
     assert all(
@@ -185,7 +190,7 @@ class IdempotentOperationsTest(TestCase):
         _OPERATION_SILOS.clear()
 
     def _endpoints(
-        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str]
+        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str] | None
     ) -> list[tuple[Any, Any, str, Any]]:
         view_class = type(
             "FakeEndpoint",
@@ -260,6 +265,24 @@ class IdempotentOperationsTest(TestCase):
 
         with pytest.raises(SentryApiBuildError, match="does not implement"):
             custom_preprocessing_hook(endpoints)
+
+    def test_published_write_without_declaration_raises(self, _write_ownership: Any) -> None:
+        endpoints = self._endpoints("/api/0/assemble/", {"POST": ApiPublishStatus.PUBLIC}, None)
+
+        with pytest.raises(SentryApiBuildError, match="does not declare idempotent_methods"):
+            custom_preprocessing_hook(endpoints)
+
+    def test_undeclared_reads_and_private_writes_are_allowed(self, _write_ownership: Any) -> None:
+        filtered = custom_preprocessing_hook(
+            self._endpoints(
+                "/api/0/assemble/",
+                {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE},
+                None,
+            )
+        )
+
+        assert [method for _, _, method, _ in filtered] == ["GET"]
+        assert _IDEMPOTENT_OPERATIONS == set()
 
     def test_safe_method_raises(self, _write_ownership: Any) -> None:
         endpoints = self._endpoints(
@@ -427,6 +450,37 @@ class FixIssueRoutesTest(TestCase):
             "components": {"schemas": {}},
         }
         assert custom_postprocessing_hook(BEFORE, None) == AFTER
+
+    def test_shared_issue_route_fixes(self) -> None:
+        operation = {
+            "tags": ["Events"],
+            "description": "Get a shared issue",
+            "operationId": "get shared issue",
+            "parameters": [
+                {
+                    "in": "path",
+                    "name": "var",
+                    "schema": {"type": "string"},
+                    "description": "Issues or groups",
+                    "required": True,
+                },
+            ],
+        }
+        BEFORE = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/organizations/{organization_id_or_slug}/shared/{var}/{share_id}/": {
+                    "get": operation
+                },
+            },
+        }
+
+        result = custom_postprocessing_hook(BEFORE, None)
+
+        assert list(result["paths"]) == [
+            "/api/0/organizations/{organization_id_or_slug}/shared/issues/{share_id}/"
+        ]
+        assert next(iter(result["paths"].values()))["get"]["parameters"] == []
 
 
 class UnannotatedRoutingEndpoint(Endpoint):

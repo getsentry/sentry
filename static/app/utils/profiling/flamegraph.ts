@@ -1,11 +1,11 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
+import type {ProfilingFormatterUnit} from './units/units';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
+import type {FlamegraphFrame} from './flamegraphFrame';
 import {Frame} from './frame';
 import {Rect} from './speedscope';
 

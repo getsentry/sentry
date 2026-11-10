@@ -1,10 +1,8 @@
 import type {Group} from 'sentry/types/group';
-import type {Action} from 'sentry/types/workflowEngine/actions';
-import type {
-  DataCondition,
-  DataConditionGroup,
-} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+
+import type {Action} from './actions';
+import type {DataCondition, DataConditionGroup} from './dataConditions';
+import type {Detector} from './detectors';
 
 export type NewAutomationAction = Omit<Action, 'id'>;
 export type NewAutomationDataCondition = Omit<DataCondition, 'id'>;
@@ -52,7 +50,6 @@ export interface AlertPreviewResponse {
 
 export interface AutomationFireHistory {
   count: number;
-  eventId: string;
   group: Group;
   lastTriggered: string;
   detector?: Detector;

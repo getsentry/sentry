@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Final, Literal, Protocol, override, runtime_checkable
+from typing import Any, ClassVar, Final, Literal, Protocol, cast, override, runtime_checkable
 
 
 class _Missing:
@@ -20,10 +20,8 @@ class _Missing:
 _MISSING = _Missing()
 
 
-class DerivedDataError(ValueError):
+class DerivedDataError(Exception):
     """A codec or aggregator failed; the original exception is chained as its cause."""
-
-    # Preserve compatibility with readers catching ValueError during rollout.
 
     def __init__(
         self,
@@ -210,7 +208,7 @@ class Feature[T]:
         self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
-        self._codec = codec or IDENTITY_CODEC
+        self._codec: Codec[T] = codec or cast("Codec[T]", IDENTITY_CODEC)
         self._hash = hash((name, version))
 
     @property

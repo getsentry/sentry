@@ -2,7 +2,8 @@ import {createContext, useContext, useMemo, type ReactNode} from 'react';
 
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
+import {GroupIdProvider} from './groupIdContext';
 
 interface GroupDataContextValue {
   group: Group;

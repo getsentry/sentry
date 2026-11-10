@@ -48,7 +48,7 @@ CONFIG_REPAIR_MAX_TASKS = 1000
     namespace=uptime_tasks,
     retry=Retry(times=5, delay=5),
 )
-def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+def create_remote_uptime_subscription(uptime_subscription_id: int, **kwargs: object) -> None:
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
@@ -74,8 +74,8 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     retry=Retry(times=5, delay=5),
 )
 def update_remote_uptime_subscription(
-    uptime_subscription_id: int, region_slugs: list[str] | None = None, **kwargs
-):
+    uptime_subscription_id: int, region_slugs: list[str] | None = None, **kwargs: object
+) -> None:
     """
     Pushes details of an uptime subscription to uptime subscription regions. When
     ``region_slugs`` is given, only those regions are pushed to.
@@ -120,7 +120,7 @@ def update_remote_uptime_subscription(
     namespace=uptime_tasks,
     retry=Retry(times=5, delay=5),
 )
-def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+def delete_remote_uptime_subscription(uptime_subscription_id: int, **kwargs: object) -> None:
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
@@ -147,7 +147,7 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
 
 def send_uptime_subscription_config(
     region: UptimeSubscriptionRegion, subscription: UptimeSubscription
-):
+) -> None:
     if subscription.subscription_id is None:
         subscription.subscription_id = uuid4().hex
     produce_config(
@@ -191,7 +191,7 @@ def send_uptime_config_deletion(destination_region_slug: str, subscription_id: s
     name="sentry.uptime.tasks.subscription_checker",
     namespace=uptime_tasks,
 )
-def subscription_checker(**kwargs):
+def subscription_checker(**kwargs: object) -> None:
     """
     Checks for subscriptions stuck in a transition status and attempts to repair them. This
     typically happens when we had some kind of error running the task the first time around.
@@ -221,7 +221,7 @@ def subscription_checker(**kwargs):
     name="sentry.uptime.tasks.broken_monitor_checker",
     namespace=uptime_tasks,
 )
-def broken_monitor_checker(**kwargs):
+def broken_monitor_checker(**kwargs: object) -> None:
     """
     This checks for auto created uptime monitors that have been broken for a long time and disables them.
     """
@@ -267,7 +267,7 @@ def broken_monitor_checker(**kwargs):
     namespace=uptime_tasks,
     processing_deadline_duration=60,
 )
-def config_drift_dispatcher(**kwargs):
+def config_drift_dispatcher(**kwargs: object) -> None:
     """
     Fans out this hour's slice of the Redis/Postgres config drift sweep; see sweep_slice for
     how a slice is chosen.
@@ -314,7 +314,9 @@ def _find_store(cluster: str, key_prefix: str) -> ConfigStore | None:
     expires=SWEEP_RUN_INTERVAL,
     retry=Retry(times=3, delay=120, on=(Exception, ProcessingDeadlineExceeded)),
 )
-def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix: str, **kwargs):
+def check_missing_configs(
+    subscription_id_prefix: str, cluster: str, key_prefix: str, **kwargs: object
+) -> None:
     """
     Postgres → Redis direction of the drift sweep: for ACTIVE subscriptions in this
     subscription_id prefix, count those whose config is absent from one store, and
@@ -348,7 +350,7 @@ def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix:
     expires=SWEEP_RUN_INTERVAL,
     retry=Retry(times=3, delay=120, on=(Exception, ProcessingDeadlineExceeded)),
 )
-def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwargs):
+def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwargs: object) -> None:
     """
     Redis → Postgres direction of the drift sweep: for one config partition in one store,
     count configs that no ACTIVE, CREATING or UPDATING subscription owns in a region served

@@ -1,14 +1,12 @@
 import {useCallback} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {deleteMonitorProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import type {Organization} from 'sentry/types/organization';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {makeMonitorErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
-import type {
-  CheckinProcessingError,
-  ProcessingErrorType,
-} from 'sentry/views/insights/crons/types';
+
+import {monitorErrorsApiOptions} from './components/processingErrors/utils';
+import type {ProcessingErrorType} from './types';
 
 interface UseMonitorProcessingErrorsOptions {
   monitorSlug: string;
@@ -23,9 +21,8 @@ export function useMonitorProcessingErrors({
 }: UseMonitorProcessingErrorsOptions) {
   const api = useApi();
 
-  const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
-    CheckinProcessingError[]
-  >(makeMonitorErrorsQueryKey(organization, projectId, monitorSlug), {
+  const {data: checkinErrors, refetch: refetchErrors} = useQuery({
+    ...monitorErrorsApiOptions(organization, projectId, monitorSlug),
     staleTime: 0,
     refetchOnWindowFocus: true,
   });

@@ -180,6 +180,20 @@ describe('IssuePreviewAutofixSummary', () => {
                 },
               }),
               ExplorerAutofixBlockFixture({
+                id: 'placeholder',
+                artifacts: undefined,
+                message: {content: '.', role: 'assistant'},
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'thinking-with-placeholder',
+                artifacts: undefined,
+                message: {
+                  content: ' . \n',
+                  thinking_content: 'Reviewing the serializer...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
                 id: 'thinking',
                 artifacts: undefined,
                 message: {
@@ -200,6 +214,8 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(within(rootCause).getByText('Generating root cause...')).toBeInTheDocument();
     expect(within(rootCause).getByText('Inspecting the event context...')).toBeVisible();
     expect(within(rootCause).getByText('Tracing the failing request...')).toBeVisible();
+    expect(within(rootCause).getByText('Reviewing the serializer...')).toBeVisible();
+    expect(within(rootCause).queryByText('.')).not.toBeInTheDocument();
     expect(within(rootCause).queryByText('Thinking...')).not.toBeInTheDocument();
     expect(
       within(rootCause).queryByText('Start the root cause analysis')

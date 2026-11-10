@@ -6,11 +6,13 @@ from social_auth.models import UserSocialAuth
 _User = UserSocialAuth.user_model()
 
 if hasattr(_User, "USERNAME_FIELD"):
-    username_field = _User.USERNAME_FIELD
+    username_field: str | None = _User.USERNAME_FIELD
 elif hasattr(_User, "username"):
     username_field = "username"
 else:
     username_field = None
+
+assert username_field is not None
 
 fieldnames = ("first_name", "last_name", "email") + (username_field,)
 all_names = get_all_field_names(_User)

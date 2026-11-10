@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from sentry.utils.cache import cache
 
@@ -44,11 +44,14 @@ class SlackSeerAgentMessageCache:
     def get(
         cls, *, integration_id: int, channel_id: str, message_ts: str
     ) -> SlackSeerAgentMessageCachePayload | None:
-        return cache.get(
-            cls._get_cache_key(
-                integration_id=integration_id,
-                channel_id=channel_id,
-                message_ts=message_ts,
+        return cast(
+            "SlackSeerAgentMessageCachePayload | None",
+            cache.get(
+                cls._get_cache_key(
+                    integration_id=integration_id,
+                    channel_id=channel_id,
+                    message_ts=message_ts,
+                )
             ),
         )
 

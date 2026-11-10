@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 from collections.abc import Callable
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, TypeVar
 
 import sentry_sdk
 from cryptography.fernet import InvalidToken
@@ -32,8 +32,11 @@ class _EncryptionHandler(TypedDict):
 
 type _EncryptionMethod = Literal["plaintext"] | Literal["fernet"] | Literal["keysets"]
 
+_ST = TypeVar("_ST")
+_GT = TypeVar("_GT")
 
-class EncryptedField(Field):
+
+class EncryptedField(Field[_ST, _GT]):
     """
     A mixin that adds encryption functionality to Django fields.
 
@@ -57,14 +60,13 @@ class EncryptedField(Field):
     The Fernet format always includes a key_id to support key rotation.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    # Default to "unknown" - will be overridden by contribute_to_class when the
+    # field is properly attached to a model.
+    _model_name: str = "unknown"
 
-        # Default to "unknown" - will be overridden by __set_name__ or contribute_to_class
-        # when the field is properly attached to a model
-        self._model_name = "unknown"
-
-        self._encryption_handlers: dict[_EncryptionMethod, _EncryptionHandler] = {
+    @property
+    def _encryption_handlers(self) -> dict[_EncryptionMethod, _EncryptionHandler]:
+        return {
             "plaintext": {
                 "marker": MARKER_PLAINTEXT,
                 "encrypt": self._encrypt_plaintext,

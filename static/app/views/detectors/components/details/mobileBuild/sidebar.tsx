@@ -7,7 +7,8 @@ import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
-import {MobileBuildDetectorDetailsDetect} from 'sentry/views/detectors/components/details/mobileBuild/detect';
+
+import {MobileBuildDetectorDetailsDetect} from './detect';
 
 interface MobileBuildDetectorDetailsSidebarProps {
   detector: PreprodDetector;

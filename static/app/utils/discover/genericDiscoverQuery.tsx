@@ -6,13 +6,10 @@ import type {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {
-  EventView,
-  ImmutableEventView,
-  LocationQuery,
-} from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {useApi} from 'sentry/utils/useApi';
+
+import type {EventView, ImmutableEventView, LocationQuery} from './eventView';
+import {isAPIPayloadSimilar} from './eventView';
 
 interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;

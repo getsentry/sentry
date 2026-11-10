@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from rest_framework import status
-from rest_framework.response import Response
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -15,6 +14,7 @@ from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response import MappingApiResponse
 
 from ...mixins.issues import IssueSyncIntegration
 from ...project_management.metrics import (
@@ -42,7 +42,9 @@ def changelog_items(data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return items if isinstance(items, list) else []
 
 
-def set_badge(integration: RpcIntegration, issue_key: str, group_link_num: int) -> Response:
+def set_badge(
+    integration: RpcIntegration, issue_key: str, group_link_num: int
+) -> MappingApiResponse:
     client = _get_client(integration)
     return client.set_issue_property(issue_key, group_link_num)
 
@@ -158,16 +160,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
             logger.info("jira.handle_status_change.unchanged", extra=log_context)
             return
 
-        try:
-            changelog = next(
-                item for item in changelog_items(data) if item.get("field") == "status"
-            )
-        except StopIteration:
-            lifecycle.record_halt(
-                ProjectManagementHaltReason.SYNC_INBOUND_MISSING_CHANGELOG_STATUS, extra=log_context
-            )
-            logger.info("jira.missing-changelog-status", extra=log_context)
-            return
+        changelog = next(item for item in changelog_items(data) if item.get("field") == "status")
 
         # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
         updated = (data["issue"].get("fields") or {}).get("updated")

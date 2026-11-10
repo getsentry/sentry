@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -166,7 +166,7 @@ export function SpansTable({
 
     rolledBackErrorRef.current = result.error;
     setFields([...lastResolvedTable.fields], {replace: true});
-    addErrorMessage(t('Failed to add column'));
+    toast.error(t('Failed to add column'));
   }, [addedFields, lastResolvedTable, result.error, result.isError, setFields]);
 
   const meta = useMemo(

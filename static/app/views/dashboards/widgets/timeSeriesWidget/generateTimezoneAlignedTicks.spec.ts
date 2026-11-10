@@ -1,5 +1,6 @@
 import moment from 'moment-timezone';
 
+import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 
 describe('generateTimezoneAlignedTicks', () => {
@@ -233,6 +234,53 @@ describe('generateTimezoneAlignedTicks', () => {
         expect(tick).toBeLessThanOrEqual(end);
       }
     });
+  });
+
+  describe('axis labels', () => {
+    const dailyAcrossYear = [
+      'Dec 28th',
+      'Dec 29th',
+      'Dec 30th',
+      'Dec 31st',
+      '2025',
+      'Jan 2nd',
+      'Jan 3rd',
+      'Jan 4th',
+      'Jan 5th',
+    ];
+    const monthlyAcrossYear = [
+      'Jul 1st',
+      'Sep 1st',
+      'Nov 1st',
+      '2025',
+      'Mar 1st',
+      'May 1st',
+      'Jul 1st',
+    ];
+
+    it.each([
+      ['UTC', '2024-12-28 00:00:00', '2025-01-05 00:00:00', dailyAcrossYear],
+      ['America/New_York', '2024-12-28 00:00:00', '2025-01-05 00:00:00', dailyAcrossYear],
+      ['UTC', '2024-07-01 00:00:00', '2025-07-01 00:00:00', monthlyAcrossYear],
+      [
+        'America/New_York',
+        '2024-07-01 00:00:00',
+        '2025-07-01 00:00:00',
+        monthlyAcrossYear,
+      ],
+    ])(
+      'labels the year rollover with just the year in %s from %s to %s',
+      (tz, startStr, endStr, expectedLabels) => {
+        const start = toEpochMs(startStr, tz);
+        const end = toEpochMs(endStr, tz);
+
+        const labels = generateTimezoneAlignedTicks(start, end, 10, tz).map(tick =>
+          formatXAxisTimestamp(tick, tz)
+        );
+
+        expect(labels).toEqual(expectedLabels);
+      }
+    );
   });
 });
 

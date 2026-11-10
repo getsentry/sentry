@@ -9,10 +9,11 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AutomationAlertPreviewTable} from 'sentry/views/automations/components/automationAlertPreviewTable';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {getAlertPreviewRequest} from 'sentry/views/automations/components/automationFormData';
 import {alertPreviewQueryOptions} from 'sentry/views/automations/utils/alertPreviewQueryOptions';
+
+import {AutomationAlertPreviewTable} from './automationAlertPreviewTable';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {getAlertPreviewRequest} from './automationFormData';
 
 const PREVIEW_DEBOUNCE_MS = 500;
 const EMPTY_IDS: readonly string[] = [];

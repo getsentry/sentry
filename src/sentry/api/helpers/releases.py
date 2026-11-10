@@ -1,4 +1,8 @@
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
+
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.constants import ObjectStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -27,3 +31,14 @@ def get_group_ids_resolved_in_release(
         ).values_list("group_id", flat=True)
     )
     return group_ids
+
+
+def ensure_access_to_release_projects(request: Request, release: Release) -> None:
+    """
+    A release is shared by every project it is attached to, so changing it through one
+    project changes it for all of them. Projects that are not active are skipped, since
+    no one has access to them.
+    """
+    projects = release.projects.filter(status=ObjectStatus.ACTIVE)
+    if not request.access.has_projects_access(projects):
+        raise PermissionDenied("This release belongs to projects you do not have access to.")

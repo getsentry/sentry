@@ -7,12 +7,13 @@ import {
   commentedInvestigationComments,
 } from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
-import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationActionRequestFixture,
 } from 'sentry/views/investigations/fixtures';
+
+import {InvestigationActivity} from './investigationActivity';
 
 const uncommentedInvestigation = InvestigationDetailFixture({
   id: 'uncommented-investigation',

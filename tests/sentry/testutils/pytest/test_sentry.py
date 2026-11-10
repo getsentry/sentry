@@ -106,3 +106,77 @@ def test_flushall_on_single_host_redis_is_rejected() -> None:
         client.flushall()
     with pytest.raises(AssertionError, match="flushdb"):
         client.pipeline().flushall()
+
+
+def test_viewer_context_is_isolated_between_tests(tmp_path: Path) -> None:
+    (tmp_path / "pytest.ini").write_text("[pytest]\n")
+    (tmp_path / "conftest.py").write_text(
+        textwrap.dedent(
+            """
+            from sentry_viewercontext import (
+                Actor, ActorType, ViewerContext, get_viewer_context, viewer_context_var,
+            )
+
+            outer_context = ViewerContext(actor=Actor(type=ActorType.SYSTEM))
+            viewer_context_var.set(outer_context)
+
+            def pytest_sessionfinish():
+                assert get_viewer_context() == outer_context
+            """
+        )
+    )
+    (tmp_path / "test_context.py").write_text(
+        textwrap.dedent(
+            """
+            import pytest
+            from sentry_viewercontext import (
+                Actor, ActorType, ViewerContext, get_viewer_context, viewer_context_var,
+            )
+
+            def test_leaves_unknown_context():
+                assert get_viewer_context() is None
+                viewer_context_var.set(ViewerContext(actor=Actor(type=ActorType.UNKNOWN)))
+
+            def test_starts_without_unknown_context():
+                assert get_viewer_context() is None
+
+            @pytest.mark.xfail(raises=RuntimeError, strict=True)
+            def test_leaves_user_context_on_failure():
+                viewer_context_var.set(
+                    ViewerContext(actor=Actor(type=ActorType.USER, actor_id=123))
+                )
+                raise RuntimeError("test failed after setting viewer context")
+
+            def test_starts_without_user_context():
+                assert get_viewer_context() is None
+            """
+        )
+    )
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("PYTEST_", "DJANGO_", "SENTRY_", "TEST_GROUP", "TOTAL_TEST_GROUPS"))
+    }
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PY_COLORS"] = "1"  # Match CI; the child must still emit a plain-text summary.
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "no:cacheprovider",
+            "-p",
+            "sentry.testutils.pytest.fixtures",
+            "test_context.py",
+            "-q",
+            "--color=no",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "3 passed, 1 xfailed" in proc.stdout

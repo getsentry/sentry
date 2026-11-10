@@ -1,9 +1,11 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -15,7 +17,8 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
+
+import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({
@@ -93,6 +96,34 @@ describe('ConfigureIntegration settings tab', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('pushes the new tab and drops the cursor when switching tabs', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    const {router} = render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/github/${integrationId}/`,
+          query: {cursor: '0:100:0', other: 'kept'},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Code Mappings'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'codeMappings', other: 'kept'})
+    );
+    expect(router.historyAction).toBe('PUSH');
+  });
+
   it('links the configurations crumb to the provider configurations tab', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
@@ -168,7 +199,58 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
-  it('hides the Settings tab when there is no settings content', async () => {
+  it('reconnects Linear through app authorization instead of editing credentials', async () => {
+    const provider = IntegrationProviderFixture({
+      key: 'linear',
+      slug: 'linear',
+      name: 'Linear for Seer',
+      features: ['seer-context'],
+      canAdd: false,
+    });
+    mockRequests(
+      OrganizationIntegrationsFixture({
+        name: 'Linear (Example)',
+        domainName: null,
+        provider: {...provider, aspects: {}},
+        configOrganization: [],
+        configData: {},
+      }),
+      provider
+    );
+    const initialize = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      method: 'POST',
+      body: {
+        step: 'oauth_login',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'linear',
+        data: {oauthUrl: 'https://linear.app/oauth/authorize?actor=app'},
+      },
+    });
+    renderGlobalModal({organization: org});
+    render(<ConfigureIntegration />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${org.slug}/integrations/linear/${integrationId}/`,
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Reconnect Linear'}));
+
+    expect(await screen.findByRole('button', {name: 'Authorize Linear'})).toBeEnabled();
+    expect(initialize).toHaveBeenCalledWith(
+      `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+      expect.objectContaining({data: {action: 'initialize', provider: 'linear'}})
+    );
+    expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
+  });
+
+  it('hides the tabs when Code Mappings is the only tab', async () => {
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
@@ -179,8 +261,10 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure();
 
-    expect(await screen.findByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Settings'})).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('Set up stack trace linking by adding a code mapping.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
   it('shows the Settings tab when there is organization config', async () => {
@@ -201,6 +285,160 @@ describe('ConfigureIntegration settings tab', () => {
 
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+  });
+});
+
+describe('ConfigureIntegration Grafana settings', () => {
+  const organization = OrganizationFixture({
+    access: ['org:integrations', 'org:write'],
+  });
+  const grafanaUrl = 'https://example-stack.grafana.net';
+  const newGrafanaUrl = 'https://other-stack.grafana.net';
+  const integrationUrl = `/organizations/${organization.slug}/integrations/1/`;
+  const initialRouterConfig = {
+    location: {pathname: `/settings/${organization.slug}/integrations/grafana/1/`},
+    route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+  };
+
+  function mockGrafanaRequests(savedUrl = grafanaUrl) {
+    const provider = IntegrationProviderFixture({
+      key: 'grafana',
+      slug: 'grafana',
+      name: 'Grafana for Seer',
+      features: ['seer-context'],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: '1',
+      name: 'Grafana (example-stack.grafana.net)',
+      domainName: null,
+      provider: {...provider, aspects: {}},
+      configOrganization: [
+        {name: 'url', type: 'string', label: 'Grafana URL', required: true},
+        {name: 'token', type: 'secret', label: 'Service Account Token'},
+      ],
+    });
+    let storedUrl = grafanaUrl;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    const getRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      body: () => ({...integration, configData: {url: storedUrl}}),
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      body: () => {
+        storedUrl = savedUrl;
+        return {};
+      },
+    });
+    return {getRequest, saveRequest};
+  }
+
+  it('saves a new stack URL and token together instead of on blur', async () => {
+    const {getRequest, saveRequest} = mockGrafanaRequests(newGrafanaUrl);
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const url = await screen.findByRole('textbox', {name: 'Grafana URL'});
+    expect(url).toHaveValue(grafanaUrl);
+    const token = screen.getByLabelText('Service account token');
+    expect(token).toHaveValue('');
+    await userEvent.clear(url);
+    await userEvent.type(url, '  https://Other-Stack.grafana.net/  ');
+    await userEvent.tab();
+    expect(saveRequest).not.toHaveBeenCalled();
+    await userEvent.type(token, '  glsa_new  ');
+    await userEvent.tab();
+    expect(saveRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() => expect(saveRequest).toHaveBeenCalledTimes(1));
+    expect(saveRequest).toHaveBeenCalledWith(
+      integrationUrl,
+      expect.objectContaining({
+        data: {url: 'https://Other-Stack.grafana.net/', token: 'glsa_new'},
+      })
+    );
+    await waitFor(() => expect(token).toHaveValue(''));
+    expect(url).toHaveValue(newGrafanaUrl);
+    expect(getRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-tests the saved connection with a blank token', async () => {
+    const {saveRequest} = mockGrafanaRequests();
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() =>
+      expect(saveRequest).toHaveBeenCalledWith(
+        integrationUrl,
+        expect.objectContaining({data: {url: grafanaUrl, token: ''}})
+      )
+    );
+  });
+
+  it('preserves edits after a rejected token and allows a corrected save', async () => {
+    mockGrafanaRequests(newGrafanaUrl);
+    const message =
+      'Grafana rejected the token. Check that it is an active service account token.';
+    MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: message},
+    });
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const url = await screen.findByRole('textbox', {name: 'Grafana URL'});
+    await userEvent.clear(url);
+    await userEvent.type(url, newGrafanaUrl);
+    const token = screen.getByLabelText('Service account token');
+    await userEvent.type(token, 'glsa_bad');
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(url).toHaveValue(newGrafanaUrl);
+    expect(token).toHaveValue('glsa_bad');
+
+    const {saveRequest} = mockGrafanaRequests(newGrafanaUrl);
+    await userEvent.clear(token);
+    await userEvent.type(token, 'glsa_corrected');
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() => expect(token).toHaveValue(''));
+    expect(saveRequest).toHaveBeenCalledWith(
+      integrationUrl,
+      expect.objectContaining({data: {url: newGrafanaUrl, token: 'glsa_corrected'}})
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('blocks duplicate submissions while checking the connection', async () => {
+    mockGrafanaRequests();
+    const save = Promise.withResolvers<void>();
+    const saveRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      asyncDelay: save.promise,
+      body: {},
+    });
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const button = await screen.findByRole('button', {name: 'Save and test'});
+    await userEvent.click(button);
+
+    expect(button).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Grafana URL'})).toBeDisabled();
+    expect(screen.getByLabelText('Service account token')).toBeDisabled();
+    await userEvent.click(button);
+    expect(saveRequest).toHaveBeenCalledTimes(1);
+
+    save.resolve();
+    await waitFor(() => expect(button).toBeEnabled());
   });
 });
 

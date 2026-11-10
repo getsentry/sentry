@@ -5,13 +5,13 @@ from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, TypedDict, cast
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.auth.access import Access
+from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.incidents.endpoints.serializers.query_subscription import SnubaQuerySerializer
 from sentry.incidents.grouptype import MetricIssue
@@ -24,15 +24,10 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.investigations.contracts import (
     ActionPayloadSerializer,
     StrictCharField,
-    StrictContractSerializer,
     StrictFloatField,
     StrictIntegerField,
 )
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationOrchestrationRun,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
@@ -44,9 +39,9 @@ from sentry.investigations.services.action_kinds.base import (
 )
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.notebooks.contracts import StrictContractSerializer
+from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.snuba.models import SnubaQuery
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.endpoints.organization_detector_details import (
     check_metric_detector_allowed,
 )
@@ -206,10 +201,13 @@ class DetectorState:
 
     @classmethod
     def load(cls, detector: Detector, snuba_query: SnubaQuery) -> DetectorState:
-        serialized = serialize(snuba_query, serializer=SnubaQuerySerializer())
         # Without a mode the update keeps the stored one. Some span monitors migrated from
         # transactions store a mode the validator no longer accepts.
-        del serialized["extrapolationMode"]
+        serialized = {
+            key: value
+            for key, value in serialize(snuba_query, serializer=SnubaQuerySerializer()).items()
+            if key != "extrapolationMode"
+        }
         data_source = cast(DataSourceBody, {**serialized, "queryType": snuba_query.type})
         group = detector.workflow_condition_group
         condition_group = (
@@ -350,7 +348,7 @@ def _detector_not_found() -> ApplyFailed:
     )
 
 
-def _action_detector_id(action_request: InvestigationActionRequest) -> int:
+def _action_detector_id(action_request: NotebookActionRequest) -> int:
     # The payload was validated when it arrived, and advice never reaches the kind.
     assert action_request.action_payload is not None
     return int(action_request.action_payload["detectorId"])
@@ -403,21 +401,21 @@ class UpdateDetectorKind(ActionKind):
 
     def cannot_apply_reasons(
         self,
-        action_requests: Sequence[InvestigationActionRequest],
+        action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Investigation],
+        investigations: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         source_detector_ids = {
             investigation_id: source_detector_id(source)
             for investigation_id, source in InvestigationOrchestrationRun.objects.filter(
-                investigation_id__in={item.investigation_id for item in action_requests}
+                investigation_id__in={item.notebook_id for item in action_requests}
             ).values_list("investigation_id", "source")
         }
         detector_ids_by_org: dict[int, set[int]] = defaultdict(set)
         for item in action_requests:
-            organization_id = investigations[item.investigation_id].organization_id
+            organization_id = investigations[item.notebook_id].organization_id
             detector_ids_by_org[organization_id].add(_action_detector_id(item))
         detectors = {
             (organization_id, detector_id): detector
@@ -430,8 +428,8 @@ class UpdateDetectorKind(ActionKind):
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
             detector_id = _action_detector_id(item)
-            investigation = investigations[item.investigation_id]
-            source_id = source_detector_ids.get(item.investigation_id)
+            investigation = investigations[item.notebook_id]
+            source_id = source_detector_ids.get(item.notebook_id)
             key = (detector_id, source_id, investigation.organization_id)
             if key not in detector_reasons:
                 detector_reasons[key] = detector_cannot_apply_reason(
@@ -484,7 +482,7 @@ class UpdateDetectorKind(ActionKind):
         validator = get_detector_validator(
             context.request,
             detector.linked_project,
-            detector.group_type.slug,
+            detector.type,
             detector,
             partial=True,
             data=state.update(changes),

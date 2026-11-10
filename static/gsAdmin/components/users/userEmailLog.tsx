@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {User} from 'sentry/types/user';
@@ -51,9 +51,9 @@ export function UserEmailLog({user, Panel}: Props) {
       }),
     onSuccess: (_, email) => {
       setRemovedBounces(emails => [...emails, email]);
-      addSuccessMessage('Bounce removed');
+      toast.success('Bounce removed');
     },
-    onError: () => addErrorMessage('Unable to remove bounce'),
+    onError: () => toast.error('Unable to remove bounce'),
   });
 
   const activity = data?.activity ?? [];

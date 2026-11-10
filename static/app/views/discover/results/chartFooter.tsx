@@ -8,13 +8,17 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {
+  DroppedDataFilterNote,
+  type DroppedDataFilterNoteProps,
+} from 'sentry/components/droppedData/droppedDataFilterNote';
+import {
+  DroppedDataLayerControl,
+  type DroppedDataLayerControlProps,
+} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {t} from 'sentry/locale';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
-
-type DroppedDataLayerControlProps = React.ComponentProps<typeof DroppedDataLayerControl>;
 
 type Props = {
   displayMode: string;
@@ -28,10 +32,12 @@ type Props = {
   total: number | null;
   yAxisOptions: Array<SelectValue<string>>;
   yAxisValue: string[];
+  droppedDataFilterNote?: Pick<DroppedDataFilterNoteProps, 'dataset'>;
   droppedDataLayer?: DroppedDataLayerControlProps;
 };
 
 export function ChartFooter({
+  droppedDataFilterNote,
   droppedDataLayer,
   total,
   yAxisValue,
@@ -57,11 +63,11 @@ export function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
-  if (droppedDataLayer?.showDroppedData) {
+  if (droppedDataFilterNote) {
     elements.push(
       <DroppedDataFilterNote
         key="dropped-data-filter-note"
-        dataset={droppedDataLayer.dataset}
+        {...droppedDataFilterNote}
         hasUserQuery={!!eventView.query.trim()}
       />
     );

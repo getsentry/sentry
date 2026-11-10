@@ -12,10 +12,6 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-)
 from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
     apply_error_response,
 )
@@ -24,10 +20,14 @@ from sentry.investigations.endpoints.serializers.responses import (
     InvestigationActionRequestRecheckResponse,
 )
 from sentry.investigations.endpoints.validators import ActionRequestRecheckValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.services.action_kinds.base import ApplyFailed
 from sentry.investigations.services.action_requests import recheck_action_request
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+)
+from sentry.notebooks.models import Notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -60,7 +60,7 @@ class OrganizationInvestigationActionRequestRecheckEndpoint(OrganizationInvestig
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
+        investigation: Notebook,
         action_request_id: str,
     ) -> Response:
         """

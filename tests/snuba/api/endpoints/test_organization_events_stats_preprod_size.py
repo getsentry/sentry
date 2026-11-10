@@ -1,6 +1,8 @@
 from datetime import timedelta
+from typing import Any
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
@@ -25,7 +27,9 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
+    def _do_request(
+        self, data: dict[str, Any], url: str | None = None, features: dict[str, bool] | None = None
+    ) -> Response:
         if features is None:
             features = {}
         features.update(self.features)

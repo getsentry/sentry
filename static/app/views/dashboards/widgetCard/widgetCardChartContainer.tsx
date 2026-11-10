@@ -4,7 +4,6 @@ import type {LegendComponentOption} from 'echarts';
 
 import {Container} from '@sentry/scraps/layout';
 
-import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
@@ -39,7 +38,6 @@ type Props = {
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
-  api?: Client;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
   disableTableActions?: boolean;

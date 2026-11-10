@@ -27,6 +27,13 @@ class NotebookBlockExecutionStatus(models.TextChoices):
     CANCELLED = "cancelled", "Cancelled"
 
 
+TERMINAL_BLOCK_EXECUTION_STATUSES = (
+    NotebookBlockExecutionStatus.COMPLETED,
+    NotebookBlockExecutionStatus.FAILED,
+    NotebookBlockExecutionStatus.CANCELLED,
+)
+
+
 @cell_silo_model
 class NotebookBlockExecution(DefaultFieldsModel):
     """One attempt to produce a block's content or query result."""

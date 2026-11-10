@@ -34,6 +34,8 @@ class TestRegionApp(TestCase):
                 ]
             },
         )
+        assert self.app.webhook_url is not None
+        self.webhook_url = self.app.webhook_url
 
     def test_get_buffer_requests_for_cell(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
@@ -41,7 +43,7 @@ class TestRegionApp(TestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.app.webhook_url,
+            url=self.webhook_url,
         )
         requests = app_request_service.get_buffer_requests_for_cell(
             sentry_app_id=self.app.id, cell_name="us"
@@ -88,13 +90,13 @@ class TestRegionApp(TestCase):
             response_code=200,
             org_id=self.org.id,
             event="issue.assigned",
-            url=self.app.webhook_url,
+            url=self.webhook_url,
         )
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
             event="issue.resolved",
-            url=self.app.webhook_url,
+            url=self.webhook_url,
         )
         filter: SentryAppRequestFilterArgs = {"event": "issue.assigned"}
         requests = app_request_service.get_buffer_requests_for_cell(

@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -7,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
-def test_anonymous(client) -> None:
+def test_anonymous(client: APIClient) -> None:
     response = client.get(reverse("sentry-api-index"))
     assert response.status_code == 200
     assert response.data["version"] == "0"

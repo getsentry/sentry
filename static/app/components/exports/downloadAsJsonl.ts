@@ -1,5 +1,6 @@
-import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+
+import {createExportFilename} from './createExportFilename';
 
 export function downloadAsJsonl(rows: Array<Record<string, unknown>>, filename: string) {
   const jsonlContent = rows.map(row => JSON.stringify(row)).join('\n');

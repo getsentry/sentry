@@ -1,6 +1,8 @@
+import {useQueryState} from 'nuqs';
+
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {
   DEFAULT_SORT,
   SORTABLE_FIELDS,
@@ -15,13 +17,11 @@ export function useWebVitalsSort({
   sortName?: string;
   sortableFields?: string[];
 } = {}) {
-  const location = useLocation();
+  const [sorts] = useQueryState(sortName, parseAsStringArray);
   const filteredSortableFields = sortableFields;
 
   const sort =
-    decodeSorts(location.query[sortName]).find(s =>
-      filteredSortableFields.includes(s.field)
-    ) ?? defaultSort;
+    decodeSorts(sorts).find(s => filteredSortableFields.includes(s.field)) ?? defaultSort;
 
   return sort;
 }

@@ -7,15 +7,16 @@ import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useLogsTimeseriesRequest} from 'sentry/views/explore/logs/useLogsTimeseriesRequest';
-import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {useLogsTimeseriesRequest} from './useLogsTimeseriesRequest';
+import {useStreamingTimeseriesResult} from './useStreamingTimeseriesResult';
 
 interface UseLogsTimeseriesImplOptions {
   enabled: boolean;

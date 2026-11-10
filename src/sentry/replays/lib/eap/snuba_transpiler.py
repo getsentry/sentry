@@ -383,7 +383,7 @@ Attributes:
 """
 
 
-def execute_query(request: TraceItemTableRequest, referrer: str):
+def execute_query(request: TraceItemTableRequest, referrer: str) -> TraceItemTableResponse:
     request_method = "POST"
     request_body = request.SerializeToString()
     request_url = "/rpc/EndpointTraceItemTable/v1"

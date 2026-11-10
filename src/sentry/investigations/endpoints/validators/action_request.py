@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 
 
 class ActionRequestApplyValidator(StrictCamelSnakeValidator):

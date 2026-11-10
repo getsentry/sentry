@@ -280,11 +280,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     raise serializers.ValidationError(
                         {"aggregate": _("Invalid Metric: We do not currently support this field.")}
                     )
+                data["aggregate"] = translate_aggregate_field(
+                    aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+                )
             except InvalidSearchQuery as e:
                 raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
-            data["aggregate"] = translate_aggregate_field(
-                aggregate, allow_mri=allow_mri, allow_eap=allow_eap
-            )
 
     def _validate_query(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)

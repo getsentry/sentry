@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Protocol
 
 from django.utils import timezone
@@ -10,7 +10,7 @@ from sentry.utils import jwt as jwt_utils
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
 
-def default_expiration():
+def default_expiration() -> datetime:
     return timezone.now() + DEFAULT_EXPIRATION
 
 
@@ -34,14 +34,14 @@ class OpenIDToken:
 
     def __init__(
         self,
-        aud,
-        sub,
-        shared_secret,
-        iss="https://sentry.io",
-        exp=None,
-        iat=None,
-        nonce=None,
-    ):
+        aud: str,
+        sub: int | str,
+        shared_secret: str,
+        iss: str = "https://sentry.io",
+        exp: datetime | None = None,
+        iat: datetime | None = None,
+        nonce: str | None = None,
+    ) -> None:
         self.shared_secret = shared_secret
         self.aud = aud
         self.sub = str(sub)  # Convert to string per OpenID Connect spec
@@ -68,8 +68,8 @@ class OpenIDToken:
             claims["nonce"] = self.nonce
         return jwt_utils.encode(claims, self.shared_secret, headers={**headers, "alg": "HS256"})
 
-    def _get_user_details(self, grant: GrantLike) -> dict:
-        user_details = {}
+    def _get_user_details(self, grant: GrantLike) -> dict[str, object]:
+        user_details: dict[str, object] = {}
         if grant.has_scope("profile"):
             profile_details = {
                 "name": grant.user.name,

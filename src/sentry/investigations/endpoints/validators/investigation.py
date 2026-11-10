@@ -4,12 +4,12 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationSourceField,
     validate_agentic_source,
 )
-from sentry.investigations.models import InvestigationStatus
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.models import NotebookStatus
 
 
 class InvestigationCreateValidator(StrictCamelSnakeValidator):
@@ -72,7 +72,7 @@ class InvestigationUpdateValidator(StrictCamelSnakeValidator):
         help_text="New investigation title. A manual edit stops automatic title generation.",
     )
     status = serializers.ChoiceField(
-        choices=InvestigationStatus.choices,
+        choices=NotebookStatus.choices,
         required=False,
         help_text="Set active to restore a manual notebook, or archived to archive. Archiving must be the only changed field.",
     )
@@ -100,21 +100,4 @@ class InvestigationDeleteValidator(StrictCamelSnakeValidator):
     investigation_version = serializers.IntegerField(
         min_value=1,
         help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
-
-
-class PermissionsUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    is_editable_by_everyone = serializers.BooleanField()
-    team_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
-
-    def validate_team_ids(self, value: list[int]) -> list[int]:
-        if len(value) != len(set(value)):
-            raise serializers.ValidationError("Team IDs must be unique.")
-        return value
-
-
-class FavoriteUpdateValidator(StrictCamelSnakeValidator):
-    should_favorite = serializers.BooleanField(
-        help_text="Whether this investigation is a favorite for the authenticated user."
     )

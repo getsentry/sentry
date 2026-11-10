@@ -199,6 +199,7 @@ def deliver_agentic_triage_result(
 
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
+    single_run = bool(options.get("single_run", False))
 
     # Clear any stale delivery error now that this delivery has succeeded.
     if (shard.extras or {}).get("error_message"):
@@ -212,6 +213,7 @@ def deliver_agentic_triage_result(
         organization=run.organization,
         triage_response=triage_response,
         dry_run=dry_run,
+        single_run=single_run,
         prompt_version=prompt_version,
         enable_code_mode_tools=shard.extras.get("enable_code_mode_tools"),
         log_extra=log_extra,
@@ -224,6 +226,7 @@ def _process_verdicts(
     organization: Organization,
     triage_response: TriageResponse,
     dry_run: bool,
+    single_run: bool,
     prompt_version: str | None,
     enable_code_mode_tools: str | None,
     log_extra: Mapping[str, object],
@@ -334,6 +337,7 @@ def _process_verdicts(
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
                     allow_free_cohort=True,
+                    single_run=single_run,
                 )
             except Exception:
                 logger.exception(

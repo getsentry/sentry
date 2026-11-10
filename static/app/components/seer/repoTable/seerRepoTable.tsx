@@ -15,10 +15,8 @@ import {
   useSeerSupportedProviderIds,
 } from 'sentry/components/events/autofix/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
-import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
-import {SeerRepoTableRow} from 'sentry/components/seer/repoTable/seerRepoTableRow';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t, tct} from 'sentry/locale';
@@ -30,6 +28,9 @@ import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxSta
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {SeerRepoTableHeader} from './seerRepoTableHeader';
+import {SeerRepoTableRow} from './seerRepoTableRow';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'max-content'},
@@ -154,7 +155,8 @@ export function SeerRepoTable() {
         });
         (mutations ?? []).forEach(mutation => {
           queryClient.invalidateQueries({
-            queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+            queryKey: repositoryWithSettingsApiOptions(organization, mutation.id)
+              .queryKey,
           });
         });
       },

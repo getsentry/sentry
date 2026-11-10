@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterator
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
@@ -36,10 +37,12 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.integrations.types import ExternalProviders
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers import with_feature
@@ -116,14 +119,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         external_id: str = "octocat",
         issue_key: str = "Test-Organization/foo#123",
         create_external_user: bool = True,
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """
         Common setup for assignee sync tests.
 
         Returns:
             tuple: (user, installation, external_issue, integration, group)
         """
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -157,19 +160,19 @@ class GitHubIntegrationTest(IntegrationTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, integration, group
+        return serialize_rpc_user(user), installation, external_issue, integration, group
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_function(self):
+    def stub_get_jwt_function(self) -> Iterator[None]:
         with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
             yield
 
-    def _stub_github(self):
+    def _stub_github(self) -> Any:
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"
         pp = 1
@@ -343,7 +346,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 status=values["status_code"],
             )
 
-    def _setup_with_existing_installations(self):
+    def _setup_with_existing_installations(self) -> None:
         self.installation_info = {
             "installations": [
                 {
@@ -370,7 +373,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json=self.installation_info,
         )
 
-    def assert_setup_flow(self):
+    def assert_setup_flow(self) -> Any:
         """Create the Integration and OrganizationIntegration directly via ORM,
         matching what the pipeline would have produced."""
         integration = Integration.objects.create(
@@ -421,7 +424,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             GitHubIntegrationProvider().post_install(
                 integration=integration,
-                organization=self.organization,
+                organization=serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={"app_id": self.app_id},
             )
 
@@ -551,8 +556,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories(parallel=True)
+        with (
+            patch.object(client.GitHubBaseClient, "page_size", 1),
+            patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+        ):
+            with installation.record_event(
+                SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
+            ).capture():
+                result = installation.get_repositories(parallel=True)
             assert result == [
                 {
                     "name": "foo",
@@ -573,6 +584,81 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     "default_branch": "master",
                 },
             ]
+        assert (
+            mock.call(
+                client.GET_REPOSITORIES_METRIC,
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "get_repository_choices",
+                    "result": "success",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    def test_get_repositories_records_error_metric(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        with (
+            patch.object(
+                client.GitHubBaseClient,
+                "_get_with_pagination",
+                side_effect=ApiError("GitHub API error"),
+            ),
+            patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            pytest.raises(ApiError),
+        ):
+            with installation.record_event(
+                SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
+            ).capture():
+                installation.get_repositories()
+
+        assert (
+            mock.call(
+                client.GET_REPOSITORIES_METRIC,
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "derive_codemappings",
+                    "result": "error",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    def test_get_repositories_records_halted_metric_when_truncated(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        with (
+            patch.object(
+                client.GitHubBaseClient,
+                "_get_with_pagination",
+                side_effect=ApiPaginationTruncated(partial_data=[]),
+            ),
+            patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            pytest.raises(ApiPaginationTruncated),
+        ):
+            with installation.record_event(SCMIntegrationInteractionType.SYNC_REPOS).capture():
+                installation.get_repositories(raise_on_page_limit=True)
+
+        assert (
+            mock.call(
+                client.GET_REPOSITORIES_METRIC,
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "sync_repos",
+                    "result": "halted",
+                },
+            )
+            in mock_incr.mock_calls
+        )
 
     @responses.activate
     def test_get_repositories_only_first_page(self) -> None:
@@ -714,8 +800,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     def set_rate_limit(
-        self, remaining=MINIMUM_REQUESTS + 100, limit=5000, json_body=None, status=200
-    ):
+        self,
+        remaining: int = MINIMUM_REQUESTS + 100,
+        limit: int = 5000,
+        json_body: dict[str, Any] | None = None,
+        status: int = 200,
+    ) -> None:
         """Helper class to set the rate limit.
         A status code different than 200 requires a json_body
         """
@@ -724,11 +814,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             if status != 200
             else {
                 "resources": {
-                    "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123},
+                    "core": {"limit": limit, "remaining": remaining, "used": 1, "reset": 123},
                     "graphql": {
                         "limit": limit,
                         "remaining": remaining,
-                        "used": "foo",
+                        "used": 1,
                         "reset": 123,
                     },
                 }
@@ -749,7 +839,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         return installation
 
-    def _expected_trees(self, repo_info_list=None):
+    def _expected_trees(self, repo_info_list: list[Any] | None = None) -> Any:
         result = {}
         repo_ids = {"xyz": "1234567", "foo": "1296269", "bar": "9876574", "baz": "1276555"}
         # bar (409 empty repo) returns an empty RepoTree since we cache the result
@@ -766,7 +856,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
         return result
 
-    def _expected_cached_repos(self):
+    def _expected_cached_repos(self) -> Any:
         return [
             {
                 "full_name": f"{self.gh_org}/xyz",
@@ -794,7 +884,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.set_rate_limit()
         expected_trees = self._expected_trees()
         repos_key = f"githubtrees:repositories:{self.organization.id}"
-        repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
+        repo_key: Callable[[str], str] = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
         assert cache.get(repo_key("foo")) is None
@@ -1523,6 +1613,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test syncing resolved status to GitHub (close issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1566,6 +1657,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test syncing unresolved status to GitHub (reopen issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1609,6 +1701,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that no update is made when status is already in desired state."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
         external_issue = self.create_integration_external_issue(
             group=self.group,
             integration=self.integration,
@@ -1645,6 +1738,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that sync_status_outbound returns early if no external project mapping exists."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         # Create external issue without project mapping
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1668,6 +1762,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1703,6 +1798,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1743,6 +1839,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
@@ -1756,6 +1853,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def test_update_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
@@ -1867,12 +1965,12 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         super().tearDown()
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_function(self):
+    def stub_get_jwt_function(self) -> Iterator[None]:
         with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
             yield
 
@@ -1985,7 +2083,9 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
 
     def _get_pipeline_signature(self, init_resp: Any) -> str:
         """Extract the pipeline signature (OAuth state) from an initialize response."""
-        return init_resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = init_resp.data["data"]["oauthUrl"]
+        assert isinstance(oauth_url, str)
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _stub_user_installations(self, installations: list[dict[str, Any]] | None = None) -> None:
         """Stub the GitHub /user/installations endpoint."""

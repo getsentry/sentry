@@ -63,7 +63,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             get_resp = self.client.get(self.url)
         assert get_resp.status_code == 200
         resp_data = get_resp.data[0]
-        assert resp_data["raw"] == self.data["raw"].strip()
+        raw_codeowners = self.data["raw"]
+        assert isinstance(raw_codeowners, str)
+        assert resp_data["raw"] == raw_codeowners.strip()
         assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider
         assert resp_data["codeOwnersUrl"] == "https://github.com/test/CODEOWNERS"

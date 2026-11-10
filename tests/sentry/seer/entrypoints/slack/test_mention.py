@@ -120,11 +120,11 @@ class ExtractIssueLinksTest(TestCase):
 
 
 class ExtractBlockTextTest(TestCase):
-    def test_section_block(self):
+    def test_section_block(self) -> None:
         block = SectionBlock(text="hello *world*").to_dict()
         assert _extract_block_text(block) == "hello *world*"
 
-    def test_section_block_with_fields(self):
+    def test_section_block_with_fields(self) -> None:
         block = SectionBlock(
             fields=[
                 {"type": "mrkdwn", "text": "*Priority*"},
@@ -135,21 +135,21 @@ class ExtractBlockTextTest(TestCase):
         assert "*Priority*" in result
         assert "High" in result
 
-    def test_context_block(self):
+    def test_context_block(self) -> None:
         block = ContextBlock(
             elements=[{"type": "mrkdwn", "text": "Project: test-project"}]
         ).to_dict()
         assert _extract_block_text(block) == "Project: test-project"
 
-    def test_header_block(self):
+    def test_header_block(self) -> None:
         block = HeaderBlock(text="My Header").to_dict()
         assert _extract_block_text(block) == "My Header"
 
-    def test_markdown_block(self):
+    def test_markdown_block(self) -> None:
         block = MarkdownBlock(text="markdown content").to_dict()
         assert _extract_block_text(block) == "markdown content"
 
-    def test_rich_text_with_text_and_link(self):
+    def test_rich_text_with_text_and_link(self) -> None:
         block = RichTextBlock(
             elements=[
                 RichTextSectionElement(
@@ -166,7 +166,7 @@ class ExtractBlockTextTest(TestCase):
         result = _extract_block_text(block)
         assert result == "Check <https://sentry.io/organizations/test-org/issues/123/|ISSUE-123>"
 
-    def test_rich_text_link_without_label(self):
+    def test_rich_text_link_without_label(self) -> None:
         block = RichTextBlock(
             elements=[
                 RichTextSectionElement(
@@ -178,7 +178,7 @@ class ExtractBlockTextTest(TestCase):
         ).to_dict()
         assert _extract_block_text(block) == "<https://example.com>"
 
-    def test_rich_text_with_user_and_channel(self):
+    def test_rich_text_with_user_and_channel(self) -> None:
         block = RichTextBlock(
             elements=[
                 RichTextSectionElement(
@@ -193,7 +193,7 @@ class ExtractBlockTextTest(TestCase):
         ).to_dict()
         assert _extract_block_text(block) == "Hey <@U123> check <#C456>"
 
-    def test_rich_text_with_emoji(self):
+    def test_rich_text_with_emoji(self) -> None:
         block = RichTextBlock(
             elements=[
                 RichTextSectionElement(
@@ -206,10 +206,10 @@ class ExtractBlockTextTest(TestCase):
         ).to_dict()
         assert _extract_block_text(block) == ":wave: hello"
 
-    def test_divider_returns_empty(self):
+    def test_divider_returns_empty(self) -> None:
         assert _extract_block_text(DividerBlock().to_dict()) == ""
 
-    def test_actions_block_returns_empty(self):
+    def test_actions_block_returns_empty(self) -> None:
         block = {
             "type": "actions",
             "elements": [{"type": "button", "text": {"type": "plain_text", "text": "Click"}}],
@@ -218,7 +218,7 @@ class ExtractBlockTextTest(TestCase):
 
 
 class ExtractTextFromBlocksTest(TestCase):
-    def test_multiple_blocks(self):
+    def test_multiple_blocks(self) -> None:
         blocks = [
             HeaderBlock(text="Alert Title").to_dict(),
             SectionBlock(text="Something broke").to_dict(),
@@ -228,7 +228,7 @@ class ExtractTextFromBlocksTest(TestCase):
         result = _extract_text_from_blocks(blocks)
         assert result == "Alert Title\nSomething broke\nProject: my-project"
 
-    def test_sentry_alert_like_blocks(self):
+    def test_sentry_alert_like_blocks(self) -> None:
         blocks = [
             SectionBlock(
                 text=":red_circle: <https://sentry.io/organizations/test-org/issues/456/|*ValueError: invalid input*>"
@@ -295,7 +295,7 @@ class BuildThreadContextTest(TestCase):
         result = build_thread_context(messages)
         assert "<https://sentry.io/organizations/test-org/issues/123/|ISSUE-123>" in result
 
-    def test_prefers_blocks_over_text(self):
+    def test_prefers_blocks_over_text(self) -> None:
         messages = [
             {
                 "user": "U123",
@@ -308,7 +308,7 @@ class BuildThreadContextTest(TestCase):
         assert result == "<@U123>: rich block content"
         assert "fallback text" not in result
 
-    def test_falls_back_to_text_when_blocks_empty(self):
+    def test_falls_back_to_text_when_blocks_empty(self) -> None:
         messages = [
             {
                 "user": "U123",
@@ -320,7 +320,7 @@ class BuildThreadContextTest(TestCase):
         result = build_thread_context(messages)
         assert result == "<@U123>: fallback text"
 
-    def test_falls_back_to_text_when_blocks_have_no_text(self):
+    def test_falls_back_to_text_when_blocks_have_no_text(self) -> None:
         messages = [
             {
                 "user": "U123",
@@ -332,7 +332,7 @@ class BuildThreadContextTest(TestCase):
         result = build_thread_context(messages)
         assert result == "<@U123>: fallback text"
 
-    def test_extracts_links_from_rich_text_blocks(self):
+    def test_extracts_links_from_rich_text_blocks(self) -> None:
         messages = [
             {
                 "user": "U123",
@@ -359,7 +359,7 @@ class BuildThreadContextTest(TestCase):
         assert "https://sentry.io/organizations/test-org/issues/999/" in result
         assert "this issue" in result
 
-    def test_mixed_block_and_text_messages(self):
+    def test_mixed_block_and_text_messages(self) -> None:
         messages: list[Mapping[str, Any]] = [
             {
                 "user": "U123",
@@ -376,7 +376,7 @@ class BuildThreadContextTest(TestCase):
         result = build_thread_context(messages)
         assert result == "<@U123>: alert from blocks\n<@U456>: plain text reply"
 
-    def test_markdown_block_in_seer_response(self):
+    def test_markdown_block_in_seer_response(self) -> None:
         messages = [
             {
                 "user": "UBOT",
@@ -388,7 +388,7 @@ class BuildThreadContextTest(TestCase):
         result = build_thread_context(messages)
         assert result == "<@UBOT>: Here is the Seer analysis..."
 
-    def test_extracts_attachments_when_no_blocks_or_text(self):
+    def test_extracts_attachments_when_no_blocks_or_text(self) -> None:
         messages = [
             {
                 "user": "UBOT",
@@ -410,7 +410,7 @@ class BuildThreadContextTest(TestCase):
         )
         assert "invalid literal for int()" in result
 
-    def test_includes_both_top_level_text_and_attachments(self):
+    def test_includes_both_top_level_text_and_attachments(self) -> None:
         messages = [
             {
                 "user": "U123",
@@ -424,7 +424,7 @@ class BuildThreadContextTest(TestCase):
         assert "top level message" in result
         assert "attachment body" in result
 
-    def test_extracts_attachments_when_text_empty(self):
+    def test_extracts_attachments_when_text_empty(self) -> None:
         messages = [
             {
                 "user": "UBOT",
@@ -438,7 +438,7 @@ class BuildThreadContextTest(TestCase):
 
 
 class ExtractAttachmentTextTest(TestCase):
-    def test_legacy_attachment_with_title_and_text(self):
+    def test_legacy_attachment_with_title_and_text(self) -> None:
         attachment = {
             "title": "ValueError: invalid input",
             "title_link": "https://sentry.io/organizations/test-org/issues/456/",
@@ -451,17 +451,17 @@ class ExtractAttachmentTextTest(TestCase):
         )
         assert "invalid literal for int()" in result
 
-    def test_legacy_attachment_title_without_link(self):
+    def test_legacy_attachment_title_without_link(self) -> None:
         attachment = {"title": "Just a title", "text": "body"}
         result = _extract_attachment_text(attachment)
         assert result == "Just a title\nbody"
 
-    def test_legacy_attachment_with_pretext(self):
+    def test_legacy_attachment_with_pretext(self) -> None:
         attachment = {"pretext": "Heads up:", "text": "something happened"}
         result = _extract_attachment_text(attachment)
         assert result == "Heads up:\nsomething happened"
 
-    def test_legacy_attachment_with_fields(self):
+    def test_legacy_attachment_with_fields(self) -> None:
         attachment = {
             "title": "Alert fired",
             "fields": [
@@ -474,11 +474,11 @@ class ExtractAttachmentTextTest(TestCase):
         assert "Project: backend" in result
         assert "Environment: prod" in result
 
-    def test_legacy_attachment_field_value_only(self):
+    def test_legacy_attachment_field_value_only(self) -> None:
         attachment = {"fields": [{"value": "no title here"}]}
         assert _extract_attachment_text(attachment) == "no title here"
 
-    def test_attachment_with_blocks_prefers_blocks(self):
+    def test_attachment_with_blocks_prefers_blocks(self) -> None:
         attachment = {
             "fallback": "should not be used",
             "text": "should not be used",
@@ -486,7 +486,7 @@ class ExtractAttachmentTextTest(TestCase):
         }
         assert _extract_attachment_text(attachment) == "block content"
 
-    def test_message_unfurl_attachment_uses_message_blocks(self):
+    def test_message_unfurl_attachment_uses_message_blocks(self) -> None:
         # Slack message-unfurl attachments embed the source message's blocks
         # one level deeper, in ``message_blocks[0].message.blocks``.
         attachment = {
@@ -508,7 +508,7 @@ class ExtractAttachmentTextTest(TestCase):
         }
         assert _extract_attachment_text(attachment) == "rich body"
 
-    def test_message_unfurl_falls_back_to_text_when_message_blocks_empty(self):
+    def test_message_unfurl_falls_back_to_text_when_message_blocks_empty(self) -> None:
         attachment = {
             "is_msg_unfurl": True,
             "channel_id": "C0",
@@ -518,27 +518,27 @@ class ExtractAttachmentTextTest(TestCase):
         }
         assert _extract_attachment_text(attachment) == "flat fallback"
 
-    def test_attachment_falls_back_to_fallback_field(self):
+    def test_attachment_falls_back_to_fallback_field(self) -> None:
         attachment = {"fallback": "Sentry alert: ValueError in backend"}
         assert _extract_attachment_text(attachment) == "Sentry alert: ValueError in backend"
 
-    def test_attachment_skips_fallback_when_other_fields_present(self):
+    def test_attachment_skips_fallback_when_other_fields_present(self) -> None:
         attachment = {"text": "main body", "fallback": "ignored"}
         assert _extract_attachment_text(attachment) == "main body"
 
-    def test_empty_attachment(self):
+    def test_empty_attachment(self) -> None:
         assert _extract_attachment_text({}) == ""
 
 
 class ExtractTextFromAttachmentsTest(TestCase):
-    def test_multiple_attachments_joined(self):
+    def test_multiple_attachments_joined(self) -> None:
         attachments: list[Mapping[str, Any]] = [
             {"text": "first"},
             {"text": "second"},
         ]
         assert _extract_text_from_attachments(attachments) == "first\nsecond"
 
-    def test_skips_empty_attachments(self):
+    def test_skips_empty_attachments(self) -> None:
         attachments: list[Mapping[str, Any]] = [
             {"text": "first"},
             {},
@@ -546,7 +546,7 @@ class ExtractTextFromAttachmentsTest(TestCase):
         ]
         assert _extract_text_from_attachments(attachments) == "first\nsecond"
 
-    def test_skips_non_dict_entries(self):
+    def test_skips_non_dict_entries(self) -> None:
         attachments: list[Any] = [{"text": "first"}, "not-a-dict", {"text": "second"}]
         assert _extract_text_from_attachments(attachments) == "first\nsecond"
 

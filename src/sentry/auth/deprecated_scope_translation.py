@@ -12,10 +12,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.utils import metrics
 
 
 def get_deprecated_scope_translations(scopes: Iterable[str]) -> dict[str, frozenset[str]]:
@@ -48,7 +48,8 @@ def record_deprecated_scope_translation(scopes: Iterable[str], tags: Mapping[str
     if not options.get("auth.deprecated-scope-translation.enabled"):
         return
     for deprecated_scope in get_deprecated_scope_translations(scopes):
-        metrics.incr(
+        sentry_sdk.metrics.count(
             "auth.deprecated_scope_translation.applied",
-            tags={**tags, "deprecated_scope": deprecated_scope},
+            1,
+            attributes={**tags, "deprecated_scope": deprecated_scope},
         )

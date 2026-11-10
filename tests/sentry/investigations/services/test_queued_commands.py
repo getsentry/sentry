@@ -52,9 +52,7 @@ OUTCOME = {
 @cell_silo_test
 class CommandActorReferenceTest(TestCase):
     def create_command(self, service_account_id: int) -> InvestigationOrchestrationCommand:
-        investigation = self.create_investigation(
-            organization=self.organization, created_by=self.user
-        )
+        investigation = self.create_notebook(organization=self.organization, created_by=self.user)
         run = self.create_investigation_orchestration_run(investigation=investigation)
         return self.create_investigation_orchestration_command(
             orchestration_run=run,
@@ -124,7 +122,7 @@ class QueuedCommandsTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(

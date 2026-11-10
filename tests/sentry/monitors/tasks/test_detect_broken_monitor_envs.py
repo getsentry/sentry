@@ -45,7 +45,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         super().tearDown()
         self._run_tasks.__exit__(None, None, None)
 
-    def create_monitor_env(self, monitor, environment_id):
+    def create_monitor_env(self, monitor: Monitor, environment_id: int) -> MonitorEnvironment:
         return MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=environment_id,
@@ -59,8 +59,12 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         )
 
     def create_monitor_and_env(
-        self, name="test monitor", organization_id=None, project_id=None, environment_id=None
-    ):
+        self,
+        name: str = "test monitor",
+        organization_id: int | None = None,
+        project_id: int | None = None,
+        environment_id: int | None = None,
+    ) -> tuple[Monitor, MonitorEnvironment]:
         if organization_id is None:
             organization_id = self.organization.id
         if project_id is None:
@@ -93,7 +97,9 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         self.detector_ids[monitor.slug] = detector.id
         return (monitor, self.create_monitor_env(monitor=monitor, environment_id=environment_id))
 
-    def create_incident_for_monitor_env(self, monitor, monitor_environment):
+    def create_incident_for_monitor_env(
+        self, monitor: Monitor, monitor_environment: MonitorEnvironment
+    ) -> MonitorIncident:
         first_checkin = MonitorCheckIn.objects.create(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,

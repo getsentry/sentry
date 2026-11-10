@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {IntegrationRow} from './integrationRow';
 
 describe('IntegrationRow', () => {
   const {organization: org} = initializeOrg();

@@ -1,6 +1,6 @@
 import re
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, NotRequired, TypedDict
 
 from sentry.utils.safe import get_path
 
@@ -43,10 +43,19 @@ _CLASS_CAST_MESSAGE_RE = re.compile(
 )
 
 
+class ProcessableException(TypedDict):
+    type: str
+    value: NotRequired[str]
+    module: NotRequired[str | None]
+    raw_module: NotRequired[str | None]
+    raw_type: NotRequired[str | None]
+    raw_value: NotRequired[str]
+
+
 class Exceptions:
     def __init__(self, data: Any):
-        self._processable_exceptions: list[dict[str, Any]] = []
-        self._processable_exceptions_with_values: list[tuple[Any, list[Any]]] = []
+        self._processable_exceptions: list[ProcessableException] = []
+        self._processable_exceptions_with_values: list[tuple[ProcessableException, list[str]]] = []
 
         for exc in get_path(data, "exception", "values", filter=True, default=()):
             if exc.get("type", None):
@@ -62,10 +71,10 @@ class Exceptions:
                 if class_matches:
                     self._processable_exceptions_with_values.append((exc, class_matches))
 
-    def get_processable_exceptions(self):
+    def get_processable_exceptions(self) -> list[ProcessableException]:
         return self._processable_exceptions
 
-    def get_exception_class_names(self):
+    def get_exception_class_names(self) -> list[str]:
         """
         Returns a flattened list of all class names found in the exception values.
         """
@@ -75,21 +84,23 @@ class Exceptions:
             for class_name in class_names
         ]
 
-    def get_processable_exceptions_with_values(self):
+    def get_processable_exceptions_with_values(
+        self,
+    ) -> list[tuple[ProcessableException, list[str]]]:
         return self._processable_exceptions_with_values
 
     def deobfuscate_and_save(
-        self, classes: dict[str, str] | None, mapped_exceptions: list[dict[str, Any]]
-    ):
+        self, classes: dict[str, str] | None, mapped_exceptions: Sequence[Mapping[str, str]]
+    ) -> None:
         """
         Deobfuscates all exception values, module and type in-place
         """
         # Deobfuscate exception module and type first
-        for raw_exc, exc in zip(self._processable_exceptions, mapped_exceptions):
+        for raw_exc, mapped_exc in zip(self._processable_exceptions, mapped_exceptions):
             raw_exc["raw_module"] = raw_exc.get("module")
             raw_exc["raw_type"] = raw_exc.get("type")
-            raw_exc["module"] = exc["module"]
-            raw_exc["type"] = exc["type"]
+            raw_exc["module"] = mapped_exc["module"]
+            raw_exc["type"] = mapped_exc["type"]
 
         # Deobfuscate exception values
         # Note: replace each candidate where it was matched rather than by searching for its

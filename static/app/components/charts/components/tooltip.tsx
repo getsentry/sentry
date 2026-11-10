@@ -361,6 +361,39 @@ export function getFormatter({
   };
 }
 
+interface HorizontalTooltipPositionParams {
+  anchorX: number;
+  chartLeft: number;
+  tipWidth: number;
+}
+
+/**
+ * Centres the tooltip on `anchorX`, pinning it inside the viewport when it
+ * would overflow. `left` is relative to the chart, and `arrowLeft` keeps the
+ * arrow pointing at the anchor when the tooltip is pinned.
+ */
+export function horizontalTooltipPosition({
+  anchorX,
+  chartLeft,
+  tipWidth,
+}: HorizontalTooltipPositionParams): {arrowLeft: string; left: number} {
+  const left = anchorX - tipWidth / 2;
+  const rightEdge = chartLeft + anchorX + tipWidth / 2;
+
+  if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
+    const pinnedLeft =
+      left - (rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET);
+    return {left: pinnedLeft, arrowLeft: `${anchorX - pinnedLeft}px`};
+  }
+
+  if (left + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
+    const pinnedLeft = CHART_TOOLTIP_VIEWPORT_OFFSET - chartLeft;
+    return {left: pinnedLeft, arrowLeft: `${anchorX - pinnedLeft}px`};
+  }
+
+  return {left, arrowLeft: '50%'};
+}
+
 type Props = ChartProps['tooltip'] &
   Pick<ChartProps, NeededChartProps> &
   Pick<FormatterOptions, 'addSecondsToTimeFormat'> & {
@@ -454,24 +487,11 @@ export function computeChartTooltip(
       const chartBoundingRect = chartElement.getBoundingClientRect();
       const chartLeft = chartBoundingRect.left ?? 0;
 
-      // Determine the new left edge.
-      let leftPos = Number(pos[0]) - tipWidth / 2;
-      // And the right edge taking into account the chart left offset
-      const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
-
-      let arrowPosition: string | undefined;
-      if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
-        // If the tooltip would leave viewport on the right, pin it.
-        leftPos -= rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
-        // If the tooltip would leave viewport on the left, pin it.
-        leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else {
-        // Tooltip not near the window edge, reset position
-        arrowPosition = '50%';
-      }
+      const {left: leftPos, arrowLeft: arrowPosition} = horizontalTooltipPosition({
+        anchorX: Number(pos[0]),
+        chartLeft,
+        tipWidth,
+      });
 
       // Prefer rendering the tooltip above the cursor.
       let topPos = Number(pos[1]) - tipHeight - 20;

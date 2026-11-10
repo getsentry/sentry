@@ -304,7 +304,7 @@ describe('Testing new onboarding ui', () => {
       ],
     });
 
-    const traceHref = `/?table=${Tab.TRACE}&query=trace%3A${trace.trace}`;
+    const traceHref = `/?table=${Tab.TRACE}&query=trace:${trace.trace}`;
 
     render(<Onboarding organization={organization} project={projectMock} />, {
       initialRouterConfig: {

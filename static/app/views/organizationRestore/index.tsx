@@ -4,8 +4,8 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -90,7 +90,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
     mutationFn: (data: {cancelDeletion: number}) =>
       fetchMutation<Organization>({url: endpoint, method: 'PUT', data}),
     onSuccess: () => {
-      addSuccessMessage(t('Organization Restored'));
+      toast.success(t('Organization Restored'));
 
       // Use window.location to ensure page reloads
       testableWindowLocation.assign(
@@ -103,7 +103,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
           ? error.responseJSON.detail
           : '';
 
-      addErrorMessage(
+      toast.error(
         errorMessage
           ? t('Unable to restore organization. %s', errorMessage)
           : t('Unable to restore organization.')

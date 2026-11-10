@@ -19,7 +19,7 @@ from tests.sentry.spans.consumers.process import build_mock_span
 from tests.sentry.spans.consumers.process_segments.test_convert import SPAN_KAFKA_MESSAGE
 
 
-def build_segment_span(**kwargs) -> CompatibleSpan:
+def build_segment_span(**kwargs: Any) -> CompatibleSpan:
     segment_span = build_mock_span(project_id=415, is_segment=True, hash="dogs_are_great", **kwargs)
     return make_compatible(segment_span)
 

@@ -6,18 +6,13 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 
 from sentry.auth.access import Access
+from sentry.auth.principal import RequestPrincipal
 from sentry.investigations.contracts import ActionPayloadSerializer
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationOrchestrationRun,
-)
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.notebooks.models import Notebook, NotebookActionRequest
 
 
 class CannotApplyReason(StrEnum):
@@ -78,9 +73,9 @@ class ApplyFailed(Exception):
 class ApplyContext:
     """When applying, the caller holds the investigation, run, and request row locks."""
 
-    investigation: Investigation
+    investigation: Notebook
     run: InvestigationOrchestrationRun
-    action_request: InvestigationActionRequest
+    action_request: NotebookActionRequest
     request: Request
     actor_id: int
 
@@ -119,18 +114,16 @@ class ActionKind(abc.ABC):
 
     def cannot_apply_reasons(
         self,
-        action_requests: Sequence[InvestigationActionRequest],
+        action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Investigation],
+        investigations: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         """For each suggested request, why the viewer can't apply it, or None if they can."""
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
 
-    def check_remote(
-        self, investigation: Investigation, action_request: InvestigationActionRequest
-    ) -> None:
+    def check_remote(self, investigation: Notebook, action_request: NotebookActionRequest) -> None:
         """Checks that ask another silo, for a request the viewer can apply. They run before
         apply and its dry run take locks, since a silo call can't run in a transaction. Raise
         ActionInvalid where apply would.
@@ -148,13 +141,11 @@ class ActionKind(abc.ABC):
         """
         raise NotImplementedError
 
-    def follow_up_command(
-        self, action_request: InvestigationActionRequest
-    ) -> FollowUpCommand | None:
+    def follow_up_command(self, action_request: NotebookActionRequest) -> FollowUpCommand | None:
         """What to ask Seer to do once the request is applied, if anything."""
         return None
 
-    def after_upsert(self, action_request: InvestigationActionRequest) -> None:
+    def after_upsert(self, action_request: NotebookActionRequest) -> None:
         """Runs when Seer creates or changes a request, in the same transaction. Only requests
         that are still suggested once the whole event is handled get it.
         """

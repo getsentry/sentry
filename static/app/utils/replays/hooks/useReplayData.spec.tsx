@@ -18,8 +18,9 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {useReplayData} from './useReplayData';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();

@@ -37,14 +37,17 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
+ResolutionParams = dict[str, Any]
+
+
 def get_resolutions_and_activity_data_for_groups(
     affected_groups: Iterable[Group],
     resolution_strategy: str | None,
-    activity_data: dict,
+    activity_data: dict[str, object],
     organization_id: int,
-):
+) -> tuple[dict[int, ResolutionParams], ActivityType, dict[str, object]]:
     activity_data = activity_data.copy()
-    resolutions_by_group_id = {}
+    resolutions_by_group_id: dict[int, ResolutionParams] = {}
     activity_type = ActivityType.SET_RESOLVED
     # If the resolution strategy is set to resolve in the next release or current release
     if resolution_strategy in [
@@ -286,6 +289,11 @@ def sync_status_inbound(
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
     except Exception:
+        logger.warning(
+            "sync_status_inbound.get_resolve_sync_action_failed",
+            exc_info=True,
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
         return
 
     provider = installation.model.get_provider()
@@ -310,7 +318,7 @@ def sync_status_inbound(
                 activity_type,
                 activity_data,
             ) = get_resolutions_and_activity_data_for_groups(
-                affected_groups, config.get("resolution_strategy"), activity_data, organization_id
+                resolvable_groups, config.get("resolution_strategy"), activity_data, organization_id
             )
             with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
                 Group.objects.update_group_status(

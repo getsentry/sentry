@@ -1,6 +1,6 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import {getFormatter} from './tooltip';
 
 const TIMESTAMP = 1_700_000_000_000;
 

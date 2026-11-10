@@ -22,9 +22,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReplayConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {updateDynamicSdkLoaderOptions} from 'sentry/gettingStartedDocs/javascript/updateDynamicSdkLoaderOptions';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {updateDynamicSdkLoaderOptions} from './updateDynamicSdkLoaderOptions';
 
 export enum InstallationMode {
   AUTO = 'auto',

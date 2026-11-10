@@ -7,10 +7,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
-import {
-  getIssueFieldRenderer,
-  type IssueRowMetadata,
-} from 'sentry/utils/dashboards/issueFieldRenderers';
+
+import {getIssueFieldRenderer, type IssueRowMetadata} from './issueFieldRenderers';
 
 describe('getIssueFieldRenderer', () => {
   let location: any,

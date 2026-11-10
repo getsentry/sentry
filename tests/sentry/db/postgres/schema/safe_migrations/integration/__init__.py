@@ -1,7 +1,9 @@
+from collections.abc import Sequence
+
 from django.core.management.commands.migrate import Command as MigrateCommand
 
 
-def migrate(params=None):
+def migrate(params: Sequence[str] | None = None) -> str | None:
     command = MigrateCommand()
     parser = command.create_parser("manage.py", "migrate")
     options = parser.parse_args(params or [])

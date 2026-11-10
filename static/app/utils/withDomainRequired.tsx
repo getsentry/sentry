@@ -2,8 +2,9 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useParams} from 'sentry/utils/useParams';
+
+import {testableWindowLocation} from './testableWindowLocation';
+import {useParams} from './useParams';
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within

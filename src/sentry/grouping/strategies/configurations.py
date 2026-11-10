@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.conf.server import FALL_2025_GROUPING_CONFIG, WINTER_2023_GROUPING_CONFIG
 from sentry.grouping.strategies.base import (
     StrategyConfiguration,
@@ -37,7 +39,10 @@ BASE_CONFIG_CLASS = create_strategy_configuration_class(
 )
 
 
-def register_grouping_config(id: str, **kwargs) -> type[StrategyConfiguration]:
+def register_grouping_config(
+    id: str,
+    **kwargs: Any,
+) -> type[StrategyConfiguration]:
     # Replace the base strategy id in kwargs with the base stategy class itself (or the default
     # base class, if no base is specified)
     base_config_id = kwargs.get("base")

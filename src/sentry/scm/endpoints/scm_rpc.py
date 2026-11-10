@@ -11,7 +11,7 @@ from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.scm.private.helpers import make_fetchers, record_count_metric, report_error_to_sentry
 
 
-def make_server():
+def make_server() -> RpcServer:
     # SCM-RPC callers own retries, so each integration proxy request gets a single attempt.
     fetchers = make_fetchers(disable_proxy_retries=True)
     return RpcServer(

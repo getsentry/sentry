@@ -21,10 +21,10 @@ def isoformat_z(dt: datetime) -> str:
 class MockClock:
     """Returns a distinct, increasing timestamp each time it is called."""
 
-    def __init__(self, initial=None):
+    def __init__(self, initial: datetime | None = None) -> None:
         self.time = initial or datetime.now(UTC)
 
-    def __call__(self):
+    def __call__(self) -> datetime:
         self.time += timedelta(seconds=1)
         return self.time
 

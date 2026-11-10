@@ -3,9 +3,10 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {FilterSelector} from './filterSelector';
 
 describe('FilterSelector', () => {
   const mockOnUpdateFilter = jest.fn();

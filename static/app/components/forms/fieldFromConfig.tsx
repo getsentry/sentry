@@ -1,8 +1,6 @@
-import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
-import {SeparatorField} from 'sentry/components/forms/fields/separatorField';
-import type {Field} from 'sentry/components/forms/types';
 import type {Scope} from 'sentry/types/core';
 
+import type {FieldGroupProps} from './fieldGroup/types';
 import {BlankField} from './fields/blankField';
 import {BooleanField, type BooleanFieldProps} from './fields/booleanField';
 import {ChoiceMapperField, type ChoiceMapperFieldProps} from './fields/choiceMapperField';
@@ -15,9 +13,11 @@ import {RadioField, type RadioFieldProps} from './fields/radioField';
 import {RangeField, type RangeFieldProps} from './fields/rangeField';
 import {SecretField, type SecretFieldProps} from './fields/secretField';
 import {SelectField, type SelectFieldProps} from './fields/selectField';
+import {SeparatorField} from './fields/separatorField';
 import {TableField, type TableFieldProps} from './fields/tableField';
 import {TextareaField, type TextareaFieldProps} from './fields/textareaField';
 import {TextField, type TextFieldProps} from './fields/textField';
+import type {Field} from './types';
 
 interface FieldFromConfigProps {
   field: Field;

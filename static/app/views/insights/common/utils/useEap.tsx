@@ -1,18 +1,18 @@
-import {defined} from 'sentry/utils/defined';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useQueryState} from 'nuqs';
+
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const useInsightsEap = (): boolean => {
   const organization = useOrganization();
-  const location = useLocation();
+  const [eapParam] = useQueryState('useEap');
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
   if (!hasEapFlag) {
     return false;
   }
 
-  if (defined(location.query.useEap)) {
-    return location.query.useEap === '1';
+  if (eapParam !== null) {
+    return eapParam === '1';
   }
 
   return true;

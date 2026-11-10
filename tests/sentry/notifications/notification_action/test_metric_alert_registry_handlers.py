@@ -4,6 +4,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.utils import timezone
@@ -69,7 +70,7 @@ class TestHandler(BaseMetricAlertHandler):
 
 
 class MetricAlertHandlerBase(BaseWorkflowTest):
-    def create_models(self):
+    def create_models(self) -> None:
         self.workflow, self.detector, _, _ = self.create_detector_and_workflow()
         self.snuba_query = self.create_snuba_query()
         self.subscription = self.create_snuba_query_subscription(snuba_query_id=self.snuba_query.id)
@@ -168,7 +169,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         priority: int | None = None,
         level: str = "error",
         evidence_data: Mapping[str, Any] | None = None,
-    ):
+    ) -> IssueOccurrence:
         if evidence_data is None:
             evidence_data = {}
 
@@ -202,7 +203,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         notes: str | None = None,
         workflow_id: int | None = None,
         workflow_name: str | None = None,
-    ):
+    ) -> None:
         assert asdict(notification_context) == {
             "id": notification_context.id,
             "integration_id": integration_id,
@@ -227,7 +228,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sensitivity: AlertRuleSensitivity | AnomalyDetectionSensitivity | None = None,
         resolve_threshold: float | None = None,
         alert_threshold: float | None = None,
-    ):
+    ) -> None:
         assert asdict(alert_context) == {
             "name": name,
             "action_identifier_id": action_identifier_id,
@@ -249,7 +250,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         metric_value: StoredMetricResult | None = None,
         subscription: QuerySubscription | None = None,
         group: Group | None = None,
-    ):
+    ) -> None:
         assert asdict(metric_issue_context) == {
             "id": metric_issue_context.id,
             "open_period_identifier": open_period_identifier,
@@ -267,14 +268,14 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         id: int,
         date_started: datetime,
         date_closed: datetime | None,
-    ):
+    ) -> None:
         assert open_period_context.dict() == {
             "id": id,
             "date_started": date_started,
             "date_closed": date_closed,
         }
 
-    def unpack_kwargs(self, mock_send_alert):
+    def unpack_kwargs(self, mock_send_alert: MagicMock) -> tuple[object, ...]:
         _, kwargs = mock_send_alert.call_args
         notification_context = kwargs["notification_context"]
         alert_context = kwargs["alert_context"]

@@ -3,6 +3,7 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import responses
+from django.test import override_settings
 
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -22,6 +23,7 @@ from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 # The default Activity fixture represents a comment created before GALE dual writes.
@@ -149,6 +151,31 @@ class GroupNotesDetailsTest(APITestCase):
             self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
 
+        assert response.status_code == 404, response.content
+        assert Activity.objects.filter(id=self.activity.id).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_comments_to_edit_or_delete(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:write", "event:admin"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.put(
+            self.url, {"text": "edited"}, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        assert response.status_code == 404, response.content
+
+        response = self.client.delete(self.url, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context)
         assert response.status_code == 404, response.content
         assert Activity.objects.filter(id=self.activity.id).exists()
 

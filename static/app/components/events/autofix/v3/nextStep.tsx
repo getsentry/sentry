@@ -30,11 +30,6 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
-import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
-import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
-import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
-import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -42,6 +37,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+import {PrIterationFeedbackForm} from './prIterationFeedbackForm';
+import {RepositoryWritePermissionButton} from './repositoryWritePermissionButton';
+import {useAskSeerHandoff} from './useAskSeerHandoff';
+import {useCodingAgents} from './useCodingAgents';
+import {useRethinkInChat} from './useRethinkInChat';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;

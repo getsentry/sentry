@@ -9,6 +9,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.relocation.models.relocation import Relocation
 
 ERR_NOT_ABORTABLE_STATUS = (
@@ -43,7 +44,7 @@ class RelocationAbortEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.abort.put.start", extra={"caller": request.user.id})
+        logger.info("relocations.abort.put.start", extra={"caller": acting_user_id(request.user)})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)

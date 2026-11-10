@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 
 from sentry.middleware.integrations.classifications import (
@@ -28,7 +28,7 @@ class IntegrationControlMiddlewareTest(TestCase):
     def setUp(self) -> None:
         self.factory = RequestFactory()
 
-    def validate_mock_ran_with_noop(self, request, mock):
+    def validate_mock_ran_with_noop(self, request: HttpRequest, mock: MagicMock) -> None:
         # Ensure mock runs when middleware is called
         mock.reset_mock()
         response = self.middleware(request)
@@ -42,7 +42,7 @@ class IntegrationControlMiddlewareTest(TestCase):
         "_should_operate",
         wraps=middleware._should_operate,
     )
-    def test_inactive_on_monolith(self, mock_should_operate) -> None:
+    def test_inactive_on_monolith(self, mock_should_operate: MagicMock) -> None:
         request = self.factory.post("/extensions/slack/webhook/")
         assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
@@ -53,14 +53,14 @@ class IntegrationControlMiddlewareTest(TestCase):
         "_should_operate",
         wraps=middleware._should_operate,
     )
-    def test_inactive_on_region_silo(self, mock_should_operate) -> None:
+    def test_inactive_on_region_silo(self, mock_should_operate: MagicMock) -> None:
         request = self.factory.post("/extensions/slack/webhook/")
         assert mock_should_operate(request) is False
         self.validate_mock_ran_with_noop(request, mock_should_operate)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(IntegrationClassification, "should_operate", wraps=integration_cls.should_operate)
-    def test_attempts_all_classifications(self, mock_integration_operate) -> None:
+    def test_attempts_all_classifications(self, mock_integration_operate: MagicMock) -> None:
         class NewClassification(BaseClassification):
             pass
 
@@ -79,7 +79,9 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(SlackRequestParser, "get_response")
-    def test_returns_parser_get_response_integration(self, mock_parser_get_response) -> None:
+    def test_returns_parser_get_response_integration(
+        self, mock_parser_get_response: MagicMock
+    ) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/extensions/slack/webhook/"))
@@ -87,7 +89,9 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(JiraServerRequestParser, "get_response")
-    def test_returns_parser_get_response_jiraserver(self, mock_parser_get_response) -> None:
+    def test_returns_parser_get_response_jiraserver(
+        self, mock_parser_get_response: MagicMock
+    ) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(
@@ -103,7 +107,7 @@ class IntegrationControlMiddlewareTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(JiraRequestParser, "get_response")
-    def test_returns_parser_get_response_jira(self, mock_parser_get_response) -> None:
+    def test_returns_parser_get_response_jira(self, mock_parser_get_response: MagicMock) -> None:
         result = HttpResponse(status=204)
         mock_parser_get_response.return_value = result
         response = self.middleware(self.factory.post("/extensions/jira/issue-updated/abc-123/"))

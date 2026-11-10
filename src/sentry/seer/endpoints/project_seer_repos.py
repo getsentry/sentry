@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from functools import partial
-from typing import TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.db import router, transaction
 from django.db.models import QuerySet, Value
 from django.db.models.functions import Replace
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,6 +21,22 @@ from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -29,6 +47,7 @@ from sentry.seer.autofix.utils import (
     add_seer_project_repos,
     get_seer_project_repo,
     get_token_based_billing_project_repos,
+    get_token_based_billing_repo_filter,
     is_seer_token_based_billing_onboarding_enabled,
     replace_all_seer_project_repos,
     update_seer_project_repo,
@@ -50,24 +69,36 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 
 
 class BranchOverrideResponse(TypedDict):
-    id: str
-    tagName: str
-    tagValue: str
-    branchName: str
+    id: Annotated[str, ApiDescription("ID of the branch override")]
+    tagName: Annotated[str, ApiDescription("Event tag key to match")]
+    tagValue: Annotated[str, ApiDescription("Event tag value to match")]
+    branchName: Annotated[
+        str, ApiDescription("Branch Seer uses for issues whose events have this tag value")
+    ]
 
 
 class ProjectRepoResponse(TypedDict):
-    id: str
-    repositoryId: str
-    organizationId: str
-    provider: str
-    owner: str
-    name: str
-    externalId: str
-    integrationId: str | None
-    branchName: str | None
-    branchOverrides: list[BranchOverrideResponse]
-    instructions: str | None
+    id: Annotated[str, ApiDescription("ID of the link between the project and the repository")]
+    repositoryId: Annotated[str, ApiDescription("ID of the repository")]
+    organizationId: Annotated[str, ApiDescription("ID of the organization")]
+    provider: Annotated[
+        str, ApiDescription("Provider of the repository, such as integrations:github")
+    ]
+    owner: Annotated[str, ApiDescription("Owner of the repository")]
+    name: Annotated[str, ApiDescription("Name of the repository, without the owner")]
+    externalId: Annotated[str, ApiDescription("ID of the repository in the provider")]
+    integrationId: Annotated[str | None, ApiDescription("ID of the repository's integration")]
+    branchName: Annotated[
+        str | None,
+        ApiDescription("Branch Seer uses instead of the default branch. Null when not set"),
+    ]
+    branchOverrides: Annotated[
+        list[BranchOverrideResponse],
+        ApiDescription("Deprecated. Branches Seer uses for issues with matching event tags"),
+    ]
+    instructions: Annotated[
+        str | None, ApiDescription("Instructions Seer follows when working with the repository")
+    ]
 
 
 def _serialize_project_repo(
@@ -140,14 +171,8 @@ def _get_seat_based_billing_repos(organization: Organization) -> QuerySet[Reposi
 
 
 def _get_token_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
-    """Repos Seer can use under token-based billing. Same checks as get_token_based_billing_project_repos."""
-    return Repository.objects.filter(
-        organization_id=organization.id,
-        status=ObjectStatus.ACTIVE,
-        provider__in=get_supported_scm_providers(organization),
-        integration_id__isnull=False,
-        external_id__isnull=False,
-    ).exclude(external_id="")
+    """Repos Seer can use under token-based billing."""
+    return Repository.objects.filter(get_token_based_billing_repo_filter(organization))
 
 
 def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
@@ -164,7 +189,7 @@ def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
         raise ValueError(sorted(invalid_ids))
 
 
-def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
+def _apply_search_filters(queryset: Any, filters: Sequence[QueryToken]) -> Any:
     for f in filters:
         if not isinstance(f, SearchFilter):
             continue
@@ -184,7 +209,10 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
         elif key == "provider":
             if op not in ("=", "!=", "IN", "NOT IN"):
                 raise InvalidSearchQuery(f"provider does not support the {op} operator.")
-            normalize = lambda v: v.removeprefix("integrations:")
+
+            def normalize(provider: str) -> str:
+                return provider.removeprefix("integrations:")
+
             if op == "=":
                 queryset = queryset.filter(provider_normalized=normalize(value))
             elif op == "!=":
@@ -197,7 +225,9 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
     return queryset
 
 
-def _validate_branch_overrides(value):
+def _validate_branch_overrides(
+    value: Sequence[Mapping[str, str]],
+) -> Sequence[Mapping[str, str]]:
     if not value:
         return value
     seen: set[tuple[str, str]] = set()
@@ -211,40 +241,90 @@ def _validate_branch_overrides(value):
     return value
 
 
-class BranchOverrideSerializer(CamelSnakeSerializer):
-    tag_name = serializers.CharField(required=True)
-    tag_value = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=True)
+class BranchOverrideSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    tag_name = serializers.CharField(required=True, help_text="Event tag key to match.")
+    tag_value = serializers.CharField(required=True, help_text="Event tag value to match.")
+    branch_name = serializers.CharField(
+        required=True,
+        help_text="The repository branch Seer uses for issues whose events have this tag value.",
+    )
 
 
-class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
-    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False, allow_null=False)
+@sentry_schema_serializer(
+    deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
+)
+class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    branch_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Override the default branch for this repository.",
+    )
+    instructions = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Instructions Seer should follow when working with this repository.",
+    )
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=False,
+        help_text="Deprecated. Branch overrides selected by matching tags.",
+    )
 
-    def validate_branch_overrides(self, value):
+    def validate_branch_overrides(
+        self, value: Sequence[Mapping[str, str]]
+    ) -> Sequence[Mapping[str, str]]:
         return _validate_branch_overrides(value)
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
             raise serializers.ValidationError("At least one field must be provided.")
         return data
 
 
-class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
-    repository_id = serializers.IntegerField(required=True)
-    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False, allow_null=False)
+@sentry_schema_serializer(
+    deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
+)
+class SeerProjectRepoCreateSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    repository_id = serializers.IntegerField(
+        required=True, help_text="The ID of an active, supported repository in the organization."
+    )
+    branch_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The branch Seer works from in this repository. Leave empty to use the repository's default branch.",
+    )
+    instructions = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Extra context Seer should use when working with this repository.",
+    )
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=False,
+        help_text="Deprecated. Branch overrides selected by matching tags.",
+    )
 
-    def validate_branch_overrides(self, value):
+    def validate_branch_overrides(
+        self, value: Sequence[Mapping[str, str]]
+    ) -> Sequence[Mapping[str, str]]:
         return _validate_branch_overrides(value)
 
 
-class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
-    repos = SeerProjectRepoCreateSerializer(many=True, required=True, allow_empty=True)
+class SeerProjectReposBulkSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    repos = SeerProjectRepoCreateSerializer(
+        many=True,
+        required=True,
+        allow_empty=True,
+        help_text="Repositories to link and configure for Seer in this project.",
+    )
 
-    def validate_repos(self, value):
+    def validate_repos(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         repo_ids = [r["repository_id"] for r in value]
         if len(repo_ids) != len(set(repo_ids)):
             raise serializers.ValidationError("Duplicate repository IDs are not allowed.")
@@ -329,16 +409,57 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
         return Response(status=204)
 
 
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectSeerReposEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
-    def get(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="listProjectSeerRepositories",
+        summary="List Repositories Configured for Seer",
+        description="List repositories connected to Seer for the project.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                "query",
+                type=str,
+                description=(
+                    "Filter repositories using Sentry search syntax. `name` supports substring "
+                    "matching and is also the free-text key. `provider` supports `=`, `!=`, `IN`, "
+                    "and `NOT IN` operators, and matches with or without the `integrations:` prefix."
+                ),
+            ),
+            OpenApiParameter(
+                "sortBy",
+                type=str,
+                enum=["name", "-name", "provider", "-provider"],
+                description="Sort by repository name or provider. Defaults to `name`.",
+            ),
+            CursorQueryParam,
+            OpenApiParameter(
+                "per_page", type=int, description="The maximum number of results per page."
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectSeerRepositoriesResponse", list[ProjectRepoResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectRepoResponse]] | Response[DetailResponse]:
         queryset = (
             get_token_based_billing_project_repos(project.organization, [project.id])
             if is_seer_token_based_billing_onboarding_enabled(project.organization)
@@ -370,10 +491,30 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="addProjectSeerRepositories",
+        summary="Add Repositories to Seer for a Project",
+        description=(
+            "Add the specified repositories to Seer without removing other repositories. "
+            "At least one repository is required. Re-submitting a repository replaces its "
+            "branchName, instructions, and branchOverrides; omitted values are cleared."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=SeerProjectReposBulkSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         repos_data = serializer.validated_data["repos"]
         if not repos_data:
@@ -388,10 +529,31 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="replaceProjectSeerRepositories",
+        summary="Replace Repositories Configured for Seer",
+        description=(
+            "Replace the project's active Seer repository configurations with the submitted "
+            "repositories. An empty `repos` list removes all active Seer repository "
+            "configurations. Inactive repository configurations are retained and become "
+            "available again if the repositories are reactivated."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=SeerProjectReposBulkSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         repos_data = serializer.validated_data["repos"]
 
@@ -402,5 +564,17 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
         replace_all_seer_project_repos(project, repos_data)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            data={
+                "project_id": project.id,
+                "project_slug": project.slug,
+                "repos": repos_data,
+            },
+        )
 
         return Response(status=204)

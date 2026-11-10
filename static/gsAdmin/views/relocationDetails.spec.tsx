@@ -11,8 +11,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 import {RelocationDetails} from 'admin/views/relocationDetails';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('Relocation Details', () => {
   const in_progress_relocation_uuid = '9f14e990-dd8d-4f45-b759-a8982692e530';
   const paused_relocation_uuid = '589376f2-ab6a-4476-abed-81f0a26446d6';

@@ -24,7 +24,9 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 
-def alert_page_needs_org_id(fine_tuning_key: NotificationSettingEnum | FineTuningAPIKey) -> bool:
+def alert_page_needs_org_id(
+    fine_tuning_key: NotificationSettingEnum | FineTuningAPIKey | str,
+) -> bool:
     """Determines if the alert setting page needs the organization id in the query params."""
     return fine_tuning_key in (
         FineTuningAPIKey.ALERTS,

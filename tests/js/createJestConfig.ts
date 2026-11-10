@@ -257,6 +257,7 @@ const ESM_NODE_MODULES = [
   'color',
   'marked',
   '@sentry\\+sqlish',
+  '@tanstack\\+(?:react-)?hotkeys@',
 ];
 
 const config: Config.InitialOptions = {

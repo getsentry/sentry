@@ -16,8 +16,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -62,9 +62,9 @@ const askSeerOrganization = OrganizationFixture({
   hideAiFeatures: false,
   openMembership: true,
 });
-const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const titleGenerationUrl =
-  '/organizations/org-slug/investigations/investigation-1/title-generation/';
+  '/organizations/org-slug/notebooks/investigation-1/title-generation/';
 const orchestrationUrl =
   '/organizations/org-slug/investigations/investigation-1/orchestration/';
 
@@ -199,8 +199,7 @@ async function chooseBlockAction(
 describe('Investigation detail', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
-    jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
-    jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    jest.spyOn(toast, 'success').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
     MockApiClient.addMockResponse({
@@ -398,6 +397,37 @@ describe('Investigation detail', () => {
         screen.getByRole('heading', {level: 2, name: 'Investigation details'})
       )
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('re-reads the investigation once its run is past waiting on a question', async () => {
+    // The summary says the run is parked, which stops the page polling. Only
+    // the projection sees Seer take the question.
+    const parkedDetail = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        sourceType: 'manual',
+        blocks: [],
+        orchestration: {
+          phase: 'intake',
+          status: 'awaiting_input',
+          heartbeatAt: null,
+          notebookRevision: 0,
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'broad_scan',
+        status: 'processing',
+        sourceType: 'manual',
+        hypotheses: [],
+      }),
+    });
+
+    renderView();
+
+    await waitFor(() => expect(parkedDetail).toHaveBeenCalledTimes(2));
   });
 
   describe('while Seer re-checks a stale suggestion', () => {
@@ -3323,7 +3353,7 @@ describe('Investigation detail', () => {
         url: detailUrl,
         method: 'PUT',
         body: InvestigationDetailFixture({
-          title: 'Regional latency investigation',
+          title: 'Renamed',
           version: 2,
         }),
       });
@@ -3331,9 +3361,9 @@ describe('Investigation detail', () => {
       renderView();
       const titleInput = await screen.findByLabelText('Investigation title');
       await user.clear(titleInput);
-      await user.type(titleInput, 'Regional latency investigation');
+      await user.type(titleInput, 'Renamed');
 
-      expect(titleInput).toHaveValue('Regional latency investigation');
+      expect(titleInput).toHaveValue('Renamed');
       expect(renameRequest).not.toHaveBeenCalled();
 
       await act(() => jest.advanceTimersByTimeAsync(499));
@@ -3344,7 +3374,7 @@ describe('Investigation detail', () => {
           detailUrl,
           expect.objectContaining({
             data: {
-              title: 'Regional latency investigation',
+              title: 'Renamed',
               investigationVersion: 1,
             },
           })
@@ -3510,20 +3540,20 @@ describe('Investigation detail', () => {
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/presence/',
+      url: '/organizations/org-slug/notebooks/investigation-2/presence/',
       method: 'PUT',
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/comments/',
+      url: '/organizations/org-slug/notebooks/investigation-2/comments/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/comment-counts/',
+      url: '/organizations/org-slug/notebooks/investigation-2/comment-counts/',
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/investigation-2/',
+      url: '/organizations/org-slug/notebooks/investigation-2/',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
 
@@ -3919,6 +3949,42 @@ describe('Investigation detail', () => {
       status: expect.any(String),
       result: 'The lookup slowed sharply during the incident window.',
     });
+  });
+
+  it('asks Seer about every hypothesis from the panel menu', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: 'Actions for hypotheses'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    expect(openChatPrompt).toHaveBeenCalledTimes(1);
+    const {prompt, context} = openChatPrompt.mock.calls[0][0];
+    expect(prompt).toBe('What would you like to know about these hypotheses?');
+    expect(context.investigation).toEqual({
+      id: 'investigation-1',
+      title: 'Investigate database latency',
+      version: 1,
+    });
+    expect(context.hypotheses).toEqual([
+      expect.objectContaining({
+        id: 'hypothesis-1',
+        number: 1,
+        statement: 'Database or cache degradation delayed the response',
+        isConclusion: true,
+      }),
+      expect.objectContaining({id: 'hypothesis-2', number: 2, isConclusion: undefined}),
+      expect.objectContaining({id: 'hypothesis-3', number: 3, isConclusion: undefined}),
+    ]);
   });
 
   it('does not reach for orchestration on a manual investigation', async () => {

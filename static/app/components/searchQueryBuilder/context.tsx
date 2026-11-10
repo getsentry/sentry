@@ -16,20 +16,6 @@ import type {
   GetTagValues,
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
-import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
-import {
-  useQueryBuilderState,
-  type QueryBuilderActions,
-} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import {useRegexPatternValidator} from 'sentry/components/searchQueryBuilder/hooks/useRegexPatternValidator';
-import type {
-  FieldDefinitionGetter,
-  FilterKeySection,
-  FocusOverride,
-} from 'sentry/components/searchQueryBuilder/types';
-import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason, type ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {SavedSearchType, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
@@ -39,6 +25,17 @@ import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
+
+import {useFilterKeyRegistry} from './hooks/useFilterKeyRegistry';
+import {useHandleSearch} from './hooks/useHandleSearch';
+import {
+  useQueryBuilderState,
+  type QueryBuilderActions,
+} from './hooks/useQueryBuilderState';
+import {useRegexPatternValidator} from './hooks/useRegexPatternValidator';
+import type {CaseInsensitive} from './hooks';
+import type {FieldDefinitionGetter, FilterKeySection, FocusOverride} from './types';
+import {parseQueryBuilderValue} from './utils';
 
 export const DEFAULT_FILTER_KEY_MENU_WIDTH = 460;
 
@@ -386,9 +383,12 @@ export function SearchQueryBuilderProvider({
       setDisplayAskSeerFeedback(false);
       setReopenDropdownOnQueryClear(reopenDropdown);
       dispatch({type: 'CLEAR'});
-      handleSearch('');
+      // A changed committed query already searches via useOnChange
+      if (state.committedQuery === '') {
+        handleSearch('');
+      }
     },
-    [dispatch, handleSearch]
+    [dispatch, handleSearch, state.committedQuery]
   );
 
   const consumeReopenDropdownOnQueryClear = useCallback(() => {

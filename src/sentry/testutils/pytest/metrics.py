@@ -1,6 +1,9 @@
 import contextlib
 import dataclasses
 import functools
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -23,7 +26,10 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
 
 
 @pytest.fixture(autouse=True)
-def control_metrics_access(request, set_sentry_option):
+def control_metrics_access(
+    request: pytest.FixtureRequest,
+    set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+) -> Generator[None]:
     from snuba_sdk import MetricsQuery
 
     from sentry.sentry_metrics import indexer
@@ -49,7 +55,7 @@ def control_metrics_access(request, set_sentry_option):
 
             old_resolve = indexer.resolve
 
-            def new_resolve(use_case_id, org_id, string):
+            def new_resolve(use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
                 if (
                     use_case_id == UseCaseID.TRANSACTIONS
                     and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES
@@ -63,7 +69,7 @@ def control_metrics_access(request, set_sentry_option):
 
             old_build_results = snuba._apply_cache_and_build_results
 
-            def new_build_results(*args, **kwargs):
+            def new_build_results(*args: Any, **kwargs: Any) -> Any:
                 if isinstance(args[0][0].request, dict):
                     # We only support snql queries, and metrics only go through snql
                     return old_build_results(*args, **kwargs)
@@ -92,8 +98,11 @@ def control_metrics_access(request, set_sentry_option):
             old_create_snql_in_snuba = tasks._create_snql_in_snuba
 
             def new_create_snql_in_snuba(
-                subscription, snuba_query, snql_query, entity_subscription
-            ):
+                subscription: Any,
+                snuba_query: Any,
+                snql_query: Any,
+                entity_subscription: Any,
+            ) -> Any:
                 query = snql_query.query
                 is_performance_metrics = False
                 is_metrics = False
@@ -117,7 +126,7 @@ def control_metrics_access(request, set_sentry_option):
         else:
             should_fail = False
 
-            def fail(old_fn, *args, **kwargs):
+            def fail(old_fn: Callable[..., object], *args: object, **kwargs: object) -> object:
                 nonlocal should_fail
                 should_fail = True
                 return old_fn(*args, **kwargs)
@@ -141,8 +150,8 @@ def control_metrics_access(request, set_sentry_option):
                 )
 
 
-def _validate_query(query, tag_values_are_strings):
-    def _walk(node):
+def _validate_query(query: object, tag_values_are_strings: bool) -> None:
+    def _walk(node: object) -> None:
         if isinstance(node, (tuple, list)):
             for subnode in node:
                 _walk(subnode)

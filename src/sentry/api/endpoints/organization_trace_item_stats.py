@@ -1,10 +1,11 @@
 import logging
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from concurrent.futures import as_completed
 from dataclasses import dataclass
-from typing import Literal, get_args
+from typing import Any, Literal, cast, get_args
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -21,6 +22,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -40,7 +42,7 @@ from sentry.search.eap.spans.attributes import (
     SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
@@ -99,10 +101,10 @@ class TraceItemStatsPaginator:
     it work for stats results.
     """
 
-    def __init__(self, data_fn):
+    def __init__(self, data_fn: Callable[..., tuple[dict[str, Any], int]]) -> None:
         self.data_fn = data_fn
 
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[dict[str, Any]]:
         if limit <= 0:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
@@ -114,74 +116,51 @@ class TraceItemStatsPaginator:
         has_more = data[1] >= offset + limit + 1
 
         return CursorResult(
-            data,
+            cast("Sequence[dict[str, Any]]", data),
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "limit": (
+            "The page size the Explore UI requests. It raises the page-size cap instead of "
+            "being bounded by it."
+        ),
+    }
+)
 class OrganizationTraceItemStatsSerializer(serializers.Serializer):
-    query = serializers.CharField(required=False)
+    query = serializers.CharField(
+        required=False,
+        help_text="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing statistics.",
+    )
     statsType = serializers.ListField(
-        child=serializers.ChoiceField(list(SUPPORTED_STATS_TYPES)), required=True
+        child=serializers.ChoiceField(sorted(SUPPORTED_STATS_TYPES)),
+        required=True,
+        help_text="The statistics to compute over the matching trace items.",
     )
     substringMatch = serializers.CharField(
         required=False,
-        help_text="Match substring on attribute name.",
+        help_text="Restrict results to attribute names containing this substring (case-sensitive).",
     )
+    # TODO: Bound `limit` with an appropriate cap. Passed as `default_per_page`, it lifts the
+    # `explore.trace-items.keys.max` page-size cap, so any client can request an unbounded page.
     limit = serializers.IntegerField(
         required=False,
     )
-    traceItemsLimit = serializers.IntegerField(required=False, default=1000, max_value=1000)
+    traceItemsLimit = serializers.IntegerField(
+        required=False,
+        default=1000,
+        max_value=1000,
+        help_text="Maximum number of trace items to sample when computing statistics. Defaults to `1000`, which is also the maximum.",
+    )
     itemType = serializers.ChoiceField(
         choices=SUPPORTED_ITEM_TYPES,
         required=False,
         default="spans",
+        help_text="The trace item dataset to compute statistics for. Defaults to `spans`.",
     )
-
-
-STATS_TYPE_QUERY_PARAM = OpenApiParameter(
-    name="statsType",
-    location="query",
-    required=True,
-    many=True,
-    type=str,
-    enum=sorted(SUPPORTED_STATS_TYPES),
-    description="The statistics to compute over the matching trace items.",
-)
-
-ITEM_TYPE_QUERY_PARAM = OpenApiParameter(
-    name="itemType",
-    location="query",
-    required=False,
-    type=str,
-    enum=list(SUPPORTED_ITEM_TYPES),
-    description="The trace item dataset to compute statistics for. Defaults to `spans`.",
-)
-
-SEARCH_QUERY_PARAM = OpenApiParameter(
-    name="query",
-    location="query",
-    required=False,
-    type=str,
-    description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing statistics.",
-)
-
-SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
-    name="substringMatch",
-    location="query",
-    required=False,
-    type=str,
-    description="Restrict results to attribute names containing this substring (case-sensitive).",
-)
-
-TRACE_ITEMS_LIMIT_QUERY_PARAM = OpenApiParameter(
-    name="traceItemsLimit",
-    location="query",
-    required=False,
-    type=int,
-    description="Maximum number of trace items to sample when computing statistics. Defaults to `1000`, which is also the maximum.",
-)
 
 
 @extend_schema(tags=["Explore"])
@@ -201,11 +180,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            STATS_TYPE_QUERY_PARAM,
-            ITEM_TYPE_QUERY_PARAM,
-            SEARCH_QUERY_PARAM,
-            SUBSTRING_MATCH_QUERY_PARAM,
-            TRACE_ITEMS_LIMIT_QUERY_PARAM,
+            OrganizationTraceItemStatsSerializer,
             CursorQueryParam,
         ],
         responses={
@@ -250,7 +225,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
 
-        def get_table_results():
+        def get_table_results() -> EAPResponse:
             with handle_query_errors():
                 return stats_config.rpc_class.run_table_query(
                     params=snuba_params,
@@ -264,7 +239,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     selected_columns=[stats_config.id_column, "timestamp"],
                 )
 
-        def run_stats_query_with_item_ids(item_id_filter):
+        def run_stats_query_with_item_ids(
+            item_id_filter: str,
+        ) -> list[dict[str, Any]]:
             with handle_query_errors():
                 return stats_config.rpc_class.run_stats_query(
                     params=snuba_params,
@@ -277,7 +254,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     skip_translate_internal_to_public_alias=True,
                 )
 
-        def run_stats_query_with_error_handling(attributes):
+        def run_stats_query_with_error_handling(
+            attributes: list[AttributeKey],
+        ) -> list[dict[str, dict[str, dict[str, Any]]]]:
             with handle_query_errors():
                 return stats_config.rpc_class.run_stats_query(
                     params=snuba_params,
@@ -289,7 +268,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     attributes=attributes,
                 )
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> tuple[dict[str, Any], int]:
             table_results = get_table_results()
             if not table_results["data"]:
                 return {"data": []}, 0
@@ -355,7 +334,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     AttributeKey(name=attr.name, type=AttributeKey.TYPE_STRING)
                 )
 
-            stats_results: dict[str, dict[str, dict]] = defaultdict(lambda: {"data": {}})
+            stats_results: dict[str, dict[str, dict[str, Any]]] = defaultdict(lambda: {"data": {}})
             with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=MAX_THREADS,

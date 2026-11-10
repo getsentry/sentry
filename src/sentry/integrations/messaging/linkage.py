@@ -15,6 +15,7 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.api.helpers.teams import is_team_admin
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
@@ -176,7 +177,7 @@ class IdentityLinkageView(LinkageView, ABC):
         dispatch_kwargs = {k: v for (k, v) in dispatch_kwargs.items() if v is not None}
         return super().dispatch(request, **dispatch_kwargs)
 
-    def get(self, request: Request, *args, **kwargs) -> HttpResponse:
+    def get(self, request: Request, *args: object, **kwargs: Any) -> HttpResponse:
         params = kwargs["params"]
         context = {"organization": params["organization"]}
         integration = params.get("integration")
@@ -210,7 +211,9 @@ class IdentityLinkageView(LinkageView, ABC):
 
         self.notify_on_success(external_id, params_dict, integration)
         self.capture_metric("success.post")
-        self.record_analytic(request.user.id)
+        user_id = acting_user_id(request.user)
+        if user_id is not None:
+            self.record_analytic(user_id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)
@@ -220,7 +223,7 @@ class IdentityLinkageView(LinkageView, ABC):
         )
         return render_to_response(success_template, request=request, context=success_context)
 
-    def _send_nudge_notification(self, organization: RpcOrganization, request: Request):
+    def _send_nudge_notification(self, organization: RpcOrganization, request: Request) -> None:
         # TODO: Delete this if no longer needed
 
         user: User = request.user  # type: ignore[assignment]

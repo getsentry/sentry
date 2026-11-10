@@ -4,7 +4,7 @@ import functools
 import logging
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Concatenate, ParamSpec, TypeVar
+from typing import Concatenate, ParamSpec, TypeVar, cast
 
 from cronsim import CronSim, CronSimError
 from django.conf import settings
@@ -135,7 +135,8 @@ def _resolve_route_name(route_name: str, request: Request) -> str | None:
             else:
                 subs[param] = f":{param}"
 
-        return "/" + (template % subs)
+        resolved = "/" + (template % subs)
+        return resolved
     except Exception:
         logger.exception("deprecation.route_resolution_failed", extra={"route_name": route_name})
         return None
@@ -226,6 +227,6 @@ def deprecated(
 
             return response
 
-        return endpoint_method
+        return cast("EndpointT[SelfT, P]", endpoint_method)
 
     return decorator

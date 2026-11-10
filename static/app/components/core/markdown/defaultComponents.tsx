@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {CodeBlock, InlineCode} from '@sentry/scraps/code';
+import {InlineCode} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Quote} from '@sentry/scraps/quote';

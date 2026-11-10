@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 
 import {Flex, type FlexProps, Grid} from '@sentry/scraps/layout';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {TextOverflow} from 'sentry/components/textOverflow';
 import {defined} from 'sentry/utils/defined';
+
+import {Panel} from './panels/panel';
+import {QuestionTooltip} from './questionTooltip';
+import {TextOverflow} from './textOverflow';
 
 type ScoreCardProps = {
   title: React.ReactNode;

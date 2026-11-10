@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os.path
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -17,7 +18,9 @@ def _fill_init_pyi(tmpdir: str, path: str) -> str:
     return tmpdir
 
 
-def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
+def call_mypy(
+    src: str, *, plugins: list[str] | None = None, cwd: str | None = None
+) -> tuple[int, str]:
     if plugins is None:
         plugins = ["tools.mypy_helpers.plugin"]
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -40,6 +43,14 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         auth_dir = _fill_init_pyi(tmpdir, "sentry/auth/services/auth")
         with open(os.path.join(auth_dir, "model.pyi"), "w") as f:
             f.write("class AuthenticatedToken: ...")
+
+        # stubs for request.user types
+        users_dir = _fill_init_pyi(tmpdir, "sentry/users/models")
+        with open(os.path.join(users_dir, "user.pyi"), "w") as f:
+            f.write("class User: ...")
+        sa_dir = _fill_init_pyi(tmpdir, "sentry/service_accounts")
+        with open(os.path.join(sa_dir, "principal.pyi"), "w") as f:
+            f.write("class ServiceAccountPrincipal: ...")
 
         # stub for rest_framework.response.Response — make it Generic[T] with a
         # body-less overload, mirroring fixtures/stubs-for-mypy/rest_framework/
@@ -95,6 +106,7 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
                 "--ignore-missing-imports",
             ),
             env={**os.environ, "MYPYPATH": tmpdir},
+            cwd=cwd,
             capture_output=True,
             encoding="UTF-8",
         )
@@ -260,6 +272,35 @@ Success: no issues found in 1 source file
     ret, out = call_mypy(src)
     assert ret == 0
     assert out == expected_plugins
+
+
+def test_drf_request_user_includes_service_accounts() -> None:
+    src = """\
+from rest_framework.request import Request
+x: Request
+reveal_type(x.user)
+"""
+    expected = """\
+<string>:3: note: Revealed type is "sentry.users.models.user.User | django.contrib.auth.models.AnonymousUser | sentry.service_accounts.principal.ServiceAccountPrincipal"
+Success: no issues found in 1 source file
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0
+    assert out == expected
+
+
+def test_drf_request_user_keeps_its_type_outside_sentry(tmp_path: pathlib.Path) -> None:
+    # getsentry loads this plugin through a tools -> ../sentry/tools symlink
+    tools = os.path.join(os.path.dirname(__file__), "../../../tools")
+    os.symlink(os.path.realpath(tools), tmp_path / "tools")
+    src = """\
+from rest_framework.request import Request
+x: Request
+reveal_type(x.user)
+"""
+    ret, out = call_mypy(src, cwd=str(tmp_path))
+    assert ret == 0, out
+    assert "ServiceAccountPrincipal" not in out, out
 
 
 def test_csp_response_attribute() -> None:

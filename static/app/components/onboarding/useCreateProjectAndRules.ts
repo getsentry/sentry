@@ -3,11 +3,6 @@ import * as Sentry from '@sentry/react';
 import {useIsMutating, useMutation, useMutationState} from '@tanstack/react-query';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
-import {
-  type CreatedProjectWorkflow,
-  useCreateProjectWorkflow,
-} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -15,6 +10,12 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+
+import {useCreateProject} from './useCreateProject';
+import {
+  type CreatedProjectWorkflow,
+  useCreateProjectWorkflow,
+} from './useCreateProjectWorkflow';
 const MUTATION_KEY = 'create-project-and-rules';
 
 type Variables = {

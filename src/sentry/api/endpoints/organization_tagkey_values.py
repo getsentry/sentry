@@ -20,6 +20,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tagstore.types import TagValue, TagValueSerializerResponse
@@ -98,7 +99,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
         },
     )
     def get(
-        self, request: Request, organization, key
+        self, request: Request, organization: Organization, key: str
     ) -> Response[list[TagValueSerializerResponse]] | Response[DetailResponse]:
         """
         Return a list of values associated with this tag key across the organization's
