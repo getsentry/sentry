@@ -47,13 +47,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
     return <SeerWalletError />;
   }
 
-  const openModal = () =>
-    openSeerAutoTopUpModal({
-      organization,
-      autoTopUp,
-      creditPriceCents,
-      purchasedExpiresAt: wallet.purchased.expiresAt,
-    });
+  const openModal = () => openSeerAutoTopUpModal({organization});
 
   return (
     <SubscriptionHeaderCard
