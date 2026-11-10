@@ -84,6 +84,27 @@ class _SentryGroup(click.Group):
                     self.add_command(command)
         return super().get_command(ctx, cmd_name)
 
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        # The Sentry CLI takes global flags, like --verbose, before the command.
+        # Click would reject those here, before resolve_command can hand off.
+        options = {
+            opt: param
+            for param in self.get_params(ctx)
+            for opt in (*param.opts, *param.secondary_opts)
+        }
+        i = 0
+        while i < len(args) and args[i].startswith("-") and args[i] != "--":
+            name, has_value, _ = args[i].partition("=")
+            param = options.get(name)
+            if param is None:
+                _exec_sentry_cli(args[i:])
+                break
+            if param.is_eager:
+                break
+            takes_value = isinstance(param, click.Option) and not param.is_flag
+            i += 2 if takes_value and not has_value else 1
+        return super().parse_args(ctx, args)
+
     def resolve_command(
         self, ctx: click.Context, args: list[str]
     ) -> tuple[str | None, click.Command | None, list[str]]:

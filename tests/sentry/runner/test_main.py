@@ -55,6 +55,34 @@ def test_unknown_command_execs_other_sentry(other_sentry: Path) -> None:
     execv.assert_called_once_with(str(other_sentry), ["sentry", "issue", "list", "--json"])
 
 
+@pytest.mark.parametrize(
+    ("argv", "handoff"),
+    [
+        (["--verbose", "issue", "list"], ["--verbose", "issue", "list"]),
+        (["--config", "conf", "--verbose", "issue"], ["--verbose", "issue"]),
+        (["--config=conf", "--verbose", "issue"], ["--verbose", "issue"]),
+    ],
+)
+def test_unknown_leading_option_execs_other_sentry(
+    other_sentry: Path, argv: list[str], handoff: list[str]
+) -> None:
+    env = {"PATH": str(other_sentry.parent)}
+    with mock.patch.dict(os.environ, env), mock.patch("os.execv") as execv:
+        CliRunner().invoke(cli, argv)
+
+    execv.assert_called_once_with(str(other_sentry), ["sentry", *handoff])
+
+
+@pytest.mark.parametrize("argv", [["--help"], ["--config", "--verbose", "--help"]])
+def test_server_options_do_not_exec(other_sentry: Path, argv: list[str]) -> None:
+    env = {"PATH": str(other_sentry.parent)}
+    with mock.patch.dict(os.environ, env), mock.patch("os.execv") as execv:
+        result = CliRunner().invoke(cli, argv)
+
+    assert result.exit_code == 0
+    execv.assert_not_called()
+
+
 def test_known_command_does_not_exec(other_sentry: Path) -> None:
     env = {"PATH": str(other_sentry.parent)}
     with mock.patch.dict(os.environ, env), mock.patch("os.execv") as execv:
