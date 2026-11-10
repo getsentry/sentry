@@ -193,6 +193,10 @@ export type SeerWorkflowConfigUpdateRequest = {
   enabled?: boolean;
   monitorIds?: number[];
   /**
+   * Null clears the name
+   */
+  name?: string | null;
+  /**
    * [-1] for all projects, otherwise selected project IDs
    */
   projectIds?: number[];

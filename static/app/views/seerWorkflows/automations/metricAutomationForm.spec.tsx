@@ -187,7 +187,7 @@ describe('MetricAutomationForm', () => {
     );
   });
 
-  it('saves monitors and the investigation toggle without changing service account access', async () => {
+  it('saves monitors, the name, and the investigation toggle without changing service account access', async () => {
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
@@ -208,12 +208,17 @@ describe('MetricAutomationForm', () => {
     await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
     await userEvent.click(await screen.findByText('Payment failures · checkout-api'));
     await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
+    const name = screen.getByRole('textbox', {name: 'Name'});
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Payment errors');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
-        expect.objectContaining({data: {monitorIds: [2], enabled: true, serviceAccount}})
+        expect.objectContaining({
+          data: {monitorIds: [2], enabled: true, serviceAccount, name: 'Payment errors'},
+        })
       )
     );
     expectNoServiceAccountRequests();
