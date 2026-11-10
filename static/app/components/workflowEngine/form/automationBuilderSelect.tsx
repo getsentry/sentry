@@ -7,7 +7,7 @@ export function AutomationBuilderSelect<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
 >(props: ControlProps<TValue, TOption>) {
-  return <StyledSelect styles={selectControlStyles} {...props} />;
+  return <StyledSelect styles={automationBuilderSelectStyles} {...props} />;
 }
 
 const StyledSelect = styled(Select)`
@@ -52,6 +52,12 @@ export const selectControlStyles = {
     minHeight: '32px',
     padding: 0,
   }),
+};
+
+// Kept separate from selectControlStyles because TeamSelector shallow-merges
+// the styles it receives and would lose its own input and placeholder styles.
+const automationBuilderSelectStyles = {
+  ...selectControlStyles,
   valueContainer: (provided: CSSObject, state: unknown): CSSObject =>
     isMultiState(state) ? provided : {...provided, display: 'grid'},
   singleValue: inGridCell,
