@@ -13,6 +13,7 @@ import {IconSentry} from '@sentry/icons/sentry';
 import {IconSupport} from '@sentry/icons/support';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -42,7 +43,10 @@ export function PrimaryNavigationHelpMenu({
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
-  const {privacyUrl, termsUrl} = useStore(ConfigStore);
+  const {privacyUrl, termsUrl} = useStore(
+    ConfigStore,
+    useShallow(state => ({privacyUrl: state.privacyUrl, termsUrl: state.termsUrl}))
+  );
 
   const items: MenuItemProps[] = [
     ...additionalItems,

@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -36,7 +37,10 @@ export function ReplayOnboardingLayout({
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;

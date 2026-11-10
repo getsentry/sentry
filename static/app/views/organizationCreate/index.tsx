@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
@@ -56,7 +57,16 @@ const schema = z.object({
 });
 
 function OrganizationCreate() {
-  const {termsUrl, privacyUrl, isSelfHosted, features, links} = useStore(ConfigStore);
+  const {termsUrl, privacyUrl, isSelfHosted, features, links} = useStore(
+    ConfigStore,
+    useShallow(state => ({
+      termsUrl: state.termsUrl,
+      privacyUrl: state.privacyUrl,
+      isSelfHosted: state.isSelfHosted,
+      features: state.features,
+      links: state.links,
+    }))
+  );
   const relocationUrl = normalizeUrl('/relocation/');
   const localityOptions = getSignupLocalities();
 

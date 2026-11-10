@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
@@ -178,7 +179,10 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
 

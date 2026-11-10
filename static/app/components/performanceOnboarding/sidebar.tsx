@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -219,7 +220,10 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,

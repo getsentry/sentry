@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -84,7 +85,10 @@ export function OnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
-  const {urlPrefix, isSelfHosted} = useStore(ConfigStore);
+  const {urlPrefix, isSelfHosted} = useStore(
+    ConfigStore,
+    useShallow(state => ({urlPrefix: state.urlPrefix, isSelfHosted: state.isSelfHosted}))
+  );
 
   const {
     introduction,

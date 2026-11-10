@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -90,7 +91,10 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;

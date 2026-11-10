@@ -28,6 +28,7 @@ import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import {useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {
   OrganizationAvatar,
@@ -304,7 +305,13 @@ export function GlobalCommandPaletteActions() {
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
   const {organizations} = useLegacyStore(OrganizationsStore);
-  const sentryConfig = useStore(ConfigStore);
+  const {isSelfHosted, singleOrganization} = useStore(
+    ConfigStore,
+    useShallow(state => ({
+      isSelfHosted: state.isSelfHosted,
+      singleOrganization: state.singleOrganization,
+    }))
+  );
   const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();
@@ -359,7 +366,7 @@ export function GlobalCommandPaletteActions() {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
       features: new Set(organization.features),
-      isSelfHosted: sentryConfig.isSelfHosted,
+      isSelfHosted,
       organization,
     };
     const getVisibleItems = (sections: NavigationSection[]) =>
@@ -381,7 +388,7 @@ export function GlobalCommandPaletteActions() {
         ? getVisibleItems(getUserNavigationConfiguration({settingsV3}))
         : [],
     };
-  }, [organization, sentryConfig.isSelfHosted, settingsV3]);
+  }, [organization, isSelfHosted, settingsV3]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -672,7 +679,7 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+        {!singleOrganization && !isDemoModeActive() && (
           <CMDKAction
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}

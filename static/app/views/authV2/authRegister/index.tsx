@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -16,7 +17,10 @@ import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 import {RegistrationForm} from './registrationForm';
 
 export default function AuthRegister() {
-  const {termsUrl, privacyUrl} = useStore(ConfigStore);
+  const {termsUrl, privacyUrl} = useStore(
+    ConfigStore,
+    useShallow(state => ({termsUrl: state.termsUrl, privacyUrl: state.privacyUrl}))
+  );
   const {
     data: authConfig,
     isPending: isAuthConfigPending,

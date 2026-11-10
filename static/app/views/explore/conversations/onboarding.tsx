@@ -4,6 +4,7 @@ import {IconBot} from '@sentry/icons/bot';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconUser} from '@sentry/icons/user';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -533,7 +534,10 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
   const location = useLocation();
