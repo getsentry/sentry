@@ -14,6 +14,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     DataCondition,
     get_condition_handler,
+    get_internal_condition_types,
 )
 from sentry.workflow_engine.types import DataConditionHandler
 
@@ -28,6 +29,27 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     id = serializers.IntegerField(required=False)
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # Check persisted contents too: callers can reference a group without sending
+        # its conditions, or replace an internal condition with a public type.
+        group_id = attrs.get("id") or (self.instance.id if self.instance is not None else None)
+        organization = self.context.get("organization")
+        internal_types = get_internal_condition_types()
+        if (
+            group_id is not None
+            and organization is not None
+            and internal_types
+            and DataConditionGroup.objects.filter(
+                id=group_id,
+                organization_id=organization.id,
+                conditions__type__in=internal_types,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                "Internal condition groups cannot be configured through the API."
+            )
+        return attrs
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []

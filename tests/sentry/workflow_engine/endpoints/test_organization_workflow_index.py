@@ -31,6 +31,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
@@ -851,6 +852,37 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             },
             status_code=400,
         )
+
+    def test_create_rejects_internal_trigger(self) -> None:
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            self._assert_create_rejected_without_writes(
+                {"triggers": {"logicType": "any-short", "conditions": self.basic_trigger}},
+                status_code=400,
+            )
+
+    def test_create_rejects_internal_action_filter(self) -> None:
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            self._assert_create_rejected_without_writes(
+                {
+                    "actionFilters": [
+                        {"logicType": "any-short", "conditions": self.basic_trigger, "actions": []}
+                    ]
+                },
+                status_code=400,
+            )
+
+    def test_create_rejects_internal_group_reference(self) -> None:
+        group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=group, type=Condition.FIRST_SEEN_EVENT, comparison=True
+        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            self._assert_create_rejected_without_writes(
+                {"triggers": {"id": group.id, "logicType": "any-short"}}, status_code=400
+            )
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:

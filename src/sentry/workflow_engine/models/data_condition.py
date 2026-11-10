@@ -273,6 +273,14 @@ def get_condition_handler(
     return None
 
 
+def get_internal_condition_types() -> set[str]:
+    return {
+        condition_type
+        for condition_type, handler in condition_handler_registry.registrations.items()
+        if handler.is_internal
+    }
+
+
 def is_slow_condition(condition: DataCondition) -> bool:
     return Condition(condition.type) in SLOW_CONDITIONS
 
