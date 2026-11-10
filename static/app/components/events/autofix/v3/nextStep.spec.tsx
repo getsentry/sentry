@@ -1289,11 +1289,7 @@ describe('SeerDrawerNextStep', () => {
   describe('out of Seer credits', () => {
     const creditCheckUrl = '/organizations/org-slug/seer/credit-check/';
     const creditCheckOrganization = OrganizationFixture({
-      features: [
-        'seer-credit-checks',
-        'token-billed-seer-enabled',
-        'autofix-pr-iteration-manual',
-      ],
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
 
     function mockCreditCheck(operation: string, hasEnoughCredits = false) {

@@ -198,11 +198,7 @@ describe('SeerDrawerContent', () => {
 
   describe('out of Seer credits', () => {
     const organization = OrganizationFixture({
-      features: [
-        'seer-credit-checks',
-        'token-billed-seer-enabled',
-        'autofix-pr-iteration-manual',
-      ],
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 

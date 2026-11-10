@@ -82,7 +82,10 @@ function getSeerButtonAction(
     return null;
   }
 
-  const nextStep = getAutofixNextStep({sections: getOrderedAutofixSections(runState)});
+  const nextStep = getAutofixNextStep({
+    sections: getOrderedAutofixSections(runState),
+    runState,
+  });
   switch (nextStep?.action) {
     case 'create_pr':
       return hasCodeChanges(nextStep.section) ? 'create_pr' : null;

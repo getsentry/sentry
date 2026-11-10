@@ -257,7 +257,6 @@ function DrawerStory({
             ...organization.features,
             'seer-credit-checks',
             'token-billed-seer-enabled',
-            'autofix-pr-iteration-manual',
           ],
         }}
       >

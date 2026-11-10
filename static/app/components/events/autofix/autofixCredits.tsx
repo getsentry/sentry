@@ -12,6 +12,7 @@ import {getAutofixNextStep, type AutofixNextStep} from './getAutofixNextStep';
 import {
   getAutofixArtifactFromSection,
   isPullRequestsSection,
+  isSingleRunAutofix,
   type AutofixSection,
   type ExplorerAutofixState,
 } from './useExplorerAutofix';
@@ -70,9 +71,10 @@ export function getAutofixContinueAction({
   sections,
 }: GetAutofixContinueActionOptions): AutofixAction | null {
   const section = sections.at(-1);
-  const nextStep = getAutofixNextStep({sections});
+  const nextStep = getAutofixNextStep({sections, runState});
 
-  if (!defined(section)) {
+  // A single run offers no next step; its only follow-up is opening the chat.
+  if (!defined(section) || isSingleRunAutofix(runState)) {
     return null;
   }
 

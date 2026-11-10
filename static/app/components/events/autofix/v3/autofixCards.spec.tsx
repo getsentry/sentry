@@ -1105,11 +1105,7 @@ describe('ArtifactCard', () => {
 
     it('holds the PR feedback form disabled when the org cannot afford another iteration', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: [
-          'autofix-pr-iteration-manual',
-          'seer-credit-checks',
-          'token-billed-seer-enabled',
-        ],
+        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
       });
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
