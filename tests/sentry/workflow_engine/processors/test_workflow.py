@@ -42,8 +42,13 @@ from sentry.workflow_engine.processors.workflow import (
     get_environment_by_event,
     process_workflows,
 )
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ConditionError,
+    WorkflowEventData,
+    WorkflowTriggerDataConditionHandler,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
 
@@ -140,11 +145,23 @@ class TestProcessWorkflows(BaseWorkflowTest):
             detector=self.error_detector,
             workflow=cross_org_workflow,
         )
+        self.create_workflow_action(cross_org_workflow)
+        _, action = self.create_workflow_action(self.error_workflow)
 
-        with self.options({"workflow_engine.filter_cross_org_workflows": True}):
+        with (
+            self.options({"workflow_engine.filter_cross_org_workflows": False}),
+            patch("sentry.workflow_engine.processors.action.fire_actions") as fire_actions,
+        ):
             result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert _triggered_workflow_ids(result) == {self.error_workflow.id}
         assert cross_org_workflow.id not in result.evaluations
+        history = WorkflowFireHistory.objects.get()
+        assert history.workflow_id == self.error_workflow.id
+        fire_actions.assert_called_once()
+        assert list(fire_actions.call_args.args[0]) == [action]
+        assert fire_actions.call_args.kwargs["workflow_uuid_map"] == {
+            self.error_workflow.id: str(history.notification_uuid)
+        }
 
     def test_error_event(self) -> None:
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
@@ -1484,6 +1501,36 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             )
         assert evaluation.result.evaluated_workflow_ids() == {self.workflow.id}
         assert evaluation.action_groups == {self.action_group}
+
+    def test_evaluates_opted_in_condition(self) -> None:
+        class OrganizationEventCondition(WorkflowTriggerDataConditionHandler):
+            supports_group_less = True
+            comparison_json_schema = {"type": "string"}
+
+            @staticmethod
+            def evaluate_value(event_data: WorkflowEventData, comparison: object) -> bool:
+                return event_data.event_id == comparison
+
+        with patch.dict(
+            condition_handler_registry.registrations, {Condition.LEVEL: OrganizationEventCondition}
+        ):
+            trigger_group = self.create_data_condition_group()
+            condition = self.create_data_condition(
+                condition_group=trigger_group,
+                type=Condition.LEVEL,
+                comparison=self.source.event_id.hex,
+                condition_result=True,
+            )
+            self.workflow.update(when_condition_group=trigger_group)
+            matching = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+            assert matching.action_groups == {self.action_group}
+            assert matching.result.evaluations[self.workflow.id].error is None
+
+            condition.update(comparison=uuid4().hex)
+            nonmatching = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+            assert nonmatching.action_groups == set()
+            assert not nonmatching.result.evaluations[self.workflow.id].triggered
+            assert nonmatching.result.evaluations[self.workflow.id].error is None
 
     def test_rejects_issue_only_trigger_in_none_group(self) -> None:
         condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.NONE)

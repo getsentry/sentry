@@ -599,8 +599,7 @@ def process_workflows(
                 ),
             },
         )
-        if options.get("workflow_engine.filter_cross_org_workflows"):
-            workflows = workflows - wrong_org_workflows
+        workflows = workflows - wrong_org_workflows
 
     if not workflows:
         return _build_process_workflows_result(
@@ -720,16 +719,11 @@ def evaluate_workflows(
             organization=organization, detector=detector, environment=environment
         )
     )
-    # Issue callers already apply the legacy cross-org rollout policy during lookup.
-    # Organization events must never evaluate another tenant's workflows.
-    if event_data.group is None or options.get("workflow_engine.filter_cross_org_workflows"):
-        workflows = {
-            workflow for workflow in workflows if workflow.organization_id == organization.id
-        }
     workflows = {
         workflow
         for workflow in workflows
-        if workflow.enabled
+        if workflow.organization_id == organization.id
+        and workflow.enabled
         and (
             workflow.environment_id is None
             or (environment is not None and workflow.environment_id == environment.id)

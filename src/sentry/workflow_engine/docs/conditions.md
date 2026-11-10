@@ -295,6 +295,11 @@ run later from the resulting issue event; they are not part of the detector stat
 
 ## Workflows
 
+Conditions must declare `supports_group_less = True` to accept `WorkflowEventData`
+without an issue group. Otherwise the entire condition group is rejected before
+Boolean evaluation or delayed processing. Delayed processing currently requires a
+`GroupEvent`; opting in does not add support for group-less slow conditions.
+
 A [`Workflow`](../models/workflow.py) is connected to detectors through
 [`DetectorWorkflow`](../models/detector_workflow.py). Its conditions have two stages:
 
@@ -304,8 +309,8 @@ A [`Workflow`](../models/workflow.py) is connected to detectors through
 
 Both stages pass equivalent [`WorkflowEventData`](../types.py) values to the shared
 layer. Each stage creates a dataclass copy with its Workflow environment; the copies
-share the event-local cache. The value contains a `GroupEvent` or `Activity`, the issue
-group, optional state and escalation data, and an optional workflow environment.
+share the event-local cache. The value contains the source event, an optional issue
+group, state and escalation data, and an optional workflow environment.
 
 [`process_workflows`](../processors/workflow.py) performs the surrounding lifecycle:
 
