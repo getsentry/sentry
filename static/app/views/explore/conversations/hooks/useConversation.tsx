@@ -379,16 +379,20 @@ const RETENTION_CUTOFF_SLACK_MS = 10 * 60 * 1000;
  * before the API's 30-day cutoff, which rejects such requests with a 400.
  */
 function getPaddedConversationWindow(startTimestamp: number, endTimestamp: number) {
+  // Rounded up to the hour so the query key stays the same across renders.
   const earliestStart =
-    Date.now() - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS;
+    Math.ceil(
+      (Date.now() - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS) /
+        ONE_HOUR_MS
+    ) * ONE_HOUR_MS;
   const paddedStart = startTimestamp - ONE_HOUR_MS;
-  const paddedEnd = endTimestamp + ONE_HOUR_MS;
-  // A window that ends before the cutoff has nothing left to load; leave it as is.
+  // Clamping a conversation that ends before the earliest start would skip it
+  // entirely, so those keep their window.
   const start =
-    paddedEnd > earliestStart ? Math.max(paddedStart, earliestStart) : paddedStart;
+    endTimestamp > earliestStart ? Math.max(paddedStart, earliestStart) : paddedStart;
   return {
     start: new Date(start).toISOString(),
-    end: new Date(paddedEnd).toISOString(),
+    end: new Date(endTimestamp + ONE_HOUR_MS).toISOString(),
   };
 }
 
