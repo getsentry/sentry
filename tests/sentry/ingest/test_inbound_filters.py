@@ -18,9 +18,16 @@ from sentry.ingest.inbound_filters import (
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
     get_global_generic_filters,
+    get_supported_condition_types,
+    get_supported_operators,
     transaction_name_pattern_error,
 )
-from sentry.models.custominboundfilter import ConditionOperator, LegacyFilter
+from sentry.models.custominboundfilter import (
+    ConditionOperator,
+    ConditionType,
+    DataType,
+    LegacyFilter,
+)
 from sentry.models.project import Project
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -694,7 +701,7 @@ def test_custom_inbound_filter_condition_translation(
     assert_relay_accepts_condition(generic_filter["condition"])
 
 
-def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool:
+def relay_matches(condition: Mapping[str, Any], item: Mapping[str, object]) -> bool:
     """
     How Relay evaluates a condition against an item. ``item`` maps each field path the
     item carries to its value. A field the item does not carry matches no glob.
@@ -706,9 +713,12 @@ def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool
         return any(relay_matches(inner, item) for inner in condition["inner"])
     if op == "not":
         return not relay_matches(condition["inner"], item)
+    if op == "gte":
+        field = item.get(condition["name"])
+        return isinstance(field, (int, float)) and field >= condition["value"]
     assert op == "glob"
     value = item.get(condition["name"])
-    return value is not None and any(
+    return isinstance(value, str) and any(
         is_glob_match(value, pattern, case_insensitive=True) for pattern in condition["value"]
     )
 
@@ -1081,6 +1091,427 @@ def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(
         ],
     }
     assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])
+
+
+SEGMENT_NAME = "span.attributes.sentry.segment.name.value"
+SPAN_RELEASE = "span.attributes.sentry.release.value"
+IS_TRANSACTION_EVENT = {"op": "gte", "name": "event.duration", "value": 0}
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("conditions", "expected_condition"),
+    [
+        pytest.param(
+            [{"type": "transaction_name", "operator": "glob", "value": ["*/health{/,}"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": SEGMENT_NAME, "value": ["*/health{/,}"]},
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": "event.transaction", "value": ["*/health{/,}"]},
+                            IS_TRANSACTION_EVENT,
+                        ],
+                    },
+                ],
+            },
+            id="transaction_name_alone",
+        ),
+        pytest.param(
+            [{"type": "transaction_name", "operator": "starts_with", "value": ["/ping", "/up"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": SEGMENT_NAME, "value": ["/ping*", "/up*"]},
+                    {
+                        "op": "and",
+                        "inner": [
+                            {
+                                "op": "glob",
+                                "name": "event.transaction",
+                                "value": ["/ping*", "/up*"],
+                            },
+                            IS_TRANSACTION_EVENT,
+                        ],
+                    },
+                ],
+            },
+            id="literal_operator",
+        ),
+        pytest.param(
+            [
+                {"type": "transaction_name", "operator": "equals", "value": ["/status"]},
+                {"type": "release", "operator": "gte", "value": ["2.0"]},
+                {"type": "ip_address", "operator": "cidr", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": SEGMENT_NAME, "value": ["/status"]},
+                            {
+                                "op": "release",
+                                "name": "span.attributes.sentry.release.value",
+                                "comparator": "gte",
+                                "value": "2.0",
+                            },
+                            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                        ],
+                    },
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": "event.transaction", "value": ["/status"]},
+                            {
+                                "op": "release",
+                                "name": "event.release",
+                                "comparator": "gte",
+                                "value": "2.0",
+                            },
+                            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                            IS_TRANSACTION_EVENT,
+                        ],
+                    },
+                ],
+            },
+            id="combined_with_other_conditions",
+        ),
+        pytest.param(
+            [
+                {"type": "transaction_name", "operator": "contains", "value": ["health"]},
+                {"type": "release", "operator": "does_not_start_with", "value": ["1."]},
+            ],
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": SEGMENT_NAME, "value": ["*health*"]},
+                            {
+                                "op": "and",
+                                "inner": [
+                                    {"op": "glob", "name": SPAN_RELEASE, "value": ["*"]},
+                                    {
+                                        "op": "not",
+                                        "inner": {
+                                            "op": "glob",
+                                            "name": SPAN_RELEASE,
+                                            "value": ["1.*"],
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": "event.transaction", "value": ["*health*"]},
+                            {
+                                "op": "and",
+                                "inner": [
+                                    {"op": "glob", "name": "event.release", "value": ["*"]},
+                                    {
+                                        "op": "not",
+                                        "inner": {
+                                            "op": "glob",
+                                            "name": "event.release",
+                                            "value": ["1.*"],
+                                        },
+                                    },
+                                ],
+                            },
+                            IS_TRANSACTION_EVENT,
+                        ],
+                    },
+                ],
+            },
+            id="with_a_negated_release",
+        ),
+        pytest.param(
+            [{"type": "transaction_name", "operator": "does_not_start_with", "value": ["/api"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": SEGMENT_NAME, "value": ["*"]},
+                            {
+                                "op": "not",
+                                "inner": {"op": "glob", "name": SEGMENT_NAME, "value": ["/api*"]},
+                            },
+                        ],
+                    },
+                    {
+                        "op": "and",
+                        "inner": [
+                            {
+                                "op": "and",
+                                "inner": [
+                                    {"op": "glob", "name": "event.transaction", "value": ["*"]},
+                                    {
+                                        "op": "not",
+                                        "inner": {
+                                            "op": "glob",
+                                            "name": "event.transaction",
+                                            "value": ["/api*"],
+                                        },
+                                    },
+                                ],
+                            },
+                            IS_TRANSACTION_EVENT,
+                        ],
+                    },
+                ],
+            },
+            id="negated_transaction_name",
+        ),
+    ],
+)
+def test_transaction_name_condition_matches_segments_and_transactions(
+    default_project: Project,
+    factories: Factories,
+    conditions: list[dict[str, object]],
+    expected_condition: dict[str, object],
+) -> None:
+    custom_filter = factories.create_project_custom_inbound_filter(
+        default_project, data_type="span", conditions=conditions
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(
+        default_project, transaction_name=True
+    )
+    assert generic_filter == {
+        "id": f"custom-inbound-filter:{custom_filter.id}",
+        "isEnabled": True,
+        "condition": expected_condition,
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+def test_span_filters_without_transaction_name_are_unchanged(
+    default_project: Project, factories: Factories
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(
+        default_project, transaction_name=True
+    )
+    assert generic_filter["condition"] == {
+        "op": "glob",
+        "name": "span.attributes.sentry.release.value",
+        "value": ["1.*"],
+    }
+
+
+@django_db_all
+def test_transaction_name_filters_are_skipped_without_the_feature(
+    default_project: Project, factories: Factories
+) -> None:
+    # Dropping only the transaction_name condition would broaden the filter, so the
+    # whole filter goes.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[
+            {"type": "transaction_name", "operator": "glob", "value": ["*/health*"]},
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
+        ],
+    )
+    other_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+    )
+
+    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
+    assert [f["id"] for f in generic_filters] == [f"custom-inbound-filter:{other_filter.id}"]
+
+
+@django_db_all
+def test_get_generic_filters_passes_the_transaction_name_feature(
+    default_project: Project, factories: Factories
+) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    custom_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "transaction_name", "operator": "glob", "value": ["*/health*"]}],
+    )
+
+    without_feature = get_generic_filters(
+        default_project,
+        InboundFilterFeatures(custom_inbound_filters=True, custom_inbound_filters_v2=True),
+    )
+    with_feature = get_generic_filters(
+        default_project,
+        InboundFilterFeatures(
+            custom_inbound_filters=True, custom_inbound_filters_v2=True, transaction_name=True
+        ),
+    )
+
+    assert without_feature is None
+    assert with_feature is not None
+    assert [f["id"] for f in with_feature["filters"]] == [
+        f"custom-inbound-filter:{custom_filter.id}"
+    ]
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "condition",
+    [
+        pytest.param(
+            {"type": "transaction_name", "operator": "glob", "value": ["/ok", "{/health"]},
+            id="invalid_glob",
+        ),
+        pytest.param(
+            {"type": "transaction_name", "operator": "glob", "value": ["*/*"]},
+            id="matches_everything",
+        ),
+        pytest.param(
+            {"type": "transaction_name", "value": ["*"]},
+            id="matches_everything_without_operator",
+        ),
+        pytest.param(
+            {"type": "transaction_name", "operator": "contains", "value": ["/"]},
+            id="literal_matches_everything",
+        ),
+        pytest.param(
+            {"type": "transaction_name", "operator": "glob", "value": ["/{a,b,c,d}" * 5]},
+            id="too_complex",
+        ),
+    ],
+)
+def test_transaction_name_filters_with_invalid_stored_patterns_are_skipped(
+    default_project: Project,
+    factories: Factories,
+    condition: dict[str, object],
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project, data_type="span", conditions=[condition]
+    )
+
+    with patch("sentry.ingest.inbound_filters.metrics.incr") as mock_incr:
+        generic_filters = get_custom_inbound_filter_generic_filters(
+            default_project, transaction_name=True
+        )
+
+    assert generic_filters == []
+    mock_incr.assert_called_once_with("custom_inbound_filters.invalid_pattern_skipped")
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("data_type", "condition"),
+    [
+        pytest.param(
+            "all",
+            {"type": "transaction_name", "operator": "glob", "value": ["*/health*"]},
+            id="catch_all",
+        ),
+        pytest.param(
+            "error",
+            {"type": "transaction_name", "operator": "glob", "value": ["*/health*"]},
+            id="errors",
+        ),
+    ],
+)
+def test_transaction_name_filters_that_cannot_be_translated_are_skipped(
+    default_project: Project,
+    factories: Factories,
+    data_type: str,
+    condition: dict[str, object],
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project, data_type=data_type, conditions=[condition]
+    )
+
+    assert get_custom_inbound_filter_generic_filters(default_project, transaction_name=True) == []
+
+
+@pytest.mark.parametrize(
+    ("data_type", "offered"),
+    [
+        (DataType.SPAN, True),
+        (DataType.ALL, False),
+        (DataType.ERROR, False),
+        (DataType.LOG, False),
+        (DataType.METRIC, False),
+    ],
+)
+def test_transaction_name_is_offered_for_spans_only(data_type: DataType, offered: bool) -> None:
+    assert (ConditionType.TRANSACTION_NAME in get_supported_condition_types(data_type)) is offered
+
+
+def test_transaction_name_takes_the_text_operators() -> None:
+    assert get_supported_operators(ConditionType.TRANSACTION_NAME) == [
+        ConditionOperator.GLOB,
+        ConditionOperator.EQUALS,
+        ConditionOperator.STARTS_WITH,
+        ConditionOperator.CONTAINS,
+        ConditionOperator.ENDS_WITH,
+        ConditionOperator.DOES_NOT_START_WITH,
+        ConditionOperator.DOES_NOT_CONTAIN,
+        ConditionOperator.DOES_NOT_END_WITH,
+    ]
+
+
+# The fields each item type carries when it has a transaction name and a release.
+TRANSACTION_NAME_ITEMS: dict[str, dict[str, object]] = {
+    "span": {SEGMENT_NAME: "/users/{id}", SPAN_RELEASE: "2.0.0"},
+    "transaction": {
+        "event.transaction": "/users/{id}",
+        "event.release": "2.0.0",
+        "event.duration": 1.5,
+    },
+    # Errors carry a transaction name and a release, but no duration.
+    "error": {"event.transaction": "/users/{id}", "event.release": "2.0.0"},
+    "log": {"log.attributes.sentry.release.value": "2.0.0"},
+    "metric": {"trace_metric.attributes.sentry.release.value": "2.0.0"},
+}
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "operator", ["does_not_start_with", "does_not_contain", "does_not_end_with"]
+)
+def test_negated_transaction_name_drops_only_spans_and_transactions(
+    default_project: Project, factories: Factories, operator: str
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "transaction_name", "operator": operator, "value": ["health"]}],
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(
+        default_project, transaction_name=True
+    )
+    condition = generic_filter["condition"]
+    assert condition is not None
+
+    dropped = {
+        item_type
+        for item_type, item in TRANSACTION_NAME_ITEMS.items()
+        if relay_matches(condition, item)
+    }
+    assert dropped == {"span", "transaction"}
+
+    # A span or transaction without a name is kept.
+    assert not relay_matches(condition, {SPAN_RELEASE: "2.0.0"})
+    assert not relay_matches(condition, {"event.duration": 1.5})
 
 
 @pytest.mark.parametrize(

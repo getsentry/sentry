@@ -24,10 +24,11 @@ from sentry.models.custominboundfilter import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
-from sentry.relay.types.rule_condition import NotCondition
+from sentry.relay.types.rule_condition import GteCondition, NotCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
+from sentry.utils import metrics
 
 GENERIC_FILTERS_VERSION = 1
 
@@ -502,6 +503,8 @@ class InboundFilterFeatures:
 
     ``generic_ip_filter`` serves the legacy IP address list as a generic filter. The
     caller then leaves out the native ``clientIps`` setting.
+
+    ``transaction_name`` serves the custom filters that match on transaction names.
     """
 
     custom_inbound_filters: bool = False
@@ -509,6 +512,7 @@ class InboundFilterFeatures:
     metrics: bool = False
     custom_inbound_filters_v2: bool = False
     generic_ip_filter: bool = False
+    transaction_name: bool = False
 
 
 def get_generic_filters(
@@ -533,7 +537,9 @@ def get_generic_filters(
         if filter_features.metrics:
             generic_filters += _trace_metric_names_generic_filters(project)
         if filter_features.custom_inbound_filters_v2:
-            generic_filters += get_custom_inbound_filter_generic_filters(project)
+            generic_filters += get_custom_inbound_filter_generic_filters(
+                project, transaction_name=filter_features.transaction_name
+            )
 
     # These filters are defined once in global config. Keep the project toggle
     # independent from the current condition so global conditions can change
@@ -729,7 +735,27 @@ _CONDITION_MATCHERS: Mapping[
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
     },
+    # The name of the span's segment, never the span's own name. Every span of a segment
+    # carries it, so a match drops the segment as a unit. A span filter with this
+    # condition matches transaction events too, see `_TRANSACTION_EVENT_MATCHERS`.
+    ConditionType.TRANSACTION_NAME: {
+        DataType.SPAN: _field_matcher("span.attributes.sentry.segment.name.value"),
+    },
 }
+
+# The field a transaction event carries for each condition type a span filter takes. A
+# span filter with a `transaction_name` condition also drops the transaction events whose
+# fields match all of its conditions: spans are extracted from a transaction only after
+# filtering, so the span fields alone never see them.
+_TRANSACTION_EVENT_MATCHERS: _ConditionMatchers = {
+    ConditionType.TRANSACTION_NAME: _field_matcher("event.transaction"),
+    ConditionType.RELEASE: _release_matcher("event.release"),
+    ConditionType.IP_ADDRESS: _client_ip_matcher,
+}
+
+# Only a transaction has a duration. Errors carry `event.transaction` and `event.release`
+# too, and must never match the transaction branch.
+_IS_TRANSACTION_EVENT: GteCondition = {"op": "gte", "name": "event.duration", "value": 0}
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
@@ -874,7 +900,10 @@ def _all_of(rule_conditions: list[RuleCondition]) -> RuleCondition:
 
 
 def _custom_filter_condition(
-    conditions: list[dict[str, Any]], data_type: str | None
+    conditions: list[dict[str, Any]],
+    data_type: str | None,
+    *,
+    transaction_name: bool = False,
 ) -> RuleCondition | None:
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
@@ -884,7 +913,12 @@ def _custom_filter_condition(
     to this revision, a condition type whose field the filter's data type does not
     carry, an operator the field does not take, or a version comparison that does not
     take exactly one value): since every condition narrows the match, dropping only the
-    broken condition would filter more data than configured.
+    broken condition would filter more data than configured. For the same reason, a
+    filter with a `transaction_name` condition is skipped whole when `transaction_name`
+    is off or one of its patterns is invalid.
+
+    A filter with a `transaction_name` condition matches a span on the span's fields, or
+    a transaction event on the event's fields, see `_TRANSACTION_EVENT_MATCHERS`.
 
     A condition without an operator holds raw values, see ``ConditionOperator``.
     """
@@ -900,20 +934,55 @@ def _custom_filter_condition(
     if parsed is None:
         return None
 
-    rule_conditions = _match_conditions(parsed, matchers)
-    if rule_conditions is None:
+    item_conditions = _match_conditions(parsed, matchers)
+    if item_conditions is None:
         return None
 
-    return _all_of(rule_conditions)
+    name_conditions = [c for c in parsed if c.type is ConditionType.TRANSACTION_NAME]
+    if not name_conditions:
+        return _all_of(item_conditions)
+
+    if not transaction_name:
+        return None
+
+    # The serializer rejects these on save. This catches rows written some other way,
+    # and rows saved before a check got stricter.
+    if any(
+        transaction_name_pattern_error(c.operator, value) is not None
+        for c in name_conditions
+        for value in c.values
+    ):
+        metrics.incr("custom_inbound_filters.invalid_pattern_skipped")
+        return None
+
+    event_conditions = _match_conditions(parsed, _TRANSACTION_EVENT_MATCHERS)
+    if event_conditions is None:
+        return None
+
+    return {
+        "op": "or",
+        "inner": [
+            _all_of(item_conditions),
+            {"op": "and", "inner": [*event_conditions, _IS_TRANSACTION_EVENT]},
+        ],
+    }
 
 
-def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
+def get_custom_inbound_filter_generic_filters(
+    project: Project, *, transaction_name: bool = False
+) -> list[GenericFilter]:
+    """
+    `transaction_name` is whether the project's organization may filter on transaction
+    names. Without it, the filters with a `transaction_name` condition are left out.
+    """
     generic_filters: list[GenericFilter] = []
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
     for custom_filter in custom_filters:
-        condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
+        condition = _custom_filter_condition(
+            custom_filter.conditions, custom_filter.data_type, transaction_name=transaction_name
+        )
         if condition is not None:
             generic_filters.append(
                 _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)

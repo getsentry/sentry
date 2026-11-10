@@ -398,7 +398,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "metric_name", "operator": "starts_with", "value": ["counter."]},
                 ],
                 "A filter on span data cannot use the metric_name condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, transaction_name.",
             ),
             (
                 "all",
