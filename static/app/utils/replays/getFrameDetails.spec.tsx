@@ -64,5 +64,20 @@ describe('getFrameDetails', () => {
       render(<div data-test-id="description">{description}</div>);
       expect(screen.getByTestId('description')).toHaveTextContent('1234.57ms');
     });
+
+    it('titles a web-vital frame from its description', () => {
+      const {title} = getFrameDetails(webVital as unknown as ReplayFrame);
+      render(<div data-test-id="title">{title}</div>);
+      expect(screen.getByTestId('title')).toHaveTextContent(
+        'Web Vital: Largest Contentful Paint'
+      );
+    });
+
+    it('titles a web-vital frame without a description', () => {
+      const {description: _description, ...rest} = webVital;
+      const {title} = getFrameDetails(rest as unknown as ReplayFrame);
+      render(<div data-test-id="title">{title}</div>);
+      expect(screen.getByTestId('title')).toHaveTextContent(/^Web Vital$/);
+    });
   });
 });
