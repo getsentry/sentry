@@ -7,6 +7,7 @@ import {
   type InfiniteData,
 } from '@tanstack/react-query';
 
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {toast} from '@sentry/scraps/toast';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -68,7 +69,7 @@ export function useExportConversation(
         const spans = data.pages.flatMap(page => page.json.spans ?? []);
         const nodes = buildConversationNodes(spans).nodes;
         return {
-          markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)),
+          markdown: stripAnnotations(messagesToMarkdown(extractMessagesFromNodes(nodes))),
           title: data.pages[0]?.json.title ?? null,
         };
       };

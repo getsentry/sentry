@@ -14,7 +14,11 @@ import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {
+  Markdown,
+  markdownRendersVisibleContent,
+  stripAnnotations,
+} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
@@ -682,7 +686,7 @@ function MultilineText({
         )}
       </Container>
       {showRaw || defaultFormattingIsBlank
-        ? children.trim()
+        ? stripAnnotations(children.trim())
         : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
     </MultilineTextWrapper>
   );
@@ -729,6 +733,7 @@ function MultilineJSON({
   autoCollapseLimit,
   clip = false,
   mode,
+  renderString,
 }: {
   value: any;
   autoCollapseLimit?: number;
@@ -743,6 +748,8 @@ function MultilineJSON({
    * for callers that control the format themselves.
    */
   mode?: 'pretty' | 'raw';
+  /** Renders the strings in the pretty (tree) view. */
+  renderString?: (value: string) => React.ReactNode;
 }) {
   const [showRawState, setShowRaw] = useState(false);
   const showRaw = mode ? mode === 'raw' : showRawState;
@@ -781,7 +788,7 @@ function MultilineJSON({
       )}
       {showRaw ? (
         <pre>
-          <code>{JSON.stringify(json, null, 2)}</code>
+          <code>{stripAnnotations(JSON.stringify(json, null, 2))}</code>
         </pre>
       ) : (
         <StructuredData
@@ -789,6 +796,7 @@ function MultilineJSON({
             isString: v => typeof v === 'string',
             isBoolean: v => typeof v === 'boolean',
             isNumber: v => typeof v === 'number',
+            renderString,
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}

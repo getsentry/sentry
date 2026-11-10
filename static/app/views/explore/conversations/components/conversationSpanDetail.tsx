@@ -7,6 +7,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -25,6 +26,10 @@ import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/a
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
+import {
+  markScrubbedAttributes,
+  renderScrubbedText,
+} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
@@ -178,6 +183,11 @@ export function ConversationSpanDetail({
     enabled: Boolean(eapValue),
   });
   const attributes = data?.attributes;
+  // Only the input and output show where PII scrubbing changed values.
+  const scrubbedAttributes = useMemo(
+    () => markScrubbedAttributes(attributes, data?.meta, node?.projectSlug),
+    [attributes, data?.meta, node?.projectSlug]
+  );
 
   // Memoized so the invalid-evaluation report fires once per span.
   const evaluation = useMemo(
@@ -321,14 +331,14 @@ export function ConversationSpanDetail({
                         {memory ? (
                           <MemoryInputTab memory={memory} />
                         ) : (
-                          <InputTab node={node} attributes={attributes} />
+                          <InputTab node={node} attributes={scrubbedAttributes} />
                         )}
                       </TabPanels.Item>
                       <TabPanels.Item key="output">
                         {memory ? (
                           <MemoryOutputTab memory={memory} />
                         ) : (
-                          <OutputTab node={node} attributes={attributes} />
+                          <OutputTab node={node} attributes={scrubbedAttributes} />
                         )}
                       </TabPanels.Item>
                       <TabPanels.Item key="decision">
@@ -428,7 +438,11 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
-  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+  const codeInput = isCodeModeNode(node, attributes)
+    ? getCodeModeInput(
+        typeof toolArgs === 'string' ? stripAnnotations(toolArgs) : toolArgs
+      )
+    : null;
 
   if (codeInput) {
     return (
@@ -468,6 +482,7 @@ function InputTab({
           value={toolArgs}
           maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
           autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
+          renderString={renderScrubbedText}
         />
       ) : null}
       {embeddingsInput ? (
@@ -563,11 +578,16 @@ function OutputTab({
             value={toolCalls}
             maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
             autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
+            renderString={renderScrubbedText}
           />
         </Fragment>
       ) : null}
       {hasToolOutput ? (
-        <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
+        <ToolOutput
+          key={`${node.id}:tool-output`}
+          value={toolOutput}
+          renderString={renderScrubbedText}
+        />
       ) : null}
     </Fragment>
   );
