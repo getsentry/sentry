@@ -50,7 +50,7 @@ function useReminderData() {
       analyticsParams,
       title: t('Connect GitHub or GitLab'),
       description: t(
-        'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix and Code Review.'
+        'Seer is enabled, but repositories are not connected. Connect your GitHub or GitLab account to enable Autofix.'
       ),
     };
   }

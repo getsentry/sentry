@@ -221,6 +221,18 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         # The client applies the investigations feature and open-membership gate.
         assert mock_client_class.call_args.kwargs["enable_investigation_tools"] is True
 
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_requests_inbox_tools(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(self.url, {"query": "hi"}, format="json")
+
+        assert response.status_code == 200
+        # The client applies the universal-inbox feature gate.
+        assert mock_client_class.call_args.kwargs["enable_inbox_tools"] is True
+
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_create_pr_flag_respects_seer_coding_option(self, mock_client_class: MagicMock) -> None:
@@ -269,6 +281,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_write_pull_request=False,
             enable_code_mode_tools="off",
             enable_investigation_tools=True,
+            enable_inbox_tools=True,
             reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
@@ -438,6 +451,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_write_pull_request=False,
             enable_code_mode_tools="off",
             enable_investigation_tools=True,
+            enable_inbox_tools=True,
             reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
@@ -517,7 +531,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 402
         assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer."
+            "detail": "Your organization does not have enough credits left for you to message Seer.",
+            "code": "seer_out_of_credits",
         }
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
@@ -959,7 +974,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 402
         assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer."
+            "detail": "Your organization does not have enough credits left for you to message Seer.",
+            "code": "seer_out_of_credits",
         }
         mock_client_class.assert_not_called()
 
@@ -1000,7 +1016,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 402
         assert response.data == {
-            "detail": "Your organization does not have enough credits left for you to message Seer."
+            "detail": "Your organization does not have enough credits left for you to message Seer.",
+            "code": "seer_out_of_credits",
         }
         mock_client_class.assert_not_called()
 

@@ -5,7 +5,11 @@ import type {Organization} from 'sentry/types/organization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
-import {hasBillingAccess, isDeveloperPlan, supportsPayg} from 'getsentry/utils/billing';
+import {
+  hasBillingAccess,
+  shouldShowBillingInformation,
+  supportsPayg,
+} from 'getsentry/utils/billing';
 import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -21,16 +25,11 @@ interface HeaderCardsProps {
 function getCards(organization: Organization, subscription: Subscription) {
   const hasBillingPerms = hasBillingAccess(organization);
   const cards: React.ReactNode[] = [];
-  const isTrialOrFreePlan =
-    subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
 
   const isPaidPlan = subscription.planDetails.totalPrice > 0;
 
   // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);
-
-  // the user can update the PAYG budget
-  const canUpdatePayg = canUsePayg && hasBillingPerms;
 
   if (subscription.canSelfServe && isPaidPlan && hasBillingPerms) {
     cards.push(
@@ -52,14 +51,7 @@ function getCards(organization: Organization, subscription: Subscription) {
     cards.push(<SeerWalletCard key="seer-wallet" organization={organization} />);
   }
 
-  if (
-    hasBillingPerms &&
-    (canUpdatePayg ||
-      (subscription.canSelfServe &&
-        isTrialOrFreePlan &&
-        !subscription.isEnterpriseTrial)) &&
-    !subscription.isSelfServePartner
-  ) {
+  if (shouldShowBillingInformation(subscription, organization)) {
     cards.push(
       <BillingInfoCard
         key="billing-info"

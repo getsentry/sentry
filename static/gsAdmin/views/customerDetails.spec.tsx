@@ -1931,7 +1931,7 @@ describe('Customer Details', () => {
 
       await openCustomerActions();
 
-      renderGlobalModal();
+      const {router} = renderGlobalModal();
 
       await userEvent.click(screen.getByText('Fork Customer'));
       await selectEvent.openMenu(
@@ -1952,7 +1952,13 @@ describe('Customer Details', () => {
           `/organizations/${organization.slug}/fork/`,
           expect.objectContaining({
             method: 'POST',
+            host: 'https://bar.example.com/api/0/',
           })
+        )
+      );
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          '/_admin/relocations/bar/d39f84fc-554a-4d7d-95b7-78f983bcba73/'
         )
       );
     });

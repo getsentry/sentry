@@ -176,7 +176,7 @@ def check_autofix_billing(
             # Don't bill runs started by agentic triage (not exposed via the API).
             seer_feature != SeerFeature.AGENTIC_TRIAGE
             and features.has("organizations:seer-credit-checks", organization)
-            and not has_enough_seer_credits(organization, operation)
+            and not has_enough_seer_credits(organization, seer_feature, operation)
         ):
             raise SeerOutOfCreditsException()
         return False

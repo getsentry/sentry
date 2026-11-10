@@ -64,9 +64,18 @@ VALID_CASINGS = ("lowercase", "uppercase", "default")
 
 LAYOUT_SCHEMA = {
     "type": "object",
+    "description": "The directory layout the source uses to store debug files.",
     "properties": {
-        "type": {"type": "string", "enum": list(VALID_LAYOUTS)},
-        "casing": {"type": "string", "enum": list(VALID_CASINGS)},
+        "type": {
+            "type": "string",
+            "enum": list(VALID_LAYOUTS),
+            "description": "The directory layout, for example `native` or `symstore`.",
+        },
+        "casing": {
+            "type": "string",
+            "enum": list(VALID_CASINGS),
+            "description": "The casing applied to file paths on the source.",
+        },
     },
     "required": ["type"],
     "additionalProperties": False,
@@ -74,36 +83,95 @@ LAYOUT_SCHEMA = {
 
 FILTERS_SCHEMA = {
     "type": "object",
+    "description": "Restrictions on which debug files are requested from the source.",
     "properties": {
-        "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
-        "path_patterns": {"type": "array", "items": {"type": "string"}},
-        "requires_checksum": {"type": "boolean"},
+        "filetypes": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(VALID_FILE_TYPES)},
+            "description": "The file types requested from the source. Empty means all file types.",
+        },
+        "path_patterns": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Glob patterns matched against debug and code file paths. Only matching files are requested. Empty means no path filtering.",
+        },
+        "requires_checksum": {
+            "type": "boolean",
+            "description": "Whether requests to the source must include a debug checksum.",
+        },
     },
     "additionalProperties": False,
 }
 
+_SOURCE_ID = {"type": "string", "minLength": 1, "description": "The ID of the source."}
+_SOURCE_NAME = {"type": "string", "description": "The human-readable name of the source."}
+_SOURCE_PREFIX = {
+    "type": "string",
+    "description": "The path prefix under which debug files are stored in the bucket or container.",
+}
+
 COMMON_SOURCE_PROPERTIES = {
-    "id": {"type": "string", "minLength": 1},
-    "name": {"type": "string"},
+    "id": _SOURCE_ID,
+    "name": _SOURCE_NAME,
     "layout": LAYOUT_SCHEMA,
     "filters": FILTERS_SCHEMA,
-    "is_public": {"type": "boolean"},
-    "has_index": {"type": "boolean"},
-    "platforms": {"type": "array", "items": {"type": "string"}},
+    "is_public": {
+        "type": "boolean",
+        "description": "Whether the source is a public symbol server.",
+    },
+    "has_index": {
+        "type": "boolean",
+        "description": "Whether the source provides an index of its debug files to Symbolicator.",
+    },
+    "platforms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "The platforms an organization needs access to before the source is used.",
+    },
 }
 
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
-        "type": {"type": "string", "enum": ["appStoreConnect"]},
-        "id": {"type": "string", "minLength": 1},
-        "name": {"type": "string"},
-        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
-        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
-        "appconnectPrivateKey": {"type": "string"},
-        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "appId": {"type": "string", "minLength": 1},
-        "bundleId": {"type": "string", "minLength": 1},
+        "type": {
+            "type": "string",
+            "enum": ["appStoreConnect"],
+            "description": "The source type, always `appStoreConnect`.",
+        },
+        "id": _SOURCE_ID,
+        "name": _SOURCE_NAME,
+        "appconnectIssuer": {
+            "type": "string",
+            "minLength": 36,
+            "maxLength": 36,
+            "description": "The issuer ID of the App Store Connect API key.",
+        },
+        "appconnectKey": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 20,
+            "description": "The key ID of the App Store Connect API key.",
+        },
+        "appconnectPrivateKey": {
+            "type": "string",
+            "description": "The private key of the App Store Connect API key.",
+        },
+        "appName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "The name of the app in App Store Connect.",
+        },
+        "appId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The ID of the app in App Store Connect.",
+        },
+        "bundleId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The bundle ID of the app.",
+        },
     },
     "required": [
         "type",
@@ -122,10 +190,16 @@ APP_STORE_CONNECT_SCHEMA = {
 # Abstract out commonalities between HTTP_SOURCE_SCHEMA
 # and BUILTIN_HTTP_SOURCE_SCHEMA
 HTTP_SOURCE_SCHEMA_INNER = {
-    "type": {"type": "string", "enum": ["http"]},
-    "url": {"type": "string"},
-    "username": {"type": "string"},
-    "password": {"type": "string"},
+    "type": {"type": "string", "enum": ["http"], "description": "The source type, always `http`."},
+    "url": {"type": "string", "description": "The base URL of the symbol server."},
+    "username": {
+        "type": "string",
+        "description": "The user name for HTTP basic authentication with the symbol server.",
+    },
+    "password": {
+        "type": "string",
+        "description": "The password for HTTP basic authentication with the symbol server.",
+    },
     **COMMON_SOURCE_PROPERTIES,
 }
 
@@ -152,12 +226,12 @@ BUILTIN_HTTP_SOURCE_SCHEMA = {
 S3_SOURCE_SCHEMA = {
     "type": "object",
     "properties": dict(
-        type={"type": "string", "enum": ["s3"]},
-        bucket={"type": "string"},
-        region={"type": "string"},
-        access_key={"type": "string"},
-        secret_key={"type": "string"},
-        prefix={"type": "string"},
+        type={"type": "string", "enum": ["s3"], "description": "The source type, always `s3`."},
+        bucket={"type": "string", "description": "The name of the S3 bucket."},
+        region={"type": "string", "description": "The AWS region of the S3 bucket."},
+        access_key={"type": "string", "description": "The AWS access key ID."},
+        secret_key={"type": "string", "description": "The AWS secret access key."},
+        prefix=_SOURCE_PREFIX,
         **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
@@ -167,11 +241,17 @@ S3_SOURCE_SCHEMA = {
 GCS_SOURCE_SCHEMA = {
     "type": "object",
     "properties": dict(
-        type={"type": "string", "enum": ["gcs"]},
-        bucket={"type": "string"},
-        client_email={"type": "string"},
-        private_key={"type": "string"},
-        prefix={"type": "string"},
+        type={"type": "string", "enum": ["gcs"], "description": "The source type, always `gcs`."},
+        bucket={"type": "string", "description": "The name of the Google Cloud Storage bucket."},
+        client_email={
+            "type": "string",
+            "description": "The email address of the service account used for authentication.",
+        },
+        private_key={
+            "type": "string",
+            "description": "The private key of the service account used for authentication.",
+        },
+        prefix=_SOURCE_PREFIX,
         **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
@@ -181,13 +261,24 @@ GCS_SOURCE_SCHEMA = {
 AZURE_SOURCE_SCHEMA = {
     "type": "object",
     "properties": dict(
-        type={"type": "string", "enum": ["azure"]},
-        account={"type": "string", "pattern": "^[a-z0-9]{3,24}$"},
-        container={"type": "string"},
-        tenant_id={"type": "string"},
-        client_id={"type": "string"},
-        client_secret={"type": "string"},
-        prefix={"type": "string"},
+        type={
+            "type": "string",
+            "enum": ["azure"],
+            "description": "The source type, always `azure`.",
+        },
+        account={
+            "type": "string",
+            "pattern": "^[a-z0-9]{3,24}$",
+            "description": "The name of the Azure storage account.",
+        },
+        container={"type": "string", "description": "The name of the Azure blob container."},
+        tenant_id={"type": "string", "description": "The Microsoft Entra tenant ID."},
+        client_id={
+            "type": "string",
+            "description": "The Microsoft Entra application (client) ID.",
+        },
+        client_secret={"type": "string", "description": "The Microsoft Entra client secret."},
+        prefix=_SOURCE_PREFIX,
         **COMMON_SOURCE_PROPERTIES,
     ),
     "required": [
@@ -243,7 +334,14 @@ SOURCES_WITHOUT_APPSTORE_CONNECT = {
 # Schemas for sources with redacted secrets
 HIDDEN_SECRET_SCHEMA = {
     "type": "object",
-    "properties": {"hidden-secret": {"type": "boolean", "enum": [True]}},
+    "description": "A secret that is set. Its value is never returned.",
+    "properties": {
+        "hidden-secret": {
+            "type": "boolean",
+            "enum": [True],
+            "description": "Always `true`. Marks a stored secret whose value is hidden.",
+        }
+    },
 }
 
 

@@ -1693,9 +1693,12 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 402, response.data
         assert response.data == {
-            "detail": "Your organization does not have enough credits to continue your Autofix run."
+            "detail": "Your organization does not have enough credits to continue your Autofix run.",
+            "code": "seer_out_of_credits",
         }
-        mock_can_run.assert_called_once_with(group.organization, SeerOperation.AUTOFIX_PR_ITERATION)
+        mock_can_run.assert_called_once_with(
+            group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+        )
         mock_enqueue.assert_not_called()
 
     @patch(
@@ -1815,7 +1818,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 402, response.data
-        assert response.data == "No budget for Seer Autofix."
+        assert response.data == {
+            "detail": "No budget for Seer Autofix.",
+            "code": "seer_out_of_quota",
+        }
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_returns_402_when_out_of_seer_credits(
@@ -1834,7 +1840,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 402, response.data
         assert response.data == {
-            "detail": "Your organization does not have enough credits to start an Autofix run."
+            "detail": "Your organization does not have enough credits to start an Autofix run.",
+            "code": "seer_out_of_credits",
         }
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -1862,7 +1869,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 402, response.data
         assert response.data == {
-            "detail": "Your organization does not have enough credits to continue your Autofix run."
+            "detail": "Your organization does not have enough credits to continue your Autofix run.",
+            "code": "seer_out_of_credits",
         }
 
     def test_post_coding_agent_handoff_errors_with_both_provider_and_integration_id(self) -> None:
@@ -2089,7 +2097,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 402, response.data
         assert response.data == {
-            "detail": "Your organization does not have enough credits to continue your Autofix run."
+            "detail": "Your organization does not have enough credits to continue your Autofix run.",
+            "code": "seer_out_of_credits",
         }
 
     def test_open_pr_coding_disabled(self) -> None:

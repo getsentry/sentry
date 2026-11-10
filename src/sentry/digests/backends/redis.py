@@ -19,7 +19,6 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     load_redis_script,
-    redis_clusters,
     validate_dynamic_cluster,
 )
 
@@ -92,11 +91,10 @@ class RedisBackend(Backend):
 
     def __init__(self, **options: Any) -> None:
         cluster_name = options.get("cluster", "default")
-        self.is_redis_cluster, _, options = get_dynamic_cluster_from_options(
-            "SENTRY_DIGESTS_OPTIONS", options
+        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_DIGESTS_OPTIONS", options, decode_responses=False
         )
         options.pop("cluster", None)
-        self.cluster = redis_clusters.get_binary(cluster_name)
         self.locks = LockManager(RedisClusterLockBackend(cluster_name))
 
         self.namespace = options.pop("namespace", "d")
@@ -148,28 +146,20 @@ class RedisBackend(Backend):
     def _get_timeline_key(self, key: str) -> str:
         return f"{self._get_timeline_namespace(key)}:t:{key}"
 
-    def _get_connection(self, key: str) -> RedisCluster[bytes] | StrictRedis[bytes]:
-        return self.cluster
-
     def _get_timeline_lock(self, key: str, duration: int) -> Lock:
         lock_key = self._get_timeline_key(key)
-        return self.locks.get(
-            lock_key, duration=duration, routing_key=lock_key, name="digest_timeline_lock"
-        )
+        return self.locks.get(lock_key, duration=duration, name="digest_timeline_lock")
 
-    def _get_schedule_partitions(
-        self,
-    ) -> Iterable[tuple[int, str, RedisCluster[bytes] | StrictRedis[bytes]]]:
+    def _get_schedule_partitions(self) -> Iterable[tuple[int, str]]:
         """
-        Returns the partition id, the namespace, and the client for each
-        schedule partition.
+        Returns the partition id and the namespace for each schedule partition.
         """
         if not self.is_redis_cluster:
-            yield 0, self.namespace, self.cluster
+            yield 0, self.namespace
             return
 
         for partition in range(self.schedule_partitions):
-            yield partition, self._get_partition_namespace(partition), self.cluster
+            yield partition, self._get_partition_namespace(partition)
 
     def add(
         self,
@@ -207,14 +197,13 @@ class RedisBackend(Backend):
                     self.capacity if self.capacity else -1,
                     self.truncation_chance,
                 ],
-                self._get_connection(key),
+                self.cluster,
             )
         )
 
     def __schedule_partition(
         self,
         namespace: str,
-        client: RedisCluster[bytes] | StrictRedis[bytes],
         deadline: float,
         timestamp: float,
     ) -> Iterable[tuple[bytes, float]]:
@@ -223,7 +212,7 @@ class RedisBackend(Backend):
             script(
                 [f"{namespace}:s:w"],
                 ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
-                client,
+                self.cluster,
             ),
         )
 
@@ -231,11 +220,9 @@ class RedisBackend(Backend):
         if timestamp is None:
             timestamp = time.time()
 
-        for partition, namespace, client in self._get_schedule_partitions():
+        for partition, namespace in self._get_schedule_partitions():
             try:
-                for key, timestamp in self.__schedule_partition(
-                    namespace, client, deadline, timestamp
-                ):
+                for key, timestamp in self.__schedule_partition(namespace, deadline, timestamp):
                     yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
                 logger.exception(
@@ -247,23 +234,22 @@ class RedisBackend(Backend):
     def __maintenance_partition(
         self,
         namespace: str,
-        client: RedisCluster[bytes] | StrictRedis[bytes],
         deadline: float,
         timestamp: float,
     ) -> None:
         script(
             [f"{namespace}:s:w"],
             ["MAINTENANCE", namespace, self.ttl, timestamp, deadline],
-            client,
+            self.cluster,
         )
 
     def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 
-        for partition, namespace, client in self._get_schedule_partitions():
+        for partition, namespace in self._get_schedule_partitions():
             try:
-                self.__maintenance_partition(namespace, client, deadline, timestamp)
+                self.__maintenance_partition(namespace, deadline, timestamp)
             except Exception as error:
                 logger.exception(
                     "Failed to perform maintenance on digest partition %s due to error: %s",
@@ -281,7 +267,6 @@ class RedisBackend(Backend):
         if timestamp is None:
             timestamp = time.time()
 
-        connection = self._get_connection(key)
         timeline_key = self._get_timeline_key(key)
         namespace = self._get_timeline_namespace(key)
         with self._get_timeline_lock(key, duration=30).acquire():
@@ -296,7 +281,7 @@ class RedisBackend(Backend):
                         key,
                         self.capacity if self.capacity else -1,
                     ],
-                    connection,
+                    self.cluster,
                 )
             except ResponseError as e:
                 if "err(invalid_state):" in str(e):
@@ -329,17 +314,16 @@ class RedisBackend(Backend):
                 [timeline_key],
                 ["DIGEST_CLOSE", namespace, self.ttl, timestamp, key, minimum_delay]
                 + [record.key for record in records],
-                connection,
+                self.cluster,
             )
 
     def delete(self, key: str, timestamp: float | None = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 
-        connection = self._get_connection(key)
         with self._get_timeline_lock(key, duration=30).acquire():
             script(
                 [self._get_timeline_key(key)],
                 ["DELETE", self._get_timeline_namespace(key), self.ttl, timestamp, key],
-                connection,
+                self.cluster,
             )

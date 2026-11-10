@@ -81,7 +81,15 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
-from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED, get_seer_run, resolve_seer_run
+from sentry.seer.endpoints.utils import (
+    SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+    SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL,
+    SEER_OUT_OF_CREDITS_CODE,
+    SEER_OUT_OF_QUOTA_CODE,
+    SEER_PERMISSION_DENIED,
+    get_seer_run,
+    resolve_seer_run,
+)
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -458,7 +466,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 except SeerOutOfCreditsException:
                     return Response(
                         {
-                            "detail": "Your organization does not have enough credits to continue your Autofix run."
+                            "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+                            "code": SEER_OUT_OF_CREDITS_CODE,
                         },
                         status=status.HTTP_402_PAYMENT_REQUIRED,
                     )
@@ -590,16 +599,18 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     )
                 except NoSeerQuotaException:
                     return Response(
-                        "No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED
+                        {"detail": "No budget for Seer Autofix.", "code": SEER_OUT_OF_QUOTA_CODE},
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
                     )
                 except SeerOutOfCreditsException:
                     return Response(
                         {
                             "detail": (
-                                "Your organization does not have enough credits to start an Autofix run."
+                                SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL
                                 if resolved_run_id is None
-                                else "Your organization does not have enough credits to continue your Autofix run."
-                            )
+                                else SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL
+                            ),
+                            "code": SEER_OUT_OF_CREDITS_CODE,
                         },
                         status=status.HTTP_402_PAYMENT_REQUIRED,
                     )

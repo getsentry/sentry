@@ -150,12 +150,14 @@ describe('AutomationDetail', () => {
     renderDetail();
     await findLoadedPage();
 
-    expect(
-      within(screen.getByRole('tab', {name: 'Configuration'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/');
-    expect(
-      within(screen.getByRole('tab', {name: 'Runs'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/42/runs/');
+    expect(screen.getByRole('tab', {name: 'Configuration'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/'
+    );
+    expect(screen.getByRole('tab', {name: 'Runs'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/42/runs/'
+    );
   });
 
   it.each([

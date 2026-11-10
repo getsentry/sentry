@@ -3,13 +3,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, ClassVar, cast
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
-from redis.client import StrictRedis
-from sentry_redis_tools.clients import RedisCluster
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
@@ -128,27 +126,24 @@ manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=
 class FeatureAdoptionRedisBackend:
     def __init__(self, key_tpl: str = FEATURE_ADOPTION_REDIS_KEY, **options: object) -> None:
         self.key_tpl = key_tpl
-        self.is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
-            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
+        _, self.cluster, _config = get_dynamic_cluster_from_options(
+            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options, decode_responses=True
         )
-
-    def get_client(self, key: str) -> RedisCluster | StrictRedis[Any]:
-        return self.cluster
 
     def in_cache(self, organization_id: int, feature_id: int) -> bool:
         org_key = self.key_tpl.format(organization_id)
-        return self.get_client(org_key).sismember(org_key, feature_id)
+        return self.cluster.sismember(org_key, feature_id)
 
     def get_all_cache(self, organization_id: int) -> set[int]:
         org_key = self.key_tpl.format(organization_id)
-        return {int(v) for v in self.get_client(org_key).smembers(org_key)}
+        return {int(v) for v in self.cluster.smembers(org_key)}
 
     def bulk_set_cache(self, organization_id: int, *args: int) -> bool:
         if not args:
             return False
 
         org_key = self.key_tpl.format(organization_id)
-        pipe = self.get_client(org_key).pipeline()
+        pipe = self.cluster.pipeline()
         pipe.sadd(org_key, *args)
         pipe.expire(org_key, FEATURE_ADOPTION_CACHE_TTL)
         pipe.execute()
