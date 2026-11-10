@@ -23,16 +23,16 @@ def _contents(state: SeerRunState) -> list[str | None]:
     return [block.message.content for block in state.blocks]
 
 
-def test_hides_the_prompt_that_opens_a_single_run_but_keeps_replies() -> None:
+def test_keeps_single_run_messages() -> None:
     state = _state(
-        _block(0, "user", "Fix issue ABC-1 ...", "single_run"),
+        _block(0, "user", "Fix issue ABC-1", "single_run"),
         _block(1, "assistant", "Found it."),
         _block(2, "user", "Nice, make a code fix", "single_run"),
     )
 
     redacted = redact_autofix_prompts(state, can_see_prompts=False)
 
-    assert _contents(redacted) == [AUTOFIX_PROMPT_PLACEHOLDER, "Found it.", "Nice, make a code fix"]
+    assert _contents(redacted) == ["Fix issue ABC-1", "Found it.", "Nice, make a code fix"]
 
 
 def test_hides_every_step_prompt_in_a_step_by_step_run() -> None:

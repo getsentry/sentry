@@ -9,7 +9,6 @@ from sentry.seer.autofix.steps import AutofixStep
 
 AUTOFIX_PROMPT_PLACEHOLDER = "Started Autofix"
 
-_SINGLE_RUN_STEP = "single_run"
 _STEP_PROMPT_STEPS = frozenset(step.value for step in AutofixStep)
 
 
@@ -32,15 +31,7 @@ def _redacted(block: MemoryBlock) -> MemoryBlock:
 def redact_autofix_prompts(state: SeerRunState, *, can_see_prompts: bool) -> SeerRunState:
     if can_see_prompts:
         return state
-    single_run_prompt_index = next(
-        (i for i, block in enumerate(state.blocks) if _step(block) == _SINGLE_RUN_STEP), None
-    )
     blocks = [
-        (
-            _redacted(block)
-            if _step(block) in _STEP_PROMPT_STEPS or i == single_run_prompt_index
-            else block
-        )
-        for i, block in enumerate(state.blocks)
+        _redacted(block) if _step(block) in _STEP_PROMPT_STEPS else block for block in state.blocks
     ]
     return state.copy(update={"blocks": blocks})
