@@ -483,7 +483,7 @@ class SlackAutofixEntrypoint(
                     )
                     if event_payload.get("failure_reason") == OUT_OF_CREDITS:
                         message = SeerAutofixOutOfCredits(
-                            organization_id=cache_payload["organization_id"], started=True
+                            organization_id=cache_payload["organization_id"]
                         )
                 # Posted to the whole thread: the run may have been started by anyone.
                 schedule_all_thread_updates(
