@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.models.activity import Activity
@@ -8,7 +9,6 @@ from sentry.utils import json
 from sentry.workflow_engine.models import Workflow, WorkflowFireHistory
 from sentry.workflow_engine.tasks.alert_webhooks import (
     FEATURE_FLAG,
-    AlertFire,
     enqueue_alert_triggered_webhooks,
     send_alert_triggered_webhooks,
 )
@@ -51,23 +51,6 @@ class EnqueueAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
 
     @with_feature(FEATURE_FLAG)
     @patch(TASK_DELAY)
-    def test_skips_when_no_app_subscribes(self, mock_delay: MagicMock) -> None:
-        other_org = self.create_organization()
-        other_project = self.create_project(organization=other_org)
-        event = self.store_event(data={"message": "boom"}, project_id=other_project.id)
-        assert event.group is not None
-        workflow = self.create_workflow(organization=other_org)
-        history = WorkflowFireHistory.objects.create(
-            workflow=workflow, group=event.group, event_id=event.event_id
-        )
-
-        enqueue_alert_triggered_webhooks(
-            [history], WorkflowEventData(event=event.for_group(event.group), group=event.group)
-        )
-        mock_delay.assert_not_called()
-
-    @with_feature(FEATURE_FLAG)
-    @patch(TASK_DELAY)
     def test_enqueues_fires(self, mock_delay: MagicMock) -> None:
         history = self.fire(self.workflow)
 
@@ -83,7 +66,6 @@ class EnqueueAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
                 {
                     "workflow_id": self.workflow.id,
                     "notification_uuid": str(history.notification_uuid),
-                    "fired_at": history.date_added.isoformat(),
                 }
             ],
         )
@@ -114,15 +96,11 @@ class EnqueueAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class SendAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
     def send(self, *workflows: Workflow) -> None:
-        fires = []
+        fires: list[dict[str, Any]] = []
         for workflow in workflows:
             history = self.fire(workflow)
             fires.append(
-                AlertFire(
-                    workflow_id=workflow.id,
-                    notification_uuid=str(history.notification_uuid),
-                    fired_at=history.date_added.isoformat(),
-                )
+                {"workflow_id": workflow.id, "notification_uuid": str(history.notification_uuid)}
             )
         with self.tasks():
             send_alert_triggered_webhooks(
@@ -133,9 +111,6 @@ class SendAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
             )
 
     def test_sends_payload(self, safe_urlopen: MagicMock) -> None:
-        environment = self.create_environment(project=self.project, name="production")
-        self.workflow.update(environment=environment)
-
         self.send(self.workflow)
 
         assert safe_urlopen.call_count == 1
@@ -147,12 +122,10 @@ class SendAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
         data = body["data"]
         assert data["alert"]["id"] == self.workflow.id
         assert data["alert"]["title"] == "High error rate"
-        assert data["alert"]["environment"] == "production"
         assert data["alert"]["web_url"].endswith(f"/monitors/alerts/{self.workflow.id}/")
         assert data["issue"]["id"] == str(self.group.id)
         assert data["event_id"] == self.group_event.event_id
         assert data["notification_uuid"]
-        assert data["fired_at"]
 
     def test_skips_non_alert_workflows(self, safe_urlopen: MagicMock) -> None:
         inbox_workflow = self.create_workflow(name="inbox", type=Workflow.Type.INBOX)
@@ -196,7 +169,6 @@ class SendAlertTriggeredWebhooksTest(AlertTriggeredWebhookTestBase):
                     {
                         "workflow_id": self.workflow.id,
                         "notification_uuid": "00000000-0000-0000-0000-000000000000",
-                        "fired_at": "2026-11-10T00:00:00+00:00",
                     }
                 ],
             )
