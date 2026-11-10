@@ -439,6 +439,20 @@ class SeerRunState(BaseModel):
             if pr_state.pr_creation_status != "error" or pr_state.pr_number is not None
         ]
 
+    def get_opened_pull_request_states(self) -> list[RepoPRState]:
+        """
+        The repos whose pull request the provider has actually opened.
+
+        Unlike ``get_created_pull_request_states``, this leaves out placeholder
+        states Seer adds (``creating`` or no status) before asking the provider to
+        open the PR. Those still count as "a PR has started" for gating re-runs,
+        but they carry no ``pr_number``/``pr_url``/``pr_id`` yet, so they must not
+        be reported as created pull requests.
+        """
+        return [
+            pr_state for pr_state in self.repo_pr_states.values() if pr_state.pr_number is not None
+        ]
+
     def get_artifacts(self) -> dict[str, Artifact]:
         """
         Scan blocks and return the latest artifact for each key.
