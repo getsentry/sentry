@@ -754,7 +754,7 @@ export function actionRequestDryRunQueryOptions(
     queryFn: async (): Promise<ActionRequestError | null> => {
       try {
         await apiFetch<InvestigationActionRequestApplyResponse>({
-          queryKey: [url, endpoint],
+          queryKey: [url, endpoint, {infinite: false}],
         });
         return null;
       } catch (error) {

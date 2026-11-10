@@ -4,12 +4,15 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
-import type {FTCConsentLocation, Subscription} from 'getsentry/types';
+import type {
+  FTCConsentLocation,
+  PaymentSetupCreateResponse,
+  Subscription,
+} from 'getsentry/types';
 import {
   trackGetsentryAnalytics,
   type GetsentryEventKey,
@@ -55,11 +58,13 @@ export function CreditCardSetup({
         referrer={referrer}
         cardMode="setup"
         intentDataQueryKey={
-          [
-            getApiUrl('/organizations/$organizationIdOrSlug/payments/setup/', {
+          apiOptions.as<PaymentSetupCreateResponse>()(
+            '/organizations/$organizationIdOrSlug/payments/setup/',
+            {
               path: {organizationIdOrSlug: organization.slug},
-            }),
-          ] satisfies ApiQueryKey
+              staleTime: 0,
+            }
+          ).queryKey
         }
         onCancel={onCancel ?? (() => {})}
         onSuccess={() => {
