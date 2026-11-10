@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {FAILURE_FIELDS, ISSUE_VOLUME_FIELDS} from './queries';
 import ProjectSymbolicationErrors from '.';
@@ -89,11 +89,49 @@ describe('ProjectSymbolicationErrors', () => {
       `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/`
     );
     expect(await screen.findByText('PROJ-1')).toBeInTheDocument();
-    expect(screen.getByText('250')).toBeInTheDocument();
-    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(await screen.findByText('100 / 250')).toBeInTheDocument();
     expect(
       await screen.findByRole('img', {name: 'Symbolication failure trend, peak 6'})
     ).toBeInTheDocument();
+  });
+
+  it('opens the fix steps of a row', async () => {
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      match: [MockApiClient.matchQuery({field: ['release', 'count_unique(event_id)']})],
+      body: {data: [{release: 'app@1.2.3', 'count_unique(event_id)': 80}]},
+    });
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      match: [MockApiClient.matchQuery({field: ['event_id']})],
+      body: {data: [{event_id: 'abc123'}]},
+    });
+
+    render(<ProjectSymbolicationErrors />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'How to fix'}));
+
+    const drawer = await screen.findByRole('complementary', {
+      name: 'Symbolication failure details',
+    });
+    expect(
+      await within(drawer).findByRole('link', {name: 'app@1.2.3'})
+    ).toBeInTheDocument();
+    expect(
+      within(drawer).getByText(
+        `sentry-cli debug-files upload --org ${organization.slug} --project ${project.slug} <path-to-debug-files>`
+      )
+    ).toBeInTheDocument();
+    expect(
+      await within(drawer).findByRole('link', {name: 'EXC_BAD_ACCESS in main'})
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/1/events/abc123/`
+    );
   });
 
   it('shows the empty state when no errors exist', async () => {

@@ -143,9 +143,7 @@ export function trendKey(row: Pick<FailureRow, 'group_id' | 'error_type'>): stri
 }
 
 function trendQuery(rows: FailureRow[]): string {
-  const pairs = rows
-    .map(row => `(group_id:${row.group_id} error_type:${row.error_type})`)
-    .join(' OR ');
+  const pairs = rows.map(row => `(${failureQuery(row)})`).join(' OR ');
   return `${SYMBOLICATION_ERROR_TYPES_QUERY} (${pairs})`;
 }
 
@@ -220,6 +218,75 @@ export function totalEventsTimeseriesOptions({
           yAxis: 'count()',
           statsPeriod: STATS_PERIOD,
           interval: STATS_INTERVAL,
+          project: project.id,
+          referrer: REFERRER,
+        },
+        staleTime: STALE_TIME,
+      }
+    ),
+    retry: false,
+  };
+}
+
+type FailureKey = Pick<FailureRow, 'group_id' | 'error_type'>;
+
+function failureQuery(failure: FailureKey): string {
+  return `group_id:${failure.group_id} error_type:${failure.error_type}`;
+}
+
+export interface ReleaseFailures {
+  'count_unique(event_id)': number;
+  release: string | null;
+}
+
+// The detail drawer lists this many releases.
+const RELEASE_LIMIT = 5;
+
+/** The releases with the most failures of one issue and cause. */
+export function releaseFailuresOptions({
+  organization,
+  project,
+  failure,
+}: ProjectQueryParams & {failure: FailureKey}) {
+  return {
+    ...apiOptions.as<{data: ReleaseFailures[]}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          dataset: 'processing_errors',
+          field: ['release', 'count_unique(event_id)'],
+          query: failureQuery(failure),
+          sort: '-count_unique(event_id)',
+          per_page: RELEASE_LIMIT,
+          statsPeriod: STATS_PERIOD,
+          project: project.id,
+          referrer: REFERRER,
+        },
+        staleTime: STALE_TIME,
+      }
+    ),
+    retry: false,
+  };
+}
+
+/** One event with the failure, so the drawer can link to it. */
+export function sampleEventOptions({
+  organization,
+  project,
+  failure,
+}: ProjectQueryParams & {failure: FailureKey}) {
+  return {
+    ...apiOptions.as<{data: Array<{event_id: string}>}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          dataset: 'processing_errors',
+          field: ['event_id'],
+          query: failureQuery(failure),
+          per_page: 1,
+          statsPeriod: STATS_PERIOD,
           project: project.id,
           referrer: REFERRER,
         },

@@ -4,6 +4,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -40,6 +41,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {FIXES, getSymbolicationErrorInfo, STATS_PERIOD} from './constants';
+import {FailureDetails} from './failureDetails';
 import {
   causeTimeseriesOptions,
   failureTrendsOptions,
@@ -209,8 +211,8 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'project', width: '48px'},
   {key: 'issue', width: 'minmax(0, 2fr)'},
   {key: 'cause', width: 'minmax(0, 1fr)'},
-  {key: 'issueVolume', width: '110px'},
-  {key: 'failures', width: `${TREND_WIDTH + 90}px`},
+  {key: 'failures', width: `${TREND_WIDTH + 130}px`},
+  {key: 'actions', width: 'max-content'},
 ];
 
 function IssueCell({row, volume}: {row: FailureRow; volume: IssueVolume | undefined}) {
@@ -377,6 +379,7 @@ function FailuresTable({
   const groupIds = [...new Set(rows.map(row => String(row.group_id)))];
   const volumes = useQuery(issueVolumesOptions({organization, project, groupIds}));
   const trends = useQuery(failureTrendsOptions({organization, project, rows}));
+  const {openDrawer} = useDrawer();
   const volumeTrends = useQuery(
     issueVolumeTrendsOptions({organization, project, groupIds})
   );
@@ -403,8 +406,8 @@ function FailuresTable({
             <SimpleTable.HeaderCell />
             <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Cause')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Events')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Failed to symbolicate')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell />
           </SimpleTable.HeaderRow>
         }
       >
@@ -429,15 +432,6 @@ function FailuresTable({
                   <CauseCell errorType={row.error_type} project={project} />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
-                  {volumes.isPending ? (
-                    <Placeholder width="48px" height="20px" />
-                  ) : (
-                    <Text tabular>
-                      {formatAbbreviatedNumber(volume?.['count()'] ?? 0)}
-                    </Text>
-                  )}
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
                   <Flex gap="md" align="center">
                     <FailureTrend
                       series={trends.data?.[trendKey(row)]}
@@ -451,8 +445,31 @@ function FailuresTable({
                     />
                     <Text tabular>
                       {formatAbbreviatedNumber(row['count_unique(event_id)'])}
+                      {volume ? ` / ${formatAbbreviatedNumber(volume['count()'])}` : null}
                     </Text>
                   </Flex>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <Button
+                    size="xs"
+                    onClick={() =>
+                      openDrawer(
+                        () => (
+                          <FailureDetails
+                            organization={organization}
+                            project={project}
+                            row={row}
+                          />
+                        ),
+                        {
+                          ariaLabel: t('Symbolication failure details'),
+                          drawerKey: 'symbolication-failure-details',
+                        }
+                      )
+                    }
+                  >
+                    {t('How to fix')}
+                  </Button>
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             );
