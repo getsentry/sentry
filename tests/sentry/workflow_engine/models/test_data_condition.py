@@ -3,18 +3,163 @@ from typing import Any, cast
 from unittest import mock
 
 import pytest
+from jsonschema import ValidationError
 
 from sentry.testutils.cases import TestCase
+from sentry.types.activity import ActivityType
+from sentry.types.actor import ActorType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition, get_condition_handler
 from sentry.workflow_engine.processors.evaluations import DataConditionEvaluationException
-from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import ConditionError, DetectorPriorityLevel, WorkflowEventData
+from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, DataConditionHandlerMixin
 
 
 class MockDataConditionEnum(IntEnum):
     FOO = 1
     BAR = 2
+
+
+class ActivityTypeInConditionTest(ConditionTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.dc = self.create_data_condition(
+            type=Condition.ACTIVITY_TYPE_IN,
+            comparison=["issue.assigned", "issue.mentioned"],
+            condition_result=True,
+        )
+
+    def test_registered_at_startup(self) -> None:
+        # Do not import the handler: startup must register it independently of tests.
+        handler = condition_handler_registry.get(Condition.ACTIVITY_TYPE_IN)
+        assert handler.__name__ == "ActivityTypeInHandler"
+        assert handler.is_internal
+        assert handler.supports_group_less
+
+    def test_user_assignment(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
+        )
+        event_data = WorkflowEventData(event=activity, group=self.group)
+        self.assert_passes(self.dc, event_data)
+        assert event_data.event is activity
+        assert event_data.event_id == str(activity.id)
+
+    def test_team_assignment(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.team.id), "assigneeType": "team"},
+        )
+        self.assert_passes(self.dc, WorkflowEventData(event=activity, group=self.group))
+
+    def test_mentions(self) -> None:
+        for mentions in (
+            [{"actor_type": ActorType.USER, "id": self.user.id}],
+            [{"actor_type": ActorType.TEAM, "id": self.team.id}],
+            [
+                {"actor_type": ActorType.USER, "id": self.user.id},
+                {"actor_type": ActorType.TEAM, "id": self.team.id},
+            ],
+        ):
+            activity = self.create_group_activity(
+                group=self.group, type=ActivityType.NOTE.value, data={"mentions": mentions}
+            )
+            self.assert_passes(self.dc, WorkflowEventData(event=activity, group=self.group))
+
+    def test_notes_without_mentions(self) -> None:
+        activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
+        data: object
+        for data in (
+            {},
+            {"mentions": []},
+            {"mentions": None},
+            None,
+            [],
+            {"mentions": "user:1"},
+            {"mentions": {"id": 1}},
+        ):
+            activity.data = data
+            self.assert_does_not_pass(self.dc, WorkflowEventData(event=activity, group=self.group))
+
+    def test_unsupported_activities(self) -> None:
+        for activity_type in (
+            ActivityType.UNASSIGNED,
+            ActivityType.SET_RESOLVED,
+            ActivityType.SEER_PR_READY_FOR_REVIEW,
+        ):
+            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+            self.assert_does_not_pass(self.dc, WorkflowEventData(event=activity, group=self.group))
+
+    def test_group_event_does_not_match(self) -> None:
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
+        )
+
+    def test_kind_selection(self) -> None:
+        assignment = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
+        )
+        mention = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.NOTE.value,
+            data={"mentions": [{"actor_type": ActorType.USER, "id": self.user.id}]},
+        )
+        self.dc.comparison = ["issue.assigned"]
+        self.dc.save()
+        self.dc.refresh_from_db()
+        self.assert_passes(self.dc, WorkflowEventData(event=assignment, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=mention, group=self.group))
+        self.dc.comparison = ["issue.mentioned"]
+        self.dc.save()
+        self.dc.refresh_from_db()
+        self.assert_passes(self.dc, WorkflowEventData(event=mention, group=self.group))
+        self.assert_does_not_pass(self.dc, WorkflowEventData(event=assignment, group=self.group))
+
+    def test_comparison_schema(self) -> None:
+        comparison: object
+        for comparison in (
+            [],
+            None,
+            True,
+            11,
+            "issue.assigned",
+            {},
+            [11],
+            [None],
+            ["unknown"],
+            ["investigation.assigned"],
+            ["issue.user_assigned"],
+            ["issue.assigned", "issue.assigned"],
+            ["issue.assigned", {}],
+        ):
+            self.dc.comparison = comparison
+            with pytest.raises(ValidationError):
+                self.dc.save()
+
+    def test_malformed_stored_comparison(self) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.user.id)},
+        )
+        for comparison in (
+            None,
+            "issue.assigned",
+            {"issue.assigned": True},
+            ["issue.assigned", {}],
+            ["unknown"],
+            [],
+        ):
+            # Simulate invalid data written outside the model's save validation.
+            self.dc.comparison = comparison
+            self.assert_does_not_pass(self.dc, WorkflowEventData(event=activity, group=self.group))
 
 
 class GetConditionResultTest(TestCase):
