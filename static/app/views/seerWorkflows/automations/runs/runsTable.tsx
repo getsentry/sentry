@@ -120,23 +120,27 @@ function RunRow({run, showStrategy}: {run: SeerAutomationRun; showStrategy: bool
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Stack>
-          {showStrategy && <Text>{getStrategyLabel(run.strategy)}</Text>}
-          {run.trigger?.type === 'monitor' ? (
-            <Flex gap="xs" align="center">
-              <IconIssues size="xs" />
-              <Link
-                to={`/organizations/${organization.slug}/issues/${run.trigger.groupId}/`}
-              >
-                {run.trigger.groupShortId ?? `issue:${run.trigger.groupId}`}
-              </Link>
-            </Flex>
-          ) : (
-            run.trigger && (
-              <Text variant="muted">{formatTriggerType(run.trigger.type)}</Text>
-            )
-          )}
-        </Stack>
+        {!showStrategy && !run.trigger ? (
+          <Text variant="muted">{'—'}</Text>
+        ) : (
+          <Stack>
+            {showStrategy && <Text>{getStrategyLabel(run.strategy)}</Text>}
+            {run.trigger?.type === 'monitor' ? (
+              <Flex gap="xs" align="center">
+                <IconIssues size="xs" />
+                <Link
+                  to={`/organizations/${organization.slug}/issues/${run.trigger.groupId}/`}
+                >
+                  {run.trigger.groupShortId ?? `issue:${run.trigger.groupId}`}
+                </Link>
+              </Flex>
+            ) : (
+              run.trigger && (
+                <Text variant="muted">{fallbackTriggerText(run.trigger.type)}</Text>
+              )
+            )}
+          </Stack>
+        )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
@@ -145,7 +149,7 @@ function RunRow({run, showStrategy}: {run: SeerAutomationRun; showStrategy: bool
 /**
  * Turns a trigger type like `custom_trigger-type` into `Custom Trigger Type`
  */
-function formatTriggerType(type: string): string {
+function fallbackTriggerText(type: string): string {
   return type
     .split(/[_-]/)
     .filter(Boolean)

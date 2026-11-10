@@ -211,6 +211,32 @@ describe('RunsTable', () => {
     expect(screen.queryByText('Breached metrics')).not.toBeInTheDocument();
   });
 
+  it('shows a dash in the status cell for runs without a status', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({id: '21', status: null})]},
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByText('21')).toBeInTheDocument();
+    const [statusCell] = screen.getAllByRole('cell');
+    expect(statusCell).toHaveTextContent('—');
+  });
+
+  it('shows a dash in the trigger cell when it has nothing to show', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({id: '22', trigger: null})]},
+    });
+
+    render(<RunsTable showStrategy={false} />, {organization});
+
+    expect(await screen.findByText('22')).toBeInTheDocument();
+    const triggerCell = screen.getAllByRole('cell').at(-1);
+    expect(triggerCell).toHaveTextContent('—');
+  });
+
   it('shows an empty state when there are no runs', async () => {
     MockApiClient.addMockResponse({url: runsUrl, body: {runs: []}});
 
