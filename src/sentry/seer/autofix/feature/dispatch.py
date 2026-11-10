@@ -79,15 +79,10 @@ def _mirror_matches_issue(group: Group) -> Q:
     return Q(group_id=group.id, project_id=group.project_id)
 
 
-def _parse_seer_feature(raw: object) -> SeerFeature:
-    return SeerFeature(raw) if raw in SeerFeature else SeerFeature.AUTOFIX
-
-
-def get_run_seer_feature(group: Group, run_id: int) -> SeerFeature:
+def get_run_seer_feature(agent_run: SeerAgentRun | None) -> SeerFeature:
     """The feature the run was started under."""
-    return _parse_seer_feature(
-        _run_mirrors(group, run_id).values_list("extras__seer_feature", flat=True).first()
-    )
+    raw = agent_run.extras.get("seer_feature") if agent_run is not None else None
+    return SeerFeature(raw) if isinstance(raw, str) and raw in SeerFeature else SeerFeature.AUTOFIX
 
 
 def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
@@ -214,7 +209,7 @@ def continue_single_run(
         group.organization,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
         is_new_run=False,
-        seer_feature=_parse_seer_feature((agent_run.extras or {}).get("seer_feature")),
+        seer_feature=get_run_seer_feature(agent_run),
     )
 
     enable_coding = _org_allows_coding(group)
@@ -267,17 +262,12 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    existing_agent_run = (
-        require_autofix_run_for_group(group, args.existing_run_id)
-        if args.existing_run_id is not None
-        else None
-    )
     # A new run starts under args.seer_feature. A continued run keeps the one it started under.
-    seer_feature = (
-        args.seer_feature
-        if existing_agent_run is None
-        else _parse_seer_feature((existing_agent_run.extras or {}).get("seer_feature"))
-    )
+    existing_agent_run: SeerAgentRun | None = None
+    seer_feature = args.seer_feature
+    if args.existing_run_id is not None:
+        existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
+        seer_feature = get_run_seer_feature(existing_agent_run)
     try:
         uses_quota = check_autofix_billing(
             group.organization,
