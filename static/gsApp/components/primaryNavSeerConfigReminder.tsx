@@ -9,6 +9,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {orgHasNewSeerPlan} from 'sentry/utils/seer/orgHasNewSeerPlan';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -39,7 +40,7 @@ function useReminderData() {
     data: data,
   } = useQuery(getSeerOnboardingCheckQueryOptions({organization, staleTime: 60_000}));
 
-  if (!canWrite || !hasSeatBasedSeer || isPending || isError) {
+  if (!canWrite || !orgHasNewSeerPlan(organization) || isPending || isError) {
     return {canSeeReminder: false, analyticsParams, title: null, description: null};
   }
   const {hasSupportedScmIntegration, isAutofixEnabled} = data;
