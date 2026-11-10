@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry import options
@@ -99,9 +100,9 @@ def _claim_batch(
     """
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
     with transaction.atomic(using=router.db_for_write(ScheduledTrigger)):
-        query = ScheduledTrigger.objects.select_for_update(skip_locked=True).filter(
-            next_fire_at__lte=now
-        )
+        query: QuerySet[ScheduledTrigger] = ScheduledTrigger.objects.select_for_update(
+            skip_locked=True
+        ).filter(next_fire_at__lte=now)
         if after is not None:
             query = query.extra(
                 where=['ROW("next_fire_at", "id") > ROW(%s, %s)'],
