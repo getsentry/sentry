@@ -85,13 +85,21 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         rendered_template: NotificationRenderedTemplate,
         link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
+        return cls._render_message(
+            rendered_template=rendered_template,
+            body_blocks=cls._render_body(rendered_template.body),
+        )
+
+    @classmethod
+    def _render_message(
+        cls, *, rendered_template: NotificationRenderedTemplate, body_blocks: list[Block]
+    ) -> SlackRenderable:
         # Slack does not support rich text in the subject
         subject_block = HeaderBlock(
             text=PlainTextObject(
                 text=truncatechars(rendered_template.subject_text, HeaderBlock.text_max_length)
             )
         )
-        body_blocks: list[Block] = cls._render_body(rendered_template.body)
         # Trim the body, not the header or trailing blocks, so the message stays actionable.
         trailing = (rendered_template.actions, rendered_template.chart, rendered_template.footer)
         max_body_blocks = SLACK_MAX_BLOCKS - 1 - sum(1 for block in trailing if block)

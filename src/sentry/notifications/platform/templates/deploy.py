@@ -44,6 +44,7 @@ from sentry.utils.strings import is_valid_dot_atom
 
 TEXT_DELIMITER = " · "
 MAX_SUBJECT_PROJECTS = 2
+NO_COMMITS_TEXT = "Deploys are better with commit data. Connecting repositories to Sentry will show a list of deploy commits in this message."
 
 
 class DeployReleaseCommit(TypedDict):
@@ -108,9 +109,9 @@ def build_deploy_subject(data: DeployReleaseData) -> list[NotificationTextBlock]
     ]
 
 
-def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
+def build_deploy_summary(data: DeployReleaseData) -> list[NotificationSection]:
     readable_version = parse_release(data.version, json_loads=orjson.loads)["description"]
-    summary_sections: list[NotificationSection] = [
+    return [
         ParagraphSection(
             blocks=[
                 PlainTextBlock(text="Release"),
@@ -137,54 +138,55 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
             ]
         ),
     ]
+
+
+def build_deploy_project_line(rp: DeployReleaseProject) -> list[NotificationTextBlock]:
+    blocks: list[NotificationTextBlock] = [
+        PlainTextBlock(text=f"{rp['project_slug']} ("),
+        LinkTextBlock(text="View Release", url=rp["release_url"]),
+        PlainTextBlock(text=")"),
+    ]
+    if rp["resolved_issue_count"]:
+        blocks.append(
+            PlainTextBlock(
+                text=f"resolving {rp['resolved_issue_count']} issue{pluralize(rp['resolved_issue_count'])}."
+            )
+        )
+    return blocks
+
+
+def build_deploy_commit_line(commit: DeployReleaseCommit) -> list[NotificationTextBlock]:
+    return [
+        PlainTextBlock(commit["message"]),
+        PlainTextBlock(text=TEXT_DELIMITER),
+        ItalicTextBlock(text=commit["author_name"]),
+        PlainTextBlock(text=TEXT_DELIMITER),
+        ItalicTextBlock(text=format_datetime(commit["date"])),
+        PlainTextBlock(text=TEXT_DELIMITER),
+        CodeTextBlock(text=commit["sha"]),
+    ]
+
+
+def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
     project_sections: list[NotificationSection] = []
     if data.release_projects:
         project_sections.append(ParagraphSection(blocks=[BoldTextBlock(text="Projects:")]))
         for rp in data.release_projects:
-            release_project_blocks = [
-                PlainTextBlock(text=f"{rp['project_slug']} ("),
-                LinkTextBlock(text="View Release", url=rp["release_url"]),
-                PlainTextBlock(text=")"),
-            ]
-            if rp["resolved_issue_count"]:
-                release_project_blocks.append(
-                    PlainTextBlock(
-                        text=f"resolving {rp['resolved_issue_count']} issue{pluralize(rp['resolved_issue_count'])}."
-                    )
-                )
-            project_sections.append(ParagraphSection(blocks=release_project_blocks))
+            project_sections.append(ParagraphSection(blocks=build_deploy_project_line(rp)))
 
     commits_sections: list[NotificationSection] = []
     if data.repo_name_to_commits:
         commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text="Repositories:")]))
         for repo_name, commits in data.repo_name_to_commits.items():
             commits_sections.append(ParagraphSection(blocks=[BoldTextBlock(text=repo_name)]))
-            repo_sections: list[NotificationSection] = []
-            for commit in commits:
-                commit_blocks = [
-                    PlainTextBlock(commit["message"]),
-                    PlainTextBlock(text=TEXT_DELIMITER),
-                    ItalicTextBlock(text=commit["author_name"]),
-                    PlainTextBlock(text=TEXT_DELIMITER),
-                    ItalicTextBlock(text=format_datetime(commit["date"])),
-                    PlainTextBlock(text=TEXT_DELIMITER),
-                    CodeTextBlock(text=commit["sha"]),
-                ]
-                repo_sections.append(ParagraphSection(blocks=commit_blocks))
-            commits_sections.extend(repo_sections)
-    else:
-        commits_sections.append(
-            ParagraphSection(
-                blocks=[
-                    ItalicTextBlock(
-                        text="Deploys are better with commit data. Connecting repositories to Sentry will show a list of deploy commits in this message."
-                    )
-                ]
+            commits_sections.extend(
+                ParagraphSection(blocks=build_deploy_commit_line(commit)) for commit in commits
             )
-        )
+    else:
+        commits_sections.append(ParagraphSection(blocks=[ItalicTextBlock(text=NO_COMMITS_TEXT)]))
 
     return [
-        *summary_sections,
+        *build_deploy_summary(data),
         *project_sections,
         *commits_sections,
     ]
