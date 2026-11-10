@@ -63,7 +63,7 @@ jobs:
               --body 'Weekly copy of https://publicsuffix.org/list/public_suffix_list.dat, which uptime uses to find the domain and suffix of a URL.'
           fi
 
-      # Upserts a Sentry cron monitor so we hear about it when this workflow stops running.
+      # Tells us when this workflow stops running.
       - name: Send cron check-in
         if: always()
         env:

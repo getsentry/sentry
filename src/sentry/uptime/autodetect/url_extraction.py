@@ -20,9 +20,8 @@ PUBLIC_SUFFIX_LIST_PATH = Path(__file__).parent / "public_suffix_list.dat"
 
 class _LocalListTLDExtract(TLDExtract):
     """
-    Reads our copy of the public suffix list on the first extract call. tldextract's bundled
-    snapshot is only as new as its last release, and the update-public-suffix-list workflow
-    refreshes our copy each week.
+    Uses our copy of the public suffix list, since tldextract's bundled one is only as new as
+    its last release.
     """
 
     # tldextract can read a file:// suffix list URL itself, but it leaves the file open.
