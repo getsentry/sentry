@@ -89,24 +89,4 @@ describe('organizationTagsApiOptions', () => {
       })
     );
   });
-
-  it('waits until the query is enabled before fetching tags', async () => {
-    const tags = TagsFixture();
-    const request = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: tags,
-    });
-    const {result, rerender} = renderHookWithProviders(
-      ({enabled}) => useQuery(organizationTagsApiOptions({orgSlug: 'org-slug', enabled})),
-      {initialProps: {enabled: false}}
-    );
-
-    expect(result.current.fetchStatus).toBe('idle');
-    expect(request).not.toHaveBeenCalled();
-
-    rerender({enabled: true});
-
-    await waitFor(() => expect(result.current.data).toEqual(tags));
-    expect(request).toHaveBeenCalledTimes(1);
-  });
 });

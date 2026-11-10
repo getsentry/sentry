@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData as keepPreviousDataFn, useQuery} from '@tanstack/react-query';
 
 import {organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
@@ -106,38 +106,38 @@ export const useFetchIssueTags = ({
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
-  const eventsTagsQuery = useQuery(
-    organizationTagsApiOptions({
+  const eventsTagsQuery = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ERRORS,
-      keepPreviousData,
       ...statsPeriodParams,
-    })
-  );
+    }),
+    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
+  });
 
-  const issuePlatformTagsQuery = useQuery(
-    organizationTagsApiOptions({
+  const issuePlatformTagsQuery = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      keepPreviousData,
       ...statsPeriodParams,
-    })
-  );
+    }),
+    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
+  });
 
   // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
   // with query param useFlagsBackend=1. This is used for issue stream search suggestions.
-  const featureFlagTagsQuery = useQuery(
-    organizationFeatureFlagsApiOptions({
+  const featureFlagTagsQuery = useQuery({
+    ...organizationFeatureFlagsApiOptions({
       orgSlug: org.slug,
       projectIds,
       useCache: true,
-      enabled: includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
-      keepPreviousData,
       ...statsPeriodParams,
-    })
-  );
+    }),
+    placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,
+    enabled: includeFeatureFlags,
+  });
 
   const assignedValues = useAssignedSearchValues();
   const usernames = useMemberUsernames();

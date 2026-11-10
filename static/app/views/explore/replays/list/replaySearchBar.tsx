@@ -140,8 +140,6 @@ export function ReplaySearchBar(props: Props) {
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
       dataset: Dataset.REPLAYS,
-      enabled: true,
-      keepPreviousData: false,
       start,
       end,
       statsPeriod,

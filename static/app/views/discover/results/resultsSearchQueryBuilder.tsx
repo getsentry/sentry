@@ -251,14 +251,14 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
   const measurements = useMemo(() => getMeasurements(), []);
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
 
-  const featureFlagsQuery = useQuery(
-    organizationFeatureFlagsApiOptions({
+  const featureFlagsQuery = useQuery({
+    ...organizationFeatureFlagsApiOptions({
       orgSlug: organization.slug,
       projectIds: projectIdStrings,
-      enabled: includeFeatureFlags,
       ...dateTimeParams,
-    })
-  );
+    }),
+    enabled: includeFeatureFlags,
+  });
   const featureFlagTags = useMemo(
     () =>
       featureFlagsQuery.data?.reduce<TagCollection>((acc, tag) => {

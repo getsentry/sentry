@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -67,14 +67,14 @@ function KeyField() {
 
   // Select all the tags for an organization to generate a list of the most likely tags
   const organization = useOrganization();
-  const {data: tagOptions = [], isLoading} = useQuery(
-    organizationTagsApiOptions({
+  const {data: tagOptions = [], isLoading} = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: organization.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      keepPreviousData: true,
-    })
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   const sortedOptions = useMemo(() => {
     const sorted = tagOptions.toSorted((a, b) => {

@@ -218,8 +218,6 @@ export function FeedbackSearch() {
       orgSlug: organization.slug,
       projectIds: projectIds.map(String),
       dataset: Dataset.ISSUE_PLATFORM,
-      enabled: true,
-      keepPreviousData: false,
       start,
       end,
       statsPeriod,

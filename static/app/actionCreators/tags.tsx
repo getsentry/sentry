@@ -1,4 +1,3 @@
-import {keepPreviousData} from '@tanstack/react-query';
 import type {Query} from 'history';
 
 import {toast} from '@sentry/scraps/toast';
@@ -232,9 +231,7 @@ export function fetchFeatureFlagValues({
 export type FetchOrganizationTagsParams = {
   orgSlug: string;
   dataset?: Dataset;
-  enabled?: boolean;
   end?: string;
-  keepPreviousData?: boolean;
   projectIds?: string[];
   start?: string;
   statsPeriod?: string | null;
@@ -251,8 +248,6 @@ export const organizationTagsApiOptions = ({
   statsPeriod,
   start,
   end,
-  enabled,
-  keepPreviousData: shouldKeepPreviousData,
 }: FetchOrganizationTagsParams) => {
   const query: Query = {};
 
@@ -270,13 +265,9 @@ export const organizationTagsApiOptions = ({
   if (end) {
     query.end = end;
   }
-  return {
-    ...apiOptions.as<Tag[]>()('/organizations/$organizationIdOrSlug/tags/', {
-      path: {organizationIdOrSlug: orgSlug},
-      query,
-      staleTime: Infinity,
-    }),
-    placeholderData: shouldKeepPreviousData ? keepPreviousData : undefined,
-    enabled,
-  };
+  return apiOptions.as<Tag[]>()('/organizations/$organizationIdOrSlug/tags/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query,
+    staleTime: Infinity,
+  });
 };
