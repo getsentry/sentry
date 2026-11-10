@@ -17,10 +17,18 @@ url_validator = URLValidator()
 # Since this is instantiated at import time we don't want to make any external calls as
 # this could result in slow startup time or an error that prevents the server from starting.
 # We also don't want to be fetching this list from an unknown external source.
+#
+# The bundled snapshot can lag behind the live PSL. Hosting suffixes that are on the
+# live PSL but missing from the snapshot are listed here, so each customer app counts
+# as its own domain rather than every app sharing one domain limit.
 extractor = TLDExtract(
     cache_dir=None,
     suffix_list_urls=(),
     fallback_to_snapshot=True,
+    extra_suffixes=(
+        "amplifyapp.com",
+        "up.railway.app",
+    ),
 )
 
 
