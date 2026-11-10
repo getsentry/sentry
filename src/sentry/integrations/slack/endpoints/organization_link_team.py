@@ -5,6 +5,7 @@ from typing import Any
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -20,11 +21,16 @@ from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.team_linking import (
+    ALREADY_LINKED_MESSAGE,
     INVALID_LINK_MESSAGE,
+    IdentityNotFound,
+    IdentityProviderNotFound,
     InvalidTeamLinkParams,
     SlackChannel,
     TeamLinkParams,
+    TeamLinkResult,
     get_linkable_teams,
+    link_team_to_channel,
 )
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -37,14 +43,22 @@ class LinkTeamPermission(OrganizationPermission):
     # member may link is decided by `get_linkable_teams`.
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
     }
+
+
+class LinkTeamSerializer(serializers.Serializer[None]):
+    team = serializers.IntegerField()
 
 
 @cell_silo_endpoint
 @method_decorator(never_cache, name="dispatch")
 class OrganizationSlackLinkTeamEndpoint(OrganizationEndpoint):
     owner = ApiOwner.MESSAGING_INTEGRATIONS
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (LinkTeamPermission,)
 
     def convert_args(
@@ -78,6 +92,39 @@ class OrganizationSlackLinkTeamEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
             on_results=lambda teams: serialize(teams, request.user),
         )
+
+    def post(
+        self,
+        request: Request,
+        organization: Organization,
+        params: TeamLinkParams,
+        channel: SlackChannel,
+    ) -> Response:
+        """Send the team's issue alert notifications to the Slack channel in the link."""
+        serializer = LinkTeamSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        team_id = serializer.validated_data["team"]
+        team = next(
+            (t for t in get_member_linkable_teams(request, organization) if t.id == team_id), None
+        )
+        if team is None:
+            return Response({"detail": "You do not have permission to link this team."}, status=403)
+
+        try:
+            result = link_team_to_channel(
+                team=team, channel=channel, slack_user_id=params.slack_user_id
+            )
+        except (IdentityProviderNotFound, IdentityNotFound):
+            return Response(
+                {"detail": "Link your Slack identity to Sentry with `/sentry link` first."},
+                status=403,
+            )
+
+        if result == TeamLinkResult.ALREADY_LINKED:
+            return Response({"detail": ALREADY_LINKED_MESSAGE.format(slug=team.slug)}, status=409)
+
+        return Response(status=201)
 
 
 def get_installed_channel(organization: Organization, params: TeamLinkParams) -> SlackChannel:
