@@ -796,7 +796,7 @@ function MultilineJSON({
             isString: v => typeof v === 'string',
             isBoolean: v => typeof v === 'boolean',
             isNumber: v => typeof v === 'number',
-            renderString,
+            renderStringNode: renderString,
           }}
           value={json}
           maxDefaultDepth={maxDefaultDepth}

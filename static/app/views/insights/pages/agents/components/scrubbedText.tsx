@@ -14,8 +14,13 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
-/** Attributes rendered as AI content, which can show where their values were scrubbed. */
-const MARKED_ATTRIBUTES = new Set([
+/**
+ * Attributes that only annotation-aware components render, so their scrubbed ranges
+ * can be marked. The endpoints return scrubbing meta for other string attributes
+ * too, like `user.email`, but marking those would show the marks as stray
+ * characters wherever they are rendered as plain text.
+ */
+const ANNOTATION_AWARE_ATTRIBUTES = new Set([
   'gen_ai.input.messages',
   'gen_ai.output.messages',
   'gen_ai.request.messages',
@@ -43,7 +48,7 @@ export function markScrubbedValue(
   meta: TraceItemDetailsMeta | undefined,
   projectSlug: string | undefined
 ): string {
-  if (!meta?.[attribute] || !MARKED_ATTRIBUTES.has(attribute)) {
+  if (!meta?.[attribute] || !ANNOTATION_AWARE_ATTRIBUTES.has(attribute)) {
     return value;
   }
   const remarks = new TraceItemMetaInfo(meta)

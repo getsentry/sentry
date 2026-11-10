@@ -41,7 +41,7 @@ const STRUCTURED_DATA_CONFIG = {
   isString: (v: unknown) => typeof v === 'string',
   isBoolean: (v: unknown) => typeof v === 'boolean',
   isNumber: (v: unknown) => typeof v === 'number',
-  renderString: renderScrubbedText,
+  renderStringNode: renderScrubbedText,
 };
 
 /**

@@ -17,7 +17,9 @@ export type StructedEventDataConfig = {
   renderBoolean?: (value: unknown) => React.ReactNode;
   renderNull?: (value: unknown) => React.ReactNode;
   renderObjectKeys?: (value: string) => string;
-  renderString?: (value: string) => React.ReactNode;
+  renderString?: (value: string) => string;
+  /** Renders a string, after `renderString`, as a node, like to mark parts of it. */
+  renderStringNode?: (value: string) => React.ReactNode;
 };
 
 interface BaseProps {

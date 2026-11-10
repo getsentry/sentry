@@ -89,10 +89,5 @@ function toVariable(
   if (platform === 'native' || (platform === 'python' && !config.isString?.(value))) {
     return {...base, kind: 'unformatted', value};
   }
-  const rendered = config.renderString?.(value);
-  return {
-    ...base,
-    kind: 'string',
-    value: typeof rendered === 'string' ? rendered : value,
-  };
+  return {...base, kind: 'string', value: config.renderString?.(value) ?? value};
 }
