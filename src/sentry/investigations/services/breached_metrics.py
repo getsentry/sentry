@@ -16,8 +16,8 @@ from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.notebooks.services.notebooks import (
-    InvestigationSourceNotFound,
-    InvestigationValidationError,
+    NotebookSourceNotFound,
+    NotebookValidationError,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
@@ -271,10 +271,10 @@ def resolve_breached_metric_sources(
 
 def _metric_open_period_ref(source: dict[str, Any]) -> tuple[int, int]:
     if source.get("type") != "metric_open_period":
-        raise InvestigationValidationError({"source": "Unsupported investigation source."})
+        raise NotebookValidationError({"source": "Unsupported investigation source."})
     source_ref = source.get("ref")
     if not isinstance(source_ref, dict) or set(source_ref) != {"groupId", "openPeriodId"}:
-        raise InvestigationValidationError(
+        raise NotebookValidationError(
             {"source": "metric_open_period requires groupId and openPeriodId."}
         )
     group_id = source_ref["groupId"]
@@ -285,13 +285,13 @@ def _metric_open_period_ref(source: dict[str, Any]) -> tuple[int, int]:
         or isinstance(open_period_id, bool)
         or not isinstance(open_period_id, int | str)
     ):
-        raise InvestigationValidationError({"source": "groupId and openPeriodId must be IDs."})
+        raise NotebookValidationError({"source": "groupId and openPeriodId must be IDs."})
     try:
         normalized_ref = int(group_id), int(open_period_id)
     except (TypeError, ValueError):
-        raise InvestigationSourceNotFound
+        raise NotebookSourceNotFound
     if any(not 0 < value <= I64_MAX for value in normalized_ref):
-        raise InvestigationSourceNotFound
+        raise NotebookSourceNotFound
     return normalized_ref
 
 
@@ -322,5 +322,5 @@ def resolve_investigation_source(
         accessible_project_ids=accessible_project_ids,
     )[0]
     if resolved is None:
-        raise InvestigationSourceNotFound
+        raise NotebookSourceNotFound
     return resolved

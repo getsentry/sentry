@@ -4,7 +4,7 @@ from typing import Any, cast
 from sentry.apidocs.schema import SentrySchema
 
 
-class InvestigationSchema(SentrySchema):
+class NotebookSchema(SentrySchema):
     def _get_request_body(self, direction: str = "request") -> dict[str, Any] | None:
         # Archive and block deletion require versions in a JSON body. Spectacular
         # otherwise drops DELETE bodies even when request= is explicitly annotated.

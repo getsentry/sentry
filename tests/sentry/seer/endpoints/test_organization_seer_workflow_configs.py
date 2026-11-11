@@ -981,11 +981,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             method="put",
             projectIds=[self.project.id],
             enabled=True,
+            name="Checkout triage",
         )
 
         assert response.data["version"] == config.version + 1
         assert response.data["enabled"] is True
         assert response.data["projects"] == [self.project.id]
+        assert response.data["name"] == "Checkout triage"
+        config.refresh_from_db()
+        assert config.extras["name"] == "Checkout triage"
 
     def test_put_failure_rolls_back_every_change(self) -> None:
         config = self.create_config()

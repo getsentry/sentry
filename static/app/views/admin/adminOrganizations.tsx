@@ -17,6 +17,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 const COLUMNS: TableColumnConfig[] = [{key: 'organization', width: 'minmax(0, 1fr)'}];
@@ -115,7 +116,7 @@ export default function AdminOrganizations() {
         </SimpleTable>
       )}
 
-      {data?.headers.Link && <Pagination pageLinks={data.headers.Link} />}
+      {data?.headers.Link && <Pagination {...getPaginationProps(data.headers.Link)} />}
     </Stack>
   );
 }

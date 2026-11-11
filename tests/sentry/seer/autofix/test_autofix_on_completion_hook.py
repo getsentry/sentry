@@ -2962,6 +2962,7 @@ class TestSingleRunCompletion(TestCase):
         mocks = self._execute(state)
 
         assert self._events(mocks) == []
+        mocks["updates"].assert_not_called()
 
     def test_pr_after_first_completion_announces_only_pr(self) -> None:
         state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True))
@@ -2995,6 +2996,19 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == []
         assert not Activity.objects.filter(group=self.group).exists()
+
+    def test_awaiting_user_input_announces_reached_stages(self) -> None:
+        mocks = self._execute(
+            self._state(single_run_memory_block(_ROOT_CAUSE), status="awaiting_user_input")
+        )
+
+        assert self._events(mocks) == ["root_cause_completed"]
+
+    def test_awaiting_user_input_with_nothing_saved_announces_nothing(self) -> None:
+        mocks = self._execute(self._state(single_run_memory_block(), status="awaiting_user_input"))
+
+        assert self._events(mocks) == []
+        mocks["updates"].assert_not_called()
 
     def test_errored_run_announces_nothing_but_the_failure(self) -> None:
         mocks = self._execute(self._state(single_run_memory_block(_ROOT_CAUSE), status="error"))

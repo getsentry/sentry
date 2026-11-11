@@ -16,7 +16,6 @@ import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import {Feature} from 'sentry/components/acl/feature';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -25,6 +24,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -357,8 +357,8 @@ function ManageDashboards() {
 
   const pagination = (
     <PaginationRow
-      pageLinks={dashboardsPageLinks}
-      onCursor={(cursor, _path, _query, direction) => {
+      {...getPaginationProps(dashboardsPageLinks)}
+      onCursor={(cursor, direction) => {
         const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
         const isPrevious = direction === -1;
 
@@ -415,14 +415,6 @@ function ManageDashboards() {
                     {t('Import Dashboard from JSON')}
                   </Button>
                 </Feature>
-              </TopBar.Slot>
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
               </TopBar.Slot>
               <Layout.Body>
                 <Layout.Main width="full">

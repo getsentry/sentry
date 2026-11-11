@@ -59,6 +59,7 @@ import {
   getMenuOptions,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
+  withMenuActionCallback,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
 import {readableConditions} from './widgetLLMContext';
@@ -100,6 +101,10 @@ type Props = {
   isPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
+  /**
+   * Called with the item key whenever a context menu item is selected.
+   */
+  onContextMenuAction?: (key: string) => void;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -339,7 +344,7 @@ function WidgetCard(props: Props) {
     ? t('This is a preview only. To edit, you must add this dashboard.')
     : undefined;
 
-  const actions = props.showContextMenu
+  const menuOptions = props.showContextMenu
     ? getMenuOptions(
         dashboardFilters,
         organization,
@@ -356,6 +361,9 @@ function WidgetCard(props: Props) {
         canAskSeer ? askSeer : undefined
       )
     : [];
+  const actions = props.onContextMenuAction
+    ? withMenuActionCallback(menuOptions, props.onContextMenuAction)
+    : menuOptions;
 
   const errorBoundaryHandler = () => {
     return (

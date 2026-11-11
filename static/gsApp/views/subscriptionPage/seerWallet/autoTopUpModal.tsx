@@ -37,6 +37,7 @@ type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
 
 type AutoTopUpFormProps = AutoTopUpModalProps & {
   autoTopUp: SeerWalletAutoTopUp;
+  balanceCredits: number;
   creditPriceCents: number;
   purchasedExpiresAt: string | null;
 };
@@ -68,6 +69,7 @@ function AutoTopUpModal(props: AutoTopUpModalProps) {
       <AutoTopUpForm
         {...props}
         autoTopUp={autoTopUpQuery.data}
+        balanceCredits={balanceQuery.data.balance}
         creditPriceCents={creditPriceCents}
         purchasedExpiresAt={balanceQuery.data.purchased.expiresAt}
       />
@@ -110,11 +112,14 @@ function AutoTopUpForm({
   closeModal,
   organization,
   autoTopUp,
+  balanceCredits,
   creditPriceCents,
   purchasedExpiresAt,
 }: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
   const isTurningOn = !autoTopUp.enabled;
+  // The backend only bills a reload once the balance is below the threshold.
+  const isChargedNow = isTurningOn && balanceCredits < autoTopUp.thresholdCredits;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
   const [reloadCents, setReloadCents] = useState(
     toWholeDollarCents(autoTopUp.topUpCredits * creditPriceCents)
@@ -137,7 +142,7 @@ function AutoTopUpForm({
       queryClient.invalidateQueries({
         queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
       });
-      // Turning on asks the user to pay for a reload now, so refresh the balance as well.
+      // Turning on can bill a reload right away, so refresh the balance as well.
       queryClient.invalidateQueries({
         queryKey: seerWalletBalanceOptions(organization).queryKey,
       });
@@ -286,7 +291,7 @@ function AutoTopUpForm({
               onChange={setDailyLimitCents}
             />
           </Stack>
-          {isTurningOn && (
+          {isChargedNow && (
             <Stack
               gap="md"
               padding="lg"
@@ -331,9 +336,11 @@ function AutoTopUpForm({
                 })
               }
             >
-              {isTurningOn
+              {isChargedNow
                 ? tct('Turn on and pay [price] + tax', {price: reloadPrice})
-                : t('Save')}
+                : isTurningOn
+                  ? t('Turn on')
+                  : t('Save')}
             </Button>
           </Grid>
         </Flex>

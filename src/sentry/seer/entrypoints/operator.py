@@ -11,15 +11,15 @@ from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
-from sentry.investigations.telemetry import record_investigation_started
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.telemetry import record_notebook_started
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -656,7 +656,7 @@ class SeerInvestigationOperator[CachePayloadT]:
 
     @classmethod
     def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
-        if not has_investigations_access(organization):
+        if not has_notebooks_access(organization):
             return False
         entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
         return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
@@ -703,7 +703,7 @@ class SeerInvestigationOperator[CachePayloadT]:
             if not created:
                 return investigation, False
 
-            record_investigation_started(investigation)
+            record_notebook_started(investigation)
 
             # Cache before any Slack call so a failed callback can't cut the thread off from updates.
             with SeerOperatorEventLifecycleMetric(
@@ -983,7 +983,7 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             {"investigation_id": investigation_id, "organization_id": organization.id}
         )
 
-        if not has_investigations_access(organization):
+        if not has_notebooks_access(organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 

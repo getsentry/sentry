@@ -195,6 +195,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
+    name = serializers.CharField(required=False, max_length=64)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -214,9 +215,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError(
-                "Send projectIds, monitorIds, serviceAccount, or enabled."
-            )
+            raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
@@ -579,6 +578,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are.
+        - ``name`` renames the config. It is trimmed and must be non-empty.
 
         An update the caller isn't allowed to make returns a 403. One the automation
         rejects returns a 400 with a generic detail. Returns the updated config in the
@@ -604,6 +604,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
+        name: str | None = serializer.validated_data.get("name")
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
@@ -712,6 +713,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     grant = replace(grant, project_ids=[*grant.project_ids, *no_access_project_ids])
                     if update.set_service_account_grant(grant):
                         applied_grant = grant
+
+                if name is not None:
+                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras.name = name
+                    update.set_extras(extras)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)

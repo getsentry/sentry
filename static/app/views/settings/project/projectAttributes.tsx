@@ -22,6 +22,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {encodeSort} from 'sentry/utils/queryString';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -154,7 +155,7 @@ function ProjectAttributesSettings() {
         title={{
           type: 'page-title',
           label: t('Attributes'),
-          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
         }}
         subtitle={t(
           'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
@@ -224,7 +225,7 @@ function ProjectAttributesSettings() {
           />
         ))}
       </SimpleTable>
-      <Pagination pageLinks={data?.headers.Link} caption={caption} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} caption={caption} />
     </SentryDocumentTitle>
   );
 }
