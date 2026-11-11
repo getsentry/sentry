@@ -378,6 +378,122 @@ describe('Inbox', () => {
     expect(checkbox).not.toBeChecked();
   });
 
+  describe('bulk actions', () => {
+    function renderInbox() {
+      return render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+    }
+
+    it('selects and deselects all items', async () => {
+      renderInbox();
+
+      const selectAll = await screen.findByRole('checkbox', {name: 'Select all'});
+      await screen.findByRole('link', {name: /Checkout latency regression/});
+      expect(
+        screen.queryByRole('button', {name: 'Mark as read'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(selectAll);
+
+      expect(selectAll).toBeChecked();
+      expect(screen.getByText('3 selected')).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', {name: 'Select Checkout latency regression'})
+      ).toBeChecked();
+      expect(screen.getByRole('button', {name: 'Mark as read'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Filter'})).not.toBeInTheDocument();
+
+      await userEvent.click(selectAll);
+
+      expect(selectAll).not.toBeChecked();
+      expect(
+        screen.queryByRole('button', {name: 'Mark as read'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Filter'})).toBeInTheDocument();
+    });
+
+    it('marks the selected items as read', async () => {
+      renderInbox();
+
+      await userEvent.click(
+        await screen.findByRole('checkbox', {
+          name: 'Select OperationalError: could not connect to server',
+        })
+      );
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Mark as read'}));
+
+      expect(markReadRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({method: 'PUT', query: {id: ['2']}, data: {isRead: true}})
+      );
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
+      expect(screen.queryByText('1 selected')).not.toBeInTheDocument();
+    });
+
+    it('removes all selected items', async () => {
+      const removeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      renderInbox();
+
+      await screen.findByRole('link', {name: /Checkout latency regression/});
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+
+      expect(removeRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({method: 'DELETE', query: {id: ['1', '2', '3']}})
+      );
+      expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
+      expect(await screen.findByText('Removed 3 items')).toBeInTheDocument();
+    });
+
+    it('shows the remaining items after removing every loaded item', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [issueItem, notebookItem],
+        headers: {
+          Link: `<http://localhost/?cursor=${encodeURIComponent(NEXT_CURSOR)}>; rel="next"; results="true"; cursor="${NEXT_CURSOR}"`,
+        },
+      });
+      renderInbox();
+
+      await screen.findByRole('link', {name: /TypeError: Cannot read properties/});
+      // The first page is refetched after the removal and now starts with the next item
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [readNotebookItem],
+      });
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+
+      expect(
+        await screen.findByRole('link', {name: /Checkout latency regression/})
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Your inbox is empty')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('filters', () => {
     it('filters by subject', async () => {
       const filteredRequest = MockApiClient.addMockResponse({
