@@ -15,9 +15,10 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
-    organization_project_ids,
+    request_creator_actor,
     require_notebook_writer,
     service_error,
+    writable_project_ids,
 )
 from sentry.notebooks.endpoints.serializers import (
     NotebookDetailsSerializer,
@@ -101,16 +102,15 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         account. Requires the organizations:investigations feature and open organization
         membership.
         """
-        actor_id = require_notebook_writer(request)
+        require_notebook_writer(request)
         validator = NotebookUpdateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = dict(validator.validated_data)
         expected_version = values.pop("investigation_version")
         requested_project_ids = values.pop("project_ids", None)
-        project_ids = organization_project_ids(organization)
         if requested_project_ids is not None and not set(requested_project_ids).issubset(
-            project_ids
+            writable_project_ids(request, organization)
         ):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
@@ -134,7 +134,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
                 archived = archive_notebook(
                     notebook=notebook,
                     expected_version=expected_version,
-                    actor_id=actor_id,
+                    actor=request_creator_actor(request),
                 )
             except Exception as error:
                 response = service_error(error)
@@ -191,7 +191,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         executions must first be stopped. Returns no body. Requires a user or service account.
         Requires the organizations:investigations feature and open organization membership.
         """
-        actor_id = require_notebook_writer(request)
+        require_notebook_writer(request)
         validator = NotebookDeleteValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -199,7 +199,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             archive_notebook(
                 notebook=notebook,
                 expected_version=validator.validated_data["investigation_version"],
-                actor_id=actor_id,
+                actor=request_creator_actor(request),
             )
         except Exception as error:
             response = service_error(error)

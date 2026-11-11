@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
 
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from sentry.investigations.models import InvestigationOrchestrationCommand
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.notebooks.models import Notebook, NotebookBlock, NotebookStatus
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookProject, NotebookStatus
 from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -48,9 +50,9 @@ class NotebookWriterTest(APITestCase):
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
         return client
 
-    def service_account_client(self) -> tuple[APIClient, int]:
+    def service_account_client(self, project_ids: list[int] | None = None) -> tuple[APIClient, int]:
         service_account = self.create_service_account(
-            organization=self.organization, scope_list=["org:read"]
+            organization=self.organization, scope_list=["org:read"], project_ids=project_ids or ()
         )
         viewer_context = encode_viewer_context(
             ViewerContext(
@@ -221,3 +223,59 @@ class NotebookWriterTest(APITestCase):
         self.notebook.refresh_from_db()
         assert self.notebook.title == "Writers"
         assert self.notebook.status == NotebookStatus.ACTIVE
+
+    def test_service_account_archives_a_running_investigation(self) -> None:
+        run = self.create_investigation_orchestration_run(
+            investigation=self.notebook,
+            projection={"workflowVersion": 1, "report": {"revision": 0, "status": "running"}},
+        )
+        client, service_account_id = self.service_account_client()
+        url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
+
+        with mock.patch("sentry.investigations.services.orchestration.transaction.on_commit"):
+            response = client.delete(url, {"investigationVersion": 1}, format="json")
+
+        assert response.status_code == 204, response.data
+        self.notebook.refresh_from_db()
+        assert self.notebook.status == NotebookStatus.ARCHIVED
+        command = InvestigationOrchestrationCommand.objects.get(orchestration_run=run)
+        assert command.type == "cancel"
+        assert command.actor_id is None
+        assert command.requested_by_service_account_id == service_account_id
+
+    def test_service_account_only_attaches_its_own_projects(self) -> None:
+        other = self.create_project(organization=self.organization)
+        client, _ = self.service_account_client(project_ids=[self.project.id])
+        index_url = self.url("sentry-api-0-organization-notebooks")
+        details_url = self.url(
+            "sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id
+        )
+
+        assert (
+            client.post(
+                index_url, {"title": "Other", "projectIds": [other.id]}, format="json"
+            ).status_code
+            == 400
+        )
+        assert (
+            client.put(
+                details_url, {"investigationVersion": 1, "projectIds": [other.id]}, format="json"
+            ).status_code
+            == 400
+        )
+        assert not Notebook.objects.filter(title="Other").exists()
+        assert not NotebookProject.objects.filter(notebook=self.notebook).exists()
+
+        created = client.post(
+            index_url, {"title": "Mine", "projectIds": [self.project.id]}, format="json"
+        )
+        assert created.status_code == 201, created.data
+        updated = client.put(
+            details_url, {"investigationVersion": 1, "projectIds": [self.project.id]}, format="json"
+        )
+        assert updated.status_code == 200, updated.data
+        assert list(
+            NotebookProject.objects.filter(notebook=self.notebook).values_list(
+                "project_id", flat=True
+            )
+        ) == [self.project.id]

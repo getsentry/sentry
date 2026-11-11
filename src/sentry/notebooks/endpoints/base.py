@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.creator import get_creator_reference
+from sentry.auth.access import ServiceAccountAccess
 from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -48,6 +49,16 @@ def organization_project_ids(organization: Organization) -> set[int]:
             "id", flat=True
         )
     )
+
+
+def writable_project_ids(request: Request, organization: Organization) -> set[int]:
+    """Projects the request can attach to a notebook.
+
+    Open membership gives users every active project, but it doesn't apply to service accounts.
+    """
+    if isinstance(request.access, ServiceAccountAccess):
+        return set(request.access.accessible_project_ids)
+    return organization_project_ids(organization)
 
 
 def user_id(request: Request) -> int:
