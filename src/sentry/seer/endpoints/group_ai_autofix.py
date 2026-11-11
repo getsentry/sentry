@@ -68,7 +68,11 @@ from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
 from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
-from sentry.seer.autofix.single_run import is_single_run, is_single_run_record
+from sentry.seer.autofix.single_run import (
+    is_single_run,
+    is_single_run_record,
+    public_single_run_artifacts,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
@@ -705,6 +709,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         run = get_seer_run(state.run_id, group.organization)
         visible = state if has_elevated_mode(request) else redact_autofix_prompts(state)
         blocks = [block.dict() for block in visible.blocks]
+        if is_single_run(state):
+            for block in blocks:
+                block["artifacts"] = public_single_run_artifacts(block["artifacts"])
         return Response(
             {
                 "autofix": {
