@@ -186,9 +186,17 @@ class CadenceTickTest(CadenceTickTestCase):
         with (
             patch("sentry.cadence.tasks.TICK_BATCH_SIZE", 2),
             patch("sentry.cadence.tasks.TICK_CLAIM_SECONDS", 0),
+            patch("sentry.cadence.tasks.metrics.incr") as mock_incr,
         ):
             cadence_tick()
 
+        assert cadence_metric_calls(mock_incr) == [
+            (
+                ("cadence.trigger.dispatched",),
+                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+            ),
+            (("cadence.tick.time_limit_reached",), {"sample_rate": 1.0}),
+        ]
         assert self.action.call_count == 1
         assert [ctx.target_id for ctx in self.dispatched()] == [
             triggers[4].target_id,
@@ -282,7 +290,10 @@ class CadenceTickTest(CadenceTickTestCase):
     @freeze_time(NOW)
     @patch("sentry.utils.metrics.timing")
     @patch("sentry.cadence.tasks.metrics.distribution")
-    def test_records_metrics(self, mock_distribution: MagicMock, mock_timing: MagicMock) -> None:
+    @patch("sentry.cadence.tasks.metrics.incr")
+    def test_records_metrics(
+        self, mock_incr: MagicMock, mock_distribution: MagicMock, mock_timing: MagicMock
+    ) -> None:
         self.create_trigger(NOW - timedelta(seconds=12))
         self.create_trigger(NOW - timedelta(seconds=5))
         self.create_trigger(NOW + timedelta(minutes=1))
@@ -306,6 +317,35 @@ class CadenceTickTest(CadenceTickTestCase):
             if c[0][0] == "cadence.trigger.dispatch_duration"
         ]
         assert timing_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
+        assert cadence_metric_calls(mock_incr) == [
+            (
+                ("cadence.trigger.dispatched",),
+                {"amount": 2, "tags": {"trigger_type": "seer_workflow"}, "sample_rate": 1.0},
+            ),
+        ]
+
+    def test_later_trigger_types_include_time_spent_in_earlier_actions(self) -> None:
+        with freeze_time(NOW) as clock:
+            self.create_trigger(NOW)
+            later = self.create_trigger(NOW, target_id=100)
+            ScheduledTrigger.objects.filter(id=later.id).update(
+                trigger_type=ScheduledTriggerType.LOG
+            )
+            self.action.side_effect = lambda _: clock.shift(timedelta(seconds=7))
+            with patch("sentry.cadence.tasks.metrics.distribution") as distribution:
+                cadence_tick()
+
+        assert cadence_metric_calls(distribution) == [
+            (
+                ("cadence.trigger.dispatch_lag", 0.0),
+                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+            ),
+            (
+                ("cadence.trigger.dispatch_lag", 7.0),
+                {"tags": {"trigger_type": "log"}, "unit": "second"},
+            ),
+            (("cadence.tick.claimed", 2), {}),
+        ]
 
     @freeze_time(NOW)
     def test_kill_switch(self) -> None:

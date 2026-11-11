@@ -78,6 +78,7 @@ def cadence_tick() -> None:
             if selected < TICK_BATCH_SIZE:
                 return
             if time.monotonic() - start >= TICK_CLAIM_SECONDS:
+                metrics.incr("cadence.tick.time_limit_reached", sample_rate=1.0)
                 logger.warning("cadence.tick.time_limit_reached", extra={"claimed": claimed_count})
                 return
     finally:
@@ -160,8 +161,8 @@ def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None
     Call each trigger type's action with its firings. One type's failure doesn't affect
     others.
     """
-    dispatched_at = timezone.now()
     for trigger_type, claimed_firings in claimed.items():
+        dispatched_at = timezone.now()
         tags = {"trigger_type": trigger_type.value}
         for claimed_firing in claimed_firings:
             # Measured from when the firing was due, so a trigger's offset isn't counted as lag.
@@ -186,3 +187,5 @@ def _dispatch_type(
             "cadence.trigger.dispatch_failed",
             extra={"trigger_type": trigger_type.value, "firing_count": len(firings)},
         )
+    else:
+        metrics.incr("cadence.trigger.dispatched", amount=len(firings), tags=tags, sample_rate=1.0)
