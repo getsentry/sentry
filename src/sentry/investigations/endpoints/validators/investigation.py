@@ -9,12 +9,12 @@ from sentry.investigations.endpoints.validators.orchestration import (
     validate_agentic_source,
 )
 from sentry.notebooks.endpoints.validators import (
-    InvestigationCreateValidator,
+    NotebookCreateValidator,
     StrictCamelSnakeValidator,
 )
 
 
-class InvestigationStartValidator(InvestigationCreateValidator):
+class InvestigationStartValidator(NotebookCreateValidator):
     title = serializers.CharField(
         max_length=255,
         required=False,

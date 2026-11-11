@@ -31,14 +31,14 @@ def applied_details_hint() -> object:
 
 
 def shared_cannot_apply_reason(
-    investigation: Notebook, action_request: NotebookActionRequest
+    notebook: Notebook, action_request: NotebookActionRequest
 ) -> CannotApplyReason | None:
     """Why no one can apply this request, whatever its kind, or None if its kind decides."""
-    if investigation.status == NotebookStatus.ARCHIVED:
-        return CannotApplyReason.INVESTIGATION_ARCHIVED
+    if notebook.status == NotebookStatus.ARCHIVED:
+        return CannotApplyReason.NOTEBOOK_ARCHIVED
     if action_request.state != NotebookActionRequestState.SUGGESTED:
         return CannotApplyReason.NOT_SUGGESTED
-    if get_producer(investigation.source_type) is None:
+    if get_producer(notebook.source_type) is None:
         return CannotApplyReason.UNSUPPORTED_ACTION
     if get_action_kind(action_request.action_kind) is None:
         return CannotApplyReason.UNSUPPORTED_ACTION

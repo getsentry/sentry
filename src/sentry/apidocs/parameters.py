@@ -1563,7 +1563,7 @@ Available fields are:
     )
 
 
-class InvestigationParams:
+class NotebookParams:
     BLOCK_ID = OpenApiParameter(
         name="block_id",
         location="path",
@@ -1585,7 +1585,7 @@ class InvestigationParams:
         type=str,
         description="The ID of an execution belonging to this block.",
     )
-    INVESTIGATION_ID = OpenApiParameter(
+    NOTEBOOK_ID = OpenApiParameter(
         name="investigation_id",
         location="path",
         required=True,
