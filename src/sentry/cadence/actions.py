@@ -27,11 +27,6 @@ def log_firings(firings: Sequence[TriggerFiring]) -> None:
                 "organization_id": firing.organization_id,
                 "target_id": firing.target_id,
                 "scheduled_for": firing.scheduled_for.isoformat(),
-                "fire_at": firing.fire_at.isoformat() if firing.fire_at is not None else None,
-                "fired_at": now.isoformat(),
                 "seconds_since_scheduled": (now - firing.scheduled_for).total_seconds(),
-                "seconds_since_due": (
-                    (now - firing.fire_at).total_seconds() if firing.fire_at is not None else None
-                ),
             },
         )

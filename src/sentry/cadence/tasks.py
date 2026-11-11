@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from django.db import OperationalError, router, transaction
+from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils import timezone
 
@@ -20,7 +20,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
-from sentry.utils.db import statement_timeout
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
@@ -87,38 +86,6 @@ def cadence_tick() -> None:
         metrics.timing("cadence.tick.duration", time.monotonic() - start, sample_rate=1.0)
 
 
-@instrumented_task(
-    name="sentry.cadence.tasks.record_cadence_backlog_metrics",
-    namespace=issues_tasks,
-    processing_deadline_duration=10,
-    silo_mode=SiloMode.CELL,
-)
-def record_cadence_backlog_metrics() -> None:
-    """Sample the oldest overdue firing, including while the tick is disabled."""
-    now = timezone.now()
-    # Read the primary's firing-time index without locking rows or counting the backlog.
-    database = router.db_for_write(ScheduledTrigger)
-    try:
-        with statement_timeout(database, timedelta(seconds=2)):
-            oldest = (
-                ScheduledTrigger.objects.using(database)
-                .filter(next_fire_at__lte=now)
-                .order_by("next_fire_at", "id")
-                .values_list("next_fire_at", flat=True)
-                .first()
-            )
-    except OperationalError:
-        metrics.incr("cadence.backlog.query_failed", sample_rate=1.0)
-        logger.exception("cadence.backlog.query_failed")
-        return
-    metrics.gauge(
-        "cadence.backlog.oldest_overdue_age",
-        (now - oldest).total_seconds() if oldest is not None else 0.0,
-        sample_rate=1.0,
-        unit="second",
-    )
-
-
 def _claim_batch(
     now: datetime, after: _Cursor | None
 ) -> tuple[dict[ScheduledTriggerType, list[_ClaimedFiring]], int, _Cursor | None]:
@@ -182,7 +149,6 @@ def _claim_batch(
                         trigger_type=trigger_type,
                         target_id=trigger.target_id,
                         scheduled_for=scheduled_for,
-                        fire_at=fire_at,
                     ),
                     fire_at=fire_at,
                 )
