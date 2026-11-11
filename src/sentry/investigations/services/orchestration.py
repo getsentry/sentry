@@ -562,14 +562,13 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
     monitor = snapshot["monitor"]
     project = snapshot["project"]
     window = snapshot["analysisWindow"]
-    conditions = monitor["conditions"]
+    breach = snapshot["breach"]
     threshold = next(
         (
-            condition.get("comparison")
-            for condition in conditions
-            if isinstance(condition, dict)
-            and isinstance(condition.get("comparison"), int | float)
-            and not isinstance(condition.get("comparison"), bool)
+            condition["comparison"]
+            for condition in (breach["conditions"] if breach is not None else [])
+            if isinstance(condition["comparison"], int | float)
+            and not isinstance(condition["comparison"], bool)
         ),
         None,
     )
@@ -590,6 +589,7 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
         "project": deepcopy(project),
         "analysisWindow": deepcopy(window),
         "environment": monitor["environment"],
+        "breach": deepcopy(breach),
         "threshold": threshold,
         "thresholdDirection": monitor["direction"],
         "openPeriod": {"start": breach_start, "end": end},
