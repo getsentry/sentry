@@ -439,7 +439,8 @@ def build_sentry_convention_context(
     alias or the internal name (see
     ``_update_attribute_definitions_with_deprecations`` in
     ``search/eap/spans/attributes.py``), so we try the public name first and
-    fall back to the internal name. The lookup is purely by name and does not
+    fall back to the internal name, unless the public name is a deprecated
+    convention whose replacement is the internal name. The lookup is purely by name and does not
     depend on the attribute's source, so conventions defined in
     ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
     still resolve.
