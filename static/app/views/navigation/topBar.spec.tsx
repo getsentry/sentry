@@ -10,7 +10,6 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {
   SeerExplorerContext,
   type SeerExplorerContextValue,
@@ -310,19 +309,6 @@ describe('TopBar', () => {
           tags: expect.objectContaining({'feedback.source': 'seer_explorer'}),
         })
       );
-    });
-
-    it('still renders custom children', () => {
-      renderFeedbackSlot(
-        <TopBar.Slot name="feedback">
-          <FeedbackButton aria-label="Custom feedback">{null}</FeedbackButton>
-        </TopBar.Slot>
-      );
-
-      expect(screen.getByRole('button', {name: 'Custom feedback'})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Give Feedback'})
-      ).not.toBeInTheDocument();
     });
   });
 

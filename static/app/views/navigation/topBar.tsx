@@ -34,11 +34,7 @@ type TopBarSlotProps =
     }
   | ({
       name: 'feedback';
-      /**
-       * @deprecated Pass `feedbackOptions` and `aria-label` instead so the
-       * top bar renders the shared feedback button.
-       */
-      children?: React.ReactNode;
+      children?: never;
       title?: never;
     } & TopBarFeedbackButtonProps)
   | {
@@ -66,12 +62,10 @@ function TopBarSlot(props: TopBarSlotProps) {
   if (props.name === 'feedback') {
     return (
       <TopBarSlots name="feedback">
-        {props.children ?? (
-          <TopBarFeedbackButton
-            feedbackOptions={props.feedbackOptions}
-            aria-label={props['aria-label']}
-          />
-        )}
+        <TopBarFeedbackButton
+          feedbackOptions={props.feedbackOptions}
+          aria-label={props['aria-label']}
+        />
       </TopBarSlots>
     );
   }
