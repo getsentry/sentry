@@ -55,6 +55,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.action_log import CapturedAction, capture_action_log
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -496,6 +497,20 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
             actor_id=self.user.id,
             source=ActionSource.WEB,
             date_added=timezone.now() - VIEW_ACTION_PUBLISH_INTERVAL - timedelta(minutes=1),
+        )
+        with capture_action_log() as log:
+            response = self.client.get(self.url, format="json")
+        assert response.status_code == 200
+        log.assert_logged(ViewAction, group_id=self.group.id)
+
+    @override_options({"issues.action_log.view_rate_limit.killswitch": True})
+    def test_view_emits_when_recently_viewed_and_killswitch_on(self) -> None:
+        self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source=ActionSource.WEB,
         )
         with capture_action_log() as log:
             response = self.client.get(self.url, format="json")

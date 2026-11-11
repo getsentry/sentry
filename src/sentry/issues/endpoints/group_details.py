@@ -408,7 +408,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             view_source = resolve_action_source(request)
             view_actor = resolve_action_actor(request)
-            if has_recent_view(
+            if not options.get("issues.action_log.view_rate_limit.killswitch") and has_recent_view(
                 group.id, source=view_source, actor=view_actor, within=VIEW_ACTION_PUBLISH_INTERVAL
             ):
                 metrics.incr(
