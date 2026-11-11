@@ -29,7 +29,6 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
-from sentry.seer.credits import SeerBillingFeature
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
     SeerAgenticTriageRunResult,
@@ -335,7 +334,6 @@ def _process_verdicts(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
                     referrer=referrer,
-                    billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
                     allow_free_cohort=True,

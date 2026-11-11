@@ -3,6 +3,7 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+    SEER_BILLING_FEATURE_UNSPECIFIED,
 )
 from taskbroker_client.retry import Retry
 
@@ -216,7 +217,6 @@ class SeerAutofixOperator[CachePayloadT]:
         from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
-        from sentry.seer.credits import SeerBillingFeature
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
@@ -276,7 +276,6 @@ class SeerAutofixOperator[CachePayloadT]:
                             step=AutofixStep.ROOT_CAUSE,
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
-                            billing_feature=SeerBillingFeature.AUTOFIX,
                             user=user,
                         )
                         run_id = run.seer_run_state_id
@@ -311,7 +310,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         billing_feature=(
                             get_run_billing_feature(existing_state)
                             if existing_state and existing_state.run_id == run_id
-                            else SeerBillingFeature.AUTOFIX
+                            else SEER_BILLING_FEATURE_UNSPECIFIED
                         ),
                         user=user,
                     )

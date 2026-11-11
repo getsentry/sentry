@@ -572,7 +572,6 @@ class SeerAgentClient:
         payload: dict[str, Any],
         title: str,
         referrer: str,
-        billing_feature: str | None = None,
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
@@ -599,8 +598,6 @@ class SeerAgentClient:
 
         Explicit agent_run_options override any options derived from organization
         configuration.
-
-        billing_feature, if given, is the feature Seer bills the run to for its whole life.
         """
         user_id = self._user_id
 
@@ -632,8 +629,6 @@ class SeerAgentClient:
             body["user_org_context"] = user_org_context
         if proxy_headers is not None:
             body["proxy_headers"] = proxy_headers
-        if billing_feature is not None:
-            body["billing_feature"] = billing_feature
 
         return enqueue_seer_run(
             organization=self.organization,

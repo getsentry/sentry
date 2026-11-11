@@ -83,7 +83,6 @@ from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
     has_project_connected_repos,
 )
-from sentry.seer.credits import SeerBillingFeature
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
@@ -519,7 +518,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                billing_feature = SeerBillingFeature.AUTOFIX
+                # The client can supply referrer. Resolve attribution from the request instead.
+                billing_feature: int = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                 if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
@@ -569,8 +569,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                # The client can supply referrer. Resolve attribution from the request instead.
-                billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                 if is_autofix_kickoff:
                     actor = resolve_action_actor(request)
                     source = resolve_action_source(request)
@@ -602,7 +600,6 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             AutofixStoppingPoint(stopping_point) if stopping_point else None
                         ),
                         run_id=resolved_run_id,
-                        billing_feature=billing_feature,
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
                         user=acting_user(request.user),

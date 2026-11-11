@@ -44,7 +44,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_free_cohort_org,
 )
-from sentry.seer.credits import SeerBillingFeature, SeerOperation, has_enough_seer_credits
+from sentry.seer.credits import SeerOperation, has_enough_seer_credits
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -67,7 +67,6 @@ class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
     step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs | PrIterationStepArgs
-    billing_feature: SeerBillingFeature
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
@@ -90,15 +89,10 @@ def _mirror_matches_issue(group: Group) -> Q:
     return Q(group_id=group.id, project_id=group.project_id)
 
 
-def get_run_billing_feature(state: SeerRunState) -> SeerBillingFeature:
+def get_run_billing_feature(state: SeerRunState) -> int:
     """The billable feature the run was started under. Runs from before Seer
-    stored it are Autofix."""
-    raw = state.billing_feature
-    return (
-        SeerBillingFeature(raw)
-        if raw is not None and raw in SeerBillingFeature
-        else SeerBillingFeature.AUTOFIX
-    )
+    stored it are unattributed."""
+    return state.billing_feature or billing.SEER_BILLING_FEATURE_UNSPECIFIED
 
 
 def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
@@ -175,7 +169,7 @@ def _org_allows_coding(group: Group) -> bool:
 
 def check_autofix_billing(
     organization: Organization,
-    billing_feature: SeerBillingFeature,
+    billing_feature: int,
     operation: SeerOperation,
     *,
     is_new_run: bool,
@@ -213,7 +207,7 @@ def continue_single_run(
     reply: str,
     *,
     referrer: AutofixReferrer,
-    billing_feature: SeerBillingFeature,
+    billing_feature: int,
     user: User | RpcUser,
     can_publish: bool,
 ) -> SeerRun:
@@ -280,10 +274,21 @@ def trigger_autofix_feature(
         existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
     is_new_run = existing_agent_run is None
 
+    billing_feature = args.billing_feature
+    if billing_feature is None:
+        # Continuations without the stored feature are unattributed rather than guessed.
+        billing_feature = (
+            _BILLING_FEATURE_BY_REFERRER.get(
+                args.referrer, billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
+            )
+            if is_new_run
+            else billing.SEER_BILLING_FEATURE_UNSPECIFIED
+        )
+
     try:
         uses_quota = check_autofix_billing(
             group.organization,
-            args.billing_feature,
+            billing_feature,
             args.step.seer_operation,
             is_new_run=is_new_run,
             # Free cohort orgs bypass quota only when called from agentic triage
@@ -403,10 +408,7 @@ def trigger_autofix_feature(
     if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
-            billing_feature=args.billing_feature
-            or _BILLING_FEATURE_BY_REFERRER.get(
-                args.referrer, billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
-            ),
+            billing_feature=billing_feature,
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,
@@ -415,7 +417,6 @@ def trigger_autofix_feature(
             title=f"Autofix — {short_id}" if single_run else f"Autofix RCA — {short_id}",
             flush=args.flush,
             extras=extras,
-            billing_feature=args.billing_feature.value,
         )
     elif existing_agent_run is not None:
         run = client.continue_feature_run(

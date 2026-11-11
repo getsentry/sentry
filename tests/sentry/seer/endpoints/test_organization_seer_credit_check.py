@@ -33,7 +33,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         mock_check_seer_credits.assert_called_once_with(
             CheckSeerCreditsRequest(
                 organization_id=self.organization.id,
-                feature_id="autofix",
+                feature_id="autofix_web",
                 predicted_credit_usage=SEER_OPERATION_ESTIMATES[SeerOperation.AUTOFIX_ROOT_CAUSE](),
                 take_lease=False,
             )
@@ -50,7 +50,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         response = self.get_success_response(self.organization.slug, operation="agent_chat_message")
 
         assert response.data == {"hasEnoughCredits": False}
-        assert mock_check_seer_credits.call_args.args[0].feature_id == "explorer"
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "seer_agent"
 
     def test_get_returns_has_enough_credits_when_credit_checks_disabled(self) -> None:
         response = self.get_success_response(self.organization.slug, operation="autofix_solution")

@@ -65,7 +65,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     read_preference_from_sentry_db,
 )
-from sentry.seer.credits import SeerBillingFeature, SeerOperation
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -441,7 +441,6 @@ def trigger_autofix_agent(
     referrer: AutofixReferrer,
     *,
     run_id: int | None = None,
-    billing_feature: SeerBillingFeature,
     stopping_point: AutofixStoppingPoint | None = None,
     user_context: str | None = None,
     insert_index: int | None = None,
@@ -504,7 +503,6 @@ def trigger_autofix_agent(
             step=step,
             referrer=referrer,
             step_args=step_args,
-            billing_feature=billing_feature,
             existing_run_id=run_id,
             insert_index=insert_index,
             user_context=user_context,

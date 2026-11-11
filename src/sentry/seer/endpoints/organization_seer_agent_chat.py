@@ -11,6 +11,9 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT,
+)
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -38,7 +41,7 @@ from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import continue_single_run, get_run_billing_feature
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.single_run import is_single_run
-from sentry.seer.credits import SeerBillingFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerOperation, can_run_seer_operation
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
@@ -449,7 +452,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             raise PermissionDenied(error)
         # Do not bill for dashboard generation.
         if not is_dashboard_generate_run and not can_run_seer_operation(
-            organization, SeerBillingFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         ):
             return Response(
                 {"detail": SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, "code": SEER_OUT_OF_CREDITS_CODE},

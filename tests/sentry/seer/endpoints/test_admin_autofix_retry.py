@@ -2,6 +2,9 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+)
 
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -9,7 +12,6 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.credits import SeerBillingFeature
 from sentry.testutils.cases import APITestCase
 from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
@@ -94,7 +96,7 @@ class SeerAdminAutofixRetryTest(APITestCase):
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.NIGHT_SHIFT,
             run_id=1,
-            billing_feature=SeerBillingFeature.AUTOFIX,
+            billing_feature=SEER_BILLING_FEATURE_UNSPECIFIED,
             insert_index=2,
         )
         assert viewer_contexts == [

@@ -6,12 +6,14 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from django.test import override_settings
 from django.utils import timezone
-from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
-    CheckSeerCreditsResponse,
-)
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
     SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
     SEER_BILLING_FEATURE_AUTOFIX_WEB,
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+)
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
 )
 
 from sentry.integrations.services.integration import RpcIntegration
@@ -45,7 +47,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.credits import SeerBillingFeature, SeerOperation
+from sentry.seer.credits import SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -1267,7 +1269,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group=group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+            billing_feature=SEER_BILLING_FEATURE_UNSPECIFIED,
             stopping_point=None,
             run_id=42,
             user_context=None,
@@ -1709,7 +1711,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "code": "seer_out_of_credits",
         }
         mock_can_run.assert_called_once_with(
-            group.organization, SeerBillingFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+            group.organization, SEER_BILLING_FEATURE_UNSPECIFIED, SeerOperation.AUTOFIX_PR_ITERATION
         )
         mock_enqueue.assert_not_called()
 
@@ -1738,7 +1740,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
-            billing_feature=SeerBillingFeature.AGENTIC_TRIAGE,
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
         )
 
         self.login_as(user=self.user)
@@ -1749,7 +1751,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        assert mock_check_seer_credits.call_args.args[0].feature_id == "agentic_triage"
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
         mock_enqueue.assert_called_once()
         mock_consume.assert_called_once()
 

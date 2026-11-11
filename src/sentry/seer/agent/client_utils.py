@@ -158,7 +158,6 @@ class SeerFeatureRunRequest(TypedDict):
     user_org_context: NotRequired[UserOrgContext]
     proxy_headers: NotRequired[dict[str, str] | None]
     referrer: str
-    billing_feature: NotRequired[str]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):

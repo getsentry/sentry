@@ -3,6 +3,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import StrEnum
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+    SeerBillingFeature,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsRequest,
 )
@@ -21,12 +25,18 @@ class SeerOperation(StrEnum):
     AUTOFIX_SINGLE_RUN_REPLY = "autofix_single_run_reply"
 
 
-class SeerBillingFeature(StrEnum):
-    """Seer features as tagged on LLM proxy calls, which billing maps to data categories."""
-
-    AGENTIC_TRIAGE = "agentic_triage"  # Marks the Autofix runs agentic triage starts.
-    AUTOFIX = "autofix"
-    EXPLORER = "explorer"
+def billing_feature_label(feature: int) -> str:
+    """
+    The label LLM proxy usage and billing use for a SeerBillingFeature value: the enum name,
+    lowercased, without its prefix. Missing attribution is "unattributed", like the LLM proxy.
+    """
+    if feature == SEER_BILLING_FEATURE_UNSPECIFIED:
+        return "unattributed"
+    return (
+        SeerBillingFeature.Name(SeerBillingFeature.ValueType(feature))
+        .removeprefix("SEER_BILLING_FEATURE_")
+        .lower()
+    )
 
 
 # TODO(CW-2314): Fake value until we have real estimates.
@@ -47,7 +57,7 @@ SEER_OPERATION_ESTIMATES: dict[SeerOperation, Callable[[], int]] = {
 
 
 def has_enough_seer_credits(
-    organization: Organization, feature: SeerBillingFeature, operation: SeerOperation
+    organization: Organization, feature: int, operation: SeerOperation
 ) -> bool:
     """
     Checks whether the organization has enough Seer credits to run the operation,
@@ -56,7 +66,7 @@ def has_enough_seer_credits(
     response = seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
             organization_id=organization.id,
-            feature_id=feature.value,
+            feature_id=billing_feature_label(feature),
             predicted_credit_usage=SEER_OPERATION_ESTIMATES[operation](),
             take_lease=False,
         )
@@ -65,7 +75,7 @@ def has_enough_seer_credits(
 
 
 def can_run_seer_operation(
-    organization: Organization, feature: SeerBillingFeature, operation: SeerOperation
+    organization: Organization, feature: int, operation: SeerOperation
 ) -> bool:
     """
     Checks whether the organization is token-billed and has enough Seer credits to run the operation.
