@@ -24,7 +24,7 @@ LOCKFILE_HEAD = re.compile(r"^(\w+): (\w+)$")
 
 
 def digest(*paths: str) -> str:
-    h = hashlib.sha256()
+    h = hashlib.md5(usedforsecurity=False)
     for path in paths:
         try:
             with open(path, "rb") as f:
