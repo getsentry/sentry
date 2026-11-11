@@ -35,12 +35,9 @@ export function TopBarFeedbackButton({
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const {runId: seerExplorerRunId} = useSeerExplorerChatState();
 
-  const resolvedFeedbackOptions = useMemo(() => {
-    if (isSeerExplorerOpen) {
-      return getExplorerFeedbackOptions(seerExplorerRunId);
-    }
-    return feedbackOptions ?? DEFAULT_FEEDBACK_OPTIONS;
-  }, [isSeerExplorerOpen, seerExplorerRunId, feedbackOptions]);
+  const resolvedFeedbackOptions = isSeerExplorerOpen
+    ? getExplorerFeedbackOptions(seerExplorerRunId)
+    : (feedbackOptions ?? DEFAULT_FEEDBACK_OPTIONS);
 
   const isIconOnly = display === 'icon';
   const hasCustomLabel = ariaLabel !== t('Give Feedback');
