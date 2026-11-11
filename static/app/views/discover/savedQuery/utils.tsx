@@ -28,6 +28,12 @@ import {getDatasetFromLocationOrSavedQueryDataset} from './datasets';
 
 const DATASET_PARAM = 'queryDataset';
 
+const SAVED_QUERY_DATASETS = new Set<string>(Object.values(SavedQueryDatasets));
+
+function isSavedQueryDataset(value: string | undefined): value is SavedQueryDatasets {
+  return value !== undefined && SAVED_QUERY_DATASETS.has(value);
+}
+
 export function handleCreateQuery(
   api: Client,
   organization: Organization,
@@ -274,8 +280,8 @@ export function getSavedQueryDataset(
   splitDecision?: SavedQueryDatasets
 ): SavedQueryDatasets {
   const dataset = decodeScalar(location?.query?.[DATASET_PARAM]);
-  if (dataset) {
-    return dataset as SavedQueryDatasets;
+  if (isSavedQueryDataset(dataset)) {
+    return dataset;
   }
   if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
     return splitDecision;

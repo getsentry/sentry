@@ -55,7 +55,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
-import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -475,7 +475,10 @@ class ResultsContent extends Component<Props, State> {
 
     const value = getSavedQueryDataset(organization, location, savedQuery, splitDecision);
     const defaultEventView = hasDatasetSelector(organization)
-      ? (getSavedQueryWithDataset(DEFAULT_EVENT_VIEW_MAP[value]) as NewQuery)
+      ? (getSavedQueryWithDataset(
+          DEFAULT_EVENT_VIEW_MAP[value] ??
+            DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS]
+        ) ?? DEFAULT_EVENT_VIEW)
       : DEFAULT_EVENT_VIEW;
 
     const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
