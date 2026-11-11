@@ -7,11 +7,13 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test
 class GetCliDownloadUrlTestCase(TestCase):
     def test_cli(self) -> None:
-        resp = self.client.get(reverse("get_cli_script"))
+        resp = self.client.get(reverse("get_cli_script"), HTTP_ACCEPT="text/markdown")
         assert b"https://release-registry.services.sentry.io/apps/sentry-cli" in resp.content
 
     def test_valid_platform_arch(self) -> None:
-        resp = self.client.get(reverse("get_cli_download_url", args=("Linux", "x86_64")))
+        resp = self.client.get(
+            reverse("get_cli_download_url", args=("Linux", "x86_64")), HTTP_ACCEPT="text/markdown"
+        )
 
         assert resp.status_code == 302
         assert (
