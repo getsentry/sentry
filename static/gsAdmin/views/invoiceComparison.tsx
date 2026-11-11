@@ -150,20 +150,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // The window covers whole UTC days. Most invoices of both kinds are created
 // in a burst just after 00:00 UTC, and the platform one can land an hour or
 // more after the legacy one. A window that starts or ends between them shows
-// one side only, so its bounds stay at UTC midnight.
+// one side only, so the endpoint takes days rather than times.
 
 // The UTC day (`YYYY-MM-DD`, the value of a `date` input) that contains `ms`.
 function utcDay(ms: number): string {
   return Number.isNaN(ms) ? '' : new Date(ms).toISOString().slice(0, 10);
-}
-
-function utcDayStartIso(day: string): string {
-  return new Date(`${day}T00:00:00.000Z`).toISOString();
-}
-
-// End of the window: midnight UTC after the last day.
-function utcDayEndIso(day: string): string {
-  return new Date(Date.parse(`${day}T00:00:00.000Z`) + DAY_MS).toISOString();
 }
 
 // The URL carries days only. Anything else is ignored.
@@ -256,8 +247,8 @@ export function InvoiceComparison() {
       path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
       query: {
-        start: hasWindow ? utcDayStartIso(startDay) : undefined,
-        end: hasWindow ? utcDayEndIso(endDay) : undefined,
+        start: hasWindow ? startDay : undefined,
+        end: hasWindow ? endDay : undefined,
         rows_page: rowsPage,
         unmatched_page: unmatchedPage,
         rows_page_size: pageSize,
