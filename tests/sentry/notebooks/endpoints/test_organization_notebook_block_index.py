@@ -6,11 +6,13 @@ from uuid import uuid5
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
     NotebookBlockExecution,
     NotebookBlockExecutionStatus,
+    NotebookProject,
     NotebookStatus,
 )
 from sentry.notebooks.services.producer_writes import _API_EXECUTION_NAMESPACE
@@ -249,6 +251,31 @@ class NotebookProducerBlockTest(APITestCase):
         assert NotebookBlockExecution.objects.filter(block_id=created.data["id"]).count() == 1
         self.notebook.refresh_from_db()
         assert self.notebook.version == 3
+
+    def test_records_the_notebook_projects_on_the_execution(self) -> None:
+        response = self.write()
+
+        assert response.status_code == 201, response.data
+        execution = NotebookBlockExecution.objects.get(block_id=response.data["id"])
+        assert list(execution.data_project_links.values_list("project_id", flat=True)) == [
+            self.project.id
+        ]
+
+    def test_writes_to_a_notebook_without_projects(self) -> None:
+        NotebookProject.objects.filter(notebook=self.notebook).delete()
+
+        response = self.write()
+
+        assert response.status_code == 201, response.data
+        execution = NotebookBlockExecution.objects.get(block_id=response.data["id"])
+        assert not execution.data_project_links.exists()
+
+    def test_rejects_oversized_content_on_the_content_field(self) -> None:
+        response = self.write(content="a" * (MAX_MARKDOWN_CHARS + 1))
+
+        assert response.status_code == 400
+        assert set(response.data) == {"content"}
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
 
     def test_takes_a_position(self) -> None:
         response = self.write(position=4)

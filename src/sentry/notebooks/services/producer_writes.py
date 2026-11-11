@@ -410,8 +410,12 @@ def write_api_producer_block(
                 display=display,
                 content=content,
                 prompt=prompt,
-                project_ids=[],
-                use_notebook_project_scope=True,
+                # A notebook with no projects takes blocks too, so its scope may be empty.
+                project_ids=list(
+                    NotebookProject.objects.filter(notebook=writes.notebook).values_list(
+                        "project_id", flat=True
+                    )
+                ),
                 input_snapshot={"source": deepcopy(writes.notebook.source)},
             )
         except NewerProducerRevision:

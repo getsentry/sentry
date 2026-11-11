@@ -7,7 +7,11 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
-from sentry.notebooks.contracts import VisualizationSerializer, validate_query_result
+from sentry.notebooks.contracts import (
+    MAX_MARKDOWN_CHARS,
+    VisualizationSerializer,
+    validate_query_result,
+)
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
 from sentry.notebooks.services.notebooks import create_block
@@ -199,6 +203,10 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
             raise serializers.ValidationError({"kind": "A producer's block must be text."})
         elif not attrs.get("content"):
             raise serializers.ValidationError({"content": "A producer's block needs content."})
+        elif len(attrs["content"]) > MAX_MARKDOWN_CHARS:
+            raise serializers.ValidationError(
+                {"content": f"Ensure this field has no more than {MAX_MARKDOWN_CHARS} characters."}
+            )
         elif get_producer_source_type(self.context["notebook"].source_type) is None:
             raise serializers.ValidationError(
                 {"detail": "Only a notebook made for a producer source takes key and revision."},
