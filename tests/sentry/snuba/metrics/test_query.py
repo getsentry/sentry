@@ -22,7 +22,6 @@ from sentry.snuba.metrics import (
     parse_conditions,
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.dates import parse_stats_period
 
@@ -119,36 +118,36 @@ class MetricsQueryBuilder:
 
 
 def test_metric_field_equality_with_equal_fields() -> None:
-    ap_dex_with_alias_1 = MetricField(
-        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    crash_rate_with_alias_1 = MetricField(
+        op=None, metric_mri="e:sessions/crash_rate@ratio", alias="crash_rate"
     )
-    ap_dex_with_alias_2 = MetricField(
-        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    crash_rate_with_alias_2 = MetricField(
+        op=None, metric_mri="e:sessions/crash_rate@ratio", alias="crash_rate"
     )
 
-    assert ap_dex_with_alias_1 == ap_dex_with_alias_2
+    assert crash_rate_with_alias_1 == crash_rate_with_alias_2
 
 
 def test_metric_field_equality_with_different_aliases() -> None:
-    ap_dex_with_alias_1 = MetricField(
-        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    crash_rate_with_alias_1 = MetricField(
+        op=None, metric_mri="e:sessions/crash_rate@ratio", alias="crash_rate"
     )
-    ap_dex_with_alias_2 = MetricField(
-        op=None, metric_mri="e:transactions/apdex@ratio", alias="transaction.apdex"
+    crash_rate_with_alias_2 = MetricField(
+        op=None, metric_mri="e:sessions/crash_rate@ratio", alias="session.crash_rate"
     )
 
-    assert ap_dex_with_alias_1 == ap_dex_with_alias_2
+    assert crash_rate_with_alias_1 == crash_rate_with_alias_2
 
 
 def test_metric_field_equality_with_different_mris() -> None:
-    ap_dex_with_alias_1 = MetricField(
-        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    crash_rate_with_alias_1 = MetricField(
+        op=None, metric_mri="e:sessions/crash_rate@ratio", alias="crash_rate"
     )
-    ap_dex_with_alias_2 = MetricField(
-        op=None, metric_mri="d:transactions/duration@millisecond", alias="duration"
+    crash_rate_with_alias_2 = MetricField(
+        op=None, metric_mri=SessionMRI.DURATION.value, alias="duration"
     )
 
-    assert not ap_dex_with_alias_1 == ap_dex_with_alias_2
+    assert not crash_rate_with_alias_1 == crash_rate_with_alias_2
 
 
 def test_validate_select() -> None:
@@ -184,7 +183,7 @@ def test_validate_select() -> None:
 def test_validate_select_invalid_use_case_ids() -> None:
     with pytest.raises(InvalidParams, match="All select fields should have the same use_case_id"):
         metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
-        metric_field_2 = MetricField(op="p50", metric_mri="d:transactions/duration@millisecond")
+        metric_field_2 = MetricField(op="sum", metric_mri="c:profiles/count@none")
         DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_select([metric_field_1, metric_field_2])
@@ -598,12 +597,6 @@ def test_validate_metric_field_mri() -> None:
             True,
             id="release health query, series, interval provided",
         ),
-        pytest.param(
-            [MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")],
-            3600,
-            False,
-            id="performance query, not series, interval provided",
-        ),
     ],
 )
 def test_validate_interval(select: list[MetricField] | None, interval: int, series: bool) -> None:
@@ -631,65 +624,3 @@ def test_validate_is_alerts_query() -> None:
         match="start and env fields can only be None if the query is needed by alerts",
     ):
         DeprecatingMetricsQuery(**metrics_query_dict)
-
-
-def test_ensure_interval_set_to_granularity_in_performance_queries() -> None:
-    metrics_query = (
-        MetricsQueryBuilder()
-        .with_select([MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")])
-        .with_include_series(True)
-    )
-    metrics_query_dict = metrics_query.to_metrics_query_dict()
-    mq = DeprecatingMetricsQuery(**metrics_query_dict)
-    assert mq.interval == mq.granularity.granularity
-
-
-@freeze_time("2022-11-03 10:00:00")
-@pytest.mark.parametrize(
-    "start_time_delta, granularity, interval, expected_granularity",
-    [
-        pytest.param(
-            timedelta(hours=2),
-            86400,
-            7200,
-            3600,
-            id="day granularity with 2 hour interval",
-        ),
-        pytest.param(
-            timedelta(hours=1),
-            86400,
-            3600,
-            60,
-            id="day granularity with 1 hour interval",
-        ),
-        pytest.param(
-            timedelta(hours=1),
-            3600,
-            1800,
-            60,
-            id="hour granularity with 30 minute interval",
-        ),
-    ],
-)
-def test_start_end_interval_greater_than_interval_is_successful(
-    start_time_delta: timedelta,
-    granularity: int,
-    interval: int,
-    expected_granularity: int,
-) -> None:
-    metrics_query = (
-        MetricsQueryBuilder()
-        .with_select([MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")])
-        .with_include_series(True)
-        .with_granularity(Granularity(granularity))
-        .with_interval(interval)
-    )
-    # We set the start time with a different value from default in order to have the start and end interval greater
-    # than the specified interval (e.g., if you have an interval of 2 hours and the difference between start and end is
-    # less than 2 hours, it doesn't make sense to query the data).
-    assert metrics_query.end is not None
-    metrics_query.start = metrics_query.end - start_time_delta
-
-    metrics_query_dict = metrics_query.to_metrics_query_dict()
-    mq = DeprecatingMetricsQuery(**metrics_query_dict)
-    assert mq.granularity.granularity == expected_granularity

@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.seer.anomaly_detection.store_data import trim_leading_zeros
 from sentry.seer.anomaly_detection.types import TimeSeriesPoint
 from sentry.seer.anomaly_detection.utils import fetch_historical_data, format_historical_data
-from sentry.snuba import errors, metrics_performance
+from sentry.snuba import errors, metrics
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.spans_rpc import Spans
@@ -357,7 +357,7 @@ class AnomalyDetectionStoreDataTest(
             "intervals": [self.time_1, self.time_2],
         }
         data = SnubaTSResult({"data": snuba_raw_data}, self.time_1, self.time_2, 3600)
-        result = format_historical_data(data, ["count()"], metrics_performance, self.organization)
+        result = format_historical_data(data, ["count()"], metrics, self.organization)
         assert result == expected_return_value
 
     def test_anomaly_detection_fetch_historical_data_crash_rate_alert(self) -> None:

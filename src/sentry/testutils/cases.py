@@ -11,7 +11,7 @@ from contextlib import AbstractContextManager, contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, cast
 from unittest import TestLoader, mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -58,7 +58,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
-from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
@@ -132,30 +131,17 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.rules.actions.base import EventAction
-from sentry.search.events.constants import (
-    METRIC_FRUSTRATED_TAG_VALUE,
-    METRIC_SATISFACTION_TAG_KEY,
-    METRIC_SATISFIED_TAG_VALUE,
-    METRIC_TOLERATED_TAG_VALUE,
-    METRICS_MAP,
-    SPAN_METRICS_MAP,
-)
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.extraction import OnDemandMetricSpec
-from sentry.snuba.metrics.naming_layer.public import SpanMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eap import EAPClient
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.response import is_drf_response
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
 from sentry.testutils.pytest.selenium import Browser
@@ -181,7 +167,7 @@ from ..snuba.metrics import (
     MetricOrderByField,
     get_date_range,
 )
-from ..snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI, parse_mri
+from ..snuba.metrics.naming_layer.mri import SessionMRI, parse_mri
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -230,7 +216,6 @@ __all__ = (
     "OrganizationDashboardWidgetTestCase",
     "SCIMTestCase",
     "SCIMAzureTestCase",
-    "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricsIntegrationTestCase",
     "ProfilesSnubaTestCase",
@@ -243,8 +228,6 @@ __all__ = (
 from ..types.cell import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
-
-SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class _ElevatedRequest(Protocol):
@@ -1826,33 +1809,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         # using it.
         return time - timedelta(seconds=1)
 
-    def store_performance_metric(
-        self,
-        name: str,
-        tags: dict[str, str],
-        value: int | float | dict[str, int | float],
-        type: str | None = None,
-        org_id: int | None = None,
-        project_id: int | None = None,
-        days_before_now: int = 0,
-        hours_before_now: int = 0,
-        minutes_before_now: int = 0,
-        seconds_before_now: int = 0,
-        aggregation_option: AggregationOption | None = None,
-    ) -> None:
-        self._store_metric(
-            mri=name,
-            tags=tags,
-            value=value,
-            org_id=org_id,
-            project_id=project_id,
-            days_before_now=days_before_now,
-            hours_before_now=hours_before_now,
-            minutes_before_now=minutes_before_now,
-            seconds_before_now=seconds_before_now,
-            aggregation_option=aggregation_option,
-        )
-
     def store_release_health_metric(
         self,
         name: str,
@@ -1876,33 +1832,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
-        )
-
-    def store_custom_metric(
-        self,
-        name: str,
-        tags: dict[str, str],
-        value: int | float | dict[str, int | float],
-        type: str | None = None,
-        org_id: int | None = None,
-        project_id: int | None = None,
-        days_before_now: int = 0,
-        hours_before_now: int = 0,
-        minutes_before_now: int = 0,
-        seconds_before_now: int = 0,
-        aggregation_option: AggregationOption | None = None,
-    ) -> None:
-        self._store_metric(
-            mri=name,
-            tags=tags,
-            value=value,
-            org_id=org_id,
-            project_id=project_id,
-            days_before_now=days_before_now,
-            hours_before_now=hours_before_now,
-            minutes_before_now=minutes_before_now,
-            seconds_before_now=seconds_before_now,
-            aggregation_option=aggregation_option,
         )
 
     def build_metrics_query(
@@ -1941,251 +1870,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             include_totals=include_totals,
             include_series=include_series,
         )
-
-
-class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
-    features: dict[str, bool] = {}
-    url: str = ""
-
-    TYPE_MAP = {
-        "metrics_distributions": "distribution",
-        "metrics_sets": "set",
-        "metrics_counters": "counter",
-        "metrics_gauges": "gauge",
-    }
-    ENTITY_MAP = {
-        "transaction.duration": "metrics_distributions",
-        "span.duration": "metrics_distributions",
-        "span.self_time": "metrics_distributions",
-        "http.response_content_length": "metrics_distributions",
-        "http.decoded_response_content_length": "metrics_distributions",
-        "cache.item_size": "metrics_distributions",
-        "http.response_transfer_size": "metrics_distributions",
-        "measurements.lcp": "metrics_distributions",
-        "measurements.fp": "metrics_distributions",
-        "measurements.fcp": "metrics_distributions",
-        "measurements.fid": "metrics_distributions",
-        "measurements.cls": "metrics_distributions",
-        "measurements.frames_frozen_rate": "metrics_distributions",
-        "measurements.time_to_initial_display": "metrics_distributions",
-        "measurements.score.lcp": "metrics_distributions",
-        "measurements.score.fcp": "metrics_distributions",
-        "measurements.score.fid": "metrics_distributions",
-        "measurements.score.cls": "metrics_distributions",
-        "measurements.score.ttfb": "metrics_distributions",
-        "measurements.score.inp": "metrics_distributions",
-        "measurements.score.total": "metrics_distributions",
-        "measurements.score.weight.lcp": "metrics_distributions",
-        "measurements.score.weight.fcp": "metrics_distributions",
-        "measurements.score.weight.fid": "metrics_distributions",
-        "measurements.score.weight.cls": "metrics_distributions",
-        "measurements.score.weight.ttfb": "metrics_distributions",
-        "measurements.score.weight.inp": "metrics_distributions",
-        "measurements.app_start_cold": "metrics_distributions",
-        "measurements.app_start_warm": "metrics_distributions",
-        "spans.http": "metrics_distributions",
-        "user": "metrics_sets",
-        "function.duration": "metrics_distributions",
-        "measurements.inp": "metrics_distributions",
-        "messaging.message.receive.latency": "metrics_gauges",
-    }
-    ON_DEMAND_KEY_MAP = {
-        "c": SpanMetricKey.COUNT_ON_DEMAND.value,
-        "d": SpanMetricKey.DIST_ON_DEMAND.value,
-        "s": SpanMetricKey.SET_ON_DEMAND.value,
-    }
-    ON_DEMAND_MRI_MAP = {
-        "c": SpanMRI.COUNT_ON_DEMAND.value,
-        "d": SpanMRI.DIST_ON_DEMAND.value,
-        "s": SpanMRI.SET_ON_DEMAND.value,
-    }
-    ON_DEMAND_ENTITY_MAP = {
-        "c": EntityKey.MetricsCounters.value,
-        "d": EntityKey.MetricsDistributions.value,
-        "s": EntityKey.MetricsSets.value,
-    }
-    METRIC_STRINGS: list[str] = []
-    DEFAULT_METRIC_TIMESTAMP = datetime(2015, 1, 1, 10, 15, 0, tzinfo=UTC)
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.min_ago = before_now(minutes=1)
-        self.two_min_ago = before_now(minutes=2)
-        self.login_as(user=self.user)
-        self._index_metric_strings()
-
-    def do_request(self, data: dict[str, Any], features: dict[str, bool] | None = None) -> Response:
-        """Set up self.features and self.url in the inheriting classes.
-        You can pass your own features if you do not want to use the default used by the subclass.
-        """
-        with self.feature(features or self.features):
-            ret = self.client.get(self.url, data=data, format="json")
-            assert is_drf_response(ret)
-            return ret
-
-    def _index_metric_strings(self) -> None:
-        strings = [
-            "transaction",
-            "environment",
-            "http.status",
-            "transaction.status",
-            METRIC_TOLERATED_TAG_VALUE,
-            METRIC_SATISFIED_TAG_VALUE,
-            METRIC_FRUSTRATED_TAG_VALUE,
-            METRIC_SATISFACTION_TAG_KEY,
-            *self.METRIC_STRINGS,
-            *list(SPAN_STATUS_NAME_TO_CODE.keys()),
-            *list(METRICS_MAP.values()),
-        ]
-        org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record({UseCaseID.TRANSACTIONS: org_strings})
-
-    def store_transaction_metric(
-        self,
-        value: list[Any] | Any,
-        metric: str = "transaction.duration",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
-        aggregation_option: AggregationOption | None = None,
-    ) -> None:
-        internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        values = cast(
-            list[int | dict[str, int]],
-            value if isinstance(value, list) else [value],
-        )
-        for subvalue in values:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-                aggregation_option=aggregation_option,
-            )
-
-    def store_on_demand_metric(
-        self,
-        value: int | float | str,
-        spec: OnDemandMetricSpec,
-        additional_tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-    ) -> None:
-        """Convert on-demand metric and store it.
-
-        For sets, value needs to be a unique identifier while for counters it is a count.
-        """
-        relay_metric_spec = spec.to_metric_spec(self.project)
-        metric_spec_tags = relay_metric_spec["tags"] or [] if relay_metric_spec else []
-        tags = {i["key"]: i.get("value") or i.get("field") for i in metric_spec_tags}
-
-        metric_type = spec.metric_type
-        if additional_tags:
-            # Additional tags might be needed to override field values from the spec.
-            tags.update(additional_tags)
-
-        self.store_transaction_metric(
-            value,
-            metric=self.ON_DEMAND_KEY_MAP[metric_type],
-            internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
-            entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
-            tags=cast(dict[str, str], tags),
-            timestamp=timestamp,
-        )
-
-    def store_span_metric(
-        self,
-        value: dict[str, int] | list[int] | list[dict[str, int]] | int,
-        metric: str = "span.self_time",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.SPANS,
-    ) -> None:
-        internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        values = cast(
-            list[int | dict[str, int]],
-            value if isinstance(value, list) else [value],
-        )
-        for subvalue in values:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-            )
-
-    def wait_for_metric_count(
-        self,
-        project: Project,
-        total: int,
-        metric: str = "transaction.count_per_root_project",
-        mri: str = TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-        attempts: int = 2,
-    ) -> None:
-        attempt = 0
-        metrics_query = self.build_metrics_query(
-            before_now="1d",
-            granularity="1d",
-            select=[
-                MetricField(
-                    op="count",
-                    metric_mri=mri,
-                ),
-            ],
-            include_series=False,
-        )
-        while attempt < attempts:
-            data = get_series(
-                [project],
-                metrics_query=metrics_query,
-                use_case_id=UseCaseID.TRANSACTIONS,
-            )
-            count = data["groups"][0]["totals"][f"count({metric})"]
-            if count >= total:
-                break
-            attempt += 1
-            time.sleep(0.05)
-
-        if attempt == attempts:
-            assert False, (
-                f"Could not ensure that {total} metric(s) were persisted within {attempt} attempt(s)."
-            )
 
 
 class BaseIncidentsTest(SnubaTestCase):

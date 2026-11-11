@@ -9,21 +9,6 @@ from unittest import mock
 import pytest
 from snuba_sdk import Entity, Join, Query
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-
-STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
-    "",
-    "staging",
-    "value1",
-    "prod",
-    "exited",
-    "myapp@2.0.0",
-    "ahmed@12.2",
-    "crashed",
-    "init",
-    "development",
-)
-
 
 @pytest.fixture(autouse=True)
 def control_metrics_access(
@@ -52,20 +37,6 @@ def control_metrics_access(
                     bulk_reverse_resolve=mock_indexer.bulk_reverse_resolve,
                 )
             )
-
-            old_resolve = indexer.resolve
-
-            def new_resolve(use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
-                if (
-                    use_case_id == UseCaseID.TRANSACTIONS
-                    and string in STRINGS_THAT_LOOK_LIKE_TAG_VALUES
-                ):
-                    pytest.fail(
-                        f"stop right there, thief! you're about to resolve the string {string!r}. that looks like a tag value, but in this test mode, tag values are stored in clickhouse. the indexer might not have the value!"
-                    )
-                return old_resolve(use_case_id, org_id, string)
-
-            ctx.enter_context(mock.patch.object(indexer, "resolve", new_resolve))
 
             old_build_results = snuba._apply_cache_and_build_results
 

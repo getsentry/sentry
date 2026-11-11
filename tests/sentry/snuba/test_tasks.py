@@ -59,7 +59,6 @@ def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
     return ret
 
 
-perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
 rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 

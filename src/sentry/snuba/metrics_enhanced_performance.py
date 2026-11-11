@@ -8,27 +8,16 @@ from typing import Any, Literal, cast
 import sentry_sdk
 from snuba_sdk import Column, Condition
 
-from sentry.discover.arithmetic import categorize_columns
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
-from sentry.snuba.metrics_performance import query as metrics_query
-from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
-from sentry.snuba.metrics_performance import top_events_timeseries as metrics_top_events_timeseries
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.types import DatasetQuery
 from sentry.utils.snuba import SnubaTSResult
 
-# Generic metrics performance data is deprecated for ordinary MEP queries.
-# Only keep the metrics path when on-demand metrics extraction is requested.
+# Compatibility for legacy metrics dataset names using indexed event data.
 DATASET_REASON = "generic metrics performance queries are disabled"
-
-
-def _should_use_metrics(on_demand_metrics_enabled: bool) -> bool:
-    return on_demand_metrics_enabled
 
 
 def query(
@@ -58,85 +47,37 @@ def query(
     *,
     referrer: str,
 ) -> EventsResponse:
-    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
-    dataset_reason = discover.DEFAULT_DATASET_REASON
-
-    if metrics_compatible:
-        try:
-            result = metrics_query(
-                selected_columns,
-                query,
-                snuba_params=snuba_params,
-                equations=equations,
-                orderby=orderby,
-                offset=offset,
-                limit=limit,
-                referrer=referrer,
-                auto_fields=auto_fields,
-                auto_aggregations=auto_aggregations,
-                use_aggregate_conditions=use_aggregate_conditions,
-                allow_metric_aggregates=allow_metric_aggregates,
-                conditions=conditions,
-                functions_acl=functions_acl,
-                transform_alias_to_input_format=transform_alias_to_input_format,
-                has_metrics=has_metrics,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
-                on_demand_metrics_type=on_demand_metrics_type,
-                query_source=query_source,
-            )
-            result["meta"]["datasetReason"] = dataset_reason
-
-            return result
-        # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery:
-            raise
-        # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
-            dataset_reason = str(error)
-            metrics_compatible = False
+    dataset_query: DatasetQuery = discover.query
+    if fallback_to_transactions:
+        dataset_query = transactions.query
+        sentry_sdk.set_tag("performance.dataset", "transactions")
+        sentry_sdk.set_attribute("performance.dataset", "transactions")
     else:
-        dataset_reason = DATASET_REASON
+        sentry_sdk.set_tag("performance.dataset", "discover")
+        sentry_sdk.set_attribute("performance.dataset", "discover")
+    results = dataset_query(
+        selected_columns,
+        query,
+        snuba_params=snuba_params,
+        equations=equations,
+        orderby=orderby,
+        offset=offset,
+        limit=limit,
+        referrer=referrer,
+        auto_fields=auto_fields,
+        auto_aggregations=auto_aggregations,
+        use_aggregate_conditions=use_aggregate_conditions,
+        conditions=conditions,
+        functions_acl=functions_acl,
+        transform_alias_to_input_format=transform_alias_to_input_format,
+        has_metrics=has_metrics,
+        query_source=query_source,
+    )
+    results["meta"]["isMetricsData"] = False
+    results["meta"]["isMetricsExtractedData"] = False
+    results["meta"]["datasetReason"] = DATASET_REASON
 
-    # Either metrics failed, metrics are disabled, or this isn't a query we can enhance with metrics
-    if not metrics_compatible:
-        dataset_query: DatasetQuery = discover.query
-        if fallback_to_transactions:
-            dataset_query = transactions.query
-            sentry_sdk.set_tag("performance.dataset", "transactions")
-            sentry_sdk.set_attribute("performance.dataset", "transactions")
-        else:
-            sentry_sdk.set_tag("performance.dataset", "discover")
-            sentry_sdk.set_attribute("performance.dataset", "discover")
-        results = dataset_query(
-            selected_columns,
-            query,
-            snuba_params=snuba_params,
-            equations=equations,
-            orderby=orderby,
-            offset=offset,
-            limit=limit,
-            referrer=referrer,
-            auto_fields=auto_fields,
-            auto_aggregations=auto_aggregations,
-            use_aggregate_conditions=use_aggregate_conditions,
-            conditions=conditions,
-            functions_acl=functions_acl,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            has_metrics=has_metrics,
-            query_source=query_source,
-        )
-        results["meta"]["isMetricsData"] = False
-        results["meta"]["isMetricsExtractedData"] = False
-        results["meta"]["datasetReason"] = dataset_reason
-
-        return results
-
-    return {
-        "data": [],
-        "meta": {"fields": {}},
-    }
+    return results
 
 
 def timeseries_query(
@@ -156,78 +97,29 @@ def timeseries_query(
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
-    """
-    High-level API for doing arbitrary user timeseries queries against events.
-    this API should match that of sentry.snuba.discover.timeseries_query
-    """
-    equations, columns = categorize_columns(selected_columns)
-    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
-
-    if metrics_compatible:
-        try:
-            return metrics_timeseries_query(
-                selected_columns,
-                query,
-                snuba_params,
-                rollup,
-                referrer=referrer,
-                zerofill_results=zerofill_results,
-                allow_metric_aggregates=allow_metric_aggregates,
-                comparison_delta=comparison_delta,
-                functions_acl=functions_acl,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
-                on_demand_metrics_type=on_demand_metrics_type,
-                query_source=query_source,
-                transform_alias_to_input_format=transform_alias_to_input_format,
-            )
-        # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery:
-            raise
-        # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
-            metrics_compatible = False
-
-    # This isn't a query we can enhance with metrics
-    if not metrics_compatible:
-        dataset: types.ModuleType = discover
-        if fallback_to_transactions:
-            dataset = transactions
-            sentry_sdk.set_tag("performance.dataset", "transactions")
-            sentry_sdk.set_attribute("performance.dataset", "transactions")
-        else:
-            sentry_sdk.set_tag("performance.dataset", "discover")
-            sentry_sdk.set_attribute("performance.dataset", "discover")
-        return cast(
-            "SnubaTSResult",
-            dataset.timeseries_query(
-                selected_columns,
-                query,
-                snuba_params,
-                rollup=rollup,
-                referrer=referrer,
-                zerofill_results=zerofill_results,
-                comparison_delta=comparison_delta,
-                functions_acl=functions_acl,
-                has_metrics=has_metrics,
-                query_source=query_source,
-                transform_alias_to_input_format=transform_alias_to_input_format,
-            ),
-        )
-    return SnubaTSResult(
-        {
-            "data": (
-                discover.zerofill(
-                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
-                )
-                if zerofill_results
-                else []
-            ),
-        },
-        snuba_params.start_date,
-        snuba_params.end_date,
-        rollup,
+    dataset: types.ModuleType = discover
+    if fallback_to_transactions:
+        dataset = transactions
+        sentry_sdk.set_tag("performance.dataset", "transactions")
+        sentry_sdk.set_attribute("performance.dataset", "transactions")
+    else:
+        sentry_sdk.set_tag("performance.dataset", "discover")
+        sentry_sdk.set_attribute("performance.dataset", "discover")
+    return cast(
+        "SnubaTSResult",
+        dataset.timeseries_query(
+            selected_columns,
+            query,
+            snuba_params,
+            rollup=rollup,
+            referrer=referrer,
+            zerofill_results=zerofill_results,
+            comparison_delta=comparison_delta,
+            functions_acl=functions_acl,
+            has_metrics=has_metrics,
+            query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+        ),
     )
 
 
@@ -254,86 +146,35 @@ def top_events_timeseries(
     *,
     referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
-    equations, _ = categorize_columns(selected_columns)
-    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and not equations
-
-    if metrics_compatible:
-        try:
-            return metrics_top_events_timeseries(
-                timeseries_columns,
-                selected_columns,
-                user_query,
-                snuba_params,
-                orderby,
-                rollup,
-                limit,
-                organization,
-                equations,
-                top_events,
-                allow_empty,
-                zerofill_results,
-                include_other,
-                functions_acl,
-                on_demand_metrics_enabled=on_demand_metrics_enabled,
-                on_demand_metrics_type=on_demand_metrics_type,
-                query_source=query_source,
-                transform_alias_to_input_format=transform_alias_to_input_format,
-                referrer=referrer,
-            )
-        # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery:
-            raise
-        # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
-            metrics_compatible = False
-
-    # This isn't a query we can enhance with metrics
-    if not metrics_compatible:
-        dataset: types.ModuleType = discover
-        if fallback_to_transactions:
-            dataset = transactions
-            sentry_sdk.set_tag("performance.dataset", "transactions")
-            sentry_sdk.set_attribute("performance.dataset", "transactions")
-        else:
-            sentry_sdk.set_tag("performance.dataset", "discover")
-            sentry_sdk.set_attribute("performance.dataset", "discover")
-        return cast(
-            "SnubaTSResult | dict[str, Any]",
-            dataset.top_events_timeseries(
-                timeseries_columns,
-                selected_columns,
-                user_query,
-                snuba_params,
-                orderby,
-                rollup,
-                limit,
-                organization,
-                equations,
-                top_events,
-                allow_empty,
-                zerofill_results,
-                include_other,
-                functions_acl,
-                query_source=query_source,
-                transform_alias_to_input_format=transform_alias_to_input_format,
-                referrer=referrer,
-            ),
-        )
-    return SnubaTSResult(
-        {
-            "data": (
-                discover.zerofill(
-                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
-                )
-                if zerofill_results
-                else []
-            ),
-        },
-        snuba_params.start_date,
-        snuba_params.end_date,
-        rollup,
+    dataset: types.ModuleType = discover
+    if fallback_to_transactions:
+        dataset = transactions
+        sentry_sdk.set_tag("performance.dataset", "transactions")
+        sentry_sdk.set_attribute("performance.dataset", "transactions")
+    else:
+        sentry_sdk.set_tag("performance.dataset", "discover")
+        sentry_sdk.set_attribute("performance.dataset", "discover")
+    return cast(
+        "SnubaTSResult | dict[str, Any]",
+        dataset.top_events_timeseries(
+            timeseries_columns,
+            selected_columns,
+            user_query,
+            snuba_params,
+            orderby,
+            rollup,
+            limit,
+            organization,
+            equations,
+            top_events,
+            allow_empty,
+            zerofill_results,
+            include_other,
+            functions_acl,
+            query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            referrer=referrer,
+        ),
     )
 
 
@@ -358,61 +199,23 @@ def histogram_query(
     *,
     referrer: str,
 ) -> dict[str, object] | EventsResponse:
-    """
-    High-level API for doing arbitrary user timeseries queries against events.
-    this API should match that of sentry.snuba.discover.histogram_query
-    """
-    # Must need to normalize results to be MEP
-    metrics_compatible = _should_use_metrics(on_demand_metrics_enabled) and normalize_results
-    if metrics_compatible:
-        try:
-            return metrics_histogram_query(
-                fields,
-                user_query,
-                snuba_params,
-                num_buckets,
-                precision,
-                min_value,
-                max_value,
-                data_filter,
-                group_by,
-                order_by,
-                limit_by,
-                histogram_rows,
-                extra_conditions,
-                normalize_results,
-                query_source=query_source,
-                referrer=referrer,
-            )
-        # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery:
-            raise
-        # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-            sentry_sdk.set_attribute("performance.mep_incompatible", str(error))
-            metrics_compatible = False
-
-    # This isn't a query we can enhance with metrics
-    if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        sentry_sdk.set_attribute("performance.dataset", "discover")
-        return discover.histogram_query(
-            fields,
-            user_query,
-            snuba_params,
-            num_buckets,
-            precision,
-            min_value,
-            max_value,
-            data_filter,
-            group_by,
-            order_by,
-            limit_by,
-            histogram_rows,
-            extra_conditions,
-            normalize_results,
-            query_source=query_source,
-            referrer=referrer,
-        )
-    return {}
+    sentry_sdk.set_tag("performance.dataset", "discover")
+    sentry_sdk.set_attribute("performance.dataset", "discover")
+    return discover.histogram_query(
+        fields,
+        user_query,
+        snuba_params,
+        num_buckets,
+        precision,
+        min_value,
+        max_value,
+        data_filter,
+        group_by,
+        order_by,
+        limit_by,
+        histogram_rows,
+        extra_conditions,
+        normalize_results,
+        query_source=query_source,
+        referrer=referrer,
+    )

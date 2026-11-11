@@ -55,36 +55,36 @@ class UseCaseCollectionTest(TestCase):
 
     def test_basic(self) -> None:
         org_strings = {
-            UseCaseID.SPANS: {1: {"a", "b", "c"}, 2: {"e", "f"}},
-            UseCaseID.TRANSACTIONS: {1: {"a", "b", "c"}, 4: {"g", "f"}},
+            UseCaseID.PROFILES: {1: {"a", "b", "c"}, 2: {"e", "f"}},
+            UseCaseID.METRIC_STATS: {1: {"a", "b", "c"}, 4: {"g", "f"}},
             UseCaseID.SESSIONS: {5: {"k"}},
         }
 
         collection = UseCaseKeyCollection(org_strings)
         collection_tuples = [
-            (UseCaseID.SPANS, 1, "a"),
-            (UseCaseID.SPANS, 1, "b"),
-            (UseCaseID.SPANS, 1, "c"),
-            (UseCaseID.SPANS, 2, "e"),
-            (UseCaseID.SPANS, 2, "f"),
-            (UseCaseID.TRANSACTIONS, 1, "a"),
-            (UseCaseID.TRANSACTIONS, 1, "b"),
-            (UseCaseID.TRANSACTIONS, 1, "c"),
-            (UseCaseID.TRANSACTIONS, 4, "g"),
-            (UseCaseID.TRANSACTIONS, 4, "f"),
+            (UseCaseID.PROFILES, 1, "a"),
+            (UseCaseID.PROFILES, 1, "b"),
+            (UseCaseID.PROFILES, 1, "c"),
+            (UseCaseID.PROFILES, 2, "e"),
+            (UseCaseID.PROFILES, 2, "f"),
+            (UseCaseID.METRIC_STATS, 1, "a"),
+            (UseCaseID.METRIC_STATS, 1, "b"),
+            (UseCaseID.METRIC_STATS, 1, "c"),
+            (UseCaseID.METRIC_STATS, 4, "g"),
+            (UseCaseID.METRIC_STATS, 4, "f"),
             (UseCaseID.SESSIONS, 5, "k"),
         ]
         collection_strings = [
-            "spans:1:a",
-            "spans:1:b",
-            "spans:1:c",
-            "spans:2:e",
-            "spans:2:f",
-            "transactions:1:a",
-            "transactions:1:b",
-            "transactions:1:c",
-            "transactions:4:g",
-            "transactions:4:f",
+            "profiles:1:a",
+            "profiles:1:b",
+            "profiles:1:c",
+            "profiles:2:e",
+            "profiles:2:f",
+            "metric_stats:1:a",
+            "metric_stats:1:b",
+            "metric_stats:1:c",
+            "metric_stats:4:g",
+            "metric_stats:4:f",
             "sessions:5:k",
         ]
 
@@ -220,8 +220,8 @@ class UseCaseResultsTest(TestCase):
 
         use_case_collection = UseCaseKeyCollection(
             {
-                UseCaseID.SPANS: {1: {"a", "b", "c"}, 2: {"e", "f"}},
-                UseCaseID.TRANSACTIONS: {1: {"a", "j"}},
+                UseCaseID.PROFILES: {1: {"a", "b", "c"}, 2: {"e", "f"}},
+                UseCaseID.METRIC_STATS: {1: {"a", "j"}},
                 UseCaseID.SESSIONS: {5: {"a", "c"}},
             }
         )
@@ -232,25 +232,25 @@ class UseCaseResultsTest(TestCase):
         results_with_meta = [
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="a", id=1),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="c", id=2),
                     UseCaseKeyResult(
-                        use_case_id=UseCaseID.TRANSACTIONS, org_id=1, string="a", id=3
+                        use_case_id=UseCaseID.METRIC_STATS, org_id=1, string="a", id=3
                     ),
                     UseCaseKeyResult(
-                        use_case_id=UseCaseID.TRANSACTIONS, org_id=1, string="j", id=4
+                        use_case_id=UseCaseID.METRIC_STATS, org_id=1, string="j", id=4
                     ),
                 ],
                 FetchType.CACHE_HIT,
             ),
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=2, string="j", id=5),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SESSIONS, org_id=2, string="j", id=5),
                 ],
                 FetchType.FIRST_SEEN,
             ),
@@ -259,15 +259,15 @@ class UseCaseResultsTest(TestCase):
             use_case_key_results.add_use_case_key_results(results, meta)
 
         assert use_case_key_results.get_mapped_results() == {
-            UseCaseID.SPANS: {1: {"a": 1, "c": 2}},
-            UseCaseID.TRANSACTIONS: {1: {"a": 3, "j": 4}},
-            UseCaseID.PROFILES: {2: {"j": 5}},
+            UseCaseID.PROFILES: {1: {"a": 1, "c": 2}},
+            UseCaseID.METRIC_STATS: {1: {"a": 3, "j": 4}},
+            UseCaseID.SESSIONS: {2: {"j": 5}},
         }
         assert use_case_key_results.get_fetch_metadata() == {
-            UseCaseID.SPANS: defaultdict(
+            UseCaseID.PROFILES: defaultdict(
                 dict, {1: {"c": Metadata(id=2, fetch_type=FetchType.CACHE_HIT)}}
             ),
-            UseCaseID.TRANSACTIONS: defaultdict(
+            UseCaseID.METRIC_STATS: defaultdict(
                 dict,
                 {
                     1: {
@@ -276,7 +276,7 @@ class UseCaseResultsTest(TestCase):
                     }
                 },
             ),
-            UseCaseID.PROFILES: defaultdict(
+            UseCaseID.SESSIONS: defaultdict(
                 dict, {2: {"j": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)}}
             ),
         }
@@ -284,16 +284,16 @@ class UseCaseResultsTest(TestCase):
             use_case_collection
         ) == UseCaseKeyCollection(
             {
-                UseCaseID.SPANS: {1: {"b"}, 2: {"e", "f"}},
+                UseCaseID.PROFILES: {1: {"b"}, 2: {"e", "f"}},
                 UseCaseID.SESSIONS: {5: {"a", "c"}},
             }
         )
         assert use_case_key_results.get_mapped_strings_to_ints() == {
-            "spans:1:a": 1,
-            "spans:1:c": 2,
-            "transactions:1:a": 3,
-            "transactions:1:j": 4,
-            "profiles:2:j": 5,
+            "profiles:1:a": 1,
+            "profiles:1:c": 2,
+            "metric_stats:1:a": 3,
+            "metric_stats:1:j": 4,
+            "sessions:2:j": 5,
         }
 
     def test_merge(self) -> None:
@@ -306,15 +306,15 @@ class UseCaseResultsTest(TestCase):
         results_with_meta_1 = [
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="a", id=1),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="c", id=2),
                     UseCaseKeyResult(
-                        use_case_id=UseCaseID.TRANSACTIONS, org_id=1, string="a", id=3
+                        use_case_id=UseCaseID.METRIC_STATS, org_id=1, string="a", id=3
                     ),
                     UseCaseKeyResult(use_case_id=UseCaseID.SESSIONS, org_id=1, string="e", id=4),
                 ],
@@ -330,18 +330,18 @@ class UseCaseResultsTest(TestCase):
         results_with_meta_2 = [
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="a", id=1),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="a", id=1),
                 ],
                 None,
             ),
             (
                 [
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="c", id=2),
-                    UseCaseKeyResult(use_case_id=UseCaseID.SPANS, org_id=1, string="d", id=3),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="c", id=2),
+                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="d", id=3),
                     UseCaseKeyResult(
-                        use_case_id=UseCaseID.TRANSACTIONS, org_id=2, string="a", id=4
+                        use_case_id=UseCaseID.METRIC_STATS, org_id=2, string="a", id=4
                     ),
-                    UseCaseKeyResult(use_case_id=UseCaseID.PROFILES, org_id=1, string="e", id=5),
+                    UseCaseKeyResult(use_case_id=UseCaseID.SESSIONS, org_id=3, string="e", id=5),
                 ],
                 FetchType.CACHE_HIT,
             ),
@@ -368,13 +368,12 @@ class UseCaseResultsTest(TestCase):
             use_case_key_results_1
         )
         assert use_case_key_results_1.merge(use_case_key_results_2).get_mapped_results() == {
-            UseCaseID.SPANS: {1: {"a": 1, "c": 2, "d": 3}},
-            UseCaseID.TRANSACTIONS: {1: {"a": 3}, 2: {"a": 4}},
-            UseCaseID.SESSIONS: {1: {"e": 4}, 2: {"e": 5}},
-            UseCaseID.PROFILES: {1: {"e": 5}},
+            UseCaseID.PROFILES: {1: {"a": 1, "c": 2, "d": 3}},
+            UseCaseID.METRIC_STATS: {1: {"a": 3}, 2: {"a": 4}},
+            UseCaseID.SESSIONS: {1: {"e": 4}, 2: {"e": 5}, 3: {"e": 5}},
         }
         assert use_case_key_results_1.merge(use_case_key_results_2).get_fetch_metadata() == {
-            UseCaseID.SPANS: defaultdict(
+            UseCaseID.PROFILES: defaultdict(
                 dict,
                 {
                     1: {
@@ -383,7 +382,7 @@ class UseCaseResultsTest(TestCase):
                     }
                 },
             ),
-            UseCaseID.TRANSACTIONS: defaultdict(
+            UseCaseID.METRIC_STATS: defaultdict(
                 dict,
                 {
                     1: {"a": Metadata(id=3, fetch_type=FetchType.CACHE_HIT)},
@@ -395,9 +394,7 @@ class UseCaseResultsTest(TestCase):
                 {
                     1: {"e": Metadata(id=4, fetch_type=FetchType.CACHE_HIT)},
                     2: {"e": Metadata(id=5, fetch_type=FetchType.FIRST_SEEN)},
+                    3: {"e": Metadata(id=5, fetch_type=FetchType.CACHE_HIT)},
                 },
-            ),
-            UseCaseID.PROFILES: defaultdict(
-                dict, {1: {"e": Metadata(id=5, fetch_type=FetchType.CACHE_HIT)}}
             ),
         }

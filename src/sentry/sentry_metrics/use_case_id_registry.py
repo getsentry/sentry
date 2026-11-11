@@ -16,16 +16,12 @@ class UseCaseIDAPIAccess(Enum):
 
 
 class UseCaseID(Enum):
-    SPANS = "spans"
-    TRANSACTIONS = "transactions"
     SESSIONS = "sessions"
     PROFILES = "profiles"
     METRIC_STATS = "metric_stats"
 
 
 USE_CASE_ID_API_ACCESSES: Mapping[UseCaseID, UseCaseIDAPIAccess] = {
-    UseCaseID.SPANS: UseCaseIDAPIAccess.PUBLIC,
-    UseCaseID.TRANSACTIONS: UseCaseIDAPIAccess.PUBLIC,
     UseCaseID.SESSIONS: UseCaseIDAPIAccess.PUBLIC,
     UseCaseID.PROFILES: UseCaseIDAPIAccess.PRIVATE,
     UseCaseID.METRIC_STATS: UseCaseIDAPIAccess.PRIVATE,

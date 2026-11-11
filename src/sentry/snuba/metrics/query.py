@@ -25,7 +25,6 @@ from ...release_health.base import AllowedResolution
 from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (
     MAX_POINTS,
-    METRICS_LAYER_GRANULARITIES,
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -357,21 +356,6 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams("start must be before end")
 
     def validate_granularity(self) -> None:
-        # Logic specific to how we handle time series in discover in terms of granularity and interval
-        if (
-            self.use_case_id == UseCaseID.TRANSACTIONS
-            and self.include_series
-            and self.interval is not None
-        ):
-            if self.granularity.granularity > self.interval:
-                # If granularity is greater than interval, then we try to set granularity to the smallest allowed
-                # granularity smaller than that interval
-                # Copied from: sentry/search/events/builder.py::TimeseriesMetricQueryBuilder.__init__()
-                for granularity in METRICS_LAYER_GRANULARITIES:
-                    if granularity < self.interval:
-                        object.__setattr__(self, "granularity", Granularity(granularity))
-                        break
-
         # hard code min. allowed resolution to 10 seconds
         allowed_resolution = AllowedResolution.ten_seconds
 
@@ -404,9 +388,7 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
 
     def validate_interval(self) -> None:
         if self.interval is not None:
-            if self.use_case_id is UseCaseID.SESSIONS or (
-                self.use_case_id is UseCaseID.TRANSACTIONS and not self.include_series
-            ):
+            if self.use_case_id is UseCaseID.SESSIONS:
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
     def validate_is_alerts_query(self) -> None:
@@ -424,13 +406,3 @@ class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
             # Cannot set attribute directly because dataclass is frozen:
             # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
-
-        if (
-            self.use_case_id
-            in [
-                UseCaseID.TRANSACTIONS,
-            ]
-            and self.include_series
-            and self.interval is None
-        ):
-            object.__setattr__(self, "interval", self.granularity.granularity)

@@ -48,6 +48,12 @@ class TestIsMetricSubscriptionAllowed:
                 is True
             )
 
+    def test_performance_metrics_are_disallowed_with_legacy_feature(self) -> None:
+        with self.fake_features({"organizations:on-demand-metrics-extraction"}):
+            assert (
+                is_metric_subscription_allowed(Dataset.PerformanceMetrics.value, self.org) is False
+            )
+
     # -- Unknown / other datasets: always allowed --
 
     def test_unknown_dataset_always_allowed(self) -> None:

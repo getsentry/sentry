@@ -16,8 +16,8 @@ def get_writes_limiter(namespace: str) -> WritesLimiter:
 
 
 MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
-    UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.transactions",
-    UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.uc1",
+    UseCaseID.SESSIONS: "sentry-metrics.writes-limiter.limits.releasehealth",
+    UseCaseID.METRIC_STATS: "sentry-metrics.writes-limiter.limits.uc1",
     UseCaseID.PROFILES: "sentry-metrics.writes-limiter.limits.uc2",
 }
 
@@ -29,8 +29,8 @@ MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 def test_writes_limiter_no_limits() -> None:
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.transactions.global": [],
-            "sentry-metrics.writes-limiter.limits.transactions.per-org": [],
+            "sentry-metrics.writes-limiter.limits.releasehealth.global": [],
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [],
             "sentry-metrics.writes-limiter.limits.uc1.global": [],
             "sentry-metrics.writes-limiter.limits.uc1.per-org": [],
             "sentry-metrics.writes-limiter.limits.uc2.global": [],
@@ -41,11 +41,11 @@ def test_writes_limiter_no_limits() -> None:
 
         use_case_keys = UseCaseKeyCollection(
             {
-                UseCaseID.TRANSACTIONS: {
+                UseCaseID.SESSIONS: {
                     1: {"a", "b", "c"},
                     2: {"a", "b", "c"},
                 },
-                UseCaseID.SPANS: {
+                UseCaseID.METRIC_STATS: {
                     10: {"x", "y", "z"},
                     11: {"a", "b", "c"},
                 },
@@ -67,8 +67,8 @@ def test_writes_limiter_no_limits() -> None:
 def test_writes_limiter_doesnt_limit() -> None:
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.transactions.global": [],
-            "sentry-metrics.writes-limiter.limits.transactions.per-org": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.global": [],
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
             "sentry-metrics.writes-limiter.limits.uc1.global": [],
@@ -85,11 +85,11 @@ def test_writes_limiter_doesnt_limit() -> None:
 
         use_case_keys = UseCaseKeyCollection(
             {
-                UseCaseID.TRANSACTIONS: {
+                UseCaseID.SESSIONS: {
                     1: {"a"},
                     2: {"b"},
                 },
-                UseCaseID.SPANS: {
+                UseCaseID.METRIC_STATS: {
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
@@ -112,8 +112,8 @@ def test_writes_limiter_doesnt_limit() -> None:
 def test_writes_limiter_org_limit() -> None:
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.transactions.global": [],
-            "sentry-metrics.writes-limiter.limits.transactions.per-org": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.global": [],
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 0}
             ],
             "sentry-metrics.writes-limiter.limits.uc1.global": [],
@@ -130,11 +130,11 @@ def test_writes_limiter_org_limit() -> None:
 
         use_case_keys = UseCaseKeyCollection(
             {
-                UseCaseID.TRANSACTIONS: {
+                UseCaseID.SESSIONS: {
                     1: {"a"},
                     2: {"b"},
                 },
-                UseCaseID.SPANS: {
+                UseCaseID.METRIC_STATS: {
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
@@ -172,10 +172,10 @@ def test_writes_limiter_org_limit() -> None:
 def test_writes_limiter_global_limit() -> None:
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.transactions.global": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 1}
             ],
-            "sentry-metrics.writes-limiter.limits.transactions.per-org": [],
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [],
             "sentry-metrics.writes-limiter.limits.uc1.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
             ],
@@ -192,11 +192,11 @@ def test_writes_limiter_global_limit() -> None:
         # individually, but not in total.
         use_case_keys = UseCaseKeyCollection(
             {
-                UseCaseID.TRANSACTIONS: {
+                UseCaseID.SESSIONS: {
                     1: {"a"},
                     2: {"b"},
                 },
-                UseCaseID.SPANS: {
+                UseCaseID.METRIC_STATS: {
                     3: {"c", "d"},
                     4: {"e", "f"},
                 },
@@ -222,10 +222,10 @@ def test_writes_limiter_respects_use_case_id() -> None:
     """
     with override_options(
         {
-            "sentry-metrics.writes-limiter.limits.transactions.global": [
+            "sentry-metrics.writes-limiter.limits.releasehealth.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 6}
             ],
-            "sentry-metrics.writes-limiter.limits.transactions.per-org": [],
+            "sentry-metrics.writes-limiter.limits.releasehealth.per-org": [],
             "sentry-metrics.writes-limiter.limits.uc1.global": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 6}
             ],
@@ -236,15 +236,15 @@ def test_writes_limiter_respects_use_case_id() -> None:
             "sentry-metrics.writes-limiter.limits.uc2.per-org": [],
         },
     ):
-        writes_limiter_perf = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
+        writes_limiter = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         use_case_keys = UseCaseKeyCollection(
             {
-                UseCaseID.TRANSACTIONS: {
+                UseCaseID.SESSIONS: {
                     1: {"a", "b", "c"},
                     2: {"a", "b", "c"},
                 },
-                UseCaseID.SPANS: {
+                UseCaseID.METRIC_STATS: {
                     10: {"x", "y", "z"},
                     11: {"a", "b", "c"},
                 },
@@ -255,10 +255,10 @@ def test_writes_limiter_respects_use_case_id() -> None:
             }
         )
 
-        with writes_limiter_perf.check_write_limits(use_case_keys) as state:
+        with writes_limiter.check_write_limits(use_case_keys) as state:
             assert len(state.dropped_strings) == 0
 
-        with writes_limiter_perf.check_write_limits(use_case_keys) as state:
+        with writes_limiter.check_write_limits(use_case_keys) as state:
             assert len(state.dropped_strings) == 18
 
         writes_limiter_rh = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)

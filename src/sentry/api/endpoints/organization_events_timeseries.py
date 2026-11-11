@@ -55,8 +55,6 @@ from sentry.snuba import (
     errors,
     functions,
     metrics_enhanced_performance,
-    metrics_performance,
-    spans_metrics,
     transactions,
 )
 from sentry.snuba.ourlogs import OurLogs
@@ -75,9 +73,7 @@ from sentry.utils.snuba import SnubaTSResult
 TOP_EVENTS_DATASETS = {
     discover,
     functions,
-    metrics_performance,
     metrics_enhanced_performance,
-    spans_metrics,
     Spans,
     OurLogs,
     PreprodSize,
@@ -328,10 +324,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if dataset not in TOP_EVENTS_DATASETS:
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
-            metrics_enhanced = dataset in {
-                metrics_performance,
-                metrics_enhanced_performance,
-            }
+            metrics_enhanced = dataset is metrics_enhanced_performance
             use_rpc = dataset in RPC_DATASETS
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)

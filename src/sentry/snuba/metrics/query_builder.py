@@ -76,7 +76,6 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     get_num_intervals,
     get_timestamp_column_name,
-    require_rhs_condition_resolution,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime
@@ -140,48 +139,11 @@ def parse_public_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
-def transform_null_transaction_to_unparameterized(
-    use_case_id: UseCaseID, org_id: int, alias: str | None = None
-) -> Function:
-    """
-    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
-    as such in any query using that tag value.
-
-    The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
-    transform that '' as '<< unparameterized >>'.
-
-    It is important to note that this transformation has to be applied ONLY on tag.transaction.
-    """
-    return Function(
-        function="transform",
-        parameters=[
-            Column(resolve_tag_key(use_case_id, org_id, "transaction")),
-            [""],
-            [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
-        ],
-        alias=alias,
-    )
-
-
-def _refers_to_column(expression: Column | Function) -> str | None:
-    """
-    Tries to compute to which column the input expression is referring to.
-    """
-
-    if isinstance(expression, Column):
-        return expression.name
-    elif isinstance(expression, Function):
-        if expression.function == "ifNull":
-            return expression.parameters[0].name
-
-    return None
-
-
 # Allow these snuba functions.
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match", "team_key_transaction")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple", "has", "match")
 
 
 def resolve_tags(
@@ -342,15 +304,6 @@ def resolve_tags(
                 rhs=rhs_ids,
             )
 
-        # Hacky way to apply a transformation for backward compatibility, which converts `unknown_error` to `unknown`
-        # for metrics queries.
-        transformed_rhs = input_.rhs
-        if (
-            _refers_to_column(input_.lhs) == "tags[transaction.status]"
-            and input_.rhs == "unknown_error"
-        ):
-            transformed_rhs = "unknown"
-
         return Condition(
             lhs=resolve_tags(
                 use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
@@ -359,7 +312,7 @@ def resolve_tags(
             rhs=resolve_tags(
                 use_case_id,
                 org_id,
-                transformed_rhs,
+                input_.rhs,
                 projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
@@ -390,11 +343,6 @@ def resolve_tags(
             # "project" -> "project_id"
             if input_.key in FIELD_ALIAS_MAPPINGS:
                 return Column(FIELD_ALIAS_MAPPINGS[input_.key])
-
-            # If we are getting the column tags.transaction, we want to transform null values to
-            # '<< unparameterized >>'.
-            if input_.key == "transaction":
-                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
 
             name = input_.key
         else:
@@ -695,8 +643,8 @@ def translate_meta_results(
     Translate meta results:
     it makes all metrics are public and resolve tag names
     E.g.:
-    p50(d:transactions/measurements.lcp@millisecond) -> p50(transaction.measurements.lcp)
-    tags[9223372036854776020] -> transaction
+    p50(d:sessions/duration@second) -> p50(sentry.sessions.session.duration)
+    tags[9223372036854776020] -> release
     """
     results: list[dict[str, str]] = []
     for record in meta:
@@ -834,15 +782,6 @@ class SnubaQueryBuilder:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
         if isinstance(metric_action_by_field.field, str):
-            # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
-            if (
-                isinstance(metric_action_by_field, MetricGroupByField)
-                and metric_action_by_field.field == "transaction"
-            ):
-                return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, metric_action_by_field.alias
-                )
-
             # Handles the case when we are trying to group or order by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands.
             if metric_action_by_field.field in FIELD_ALIAS_MAPPINGS:
@@ -937,15 +876,7 @@ class SnubaQueryBuilder:
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=(
-                                resolve_tag_value(
-                                    self._use_case_id, self._org_id, cast(str, condition.rhs)
-                                )
-                                if require_rhs_condition_resolution(
-                                    cast(MetricOperationType, condition.lhs.op)
-                                )
-                                else condition.rhs
-                            ),
+                            rhs=condition.rhs,
                         )
                     )
                 except IndexError:
@@ -1079,34 +1010,11 @@ class SnubaQueryBuilder:
             if self._metrics_query.max_limit:
                 series_limit = self._metrics_query.max_limit
 
-            if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
-                time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
-                    cast(int, self._metrics_query.interval)
-                )
-            else:
-                time_groupby_column = Column(TS_COL_GROUP)
-
             rv["series"] = totals_query.set_limit(series_limit).set_groupby(
-                list(totals_query.groupby or []) + [time_groupby_column]
+                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )
 
         return rv
-
-    @staticmethod
-    def __generate_time_groupby_column_for_discover_queries(interval: int) -> Function:
-        return Function(
-            function="toStartOfInterval",
-            parameters=[
-                Column(name=get_timestamp_column_name()),
-                Function(
-                    function="toIntervalSecond",
-                    parameters=[interval],
-                    alias=None,
-                ),
-                "Universal",
-            ],
-            alias=TS_COL_GROUP,
-        )
 
     def __update_query_dicts_with_component_entities(
         self,
@@ -1397,9 +1305,6 @@ class SnubaResultConverter:
         # Creating this dictionary serves the purpose of having a mapping from the alias of a groupBy column to the
         # original groupBy column, and we need this to determine for which tag values we don't need to reverse resolve
         # in the indexer. As an example, we do not want to reverse resolve tag values for project_ids.
-        # Another exception is `team_key_transaction` derived op since we don't want to reverse resolve its value as
-        # it is just a boolean. Therefore we rely on creating a mapping from the alias to the operation in this case
-        # to determine whether we need to reverse the tag value or not.
         groupby_alias_to_groupby_column = (
             {
                 metric_groupby_obj.alias: (

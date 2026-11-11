@@ -9,7 +9,6 @@ from snuba_sdk import Condition, Op
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events.builder.metrics import (
     MetricsQueryBuilder,
-    TimeseriesMetricQueryBuilder,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -50,7 +49,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=[],
             config=QueryBuilderConfig(skip_field_validation_for_entity_subscription_deletion=True),
         )
-        assert not query.is_performance
         assert Condition(query.column("environment"), Op.EQ, 0) in query.where
 
     def test_limit_validation(self) -> None:
@@ -205,54 +203,3 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     "transaction",
                 ],
             )
-
-
-class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
-    def test_granularity(self) -> None:
-        # Need to pick granularity based on the period and interval for timeseries
-        def get_granularity(start: datetime.datetime, end: datetime.datetime, interval: int) -> int:
-            query = TimeseriesMetricQueryBuilder(
-                {
-                    "organization_id": self.organization.id,
-                    "project_id": self.projects,
-                    "start": start,
-                    "end": end,
-                },
-                interval=interval,
-            )
-            return int(query.granularity.granularity)
-
-        # If we're doing atleast day and its midnight we should use the daily bucket
-        start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "A day at midnight, 1hr interval"
-        assert get_granularity(start, end, 86400) == 86400, "A day at midnight, 1d interval"
-
-        # If we're on the start of the hour we should use the hour granularity
-        start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 900) == 60, "On the hour, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "On the hour, 1hr interval"
-        assert get_granularity(start, end, 86400) == 3600, "On the hour, 1d interval"
-
-        # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
-        # granularity
-        start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 900) == 60, (
-            "A few hours, but random minute, 15min interval"
-        )
-        assert get_granularity(start, end, 3600) == 3600, (
-            "A few hours, but random minute, 1hr interval"
-        )
-        assert get_granularity(start, end, 86400) == 3600, (
-            "A few hours, but random minute, 1d interval"
-        )
-
-        # Less than a minute, no reason to work hard for such a small window, just use a minute
-        start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
-        assert get_granularity(start, end, 900) == 60, "less than a minute, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "less than a minute, 1hr interval"
-        assert get_granularity(start, end, 86400) == 3600, "less than a minute, 1d interval"

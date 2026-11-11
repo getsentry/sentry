@@ -11,9 +11,7 @@ from sentry.snuba import (
     functions,
     issue_platform,
     metrics_enhanced_performance,
-    metrics_performance,
     profiles,
-    spans_metrics,
     transactions,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -35,7 +33,7 @@ DATASET_OPTIONS = {
     "discover": discover,
     "errors": errors,
     "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
+    "metrics": metrics_enhanced_performance,
     SupportedTraceItemType.OCCURRENCES.value: Occurrences,
     # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
@@ -48,7 +46,6 @@ DATASET_OPTIONS = {
     SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
     SupportedTraceItemType.REPLAYS.value: Replays,
     SupportedTraceItemType.SPANS.value: Spans,
-    "spansMetrics": spans_metrics,
     SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     SupportedTraceItemType.PROCESSING_ERRORS.value: ProcessingErrors,
     "transactions": transactions,

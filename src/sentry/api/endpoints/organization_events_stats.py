@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 
@@ -20,7 +20,6 @@ from sentry.api.helpers.error_upsampling import (
 )
 from sentry.api.serializers.snuba import StatsTimeSeriesResult
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -36,11 +35,8 @@ from sentry.snuba import (
     errors,
     functions,
     metrics_enhanced_performance,
-    metrics_performance,
-    spans_metrics,
     transactions,
 )
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
@@ -69,29 +65,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-
-    def get_features(
-        self, organization: Organization, request: Request
-    ) -> Mapping[str, bool | None]:
-        feature_names = [
-            "organizations:on-demand-metrics-extraction",
-            "organizations:on-demand-metrics-extraction-widgets",
-        ]
-        batch_features = features.batch_has(
-            feature_names,
-            organization=organization,
-            actor=acting_user(request.user),
-        )
-        return (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {
-                feature_name: features.has(
-                    feature_name, organization=organization, actor=request.user
-                )
-                for feature_name in feature_names
-            }
-        )
 
     def flatten_results(
         self, results: SnubaTSResult | dict[str, SnubaTSResult]
@@ -186,8 +159,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
 
-            batch_features = self.get_features(organization, request)
-
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
@@ -197,9 +168,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     in [
                         discover,
                         functions,
-                        metrics_performance,
                         metrics_enhanced_performance,
-                        spans_metrics,
                         Spans,
                         OurLogs,
                         ProfileFunctions,
@@ -212,18 +181,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     else discover
                 )
 
-            metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
+            metrics_enhanced = dataset is metrics_enhanced_performance
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
-
-        try:
-            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
-        except ValueError:
-            metric_type_values = [e.value for e in MetricSpecType]
-            metric_types = ",".join(metric_type_values)
-            return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         use_rpc = dataset in RPC_DATASETS
         transform_alias_to_input_format = (
@@ -336,8 +298,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     referrer=referrer + ".find-topn",
                     allow_empty=False,
                     zerofill_results=zerofill_results,
-                    on_demand_metrics_enabled=use_on_demand_metrics,
-                    on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
                     transform_alias_to_input_format=transform_alias_to_input_format,
@@ -367,14 +327,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 comparison_delta=comparison_delta,
                 allow_metric_aggregates=allow_metric_aggregates,
                 has_metrics=True,
-                on_demand_metrics_enabled=use_on_demand_metrics
-                and (
-                    batch_features.get("organizations:on-demand-metrics-extraction", False)
-                    or batch_features.get(
-                        "organizations:on-demand-metrics-extraction-widgets", False
-                    )
-                ),
-                on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
                 fallback_to_transactions=True,
                 transform_alias_to_input_format=transform_alias_to_input_format,
@@ -427,7 +379,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                             split_dataset = discover
                             split_query = f"({query}) AND !event.type:transaction"
                         elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
-                            # We can't add event.type:transaction for now because of on-demand.
                             split_dataset = scoped_dataset
                         else:
                             # This is a fallback for the ambiguous case.

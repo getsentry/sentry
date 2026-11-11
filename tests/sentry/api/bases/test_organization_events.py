@@ -4,7 +4,7 @@ from django.test import RequestFactory
 
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.auth import access
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, transactions
+from sentry.snuba import discover, metrics_enhanced_performance, transactions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 
@@ -77,8 +77,8 @@ class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
     def test_metrics_resolves_to_metrics_enhanced_performance(self) -> None:
         assert self.resolve("metrics") is metrics_enhanced_performance
 
-    def test_metrics_stays_on_metrics_performance_for_on_demand(self) -> None:
-        assert self.resolve("metrics", useOnDemandMetrics="true") is metrics_performance
+    def test_on_demand_flag_uses_indexed_events(self) -> None:
+        assert self.resolve("metrics", useOnDemandMetrics="true") is metrics_enhanced_performance
 
     def test_metrics_enhanced_is_unchanged(self) -> None:
         assert self.resolve("metricsEnhanced") is metrics_enhanced_performance

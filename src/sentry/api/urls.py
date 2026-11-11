@@ -843,9 +843,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
-from .endpoints.organization_on_demand_metrics_estimation_stats import (
-    OrganizationOnDemandMetricsEstimationStatsEndpoint,
-)
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
@@ -1928,11 +1925,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/stats/$",
         OrganizationTraceItemStatsEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics-estimation-stats/$",
-        OrganizationOnDemandMetricsEstimationStatsEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-estimation-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-facets/$",

@@ -2,8 +2,6 @@ from datetime import UTC, datetime, timedelta
 from typing import TypedDict, Unpack
 from uuid import uuid4
 
-import pytest
-
 from sentry.discover.compare_tables import (
     CompareTableResult,
     compare_tables_for_dashboard_widget_queries,
@@ -15,15 +13,8 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
-from sentry.testutils.cases import BaseMetricsLayerTestCase, BaseSpansTestCase, TestCase
+from sentry.testutils.cases import BaseSpansTestCase, TestCase
 from sentry.utils.samples import load_data
-
-pytestmark = [
-    pytest.mark.sentry_metrics,
-    pytest.mark.skip(
-        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-    ),
-]
 
 
 class SegmentKwargs(TypedDict, total=False):
@@ -33,7 +24,7 @@ class SegmentKwargs(TypedDict, total=False):
     tags: dict[str, str]
 
 
-class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCase):
+class CompareTablesTestCase(TestCase, BaseSpansTestCase):
     @property
     def now(self) -> datetime:
         return datetime.now(UTC).replace(microsecond=0)
@@ -158,7 +149,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             columns=["transaction"],
         )
 
-        self.triple_write_segment(
+        self.write_segment_and_transaction(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -169,7 +160,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             days_before_now=1,
         )
 
-        self.triple_write_segment(
+        self.write_segment_and_transaction(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -180,7 +171,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             days_before_now=2,
         )
 
-        self.triple_write_segment(
+        self.write_segment_and_transaction(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -192,7 +183,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             tags={"http.status_code": "200"},
         )
 
-        self.triple_write_segment(
+        self.write_segment_and_transaction(
             project=self.project,
             trace_id=uuid4().hex,
             transaction_id=uuid4().hex,
@@ -204,7 +195,7 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             tags={"http.status_code": "400"},
         )
 
-    def triple_write_segment(
+    def write_segment_and_transaction(
         self,
         *,
         project: Project,
@@ -224,14 +215,11 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
         if "client_sample_rate" not in kwargs["measurements"]:
             kwargs["measurements"]["client_sample_rate"] = 0.1
 
-        timestamp = self.adjust_timestamp(
-            self.now
-            - timedelta(
-                days=days_before_now,
-                hours=hours_before_now,
-                minutes=minutes_before_now,
-                seconds=seconds_before_now,
-            )
+        timestamp = self.now - timedelta(
+            days=days_before_now,
+            hours=hours_before_now,
+            minutes=minutes_before_now,
+            seconds=seconds_before_now + 1,
         )
         end_timestamp = timestamp + timedelta(microseconds=duration * 1000)
 
@@ -264,18 +252,6 @@ class CompareTablesTestCase(BaseMetricsLayerTestCase, TestCase, BaseSpansTestCas
             duration=duration,
             organization_id=project.organization.id,
             **kwargs,
-        )
-
-        self.store_performance_metric(
-            name="d:transactions/duration@millisecond",
-            tags=tags,
-            project_id=project.id,
-            org_id=project.organization.id,
-            value=duration,
-            days_before_now=days_before_now,
-            hours_before_now=hours_before_now,
-            minutes_before_now=minutes_before_now,
-            seconds_before_now=seconds_before_now,
         )
 
     def test_compare_successful_tables(self) -> None:

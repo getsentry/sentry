@@ -57,9 +57,8 @@ from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.service_accounts.principal import ServiceAccountPrincipal
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.utils import (
     DATASET_LABELS,
     PUBLIC_DATASET_LABELS,
@@ -167,8 +166,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
-        if result is metrics_performance and request.GET.get("useOnDemandMetrics") != "true":
-            result = metrics_enhanced_performance
         sentry_sdk.set_tag("query.dataset", dataset_label)
         sentry_sdk.set_attribute("query.dataset", dataset_label)
         return result
@@ -275,15 +272,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
-
-    def handle_on_demand(self, request: Request) -> tuple[bool, MetricSpecType]:
-        use_on_demand_metrics = request.GET.get("useOnDemandMetrics") == "true"
-        on_demand_metric_type = MetricSpecType.SIMPLE_QUERY
-        on_demand_metric_type_value = request.GET.get("onDemandType")
-        if use_on_demand_metrics and on_demand_metric_type_value:
-            on_demand_metric_type = MetricSpecType(on_demand_metric_type_value)
-
-        return use_on_demand_metrics, on_demand_metric_type
 
     def save_split_decision(
         self,
@@ -696,10 +684,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                             transform_alias_to_input_format=transform_alias_to_input_format,
                             use_rpc=use_rpc,
                         )
-                        if request.query_params.get("useOnDemandMetrics") == "true":
-                            results[key]["isMetricsExtractedData"] = self._query_if_extracted_data(
-                                results, key, query_columns
-                            )
                     else:
                         column = resolve_axis_column(
                             query_columns[0],
@@ -769,21 +753,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 serialized_result["meta"] = meta
 
             return serialized_result
-
-    def _query_if_extracted_data(
-        self, results: dict[str, Any], key: str, query_columns: list[str]
-    ) -> bool:
-        ret_value = False
-        try:
-            for c in query_columns:
-                # At least one of the columns has required extracted data
-                if results[key][c].get("meta", {}).get("isMetricsExtractedData"):
-                    ret_value = True
-                    break
-        except Exception as error:
-            sentry_sdk.capture_exception(error)
-
-        return ret_value
 
     def serialize_multiple_axis(
         self,

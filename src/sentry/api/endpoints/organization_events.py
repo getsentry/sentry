@@ -55,11 +55,9 @@ from sentry.snuba import (
     discover,
     errors,
     metrics_enhanced_performance,
-    metrics_performance,
     transactions,
     uptime_results,
 )
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
@@ -186,8 +184,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         feature_names = [
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:on-demand-metrics-extraction",
-            "organizations:on-demand-metrics-extraction-widgets",
             "organizations:events-endpoint-transactions-discover-blocked",
             "organizations:measured-ingestion-delay-metadata",
         ]
@@ -286,24 +282,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        try:
-            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
-        except ValueError:
-            metric_type_values = [e.value for e in MetricSpecType]
-            metric_types = ",".join(metric_type_values)
-            return Response(
-                {"detail": f"On demand metric type must be one of: {metric_types}"}, status=400
-            )
-
-        on_demand_metrics_enabled = (
-            batch_features.get("organizations:on-demand-metrics-extraction", False)
-            or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
-        ) and use_on_demand_metrics
-
         save_discover_dataset_decision = True
 
         dataset = self.get_dataset(request, organization)
-        metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
+        metrics_enhanced = dataset is metrics_enhanced_performance
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
@@ -401,8 +383,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     transform_alias_to_input_format=True,
                     # Whether the flag is enabled or not, regardless of the referrer
                     has_metrics=True,
-                    on_demand_metrics_enabled=on_demand_metrics_enabled,
-                    on_demand_metrics_type=on_demand_metrics_type,
                     fallback_to_transactions=True,
                     query_source=query_source,
                 ),
@@ -429,7 +409,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
                         dataset_query = errors.query
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        # We can't add event.type:transaction for now because of on-demand.
                         dataset_query = scoped_dataset_query
                     else:
                         dataset_query = discover.query
