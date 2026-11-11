@@ -43,10 +43,10 @@ from sentry.notebooks.services.notebooks import (
     NotebookSourceNotFound,
     NotebookValidationError,
     _validate_project_ids,
-    archive_notebook,
+    archive_notebook_row,
     create_notebook,
     default_notebook_title,
-    update_notebook,
+    update_notebook_row,
 )
 from sentry.users.services.user.service import user_service
 from sentry.viewer_context import ActorId, ActorType
@@ -471,7 +471,7 @@ def archive_investigation_with_orchestration(
                 completed_at=now,
                 date_updated=now,
             )
-        return archive_notebook(
+        return archive_notebook_row(
             notebook=locked_investigation,
             expected_version=archive_version,
         )
@@ -505,7 +505,7 @@ def update_investigation_with_orchestration(
             assert isinstance(control, dict)
             if control.get("manualTitleOverride") is not True:
                 expected_version = locked_investigation.version
-        updated = update_notebook(
+        updated = update_notebook_row(
             notebook=locked_investigation,
             expected_version=expected_version,
             fields=fields,

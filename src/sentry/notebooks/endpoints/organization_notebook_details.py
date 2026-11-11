@@ -33,7 +33,7 @@ from sentry.notebooks.services.producer import archive_notebook, update_notebook
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationNotebooksDetailsEndpoint(OrganizationNotebookEndpoint):
+class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

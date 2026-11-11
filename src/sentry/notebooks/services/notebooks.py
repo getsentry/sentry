@@ -207,7 +207,7 @@ def bump_notebook_version(notebook: Notebook) -> None:
     notebook.save()
 
 
-def update_notebook(
+def update_notebook_row(
     *,
     notebook: Notebook,
     expected_version: int,
@@ -239,7 +239,7 @@ def update_notebook(
     return locked
 
 
-def archive_notebook(*, notebook: Notebook, expected_version: int) -> Notebook:
+def archive_notebook_row(*, notebook: Notebook, expected_version: int) -> Notebook:
     with transaction.atomic(using=router.db_for_write(Notebook)):
         locked = lock_notebook(notebook, expected_version)
         if locked.status == NotebookStatus.ARCHIVED:

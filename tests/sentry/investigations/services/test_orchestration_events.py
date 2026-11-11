@@ -51,9 +51,9 @@ from sentry.notebooks.services.action_kinds import ACTION_KINDS
 from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.notebooks import (
     NotebookConflictError,
-    archive_notebook,
+    archive_notebook_row,
     update_block,
-    update_notebook,
+    update_notebook_row,
 )
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
@@ -357,7 +357,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
-        archived = archive_notebook(
+        archived = archive_notebook_row(
             notebook=self.investigation, expected_version=self.investigation.version
         )
         version = archived.version
@@ -415,7 +415,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_scope_fallback_keeps_output_permissions_after_project_selection_changes(self) -> None:
         other_project = self.create_project(organization=self.organization)
-        update_notebook(
+        update_notebook_row(
             notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
@@ -431,7 +431,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_started", payload))
         self.investigation.refresh_from_db()
-        update_notebook(
+        update_notebook_row(
             notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
@@ -546,7 +546,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_identical_replacement_result_keeps_the_started_project_scope(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_notebook(
+        update_notebook_row(
             notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
@@ -558,7 +558,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_upserted", payload))
         self.investigation.refresh_from_db()
-        update_notebook(
+        update_notebook_row(
             notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
@@ -746,7 +746,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_failed_kind_replacement_snapshot_restores_original_output(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_notebook(
+        update_notebook_row(
             notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
@@ -761,7 +761,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         original_execution = block.current_execution
         assert original_execution is not None
         self.investigation.refresh_from_db()
-        update_notebook(
+        update_notebook_row(
             notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},

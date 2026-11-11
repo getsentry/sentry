@@ -29,7 +29,7 @@ from sentry.notebooks.services import duplicate_notebook
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationNotebooksDuplicateEndpoint(OrganizationNotebookEndpoint):
+class OrganizationNotebookDuplicateEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 

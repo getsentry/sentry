@@ -29,7 +29,7 @@ from sentry.notebooks.services import create_block
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationNotebookBlocksEndpoint(OrganizationNotebookEndpoint):
+class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 

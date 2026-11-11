@@ -21,7 +21,7 @@ from sentry.notebooks.models import Notebook, NotebookFavoriteUser
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationNotebooksFavoriteEndpoint(OrganizationNotebookEndpoint):
+class OrganizationNotebookFavoriteEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
 

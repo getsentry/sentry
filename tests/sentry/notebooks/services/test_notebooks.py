@@ -11,7 +11,7 @@ from sentry.notebooks.services.notebooks import (
     create_notebook,
     default_notebook_title,
     lock_notebook,
-    update_notebook,
+    update_notebook_row,
 )
 from sentry.testutils.cases import TestCase
 
@@ -87,7 +87,7 @@ class ProjectLinkScopingTest(TestCase):
         )
 
         with pytest.raises(NotebookValidationError):
-            update_notebook(
+            update_notebook_row(
                 notebook=notebook,
                 expected_version=notebook.version,
                 fields={},
@@ -134,7 +134,7 @@ class UpdateFieldAllowlistTest(TestCase):
         )
 
         with pytest.raises(NotebookValidationError):
-            update_notebook(
+            update_notebook_row(
                 notebook=notebook,
                 expected_version=notebook.version,
                 fields={"organization_id": other_organization.id},
@@ -153,7 +153,7 @@ class UpdateFieldAllowlistTest(TestCase):
             filters={},
         )
 
-        updated = update_notebook(
+        updated = update_notebook_row(
             notebook=notebook,
             expected_version=notebook.version,
             fields={"title": "Renamed", "filters": {"environment": ["prod"]}},

@@ -460,10 +460,10 @@ from sentry.notebooks.endpoints.organization_notebook_block_execution_details im
     OrganizationNotebookBlockExecutionDetailsEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_block_execution_index import (
-    OrganizationNotebookBlockExecutionsEndpoint,
+    OrganizationNotebookBlockExecutionIndexEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_block_index import (
-    OrganizationNotebookBlocksEndpoint,
+    OrganizationNotebookBlockIndexEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_block_order import (
     OrganizationNotebookBlockOrderEndpoint,
@@ -475,19 +475,19 @@ from sentry.notebooks.endpoints.organization_notebook_comment_details import (
     OrganizationNotebookCommentDetailsEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_comment_index import (
-    OrganizationNotebookCommentsEndpoint,
+    OrganizationNotebookCommentIndexEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_details import (
-    OrganizationNotebooksDetailsEndpoint,
+    OrganizationNotebookDetailsEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_duplicate import (
-    OrganizationNotebooksDuplicateEndpoint,
+    OrganizationNotebookDuplicateEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_favorite import (
-    OrganizationNotebooksFavoriteEndpoint,
+    OrganizationNotebookFavoriteEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_index import (
-    OrganizationNotebooksIndexEndpoint,
+    OrganizationNotebookIndexEndpoint,
 )
 from sentry.notebooks.endpoints.organization_notebook_presence import (
     OrganizationNotebookPresenceEndpoint,
@@ -2458,17 +2458,17 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/$",
-        OrganizationNotebooksIndexEndpoint.as_view(),
+        OrganizationNotebookIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebooks",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/$",
-        OrganizationNotebooksDetailsEndpoint.as_view(),
+        OrganizationNotebookDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/$",
-        OrganizationNotebookBlocksEndpoint.as_view(),
+        OrganizationNotebookBlockIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-blocks",
     ),
     re_path(
@@ -2483,7 +2483,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
-        OrganizationNotebookBlockExecutionsEndpoint.as_view(),
+        OrganizationNotebookBlockExecutionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-block-executions",
     ),
     re_path(
@@ -2493,12 +2493,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/favorite/$",
-        OrganizationNotebooksFavoriteEndpoint.as_view(),
+        OrganizationNotebookFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-favorite",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comments/$",
-        OrganizationNotebookCommentsEndpoint.as_view(),
+        OrganizationNotebookCommentIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-comments",
     ),
     re_path(
@@ -2513,7 +2513,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/duplicate/$",
-        OrganizationNotebooksDuplicateEndpoint.as_view(),
+        OrganizationNotebookDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-duplicate",
     ),
     re_path(

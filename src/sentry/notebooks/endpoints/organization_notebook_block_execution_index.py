@@ -37,7 +37,7 @@ from sentry.utils import metrics
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationNotebookBlockExecutionsEndpoint(OrganizationNotebookBlockEndpoint):
+class OrganizationNotebookBlockExecutionIndexEndpoint(OrganizationNotebookBlockEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 

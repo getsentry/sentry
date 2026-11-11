@@ -8,8 +8,8 @@ from uuid import UUID
 from django.db.models import Q, QuerySet
 
 from sentry.notebooks.models import Notebook, NotebookActionRequest
-from sentry.notebooks.services import notebooks as notebook_service
 from sentry.notebooks.services.action_kinds.base import FollowUpCommand
+from sentry.notebooks.services.notebooks import archive_notebook_row, update_notebook_row
 
 if TYPE_CHECKING:
     from sentry.notebooks.endpoints.serializers.action_request import (
@@ -152,9 +152,7 @@ def archive_notebook(
 ) -> Notebook:
     producer = get_producer(notebook.source_type)
     if producer is None:
-        return notebook_service.archive_notebook(
-            notebook=notebook, expected_version=expected_version
-        )
+        return archive_notebook_row(notebook=notebook, expected_version=expected_version)
     return producer.archive_notebook(
         notebook=notebook, expected_version=expected_version, actor_id=actor_id
     )
@@ -169,7 +167,7 @@ def update_notebook(
 ) -> Notebook:
     producer = get_producer(notebook.source_type)
     if producer is None:
-        return notebook_service.update_notebook(
+        return update_notebook_row(
             notebook=notebook,
             expected_version=expected_version,
             fields=fields,

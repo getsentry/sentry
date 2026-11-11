@@ -76,7 +76,7 @@ def filter_by_trigger(
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationNotebooksIndexEndpoint(OrganizationNotebooksBaseEndpoint):
+class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
 
