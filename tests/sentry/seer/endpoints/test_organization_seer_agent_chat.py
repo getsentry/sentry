@@ -18,6 +18,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.agent.client_utils import snapshot_to_markdown
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
+from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -79,6 +80,49 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["feature_id"] == "autofix_single_run"
+
+    def _step_prompt_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="b0",
+                    message=Message(
+                        role="user",
+                        content="Analyze issue ABC-1 ...",
+                        metadata={"step": "root_cause"},
+                    ),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_hides_the_autofix_prompt_from_customers(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client_class.return_value.get_run.return_value = self._step_prompt_state()
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200, response.data
+        content = response.data["session"]["blocks"][0]["message"]["content"]
+        assert content == AUTOFIX_PROMPT_PLACEHOLDER
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_shows_the_autofix_prompt_to_superusers(self, mock_client_class: MagicMock) -> None:
+        mock_client_class.return_value.get_run.return_value = self._step_prompt_state()
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(organization=self.organization, user=superuser, role="owner")
+        self.login_as(user=superuser, superuser=True)
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200, response.data
+        content = response.data["session"]["blocks"][0]["message"]["content"]
+        assert content == "Analyze issue ABC-1 ..."
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_reports_no_feature_id_for_other_runs(self, mock_client_class: MagicMock) -> None:

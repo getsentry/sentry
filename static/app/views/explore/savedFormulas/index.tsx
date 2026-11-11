@@ -11,6 +11,7 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -62,7 +63,7 @@ export default function SavedFormulasView() {
                   isError={isError}
                   sort={sort}
                 />
-                <Pagination pageLinks={pageLinks} />
+                <Pagination {...getPaginationProps(pageLinks)} />
               </Layout.Main>
             </Layout.Body>
           </Stack>

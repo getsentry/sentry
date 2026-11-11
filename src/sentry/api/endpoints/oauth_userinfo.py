@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models.apitoken import ApiToken
 from sentry.users.models.useremail import UserEmail
+from sentry.web.decorators import ai_machine_readable
 
 
 class BearerTokenError(APIException):
@@ -63,6 +64,7 @@ class BearerTokenInsufficientScope(BearerTokenError):
 
 
 @control_silo_endpoint
+@ai_machine_readable
 class OAuthUserInfoEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
