@@ -40,6 +40,7 @@ export type ConversationsEventParameters = {
   };
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
+    chart: string;
     save_type: 'alert' | 'dashboard';
   };
   'conversations.save_query_modal': {
