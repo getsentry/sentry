@@ -17,7 +17,7 @@ import {
   KeyValueTableCardGrid,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, type Event, type ExceptionValue} from 'sentry/types/event';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
@@ -563,7 +563,8 @@ function DecodeDetails({crash}: {crash: Context}) {
     <Stack gap="sm">
       {crash.missing_dif_count > 0 ? (
         <Alert variant="warning">
-          {t(
+          {tn(
+            '%s shader debug info file (.nvdbg) referenced by this crash was not uploaded, so shader names and source mapping may be incomplete.',
             '%s shader debug info files (.nvdbg) referenced by this crash were not uploaded, so shader names and source mapping may be incomplete.',
             crash.missing_dif_count
           )}
@@ -610,9 +611,12 @@ export function EventGpuCrashReport({event}: {event: Event}) {
     ?.data?.values as RawCrumb[] | undefined;
   const crumbs = (breadcrumbs ?? []).filter(c => c.category?.startsWith('gpu.'));
   const lastOperation: string | undefined = crash.last_gpu_operation;
-  const lastMarker = crumbs.find(
+  const operationMarkers = crumbs.filter(
     c => c.category === 'gpu.marker' && c.message === lastOperation
   );
+  const lastMarker =
+    operationMarkers.findLast(c => (c.data as MarkerData)?.Status === 'Executing') ??
+    operationMarkers.at(-1);
   const annotations = crumbs
     .filter(c => c.category === 'gpu.application' || c.category === 'gpu.user_defined')
     .map(c => (c.message ?? '').split(/: (.*)/s));
