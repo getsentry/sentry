@@ -287,7 +287,7 @@ describe('TransactionReplays', () => {
     });
 
     // hack: Wait for any pending updates to complete
-    // without await the test fails with "An update to GenericDiscoverQuery inside a test was not wrapped in act(...)"
+    // without await the test fails with "An update to _GenericDiscoverQuery inside a test was not wrapped in act(...)"
     await waitFor(() => {
       expect(screen.queryByTestId('replay-table')).not.toBeInTheDocument();
     });
