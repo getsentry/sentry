@@ -30,6 +30,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedba
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
 )
+from sentry.seer.autofix.single_run import CODING_AGENT_HANDOFF_KEY
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.credits import SeerOperation
@@ -582,12 +583,45 @@ class TestSingleRunStart(TestCase):
 
         assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
 
-    def test_handoff_project_never_single_run(self) -> None:
+    def test_handoff_project_starts_single_run(self) -> None:
         self._set_handoff()
         with self.feature("organizations:autofix-single-run"):
-            mock_client_cls = self._start(single_run=True)
+            mock_client_cls = self._start()
 
-        assert self._started_feature_id(mock_client_cls) == FEATURE_ID
+        assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
+
+    def test_handoff_project_gets_no_code_tools_and_records_the_handoff(self) -> None:
+        self._set_handoff()
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        for stopping_point in (AutofixStoppingPoint.CODE_CHANGES, AutofixStoppingPoint.OPEN_PR):
+            with self.subTest(stopping_point=stopping_point):
+                mock_client_cls = self._start(single_run=True, stopping_point=stopping_point)
+
+                assert mock_client_cls.call_args.kwargs["enable_coding"] is False
+                start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+                assert start_kwargs["agent_run_options"]["enable_coding"] is False
+                assert "enable_write_pull_request" not in start_kwargs["agent_run_options"]
+                assert start_kwargs["payload"]["pr_internal_settings"] is None
+                assert start_kwargs["extras"][CODING_AGENT_HANDOFF_KEY] is True
+
+    def test_handoff_project_stopping_at_root_cause_does_not_hand_off(self) -> None:
+        self._set_handoff()
+
+        mock_client_cls = self._start(
+            single_run=True, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+        )
+
+        start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert CODING_AGENT_HANDOFF_KEY not in start_kwargs["extras"]
+
+    def test_project_without_handoff_records_no_handoff(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+        mock_client_cls = self._start(single_run=True, stopping_point=AutofixStoppingPoint.OPEN_PR)
+
+        start_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert start_kwargs["agent_run_options"]["enable_coding"] is True
+        assert CODING_AGENT_HANDOFF_KEY not in start_kwargs["extras"]
 
     def test_retry_never_single_run(self) -> None:
         with self.feature("organizations:autofix-single-run"):
@@ -723,6 +757,17 @@ class TestContinueSingleRun(TestCase):
         kwargs = self._continue_kwargs(self._reply(can_publish=False))
 
         assert kwargs["agent_run_options"]["enable_coding"] is True
+        assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
+        assert kwargs["payload"]["pr_internal_settings"] is None
+
+    def test_handoff_run_gets_no_code_tools(self) -> None:
+        self.agent_run.update(extras={CODING_AGENT_HANDOFF_KEY: True})
+
+        mock_client_cls = self._reply()
+        kwargs = self._continue_kwargs(mock_client_cls)
+
+        assert mock_client_cls.call_args.kwargs["enable_coding"] is False
+        assert kwargs["agent_run_options"]["enable_coding"] is False
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
         assert kwargs["payload"]["pr_internal_settings"] is None
 
