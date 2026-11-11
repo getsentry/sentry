@@ -397,6 +397,7 @@ class SeerRunState(BaseModel):
     # exclude=True omits these from .dict() so they're not exposed via the public
     # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
+    billing_feature: int | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
     pr_push_log: list[PushLogEntry] | None = Field(default=None, exclude=True)

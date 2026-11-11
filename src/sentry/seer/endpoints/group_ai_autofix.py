@@ -10,6 +10,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -37,7 +38,7 @@ from sentry.issues.action_log import (
     action_context_scope,
 )
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
-from sentry.issues.action_log.types import GroupActorType
+from sentry.issues.action_log.types import ActionSource, GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
@@ -561,10 +562,17 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                # The client can supply referrer. Resolve attribution from the request instead.
+                billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                 if is_autofix_kickoff:
                     actor = resolve_action_actor(request)
+                    source = resolve_action_source(request)
+                    if actor.actor_type == GroupActorType.SENTRY_APP:
+                        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS
+                    elif source == ActionSource.WEB:
+                        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_WEB
                     with action_context_scope(
-                        source=resolve_action_source(request),
+                        source=source,
                         actor=actor,
                     ):
                         Activity.objects.create_group_activity(
@@ -582,6 +590,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         group=group,
                         step=AutofixStep(step),
                         referrer=referrer,
+                        billing_feature=billing_feature,
                         stopping_point=(
                             AutofixStoppingPoint(stopping_point) if stopping_point else None
                         ),

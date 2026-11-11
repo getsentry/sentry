@@ -5,6 +5,9 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 from django.test import override_settings
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_DASHBOARD_GENERATION,
+)
 
 from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.seer.models import SeerPermissionError
@@ -58,6 +61,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         call_kwargs = mock_client.start_run.call_args[1]
         assert "Show me error rates by project" in call_kwargs["prompt"]
         assert call_kwargs["artifact_key"] == "dashboard"
+        assert call_kwargs["billing_feature"] == SEER_BILLING_FEATURE_DASHBOARD_GENERATION
 
     @patch(
         "sentry.dashboards.endpoints.organization_dashboard_generate.has_seer_access_with_detail"
