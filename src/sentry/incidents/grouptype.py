@@ -36,9 +36,6 @@ from sentry.workflow_engine.types import (
 
 logger = logging.getLogger(__name__)
 
-COMPARISON_DELTA_CHOICES: list[None | int] = [choice.value for choice in ComparisonDeltaChoices]
-COMPARISON_DELTA_CHOICES.append(None)
-
 MetricUpdate = ProcessedSubscriptionUpdate | AnomalyDetectionUpdate
 
 MetricResult = float | AnomalyDetectionValues
@@ -220,12 +217,20 @@ class MetricIssueDetectorSettings(DetectorSettings):
         "required": ["detection_type"],
         "properties": {
             "comparison_delta": {
-                "type": ["integer", "null"],
-                "enum": COMPARISON_DELTA_CHOICES,
+                "type": "integer",
+                "enum": [choice.value for choice in ComparisonDeltaChoices],
             },
             "detection_type": {
                 "type": "string",
                 "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
             },
         },
+        # Only percent detectors have a `comparison_delta`
+        "if": {
+            # Without `required`, the condition would also match when `detection_type` is missing
+            "required": ["detection_type"],
+            "properties": {"detection_type": {"const": AlertRuleDetectionType.PERCENT.value}},
+        },
+        "then": {"required": ["comparison_delta"]},
+        "else": {"not": {"required": ["comparison_delta"]}},
     }
