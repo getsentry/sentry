@@ -169,6 +169,50 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 404, response.content
 
+    def test_returns_prefixed_span_attribute_when_requested_by_its_span_details_name(
+        self,
+    ) -> None:
+        self._store_span({"sentry.dsc.environment": "production"})
+
+        response = self.do_request(
+            query={"attributeName": "dsc.environment", "attributeType": "string"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "sentry.dsc.environment"
+        assert response.data["datasets"] == ["spans"]
+
+    def test_returns_404_when_only_a_log_attribute_has_the_prefixed_name(self) -> None:
+        self._store_log({"sentry.custom": {"string_value": "a"}})
+
+        response = self.do_request(query={"attributeName": "custom", "attributeType": "string"})
+
+        assert response.status_code == 404, response.content
+
+    def test_returns_sentry_column_when_it_is_not_stored_as_an_attribute(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span(timestamp=timestamp)
+
+        response = self.do_request(
+            query={"attributeName": "trace", "attributeType": "string", "statsPeriod": "14d"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "trace"
+        assert response.data["attributeSource"] == {"source_type": "sentry"}
+        assert response.data["datasets"] == ["spans"]
+        assert response.data["lastSeen"] == timestamp.isoformat()
+        assert list(response.data["stats"]) == ["spans"]
+
+    def test_returns_404_when_a_sentry_column_is_requested_with_the_user_source(self) -> None:
+        self._store_span()
+
+        response = self.do_request(
+            query={"attributeName": "trace", "attributeType": "string", "attributeSource": "user"}
+        )
+
+        assert response.status_code == 404, response.content
+
     def test_returns_404_when_sentry_defined_attribute_was_not_stored(self) -> None:
         self._store_span()
 

@@ -121,9 +121,11 @@ def _query_last_seen_from_table(
 
 
 def query_last_seen(
-    dataset: str, refs: Sequence[StoredRef], snuba_params: SnubaParams
+    dataset: str, refs: Sequence[StoredRef], snuba_params: SnubaParams, from_table: bool = False
 ) -> datetime | None:
     resolver = _resolver(dataset, snuba_params)
+    if from_table:
+        return _query_last_seen_from_table(dataset, refs, resolver)
     meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN.value)
     meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
         SupportedTraceItemType(dataset), ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
@@ -256,6 +258,7 @@ def query_attribute_stats(
     attribute_type: ColumnType,
     refs_by_dataset: Mapping[str, Sequence[StoredRef]],
     snuba_params: SnubaParams,
+    last_seen_from_table: bool = False,
 ) -> tuple[dict[str, TraceItemAttributeDatasetStats], datetime | None]:
     queryable = {
         dataset: refs
@@ -283,7 +286,7 @@ def query_attribute_stats(
         ),
     ) as pool:
         last_seen_futures = {
-            dataset: pool.submit(query_last_seen, dataset, refs, snuba_params)
+            dataset: pool.submit(query_last_seen, dataset, refs, snuba_params, last_seen_from_table)
             for dataset, refs in queryable.items()
         }
         cardinality_futures = {
