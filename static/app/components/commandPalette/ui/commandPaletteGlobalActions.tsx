@@ -443,7 +443,11 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
+        <CMDKAction
+          display={{label: t('Explore'), icon: <IconCompass />}}
+          keywords={[t('discover')]}
+          limit={4}
+        >
           <CMDKAction
             display={{label: t('Traces')}}
             keywords={[t('spans'), t('trace explorer')]}
@@ -481,7 +485,7 @@ export function GlobalCommandPaletteActions() {
           )}
           <CMDKAction
             display={{label: t('Releases')}}
-            keywords={[t('release health')]}
+            keywords={[t('release health'), t('crash free'), t('crash free rate')]}
             to={`${prefix}/explore/releases/`}
           />
           {organization.features.includes('gen-ai-conversations') && (
@@ -620,7 +624,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('uptime') && (
             <CMDKAction
               display={{label: t('Uptime')}}
-              keywords={[t('uptime monitors'), t('monitors')]}
+              keywords={[t('uptime monitors'), t('monitors'), t('uptime monitoring')]}
               to={`${prefix}/monitors/uptime/`}
             />
           )}
@@ -632,7 +636,7 @@ export function GlobalCommandPaletteActions() {
           )}
           <CMDKAction
             display={{label: t('Alerts')}}
-            keywords={[t('alert rules'), t('issue alert')]}
+            keywords={[t('alert rules'), t('issue alert'), t('alarm')]}
             to={`${prefix}/monitors/alerts/`}
           />
         </CMDKAction>
@@ -875,7 +879,7 @@ export function GlobalCommandPaletteActions() {
         />
         <CMDKAction
           display={{label: t('Create Alert'), icon: <IconAdd />}}
-          keywords={[t('add alert'), t('alert rules'), t('issue alert')]}
+          keywords={[t('add alert'), t('alert rules'), t('issue alert'), t('alarm')]}
           to={`${prefix}/monitors/alerts/new/`}
         />
         <CMDKAction
