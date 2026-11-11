@@ -6,10 +6,16 @@ from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
-    from sentry.seer.models.run import SeerRun
+    from sentry.seer.models.run import SeerAgentRun, SeerRun
 
 SINGLE_RUN_ROOT_CAUSE_KEY = "single_run_root_cause"
 SINGLE_RUN_STOP_KEY = "stop"
+# Set in a single run's extras when it hands the fix to the project's coding agent.
+CODING_AGENT_HANDOFF_KEY = "coding_agent_handoff"
+
+
+def hands_off_to_coding_agent(agent_run: SeerAgentRun) -> bool:
+    return bool((agent_run.extras or {}).get(CODING_AGENT_HANDOFF_KEY))
 
 
 def is_single_run(state: SeerRunState) -> bool:
