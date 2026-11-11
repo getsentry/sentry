@@ -39,6 +39,11 @@ interface AutoTopUpModalOptions {
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
 
+type AutoTopUpSettings = Pick<
+  SeerWalletAutoTopUp,
+  'enabled' | 'thresholdCredits' | 'topUpCredits' | 'dailySpendCapCents'
+>;
+
 type AutoTopUpFormProps = AutoTopUpModalProps & {
   autoTopUp: SeerWalletAutoTopUp;
   balanceCredits: number;
@@ -47,7 +52,8 @@ type AutoTopUpFormProps = AutoTopUpModalProps & {
 };
 
 function parseWholeNumber(value: string) {
-  return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
+  const digits = value.replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) : null;
 }
 
 function toWholeDollarCents(cents: number) {
@@ -134,19 +140,26 @@ function AutoTopUpForm({
 }: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
   const isTurningOn = !autoTopUp.enabled;
-  // The backend only bills an auto-reload once the balance is below the threshold.
-  const isChargedNow = isTurningOn && balanceCredits < autoTopUp.thresholdCredits;
+  // The backend bills an auto-reload once the balance is at or below the threshold.
+  const isChargedNow = isTurningOn && balanceCredits <= autoTopUp.thresholdCredits;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
   const [initialAmount] = useState(() => getInitialAmount(autoTopUp, creditPriceCents));
   const [amountCents, setAmountCents] = useState(initialAmount.cents);
   const [isCustomAmount, setIsCustomAmount] = useState(initialAmount.isCustom);
   const [dailyLimitCents, setDailyLimitCents] = useState(
-    toWholeDollarCents(autoTopUp.dailySpendCapCents)
+    autoTopUp.dailySpendCapCents === null
+      ? null
+      : toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
 
+  const topUpCredits = Math.floor(amountCents / creditPriceCents);
+  const isAmountTooLow = topUpCredits < autoTopUp.minTopUpCredits;
+  const isDailyLimitTooLow =
+    dailyLimitCents !== null && dailyLimitCents < autoTopUp.minDailySpendCapCents;
+
   const {mutate: save, isPending} = useMutation({
-    mutationFn: (data: SeerWalletAutoTopUp) =>
+    mutationFn: (data: AutoTopUpSettings) =>
       fetchMutation<SeerWalletAutoTopUp>({
         url: getApiUrl('/customers/$organizationIdOrSlug/seer-wallet/auto-top-up/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -208,7 +221,14 @@ function AutoTopUpForm({
             <Button
               variant="danger"
               busy={isPending}
-              onClick={() => save({...autoTopUp, enabled: false})}
+              onClick={() =>
+                save({
+                  enabled: false,
+                  thresholdCredits: autoTopUp.thresholdCredits,
+                  topUpCredits: autoTopUp.topUpCredits,
+                  dailySpendCapCents: autoTopUp.dailySpendCapCents,
+                })
+              }
             >
               {t('Turn off')}
             </Button>
@@ -302,8 +322,17 @@ function AutoTopUpForm({
                   aria-label={t('Custom credit amount')}
                   cents={amountCents}
                   creditPriceCents={creditPriceCents}
-                  onChange={setAmountCents}
+                  onChange={cents => setAmountCents(cents ?? 0)}
                 />
+              )}
+              {isAmountTooLow && (
+                <Text size="sm" variant="danger">
+                  {tct('The credit amount must be at least [price].', {
+                    price: displayPrice({
+                      cents: autoTopUp.minTopUpCredits * creditPriceCents,
+                    }),
+                  })}
+                </Text>
               )}
             </Stack>
           </Stack>
@@ -320,8 +349,16 @@ function AutoTopUpForm({
               id="seer-auto-load-daily-limit"
               cents={dailyLimitCents}
               creditPriceCents={creditPriceCents}
+              placeholder={t('No limit')}
               onChange={setDailyLimitCents}
             />
+            {isDailyLimitTooLow && (
+              <Text size="sm" variant="danger">
+                {tct('The daily usage limit must be at least [price].', {
+                  price: displayPrice({cents: autoTopUp.minDailySpendCapCents}),
+                })}
+              </Text>
+            )}
           </Stack>
           {isChargedNow && (
             <DueNow justify="between" align="center" gap="md" padding="lg" radius="md">
@@ -357,12 +394,12 @@ function AutoTopUpForm({
             <Button
               variant="primary"
               busy={isPending}
-              disabled={amountCents <= 0}
+              disabled={isAmountTooLow || isDailyLimitTooLow}
               onClick={() =>
                 save({
                   enabled: true,
                   thresholdCredits: autoTopUp.thresholdCredits,
-                  topUpCredits: Math.floor(amountCents / creditPriceCents),
+                  topUpCredits,
                   dailySpendCapCents: dailyLimitCents,
                 })
               }
@@ -431,11 +468,15 @@ function DollarInput({
   onChange,
   ...inputProps
 }: {
-  cents: number;
+  cents: number | null;
   creditPriceCents: number;
-  onChange: (cents: number) => void;
+  /**
+   * Called with null when the input is cleared.
+   */
+  onChange: (cents: number | null) => void;
   'aria-label'?: string;
   id?: string;
+  placeholder?: string;
 }) {
   return (
     <InputGroup>
@@ -445,16 +486,21 @@ function DollarInput({
       <InputGroup.Input
         {...inputProps}
         inputMode="numeric"
-        value={(cents / 100).toLocaleString()}
-        onChange={e => onChange(parseWholeNumber(e.target.value) * 100)}
+        value={cents === null ? '' : (cents / 100).toLocaleString()}
+        onChange={e => {
+          const dollars = parseWholeNumber(e.target.value);
+          onChange(dollars === null ? null : dollars * 100);
+        }}
       />
-      <InputGroup.TrailingItems disablePointerEvents>
-        <Text variant="muted">
-          {tct('[credits] credits', {
-            credits: Math.floor(cents / creditPriceCents).toLocaleString(),
-          })}
-        </Text>
-      </InputGroup.TrailingItems>
+      {cents !== null && (
+        <InputGroup.TrailingItems disablePointerEvents>
+          <Text variant="muted">
+            {tct('[credits] credits', {
+              credits: Math.floor(cents / creditPriceCents).toLocaleString(),
+            })}
+          </Text>
+        </InputGroup.TrailingItems>
+      )}
     </InputGroup>
   );
 }

@@ -28,8 +28,10 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: 1500,
     dailySpendCapCents: 7500,
+    minTopUpCredits: 1500,
+    minDailySpendCapCents: 100,
     ...params,
   };
 }
@@ -171,7 +173,7 @@ describe('SeerWalletCard', () => {
     mockWallet(
       WalletFixture({
         balance: 1320,
-        purchased: {total: 1000, remaining: 1000, expiresAt: '2027-11-01'},
+        purchased: {total: 1500, remaining: 1500, expiresAt: '2027-11-01'},
       }),
       AutoTopUpFixture({enabled: true})
     );
@@ -182,7 +184,7 @@ describe('SeerWalletCard', () => {
     expect(saveMock).toHaveBeenCalled();
     expect(await screen.findByText('Auto-reload • On')).toBeInTheDocument();
     expect(await screen.findByText('1,320')).toBeInTheDocument();
-    expect(screen.getByText('Adds 1,000 credits when below 500')).toBeInTheDocument();
+    expect(screen.getByText('Adds 1,500 credits when below 500')).toBeInTheDocument();
   });
 
   it('shows an error when the wallet fails to load', async () => {
