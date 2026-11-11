@@ -1,7 +1,7 @@
 {
   "ServiceHook": {
     "type": "object",
-    "required": ["dateCreated", "events", "id", "secret", "status", "url"],
+    "required": ["dateCreated", "events", "id", "status", "url"],
     "properties": {
       "dateCreated": {
         "type": "string",
@@ -18,10 +18,6 @@
         "type": "string",
         "description": "The ID of the service hook."
       },
-      "secret": {
-        "type": "string",
-        "description": "The secret used to sign the requests that Sentry sends to the hook URL."
-      },
       "status": {
         "type": "string",
         "description": "The status of the service hook, such as `active` or `disabled`."
@@ -31,5 +27,22 @@
         "description": "The URL that receives the service hook requests."
       }
     }
+  },
+  "CreatedServiceHook": {
+    "allOf": [
+      {
+        "$ref": "#/ServiceHook"
+      },
+      {
+        "type": "object",
+        "required": ["secret"],
+        "properties": {
+          "secret": {
+            "type": "string",
+            "description": "The webhook signing secret. Only returned when the hook is created; store it securely to verify webhook signatures."
+          }
+        }
+      }
+    ]
   }
 }
