@@ -225,6 +225,9 @@ class MetricIssueDetectorSettings(DetectorSettings):
                 "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
             },
         },
+        # The API drops unknown keys before validating, so this only rejects ones written by other
+        # code
+        "additionalProperties": False,
         # Only percent detectors have a `comparison_delta`
         "if": {
             # Without `required`, the condition would also match when `detection_type` is missing
