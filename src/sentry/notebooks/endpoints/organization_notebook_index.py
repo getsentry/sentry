@@ -85,7 +85,7 @@ def filter_by_trigger(
 @cell_silo_endpoint
 class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PUBLIC}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     idempotent_methods = frozenset()
 
     @extend_schema(
@@ -186,15 +186,16 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create an Investigation",
+        operation_id="Create a Notebook",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=NotebookCreateValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             201: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,

@@ -37,16 +37,17 @@ from sentry.notebooks.services import reorder_blocks
 @cell_silo_endpoint
 class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Reorder Investigation Blocks",
+        operation_id="Reorder Notebook Blocks",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockOrderValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,

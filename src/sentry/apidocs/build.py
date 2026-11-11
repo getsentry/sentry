@@ -28,7 +28,12 @@ def get_old_json_components(filename: str) -> Any:
 OPENAPI_TAGS = [
     {
         "name": "Investigations",
-        "description": "Endpoints for investigation notebooks, which people and Seer agents write. Requires the organizations:investigations feature and open organization membership. A notebook's version is an optimistic concurrency token.",
+        "description": "Private endpoints for investigation notebooks and agent workflows. Requires the organizations:investigations feature and open organization membership. Notebook and workflow versions are independent optimistic concurrency tokens.",
+        "x-display-description": True,
+    },
+    {
+        "name": "Notebooks",
+        "description": "Endpoints for notebooks, which people and Seer agents write. Requires the organizations:investigations feature and open organization membership. A notebook's version is an optimistic concurrency token.",
         "x-display-description": True,
     },
     {

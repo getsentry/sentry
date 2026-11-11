@@ -38,11 +38,15 @@ from sentry.notebooks.services import delete_block, update_block
 @cell_silo_endpoint
 class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PUBLIC, "DELETE": ApiPublishStatus.PUBLIC}
+    publish_status = {
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+    }
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Update an Investigation Block",
+        operation_id="Update a Notebook Block",
+        tags=["Notebooks"],
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotebookParams.NOTEBOOK_ID,
@@ -51,7 +55,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         request=BlockUpdateValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+                "NotebookBlockResponse", NotebookBlockSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
@@ -121,7 +125,8 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         )
 
     @extend_schema(
-        operation_id="Delete an Investigation Block",
+        operation_id="Delete a Notebook Block",
+        tags=["Notebooks"],
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             NotebookParams.NOTEBOOK_ID,

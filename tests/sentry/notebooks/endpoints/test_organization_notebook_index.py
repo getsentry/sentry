@@ -12,7 +12,6 @@ from openapi_schema_validator import OAS30Validator
 from rest_framework.response import Response
 
 import sentry.apidocs.extensions  # noqa: F401
-from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.hooks import CustomGenerator
 from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
 from sentry.investigations.models import InvestigationOrchestrationStatus
@@ -48,7 +47,7 @@ def published_notebook_endpoints(endpoints: Any) -> Any:
         (path, path_regex, method, callback)
         for path, path_regex, method, callback in endpoints
         if issubclass(callback.view_class, OrganizationNotebooksBaseEndpoint)
-        and callback.view_class.publish_status.get(method) is ApiPublishStatus.PUBLIC
+        and callback.view_class.publish_status[method].is_published
     ]
 
 

@@ -39,18 +39,19 @@ from sentry.notebooks.services.producer import archive_notebook, update_notebook
 class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "PUT": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     @extend_schema(
-        operation_id="Retrieve an Investigation",
+        operation_id="Retrieve a Notebook",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+                "NotebookDetailsResponse", NotebookDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,

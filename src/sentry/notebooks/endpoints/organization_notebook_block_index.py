@@ -38,19 +38,20 @@ from sentry.service_accounts.auth import is_service_account_auth
 @cell_silo_endpoint
 class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+    publish_status = {"POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Create an Investigation Block",
+        operation_id="Create a Notebook Block",
+        tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=BlockCreateValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+                "NotebookBlockResponse", NotebookBlockSerializerResponse
             ),
             201: inline_sentry_response_serializer(
-                "InvestigationBlockResponse", NotebookBlockSerializerResponse
+                "NotebookBlockResponse", NotebookBlockSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
