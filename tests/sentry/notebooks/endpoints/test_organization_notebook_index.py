@@ -210,7 +210,10 @@ class OrganizationNotebookIndexTest(APITestCase):
 
         register_producer_source_type(
             ProducerSourceType(
-                name="failing_issue", validator=ExampleSourceValidator, resolve=resolve
+                name="failing_issue",
+                producer="example",
+                validator=ExampleSourceValidator,
+                resolve=resolve,
             )
         )
         self.addCleanup(PRODUCER_SOURCE_TYPES.pop, "failing_issue")
