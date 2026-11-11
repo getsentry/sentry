@@ -1,6 +1,7 @@
 from typing import Any
 
 from sentry.issues.formatting.autofix import format_autofix
+from sentry.utils import json
 
 
 def _block(**fields: Any) -> dict[str, Any]:
@@ -196,3 +197,19 @@ def test_markdown_renders_a_root_cause_returned_under_root_cause() -> None:
         repo_pr_states={},
     )
     assert "## Root Cause\nRegex rejects ids\nToo strict." in format_autofix(data)
+
+
+def test_json_keeps_each_file_with_its_own_diff() -> None:
+    def patch(path: str, diff: str) -> dict[str, Any]:
+        return {
+            "repo_name": "r",
+            "patch": {"path": path, "type": "M", "added": 1, "removed": 0},
+            "diff": diff,
+        }
+
+    data = _autofix_response(
+        blocks=[{"merged_file_patches": [patch("a.py", ""), patch("b.py", "+b")]}],
+        repo_pr_states={},
+    )
+    files = json.loads(format_autofix(data, "json"))["code_changes"]
+    assert [file.get("code") for file in files] == [None, ["+b"]]

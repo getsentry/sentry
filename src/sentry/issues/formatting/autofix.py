@@ -23,6 +23,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.single_run import SINGLE_RUN_ROOT_CAUSE_KEY
 
 _MAX_CODE_CHANGES_CHARS = 20_000
+_MAX_DIFF_CHARS = 5_000
 
 
 def _root_cause(data: Any) -> Section | None:
@@ -65,7 +66,7 @@ def _code_changes(state: SeerRunState) -> Section | None:
         Group(
             items=(
                 Text(f"{repo}: {fp.patch.path} (+{fp.patch.added} -{fp.patch.removed})"),
-                *((Code(truncate(fp.diff, _MAX_CODE_CHANGES_CHARS)),) if fp.diff else ()),
+                *((Code(truncate(fp.diff, _MAX_DIFF_CHARS)),) if fp.diff else ()),
             )
         )
         for repo, patches in state.get_diffs_by_repo().items()
@@ -73,7 +74,12 @@ def _code_changes(state: SeerRunState) -> Section | None:
     )
     if not groups:
         return None
-    return Section(title="Code Changes", groups=groups, max_group_chars=_MAX_CODE_CHANGES_CHARS)
+    return Section(
+        title="Code Changes",
+        groups=groups,
+        repeating=True,
+        max_group_chars=_MAX_CODE_CHANGES_CHARS,
+    )
 
 
 def _pull_requests(state: SeerRunState) -> Section | None:
@@ -83,17 +89,6 @@ def _pull_requests(state: SeerRunState) -> Section | None:
         if pr.pr_url
     )
     return Section(title="Pull Requests", groups=(Group(items=lines),)) if lines else None
-
-
-def _sections(state: SeerRunState) -> list[Section]:
-    artifacts = {key: artifact.data for key, artifact in state.get_artifacts().items()}
-    sections = [
-        _root_cause(artifacts.get("root_cause") or artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
-        _solution(artifacts.get("solution")),
-        _code_changes(state),
-        _pull_requests(state),
-    ]
-    return [section for section in sections if section is not None]
 
 
 def format_autofix(
@@ -110,5 +105,12 @@ def format_autofix(
         # empty still has to parse: "" for the text formats, "{}" for json
         return fmt.join([])
     state = SeerRunState.parse_obj(autofix)
-    rendered = [fmt.render_section(section) for section in _sections(state)]
+    artifacts = {key: artifact.data for key, artifact in state.get_artifacts().items()}
+    sections = [
+        _root_cause(artifacts.get("root_cause") or artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
+        _solution(artifacts.get("solution")),
+        _code_changes(state),
+        _pull_requests(state),
+    ]
+    rendered = [fmt.render_section(section) for section in sections if section is not None]
     return fmt.join([part for part in rendered if part])
