@@ -379,10 +379,10 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     await waitFor(() => {
       expect(
-          mockApi.mock.calls.filter(
-            ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
-          )
-        ).toHaveLength(5);
+        mockApi.mock.calls.filter(
+          ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
+        )
+      ).toHaveLength(5);
     });
 
     // Auto-refresh should still be enabled

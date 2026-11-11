@@ -4,18 +4,8 @@
       "count": 4
     }
   },
-  "components/billingDetails/form.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "components/billingDetails/form.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
-  "components/creditCardEdit/intentForms/innerIntentForm.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
       "count": 1
     }
   },
@@ -130,11 +120,6 @@
       "count": 1
     }
   },
-  "components/upsellModal/details.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "components/upsellModal/featureList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -191,16 +176,6 @@
   "overrides/targetedOnboardingHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "overrides/useMaxPickableDays.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 5
-    }
-  },
-  "overrides/useRouteActivatedHook.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 9
     }
   },
   "views/amCheckout/components/cartDiff.tsx": {

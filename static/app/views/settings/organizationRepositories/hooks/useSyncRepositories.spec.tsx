@@ -138,9 +138,7 @@ describe('useSyncRepositories', () => {
 
       await waitFor(() => expect(result.current.isSyncing).toBe(false));
 
-      expect(toast.success).toHaveBeenCalledWith(
-        'Repositories synced successfully'
-      );
+      expect(toast.success).toHaveBeenCalledWith('Repositories synced successfully');
       expect(onSynced).toHaveBeenCalled();
     });
 
