@@ -111,7 +111,7 @@ def get_valid_automated_run_stopping_points(
     organization: Organization,
 ) -> frozenset[AutofixStoppingPoint]:
     """Return the set of stopping points valid for an org's billing tier."""
-    if is_seer_seat_or_token_billed(organization):
+    if is_seer_seat_or_token_billed_enabled(organization):
         return SEAT_BASED_STOPPING_POINTS
     return USAGE_BASED_STOPPING_POINTS
 
@@ -1017,7 +1017,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     return has_seat_based_seer
 
 
-def is_seer_seat_or_token_billed(organization: Organization) -> bool:
+def is_seer_seat_or_token_billed_enabled(organization: Organization) -> bool:
     """
     Check if the organization is on seat-based or token-billed Seer, as opposed to
     legacy usage-based Seer. Both use agentic triage for automation.
@@ -1049,7 +1049,7 @@ def is_free_cohort_org(organization: Organization) -> bool:
         return False
     return bool(
         OrganizationOption.objects.get_value(organization, "agentic-triage-free-cohort", False)
-    ) and not is_seer_seat_or_token_billed(organization)
+    ) and not is_seer_seat_or_token_billed_enabled(organization)
 
 
 def is_issue_category_eligible(group: Group) -> bool:

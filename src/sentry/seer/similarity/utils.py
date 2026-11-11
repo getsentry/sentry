@@ -26,7 +26,7 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     SeerProjectSettingsUpdate,
     get_org_default_seer_automation_handoff,
-    is_seer_seat_or_token_billed,
+    is_seer_seat_or_token_billed_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.similarity.types import GroupingVersion
@@ -544,7 +544,7 @@ def set_default_project_autofix_automation_tuning(
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
         )
-    elif is_seer_seat_or_token_billed(organization):
+    elif is_seer_seat_or_token_billed_enabled(organization):
         # Seat-based and token-billed orgs override everything except explicit "off"
         project.update_option(
             "sentry:autofix_automation_tuning",
@@ -559,7 +559,7 @@ def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
     """Called once at project creation time to set the initial seer scanner automation."""
-    if is_seer_seat_or_token_billed(organization):
+    if is_seer_seat_or_token_billed_enabled(organization):
         # Seat-based and token-billed orgs always set scanner to True
         project.update_option("sentry:seer_scanner_automation", True)
     else:
@@ -573,7 +573,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
     """Called once at project creation time to set the initial automated run stopping
     point and automation handoff.
     """
-    if not is_seer_seat_or_token_billed(organization):
+    if not is_seer_seat_or_token_billed_enabled(organization):
         return
 
     stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)

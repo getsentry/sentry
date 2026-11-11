@@ -38,7 +38,7 @@ from sentry.seer.autofix.utils import (
     has_project_connected_repos,
     is_free_cohort_org,
     is_seer_seat_based_tier_enabled,
-    is_seer_seat_or_token_billed,
+    is_seer_seat_or_token_billed_enabled,
     read_preference_from_sentry_db,
     replace_all_seer_project_repos,
     update_seer_project_settings,
@@ -289,20 +289,20 @@ class TestIsSeerSeatOrTokenBilled(TestCase):
 
     @with_feature("organizations:seat-based-seer-enabled")
     def test_seat_based(self) -> None:
-        assert is_seer_seat_or_token_billed(self.organization) is True
+        assert is_seer_seat_or_token_billed_enabled(self.organization) is True
         assert get_valid_automated_run_stopping_points(self.organization) == (
             SEAT_BASED_STOPPING_POINTS
         )
 
     @with_feature("organizations:token-billed-seer-enabled")
     def test_token_billed(self) -> None:
-        assert is_seer_seat_or_token_billed(self.organization) is True
+        assert is_seer_seat_or_token_billed_enabled(self.organization) is True
         assert get_valid_automated_run_stopping_points(self.organization) == (
             SEAT_BASED_STOPPING_POINTS
         )
 
     def test_legacy(self) -> None:
-        assert is_seer_seat_or_token_billed(self.organization) is False
+        assert is_seer_seat_or_token_billed_enabled(self.organization) is False
         assert get_valid_automated_run_stopping_points(self.organization) == (
             USAGE_BASED_STOPPING_POINTS
         )

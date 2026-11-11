@@ -738,7 +738,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
                 return_value=True,
             ),
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
         ):
@@ -754,7 +754,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed",
+            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
             return_value=True,
         ):
             result = _get_eligible_projects(org, "manual")
@@ -1248,7 +1248,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
         ):

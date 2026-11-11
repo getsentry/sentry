@@ -645,7 +645,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             project=project, key="sentry:autofix_automation_tuning"
         ).exists()
 
-    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed", return_value=True)
+    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed_enabled", return_value=True)
     def test_project_autofix_tuning_defaults_to_medium_with_seat_based_tier(
         self, mock_seat_based_tier: MagicMock
     ) -> None:
@@ -665,7 +665,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert autofix_tuning == "medium"
 
-    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed", return_value=True)
+    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed_enabled", return_value=True)
     def test_project_autofix_tuning_respects_explicit_off_even_with_seat_based_tier(
         self, mock_seat_based_tier: MagicMock
     ) -> None:
@@ -685,7 +685,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert autofix_tuning == "off"
 
-    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed", return_value=True)
+    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed_enabled", return_value=True)
     def test_project_autofix_tuning_seat_based_tier_overrides_non_off_org_default(
         self, mock_seat_based_tier: MagicMock
     ) -> None:
