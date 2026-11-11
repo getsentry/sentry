@@ -11,16 +11,15 @@ from sentry.api.serializers import serialize
 from sentry.auth.access import from_user
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
-from sentry.investigations.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-    InvestigationSerializer,
-)
 from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRerun,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
+    InvestigationSerializer,
+)
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,
@@ -28,6 +27,7 @@ from sentry.notebooks.models import (
     NotebookBlockExecutionStatus,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
@@ -94,6 +94,18 @@ class InvestigationSerializerTest(TestCase):
             "heartbeatAt": heartbeat,
             "notebookRevision": 4,
         }
+
+    def test_a_source_type_without_a_producer_has_no_orchestration_state(self) -> None:
+        self.create_investigation_orchestration_run(investigation=self.investigation)
+
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+        self.investigation.refresh_from_db()
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["orchestration"] is None
 
     def test_counts_only_active_blocks(self) -> None:
         self.create_notebook_block(notebook=self.investigation, position=0)
@@ -396,6 +408,18 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "rerun": None,
             "retryable": False,
         }
+
+    def test_a_source_type_without_a_producer_has_no_follow_up(self) -> None:
+        self.add_followed_up_request()
+
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+        self.investigation.refresh_from_db()
+
+        (serialized,) = self.serialize_requests()
+
+        assert serialized["followUp"] is None
 
     def test_a_follow_up_seer_turned_down_has_seers_code(self) -> None:
         self.add_followed_up_request(

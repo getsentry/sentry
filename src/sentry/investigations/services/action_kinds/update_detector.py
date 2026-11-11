@@ -21,14 +21,17 @@ from sentry.incidents.metric_issue_detector import (
     fetch_snuba_query,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.investigations.contracts import (
+from sentry.investigations.contracts import StrictFloatField, StrictIntegerField
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.models.environment import Environment
+from sentry.models.organization import Organization
+from sentry.notebooks.contracts import (
     ActionPayloadSerializer,
     StrictCharField,
-    StrictFloatField,
-    StrictIntegerField,
+    StrictContractSerializer,
 )
-from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ActionStale,
@@ -37,10 +40,6 @@ from sentry.investigations.services.action_kinds.base import (
     CannotApplyReason,
     SettingValue,
 )
-from sentry.models.environment import Environment
-from sentry.models.organization import Organization
-from sentry.notebooks.contracts import StrictContractSerializer
-from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.snuba.models import SnubaQuery
 from sentry.workflow_engine.endpoints.organization_detector_details import (
     check_metric_detector_allowed,
@@ -395,9 +394,10 @@ def _validation_messages(
     return []
 
 
-class UpdateDetectorKind(ActionKind):
+class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
     kind = UPDATE_DETECTOR_ACTION
     payload_serializer = UpdateDetectorActionSerializer
+    applied_details = UpdateDetectorAppliedDetails
 
     def cannot_apply_reasons(
         self,

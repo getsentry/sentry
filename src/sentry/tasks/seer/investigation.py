@@ -37,7 +37,6 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
     open_connect_requests,
     telemetry_available,
 )
-from sentry.investigations.services.action_requests import complete_action_requests
 from sentry.investigations.services.actor_access import resolve_investigation_service_account
 from sentry.investigations.services.issue_links import link_investigation_issues
 from sentry.investigations.services.orchestration import (
@@ -55,6 +54,7 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.services.action_requests import complete_action_requests
 from sentry.notebooks.services.notebooks import InvestigationValidationError
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
