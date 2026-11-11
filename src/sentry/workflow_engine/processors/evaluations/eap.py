@@ -87,17 +87,18 @@ _eap_producer = FutureTrackingProducer(
 def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, object]:
     event_data = evaluation.data["event"]
     event = event_data.event
-    if event_data.group is None:
-        return {}
     group_state: Mapping[str, object] = event_data.group_state or {}
 
-    attributes: dict[str, object] = {
-        "event_kind": "group_event" if isinstance(event, GroupEvent) else "activity",
-        "issue_status": event_data.group.status,
-        "issue_substatus": event_data.group.substatus,
-        "issue_priority": event_data.group.priority,
-        "is_resolved": event_data.group.status == GroupStatus.RESOLVED,
-    }
+    attributes: dict[str, object] = {}
+    if event_data.group is not None:
+        attributes.update(
+            {
+                "issue_status": event_data.group.status,
+                "issue_substatus": event_data.group.substatus,
+                "issue_priority": event_data.group.priority,
+                "is_resolved": event_data.group.status == GroupStatus.RESOLVED,
+            }
+        )
 
     for field_name in ("is_new", "is_regression", "is_new_group_environment"):
         if field_name in group_state:
@@ -108,7 +109,10 @@ def _workflow_event_attributes(evaluation: WorkflowEvaluation) -> dict[str, obje
     if event_data.workflow_env is not None:
         attributes["environment_id"] = event_data.workflow_env.id
 
-    if isinstance(event, Activity):
+    if isinstance(event, GroupEvent):
+        attributes["event_kind"] = "group_event"
+    elif isinstance(event, Activity):
+        attributes["event_kind"] = "activity"
         try:
             attributes["activity_type"] = ActivityType(event.type).name.lower()
         except ValueError:
