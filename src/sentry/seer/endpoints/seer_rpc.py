@@ -808,7 +808,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> SeerPro
     if project.organization_id != organization_id:
         raise Project.DoesNotExist
 
-    return read_preference_from_sentry_db(project)
+    return read_preference_from_sentry_db(project, limit_repos=True)
 
 
 def deliver_feature_result(

@@ -731,7 +731,9 @@ def _get_eligible_projects(
     if not project_map:
         return []
 
-    preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
+    preferences = bulk_read_preferences_from_sentry_db(
+        organization.id, list(project_map), limit_repos=True
+    )
 
     is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
 

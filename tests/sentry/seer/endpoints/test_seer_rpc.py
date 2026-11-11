@@ -32,6 +32,7 @@ from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
+from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
@@ -911,6 +912,33 @@ class TestSeerRpcMethods(APITestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].external_id == "123"
         assert result.repositories[0].name == "sentry"
+
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_get_project_preferences_limits_automatic_repos(self) -> None:
+        project = self.create_project(organization=self.organization)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        for i in range(MAX_SEER_REPOS_PER_PROJECT + 2):
+            repo = self.create_repo(
+                project=project,
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id=f"ext-{i}",
+                name=f"getsentry/repo-{i}",
+            )
+            self.create_project_repository(
+                project=project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+            )
+
+        result = get_project_preferences(organization_id=self.organization.id, project_id=project.id)
+
+        assert len(result.repositories) == MAX_SEER_REPOS_PER_PROJECT
 
     def test_get_project_preferences_returns_default_when_no_preference(self) -> None:
         project = self.create_project(organization=self.organization)
