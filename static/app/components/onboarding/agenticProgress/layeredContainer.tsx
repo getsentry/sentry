@@ -14,6 +14,7 @@ export function LayeredContainer({children}: {children: ReactNode}) {
             radius="xl"
             position="relative"
             width="100%"
+            overflow="hidden"
           >
             {surfaceProps => (
               <LayeredSurface {...surfaceProps}>{children}</LayeredSurface>
