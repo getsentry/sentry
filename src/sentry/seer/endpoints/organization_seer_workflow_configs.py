@@ -192,6 +192,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
+    name = serializers.CharField(required=False, max_length=64)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -211,7 +212,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+            raise serializers.ValidationError("Send projectIds, monitorIds, enabled, or name.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
@@ -558,6 +559,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
+        - ``name`` renames the config. It is trimmed and must be non-empty.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -582,6 +584,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
+        name: str | None = serializer.validated_data.get("name")
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
@@ -673,6 +676,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                             endpoint=self,
                         )
                     )
+
+                if name is not None:
+                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras.name = name
+                    update.set_extras(extras)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
