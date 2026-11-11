@@ -192,17 +192,14 @@ def test_results_list_each_section_with_a_title_and_markdown() -> None:
     assert results[0]["markdown"] == "Regex rejects ids\nThe regex is too strict."
 
 
-def test_markdown_renders_the_headline_of_a_root_cause() -> None:
+def test_markdown_renders_a_root_cause_returned_under_root_cause() -> None:
     data = _autofix_response(
         blocks=[
             {
                 "artifacts": [
                     {
                         "key": "root_cause",
-                        "data": {
-                            "headline": "Regex rejects ids",
-                            "one_line_description": "Too strict.",
-                        },
+                        "data": {"headline": "Regex rejects ids", "cause": "Too strict."},
                     }
                 ]
             }

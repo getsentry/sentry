@@ -39,7 +39,7 @@ def _root_cause(data: Any) -> Section | None:
         return None
     groups: list[Group] = []
     summary = tuple(
-        Text(data[key]) for key in ("headline", "one_line_description") if data.get(key)
+        Text(data[key]) for key in ("headline", "one_line_description", "cause") if data.get(key)
     )
     if summary:
         groups.append(Group(items=summary))
@@ -52,13 +52,6 @@ def _root_cause(data: Any) -> Section | None:
     if steps:
         groups.append(Group(items=(Text("\n".join(f"- {step}" for step in steps)),)))
     return Section(title="Root Cause", groups=tuple(groups)) if groups else None
-
-
-def _single_run_root_cause(data: Any) -> Section | None:
-    if not data:
-        return None
-    items = tuple(Text(data[key]) for key in ("headline", "cause") if data.get(key))
-    return Section(title="Root Cause", groups=(Group(items=items),)) if items else None
 
 
 def _solution(data: Any) -> Section | None:
@@ -106,8 +99,7 @@ def _result_sections(state: SeerRunState) -> list[tuple[AutofixResultType, Secti
     sections: list[tuple[AutofixResultType, Section | None]] = [
         (
             "root_cause",
-            _root_cause(artifacts.get("root_cause"))
-            or _single_run_root_cause(artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
+            _root_cause(artifacts.get("root_cause") or artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
         ),
         ("solution", _solution(artifacts.get("solution"))),
         ("code_changes", _code_changes(state)),
