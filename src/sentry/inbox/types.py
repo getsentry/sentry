@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
-from typing import Protocol
 
 from django.db import router, transaction
 from django.db.models.functions import Greatest
@@ -63,11 +62,6 @@ class InboxEventData:
     summary: str
 
 
-class InboxNotifier[SubjectT, DataT: InboxEventData](Protocol):
-    def notify(self, *, subject: SubjectT, data: DataT, user_ids: list[int]) -> None:
-        """Notifies the users who were just sent an inbox event, per their settings."""
-
-
 @dataclass(frozen=True, kw_only=True)
 class InboxEventType[SubjectT, DataT: InboxEventData]:
     """Keep event_type stable so retained events can be looked up."""
@@ -75,7 +69,6 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     event_type: str
     item_type: InboxItemType[SubjectT]
     data_class: type[DataT]
-    notifier: InboxNotifier[SubjectT, DataT] | None = None
 
     def record(
         self,

@@ -1,10 +1,12 @@
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import Any, Protocol
 
 from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
+from sentry.inbox.issue import ISSUE_TEAM_MENTIONED, ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.types import InboxActor, InboxEventData, InboxEventType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -13,6 +15,10 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.actor import Actor
+
+
+class InboxNotifier[SubjectT, DataT: InboxEventData](Protocol):
+    def notify(self, *, subject: SubjectT, data: DataT, user_ids: list[int]) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -37,6 +43,17 @@ class IssueActivityInboxNotifier[DataT: InboxEventData]:
         for target in strategy.get_targets():
             # TODO(ISWF-3737): Build the activity's notification data for this target and send it.
             pass
+
+
+_MENTION_NOTIFIER = IssueActivityInboxNotifier[IssueMentionedData](
+    settings_key=NotificationSettingEnum.WORKFLOW,
+    get_activity_id=lambda data: data.comment_id,
+)
+
+INBOX_NOTIFIERS: dict[str, InboxNotifier[Any, Any]] = {
+    ISSUE_USER_MENTIONED.event_type: _MENTION_NOTIFIER,
+    ISSUE_TEAM_MENTIONED.event_type: _MENTION_NOTIFIER,
+}
 
 
 def create_inbox_items[SubjectT, DataT: InboxEventData](
@@ -68,7 +85,7 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
         actor=actor,
     )
 
-    notifier = event_type.notifier
+    notifier = INBOX_NOTIFIERS.get(event_type.event_type)
     if not events or notifier is None:
         return
     if not features.has("organizations:inbox-notifications", organization):

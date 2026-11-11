@@ -6,8 +6,6 @@ from sentry.inbox.types import InboxEventData, InboxEventType, InboxItemType
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.notifications.platform.inbox import IssueActivityInboxNotifier
-from sentry.notifications.types import NotificationSettingEnum
 
 
 class IssueItemType(InboxItemType[Group]):
@@ -55,21 +53,11 @@ ISSUE_USER_ASSIGNED = InboxEventType(
 ISSUE_TEAM_ASSIGNED = InboxEventType(
     event_type="issue.team_assigned", item_type=ISSUE, data_class=IssueAssignedData
 )
-_MENTION_NOTIFIER = IssueActivityInboxNotifier[IssueMentionedData](
-    settings_key=NotificationSettingEnum.WORKFLOW,
-    get_activity_id=lambda data: data.comment_id,
-)
 ISSUE_USER_MENTIONED = InboxEventType(
-    event_type="issue.user_mentioned",
-    item_type=ISSUE,
-    data_class=IssueMentionedData,
-    notifier=_MENTION_NOTIFIER,
+    event_type="issue.user_mentioned", item_type=ISSUE, data_class=IssueMentionedData
 )
 ISSUE_TEAM_MENTIONED = InboxEventType(
-    event_type="issue.team_mentioned",
-    item_type=ISSUE,
-    data_class=IssueMentionedData,
-    notifier=_MENTION_NOTIFIER,
+    event_type="issue.team_mentioned", item_type=ISSUE, data_class=IssueMentionedData
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     event_type="issue.pr_ready_for_review", item_type=ISSUE, data_class=IssuePRReadyForReviewData

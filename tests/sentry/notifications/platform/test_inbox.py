@@ -11,7 +11,7 @@ from sentry.inbox.issue import (
 from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
-from sentry.notifications.platform.inbox import create_inbox_items
+from sentry.notifications.platform.inbox import INBOX_NOTIFIERS, create_inbox_items
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -135,8 +135,7 @@ class CreateInboxItemsTest(TestCase):
 class MentionNotifierTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        assert ISSUE_USER_MENTIONED.notifier is not None
-        self.notifier = ISSUE_USER_MENTIONED.notifier
+        self.notifier = INBOX_NOTIFIERS[ISSUE_USER_MENTIONED.event_type]
 
     def test_routes_to_users_with_workflow_settings(self, strategy: MagicMock) -> None:
         note = self.create_group_activity(
