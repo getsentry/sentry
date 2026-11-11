@@ -90,8 +90,10 @@ def build_convention_details(
     attribute: MergedTraceItemAttribute,
     refs_by_dataset: Mapping[str, Sequence[StoredRef]],
 ) -> TraceItemAttributeConventionDetails:
+    # The merged context comes from the first dataset's last stored name, so the changelog
+    # walks names in that order too.
     internal_names = list(
-        dict.fromkeys(ref.name for refs in refs_by_dataset.values() for ref in refs)
+        dict.fromkeys(ref.name for refs in refs_by_dataset.values() for ref in reversed(refs))
     ) or [attribute["name"]]
     candidates = (
         get_sentry_convention_metadata(attribute["name"], internal_name, attribute["attributeType"])
