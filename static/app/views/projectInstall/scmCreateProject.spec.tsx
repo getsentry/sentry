@@ -1280,6 +1280,7 @@ describe('ScmCreateProject', () => {
       ).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
       const session = request.mock.calls[0]?.[1]?.data;
+      expect(session.origin).toBe('project_creation');
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
       expect(session.onboardingCode).not.toBe(
         onboardingSession.agenticProgressOnboardingCode

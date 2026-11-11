@@ -553,6 +553,7 @@ describe('Onboarding', () => {
       )?.[1];
 
       expect(onboardingCode).toBeDefined();
+      expect(agenticRunRequestMock.mock.calls[0]?.[1]?.data.origin).toBe('onboarding');
       expect(
         screen.getByText(
           `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`

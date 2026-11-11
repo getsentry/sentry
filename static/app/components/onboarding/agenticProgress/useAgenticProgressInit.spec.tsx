@@ -12,13 +12,16 @@ import {useAgenticProgressInit} from './useAgenticProgressInit';
 function useLocalRun({
   enabled = true,
   initialSession,
+  origin = 'onboarding',
 }: {
   enabled?: boolean;
   initialSession?: AgenticRunSession;
+  origin?: 'onboarding' | 'project_creation';
 } = {}) {
   const [session, setSession] = useState(initialSession);
   const initialization = useAgenticProgressInit({
     enabled,
+    origin,
     session,
     onSessionChange: setSession,
   });
@@ -54,29 +57,35 @@ describe('useAgenticProgressInit', () => {
     expect(result.current.session).toBeUndefined();
   });
 
-  it('initializes once with a session owned by local state', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-      body: (_url: string, options: RequestOptions) =>
-        AgenticProgressRunFixture(options.data),
-    });
+  it.each(['onboarding', 'project_creation'] as const)(
+    'initializes a run from %s',
+    async origin => {
+      const request = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        body: (_url: string, options: RequestOptions) =>
+          AgenticProgressRunFixture(options.data),
+      });
 
-    const {result, rerender} = renderHookWithProviders(() => useLocalRun(), {
-      organization,
-    });
+      const {result, rerender} = renderHookWithProviders(() => useLocalRun({origin}), {
+        organization,
+      });
 
-    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-    expect(result.current.session).toEqual({
-      clientRunId: expect.any(String),
-      onboardingCode: expect.stringMatching(/^[A-Za-z0-9]{10}$/),
-    });
-    expect(request.mock.calls[0]?.[1]?.data).toEqual(result.current.session);
-    expect(result.current.onboardingCode).toBe(result.current.session?.onboardingCode);
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      expect(result.current.session).toEqual({
+        clientRunId: expect.any(String),
+        onboardingCode: expect.stringMatching(/^[A-Za-z0-9]{10}$/),
+      });
+      expect(request.mock.calls[0]?.[1]?.data).toEqual({
+        ...result.current.session,
+        origin,
+      });
+      expect(result.current.onboardingCode).toBe(result.current.session?.onboardingCode);
 
-    rerender();
-    expect(request).toHaveBeenCalledTimes(1);
-  });
+      rerender();
+      expect(request).toHaveBeenCalledTimes(1);
+    }
+  );
 
   it('resumes the session supplied by its host', async () => {
     const request = MockApiClient.addMockResponse({
@@ -90,7 +99,10 @@ describe('useAgenticProgressInit', () => {
     });
 
     await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-    expect(request.mock.calls[0]?.[1]?.data).toEqual(initialSession);
+    expect(request.mock.calls[0]?.[1]?.data).toEqual({
+      ...initialSession,
+      origin: 'onboarding',
+    });
     expect(result.current.session).toEqual(initialSession);
   });
 
@@ -124,7 +136,10 @@ describe('useAgenticProgressInit', () => {
     expect(result.current.session?.onboardingCode).not.toBe(
       initialSession.onboardingCode
     );
-    expect(replacementRequest.mock.calls[0]?.[1]?.data).toEqual(result.current.session);
+    expect(replacementRequest.mock.calls[0]?.[1]?.data).toEqual({
+      ...result.current.session,
+      origin: 'onboarding',
+    });
 
     rerender();
     expect(replacementRequest).toHaveBeenCalledTimes(1);
@@ -159,7 +174,10 @@ describe('useAgenticProgressInit', () => {
     expect(result.current.session?.onboardingCode).not.toBe(
       initialSession.onboardingCode
     );
-    expect(restartedRequest.mock.calls[0]?.[1]?.data).toEqual(result.current.session);
+    expect(restartedRequest.mock.calls[0]?.[1]?.data).toEqual({
+      ...result.current.session,
+      origin: 'onboarding',
+    });
   });
 
   it('does not replace a restarted session when the previous request conflicts', async () => {
