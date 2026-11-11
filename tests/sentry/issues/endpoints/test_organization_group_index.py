@@ -600,6 +600,33 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
 
+    def test_sessions_with_disabled_stats(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(groupStatsPeriod="", expand="sessions")
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert "sessionCount" not in response.data[0]
+
+    def test_sessions_with_disabled_stats_direct_hit(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            groupStatsPeriod="", expand="sessions", query=event.event_id
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert response.data[0]["matchingEventId"] == event.event_id
+        assert "sessionCount" not in response.data[0]
+
     def test_environment(self) -> None:
         self.store_event(
             data={
