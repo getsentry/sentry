@@ -17,6 +17,9 @@ PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 WEBHOOK_DELIVERY_SIGNATURE_HEADER = "X-Sentry-Webhook-Delivery-Signature"
+# Fills the base URL slot, which proxy signatures always fill with a real URL, so the two
+# kinds of signature can't stand in for each other.
+WEBHOOK_DELIVERY_SIGNATURE_TAG = "webhook-delivery-v0"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
@@ -158,7 +161,7 @@ def encode_webhook_delivery_signature(
         return None
     return encode_subnet_signature(
         secret=secret,
-        base_url="",
+        base_url=WEBHOOK_DELIVERY_SIGNATURE_TAG,
         path=path,
         identifier=authorization,
         request_body=request_body,
@@ -171,7 +174,7 @@ def verify_webhook_delivery_signature(
     if not authorization or not provided_signature:
         return False
     return verify_subnet_signature(
-        base_url="",
+        base_url=WEBHOOK_DELIVERY_SIGNATURE_TAG,
         path=path,
         identifier=authorization,
         request_body=request_body,

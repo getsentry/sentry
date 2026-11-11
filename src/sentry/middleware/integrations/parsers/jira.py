@@ -125,6 +125,9 @@ class JiraRequestParser(BaseRequestParser):
         if cloud_id is None:
             return HttpResponse(status=400)
 
+        # Only Forge-native sites are keyed by cloud ID for now. Sites that moved from
+        # Connect keep their clientKey, so their events are dropped here and they keep
+        # getting the Connect issue-updated webhook until they're rekeyed to the cloud ID.
         integration = Integration.objects.filter(
             provider=self.provider, external_id=cloud_id, status=ObjectStatus.ACTIVE
         ).first()
