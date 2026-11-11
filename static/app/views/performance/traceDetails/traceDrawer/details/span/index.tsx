@@ -71,6 +71,7 @@ import {Contexts} from './eapSections/contexts';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {MCPInputSection} from './eapSections/mcpInput';
 import {MCPOutputSection} from './eapSections/mcpOutput';
+import {ServerRenderingSection} from './eapSections/serverRendering';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
 import {HttpErrorCard} from './sections/httpErrorCard';
 
@@ -410,15 +411,26 @@ function EAPSpanNodeDetailsContent({
           hideNodeActions={hideNodeActions}
         />
         {organization.features.includes('performance-trace-cache-lifecycle') ? (
-          <CacheLifecycleSection
-            node={node}
-            attributes={attributes}
-            links={links}
-            location={location}
-            organization={organization}
-            tree={tree}
-            onTabScrollToNode={onTabScrollToNode}
-          />
+          <Fragment>
+            <CacheLifecycleSection
+              node={node}
+              attributes={attributes}
+              links={links}
+              location={location}
+              organization={organization}
+              tree={tree}
+              onTabScrollToNode={onTabScrollToNode}
+            />
+            <ServerRenderingSection
+              node={node}
+              attributes={attributes}
+              links={links}
+              location={location}
+              organization={organization}
+              tree={tree}
+              onTabScrollToNode={onTabScrollToNode}
+            />
+          </Fragment>
         ) : null}
         <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection
