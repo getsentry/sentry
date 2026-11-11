@@ -221,7 +221,7 @@ export type InvestigationCandidate =
 
 // The orchestration projection: the whole live state of an agentic run, which
 // Seer pushes as one JSON blob on every orchestration event and Sentry serves
-// from `/investigations/$notebookId/orchestration/`. The server contract
+// from `/investigations/$investigationId/orchestration/`. The server contract
 // lives in `src/sentry/investigations/contracts.py` — keep these types in step
 // with it.
 //
