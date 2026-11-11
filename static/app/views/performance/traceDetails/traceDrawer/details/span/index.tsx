@@ -151,7 +151,7 @@ export function EAPSpanNodeDetails(props: EAPSpanNodeDetailsProps) {
     projectId: node.value.project_id.toString(),
     traceId: node.extra?.replayTraceSlug ?? traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details', // TODO: change to span details
+    referrer: 'api.trace-view.span-detail',
     timestamp: node.value.start_timestamp,
     enabled: true,
   });
