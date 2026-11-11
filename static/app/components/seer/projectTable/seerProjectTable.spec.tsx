@@ -561,4 +561,39 @@ describe('SeerProjectTable', () => {
 
     expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
+
+  describe('empty state', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        body: [],
+      });
+    });
+
+    it('asks token-billed orgs to link a repository', async () => {
+      render(<SeerProjectTable />, {
+        organization: OrganizationFixture({
+          slug: organization.slug,
+          access: ['org:write'],
+          features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+        }),
+      });
+
+      expect(
+        await screen.findByText(
+          'Link a repository to a project so Seer can read your code.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('asks other orgs to add projects for Autofix', async () => {
+      render(<SeerProjectTable />, {organization});
+
+      expect(
+        await screen.findByText(
+          'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+        )
+      ).toBeInTheDocument();
+    });
+  });
 });

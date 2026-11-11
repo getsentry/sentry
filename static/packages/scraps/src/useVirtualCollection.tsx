@@ -19,6 +19,8 @@ import {
   getSectionIndexes,
 } from './virtualCollectionLayout';
 
+export {estimateRowHeight, isAfterFirstInSection} from './virtualCollectionLayout';
+
 /**
  * Item count above which shared menu controls (CompactSelect, DropdownMenu)
  * virtualize their list.
@@ -96,9 +98,9 @@ export interface UseVirtualCollectionOptions<T> {
    */
   scrollRef: React.RefObject<HTMLElement | null>;
   /**
-   * Height to assume for a row that has not been measured yet. Pass a stable
-   * function: the estimates are rebuilt when it changes. Defaults to the height
-   * of a menu `ListItem` of `size`, plus `sectionRowGap`.
+   * Height to assume for a row that has not been measured yet. Read on every
+   * render, so it does not need to be stable. Defaults to the height of a menu
+   * `ListItem` of `size`, plus `sectionRowSpace`.
    */
   estimateSize?: (node: Node<T>, index: number) => number;
   /**
@@ -123,10 +125,11 @@ export interface UseVirtualCollectionOptions<T> {
    * lose it once they mount and the scroll range would shrink. Added to the
    * estimates of unmounted rows so the range does not shrink until they mount.
    */
-  sectionRowGap?: number;
+  sectionRowSpace?: number;
   /**
-   * Item size of the default `estimateSize`. Defaults to `md`. Ignored when
-   * `estimateSize` is set.
+   * Item size of the default `estimateSize`. Defaults to `md`. Changing it, or
+   * `sectionRowSpace`, discards the measured row heights, since every row
+   * changes height. Pass it with a custom `estimateSize` too.
    */
   size?: FormSize;
   /**
@@ -183,7 +186,7 @@ export function useVirtualCollection<T>({
   focusedKey,
   hiddenKeys,
   listPadding = 0,
-  sectionRowGap = 0,
+  sectionRowSpace = 0,
   size = 'md',
   widestKey,
 }: UseVirtualCollectionOptions<T>): VirtualCollection<T> {
@@ -219,9 +222,19 @@ export function useVirtualCollection<T>({
       const node = nodes[index];
       return estimateSize && node
         ? estimateSize(node, index)
-        : estimateRowHeight(nodes, index, size, sectionRowGap);
+        : estimateRowHeight(
+            node,
+            nodes[sectionIndexes[index] ?? -1],
+            size,
+            sectionRowSpace
+          );
     },
-    estimateKey: estimateSize ?? `${size}-${sectionRowGap}`,
+    // Measured heights stay valid while the collection is rebuilt with the same
+    // rows, such as when one item changes. Discarding them would move every
+    // row back to its estimate and shift the rows in view. The estimates of
+    // unmeasured rows are still current: `getItemKey` is a new function on
+    // every render, so the virtualizer rebuilds its offsets.
+    estimateKey: `${size}-${sectionRowSpace}`,
     paddingStart: listPadding,
     // The list's padding is the same at both ends, so a row scrolled into view
     // at the bottom clears it too.

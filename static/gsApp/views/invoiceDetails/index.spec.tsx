@@ -62,7 +62,7 @@ describe('InvoiceDetails', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    SubscriptionStore.set(organization.slug, {});
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
 
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -325,7 +325,7 @@ describe('InvoiceDetails', () => {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
-      SubscriptionStore.set(organization.slug, {});
+      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
 
       MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/billing-details/`,

@@ -19,10 +19,14 @@ const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
   cls: null,
 };
 
+export function webVitalMetricName(vital: WebVitals): string {
+  return `browser.web_vital.${vital}`;
+}
+
 function webVitalMetricField(aggregation: 'count' | 'p75', vital: WebVitals): string {
   return traceMetricField(
     aggregation,
-    `browser.web_vital.${vital}`,
+    webVitalMetricName(vital),
     'distribution',
     WEB_VITAL_METRIC_UNITS[vital]
   );

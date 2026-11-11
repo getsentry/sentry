@@ -10,7 +10,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.credits import SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -46,4 +46,12 @@ class OrganizationSeerCreditCheckEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         operation = SeerOperation(serializer.validated_data["operation"])
-        return Response({"hasEnoughCredits": can_run_seer_operation(organization, operation)})
+        # TODO: Let the UI pass the feature once it can tell agentic triage runs apart.
+        feature = (
+            SeerFeature.EXPLORER
+            if operation == SeerOperation.AGENT_CHAT_MESSAGE
+            else SeerFeature.AUTOFIX
+        )
+        return Response(
+            {"hasEnoughCredits": can_run_seer_operation(organization, feature, operation)}
+        )

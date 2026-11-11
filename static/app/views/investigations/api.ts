@@ -460,7 +460,7 @@ export function useLaunchInvestigationMutation(
     organizationSlug,
     source =>
       fetchMutation<InvestigationDetail>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
@@ -484,7 +484,7 @@ export function useStartManualInvestigationMutation(
     organizationSlug,
     ({source, projectIds}) =>
       fetchMutation<InvestigationDetail>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/', {
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
