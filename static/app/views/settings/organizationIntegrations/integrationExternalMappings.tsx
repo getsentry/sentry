@@ -24,6 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -277,7 +278,7 @@ export function IntegrationExternalMappings(props: Props) {
           </SimpleTable.Empty>
         )}
       </MappingTable>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

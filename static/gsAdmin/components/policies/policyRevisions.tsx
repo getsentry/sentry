@@ -16,6 +16,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
@@ -102,7 +103,7 @@ export function PolicyRevisions({policy, onUpdate}: Props) {
         )}
       </Panel>
       <Pagination
-        pageLinks={data?.headers.Link}
+        {...getPaginationProps(data?.headers.Link)}
         onCursor={nextCursor => setCursor(nextCursor ?? null, {history: 'push'})}
       />
     </Fragment>

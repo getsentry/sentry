@@ -69,7 +69,12 @@ class AgentHandoffViewTest(TestCase):
 
     def test_claim_mints_once_and_returns_the_private_guide(self) -> None:
         code = self.issue()
-        response = self.claim(code)
+        response = self.client.post(
+            "/agent-handoff/",
+            urlencode({"handoff_code": code}),
+            content_type="application/x-www-form-urlencoded",
+            HTTP_ACCEPT="text/markdown",
+        )
         assert response.status_code == 200
         assert "SENTRY_SETUP_CODE=sntryc_" in response.content.decode()
         assert "agent-setup/get-started.md" in response.content.decode()
@@ -216,7 +221,7 @@ class AgentHandoffViewTest(TestCase):
 
     def test_preview_is_public_and_preserves_the_code(self) -> None:
         code = self.issue()
-        response = self.client.get("/agent-handoff/")
+        response = self.client.get("/agent-handoff/", HTTP_ACCEPT="text/markdown")
         assert response.status_code == 200
         assert "secret token supplied alongside the instructions URL" in response.content.decode()
         assert consume_handoff(code, ip_address="127.0.0.1") is not None

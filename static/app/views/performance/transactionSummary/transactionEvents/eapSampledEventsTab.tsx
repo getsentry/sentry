@@ -77,7 +77,8 @@ export function EAPSampledEventsTab() {
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
   const cursor = decodeScalar(location.query?.[SEGMENT_SPANS_CURSOR]);
-  const onCursor: CursorHandler = (newCursor, pathname, query) => {
+  const onCursor: CursorHandler = newCursor => {
+    const {pathname, query} = location;
     navigate({
       pathname,
       query: {...query, [SEGMENT_SPANS_CURSOR]: newCursor},
