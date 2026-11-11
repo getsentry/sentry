@@ -118,7 +118,7 @@ def single_run_memory_block(
             if root_cause is not None
             else []
         )
-        + ([Artifact(key="single_run_stop", data=stop, reason="explorer")] if stop else []),
+        + ([Artifact(key="stop", data=stop, reason="explorer")] if stop else []),
         merged_file_patches=(
             [
                 AgentFilePatch(

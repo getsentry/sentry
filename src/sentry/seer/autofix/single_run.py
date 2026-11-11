@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from sentry.seer.models.run import SeerRun
 
 SINGLE_RUN_ROOT_CAUSE_KEY = "single_run_root_cause"
-SINGLE_RUN_STOP_KEY = "single_run_stop"
+SINGLE_RUN_STOP_KEY = "stop"
 
 
 def is_single_run(state: SeerRunState) -> bool:
