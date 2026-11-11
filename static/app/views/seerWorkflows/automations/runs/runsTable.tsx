@@ -79,10 +79,7 @@ export function RunsTable({
   });
 
   const configIds = [...new Set(runs.map(run => run.configId))].sort();
-  const configs = useFetchConfigs({
-    ids: configIds,
-    enabled: showStrategy && configIds.length > 0,
-  });
+  const configs = useFetchConfigs({ids: showStrategy ? configIds : []});
   const configsById = new Map(configs.data?.map(config => [config.id, config]));
 
   const monitorIds = [

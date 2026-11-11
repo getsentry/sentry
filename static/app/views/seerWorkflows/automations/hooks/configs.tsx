@@ -29,12 +29,10 @@ function useConfigUrls(configId = '') {
 }
 
 /**
- * Fetches the organization's automation configs. Pass `ids` to only fetch those configs.
+ * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
+ * an empty list fetches nothing.
  */
-export function useFetchConfigs({
-  ids,
-  enabled = true,
-}: {enabled?: boolean; ids?: string[]} = {}) {
+export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -43,7 +41,7 @@ export function useFetchConfigs({
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
         path:
-          automationsEnabled && enabled
+          automationsEnabled && ids?.length !== 0
             ? {organizationIdOrSlug: organization.slug}
             : skipToken,
         query: {id: ids},
