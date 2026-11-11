@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
@@ -26,6 +28,7 @@ from sentry.investigations.services.actor_access import (
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
+    resolve_investigation_source,
 )
 from sentry.models.organization import Organization
 from sentry.notebooks.models import (
@@ -73,6 +76,7 @@ __all__ = [
     "create_agentic_breached_metric_investigation",
     "create_agentic_manual_investigation",
     "get_orchestration_projection",
+    "start_investigation",
     "update_investigation_with_orchestration",
 ]
 
@@ -685,6 +689,55 @@ def create_agentic_breached_metric_investigation(
                     return active, False
                 raise
     raise AssertionError("unreachable")
+
+
+def _require_accessible_projects(
+    project_ids: list[int], accessible_project_ids: AbstractSet[int]
+) -> None:
+    if not set(project_ids).issubset(accessible_project_ids):
+        raise InvestigationValidationError({"detail": "One or more projects are inaccessible."})
+
+
+def start_investigation(
+    *,
+    organization: Organization,
+    creator: Callable[[], ActorId],
+    title: str | None,
+    source: dict[str, Any],
+    project_ids: list[int],
+    accessible_project_ids: AbstractSet[int],
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """Start the engine for a validated source. The bool is False when an active metric
+    investigation is reused.
+    """
+    # creator is resolved last so a bad source or project gets its 400/404 before a 403.
+    if source["type"] == "metric_open_period":
+        resolved_source = resolve_investigation_source(
+            organization=organization,
+            source=source,
+            accessible_project_ids=accessible_project_ids,
+        )
+        requested_project_ids = sorted(set(project_ids) | {resolved_source.project_id})
+        _require_accessible_projects(requested_project_ids, accessible_project_ids)
+        return create_agentic_breached_metric_investigation(
+            organization=organization,
+            creator=creator(),
+            title=title,
+            resolved_source=resolved_source,
+            project_ids=requested_project_ids,
+            filters=filters,
+        )
+    _require_accessible_projects(project_ids, accessible_project_ids)
+    investigation, _ = create_agentic_manual_investigation(
+        organization=organization,
+        creator=creator(),
+        title=title,
+        source=source,
+        project_ids=project_ids,
+        filters=filters,
+    )
+    return investigation, True
 
 
 def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str, Any]:

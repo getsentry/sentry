@@ -46,6 +46,17 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
         return value
 
 
+class InvestigationStartValidator(InvestigationCreateValidator):
+    title = serializers.CharField(
+        max_length=255,
+        required=False,
+        help_text="Investigation title. Generated when omitted.",
+    )
+    source = InvestigationSourceField(
+        help_text="Manual prompt or metric open-period reference. Agentic sources have a maximum serialized size of 200,000 bytes.",
+    )
+
+
 class InvestigationCandidatesValidator(StrictCamelSnakeValidator):
     sources = serializers.ListField(
         child=serializers.JSONField(),
