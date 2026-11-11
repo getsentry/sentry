@@ -15,6 +15,7 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationTemplate,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.templates.seer import SeerAutofixError
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -182,8 +183,6 @@ class IssueAlertNotificationTemplateTest(TestCase):
 
 class IssueSlackRendererTest(IssueAlertInvocationMixin):
     def test_render_raises_on_invalid_data(self) -> None:
-        from sentry.notifications.platform.templates.seer import SeerAutofixError
-
         invalid_data = SeerAutofixError(organization_id=1, error_message="test")
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 

@@ -25,6 +25,7 @@ from sentry.workflow_engine.defaults.detectors import ensure_default_all_project
 from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.contexts.workflow_event_context import WorkflowEventContext
 from sentry.workflow_engine.processors.data_condition_group import (
     get_data_conditions_for_group,
 )
@@ -33,6 +34,8 @@ from sentry.workflow_engine.processors.evaluations import (
     ProcessWorkflowsResult,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.eap import EAPEmitter
+from sentry.workflow_engine.processors.evaluations.logging import LoggingEmitter
 from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
     enqueue_workflows,
@@ -1444,12 +1447,6 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(self.workflow)
 
     def test_evaluates_without_issue_context(self) -> None:
-        from sentry.workflow_engine.processors.contexts.workflow_event_context import (
-            WorkflowEventContext,
-        )
-        from sentry.workflow_engine.processors.evaluations.eap import EAPEmitter
-        from sentry.workflow_engine.processors.evaluations.logging import LoggingEmitter
-
         previous_context = WorkflowEventContext.get()
         with (
             patch(
@@ -1581,10 +1578,6 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         )
 
     def test_requires_matching_explicit_organization(self) -> None:
-        from sentry.workflow_engine.processors.contexts.workflow_event_context import (
-            WorkflowEventContext,
-        )
-
         previous_context = WorkflowEventContext.get()
         with pytest.raises(ValueError, match="explicit organization"):
             evaluate_workflows(
