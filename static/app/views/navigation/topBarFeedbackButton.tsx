@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {t} from 'sentry/locale';
