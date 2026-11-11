@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconIssues} from '@sentry/icons/issues';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
@@ -79,7 +79,10 @@ export function RunsTable({
   });
 
   const configIds = [...new Set(runs.map(run => run.configId))].sort();
-  const configs = useFetchConfigs({ids: showStrategy ? configIds : []});
+  const configs = useFetchConfigs({
+    ids: showStrategy ? configIds : [],
+    keepPrevious: true,
+  });
   const configsById = new Map(configs.data?.map(config => [config.id, config]));
 
   const monitorIds = [
@@ -91,7 +94,12 @@ export function RunsTable({
     ...detectorListApiOptions(organization, {ids: monitorIds, limit: 100}),
     enabled: monitorIds.length > 0,
     select: ({json}) => new Map(json.map(monitor => [monitor.id, monitor])),
+    // Keep names on screen when polling or paging changes the set of IDs
+    placeholderData: keepPreviousData,
   });
+  // Wait for names on first load so the cells don't flash their fallbacks. `isLoading`
+  // stays false for a disabled query, unlike `isPending`.
+  const isLoading = isPending || configs.isLoading || monitors.isLoading;
 
   if (isLoadingError) {
     return <LoadingError onRetry={refetch} />;
@@ -113,7 +121,7 @@ export function RunsTable({
           </SimpleTable.HeaderRow>
         }
       >
-        {isPending ? (
+        {isLoading ? (
           <SimpleTable.Empty>
             <LoadingIndicator />
           </SimpleTable.Empty>
