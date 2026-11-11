@@ -17,6 +17,56 @@ from sentry.utils.hashlib import hash_values
 
 
 class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
+    @mock.patch(
+        "sentry.api.serializers.models.group_stream.release_health.backend.get_num_sessions_per_project"
+    )
+    def test_session_count_omitted(self, get_sessions: mock.MagicMock) -> None:
+        group = self.group
+
+        for stats_period, expand, collapse in (
+            (None, ["sessions"], []),
+            ("24h", ["sessions"], ["stats"]),
+            ("24h", [], []),
+        ):
+            result = serialize(
+                [group],
+                serializer=StreamGroupSerializerSnuba(
+                    stats_period=stats_period,
+                    expand=expand,
+                    collapse=collapse,
+                    organization_id=group.project.organization_id,
+                ),
+                request=self.make_request(),
+            )
+
+            assert result[0]["id"] == str(group.id)
+            assert "sessionCount" not in result[0]
+            get_sessions.assert_not_called()
+
+    @mock.patch(
+        "sentry.api.serializers.models.group_stream.release_health.backend.get_num_sessions_per_project"
+    )
+    def test_session_count_values(self, get_sessions: mock.MagicMock) -> None:
+        group = self.group
+        zero_group = self.create_group(project=self.create_project(organization=self.organization))
+        missing_group = self.create_group(
+            project=self.create_project(organization=self.organization)
+        )
+        get_sessions.return_value = [(group.project_id, 7), (zero_group.project_id, 0)]
+
+        result = serialize(
+            [group, zero_group, missing_group],
+            serializer=StreamGroupSerializerSnuba(
+                stats_period="24h",
+                expand=["sessions"],
+                organization_id=self.organization.id,
+            ),
+            request=self.make_request(),
+        )
+
+        assert [item["sessionCount"] for item in result] == [7, 0, None]
+        get_sessions.assert_called_once()
+
     def test_environment(self) -> None:
         group = self.group
         organization_id = group.project.organization_id

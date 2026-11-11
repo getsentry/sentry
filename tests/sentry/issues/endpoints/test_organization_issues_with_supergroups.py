@@ -38,6 +38,22 @@ class OrganizationIssuesWithSupergroupsEndpointTest(APITestCase, SnubaTestCase):
         self.get_error_response(self.organization.slug, status_code=403)
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_sessions_with_disabled_stats(self, mock_seer: MagicMock) -> None:
+        event = self._store("group")
+        mock_seer.return_value = mock_seer_response({"data": []})
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug, groupStatsPeriod="", expand="sessions"
+            )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert "stats" not in response.data[0]
+        assert "sessionCount" not in response.data[0]
+        mock_seer.assert_called_once()
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
     def test_collapses_cluster_members_into_representative(self, mock_seer: MagicMock) -> None:
         a = self._store("a")
         b = self._store("b")

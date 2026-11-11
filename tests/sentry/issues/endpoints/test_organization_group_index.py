@@ -600,6 +600,44 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
 
+    def test_sessions_with_disabled_stats(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        assert event.group is not None
+        self.login_as(user=self.user)
+
+        for query_params in (
+            {},
+            {"group": str(event.group_id)},
+            {"query": event.group.qualified_short_id, "shortIdLookup": "1"},
+        ):
+            response = self.get_success_response(
+                groupStatsPeriod="", expand="sessions", **query_params
+            )
+
+            assert len(response.data) == 1
+            assert response.data[0]["id"] == str(event.group_id)
+            assert "stats" not in response.data[0]
+            assert "sessionCount" not in response.data[0]
+
+    def test_sessions_with_disabled_stats_direct_hit(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            groupStatsPeriod="", expand="sessions", query=event.event_id
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert response.data[0]["matchingEventId"] == event.event_id
+        assert response["X-Sentry-Direct-Hit"] == "1"
+        assert "stats" not in response.data[0]
+        assert "sessionCount" not in response.data[0]
+
     def test_environment(self) -> None:
         self.store_event(
             data={
