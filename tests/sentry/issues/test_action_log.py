@@ -469,7 +469,8 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         log.assert_logged(ViewAction, group_id=self.group.id)
 
-    def test_view_skipped_when_recently_viewed(self) -> None:
+    @patch("sentry.issues.endpoints.group_details.metrics.incr")
+    def test_view_skipped_when_recently_viewed(self, mock_incr: MagicMock) -> None:
         self.create_group_action_log_entry(
             group=self.group,
             type=GroupActionType.VIEW,
@@ -481,6 +482,11 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, format="json")
         assert response.status_code == 200
         log.assert_not_logged(ViewAction)
+        mock_incr.assert_any_call(
+            "issues.action_log.view_rate_limited",
+            sample_rate=1.0,
+            tags={"source": "web", "actor_type": "user"},
+        )
 
     def test_view_emits_when_last_view_is_stale(self) -> None:
         self.create_group_action_log_entry(

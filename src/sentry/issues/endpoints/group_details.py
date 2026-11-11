@@ -408,9 +408,18 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             view_source = resolve_action_source(request)
             view_actor = resolve_action_actor(request)
-            if not has_recent_view(
+            if has_recent_view(
                 group.id, source=view_source, actor=view_actor, within=VIEW_ACTION_PUBLISH_INTERVAL
             ):
+                metrics.incr(
+                    "issues.action_log.view_rate_limited",
+                    sample_rate=1.0,
+                    tags={
+                        "source": view_source,
+                        "actor_type": view_actor.actor_type.name.lower(),
+                    },
+                )
+            else:
                 publish_action(
                     ViewAction(),
                     source=view_source,
