@@ -467,6 +467,24 @@ describe('ConversationsOverviewPage', () => {
     );
   });
 
+  it('tracks adding an agent chart to a dashboard', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    const [widgetActions] = await screen.findAllByRole('button', {
+      name: 'Widget actions',
+    });
+    await userEvent.click(widgetActions!);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to Dashboard'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.save_as',
+      expect.objectContaining({
+        chart: 'explore-agents-estimated-cost',
+        save_type: 'dashboard',
+      })
+    );
+  });
+
   it('does not open a pasted conversation ID on the Traces tab', async () => {
     const {router} = render(<ConversationsOverviewPage />, {organization});
 
