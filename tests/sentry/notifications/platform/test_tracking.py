@@ -45,7 +45,10 @@ from sentry.testutils.helpers.analytics import (
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification
 
-ENABLED_OPTIONS = {"notifications.tracking.sources": ["activity-seer-rca-completed"]}
+ENABLED_OPTIONS = {
+    "notifications.tracking.sources": ["activity-seer-rca-completed"],
+    "notifications.tracking.pull-request-redirect-sources": ["activity-seer-rca-completed"],
+}
 
 CONTEXT = NotificationTrackingContext(
     source=NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
@@ -578,6 +581,24 @@ class DecorateRenderedTemplateTest(TestCase):
             notification_uuid=self.notification_uuid,
             organization_id=1,
         )
+
+    def test_leaves_pull_requests_when_redirect_is_disabled(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="PR ready",
+            body=[
+                ParagraphSection(
+                    blocks=[
+                        LinkTextBlock(text="#12", url="https://github.com/acme/backend/pull/12")
+                    ]
+                )
+            ],
+        )
+
+        with override_options({"notifications.tracking.pull-request-redirect-sources": []}):
+            decorated, links = self.decorate_rendered_template(rendered_template)
+
+        assert decorated == rendered_template
+        assert links == set()
 
     def test_leaves_untrackable_pull_requests(self) -> None:
         url = "https://github.acme.example/acme/backend/pull/12"

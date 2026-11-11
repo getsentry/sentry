@@ -77,6 +77,9 @@ class RenderTemplateLinkTrackingTest(TestCase):
                 {
                     "system.url-prefix": "https://sentry.io",
                     "notifications.tracking.sources": list(template_registry.registrations),
+                    "notifications.tracking.pull-request-redirect-sources": list(
+                        template_registry.registrations
+                    ),
                 }
             )
         )

@@ -3898,6 +3898,14 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Tracked notification sources whose GitHub pull request links go through the click-recording
+# redirect, so the redirect can roll out one source at a time.
+register(
+    "notifications.tracking.pull-request-redirect-sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 

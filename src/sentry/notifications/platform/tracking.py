@@ -177,15 +177,18 @@ class NotificationLinkDecorator:
         """
         Add tracking parameters to a Sentry URL and include its inferred kind in the set of links
         present in the notification. A GitHub pull request URL becomes a pull request redirect,
-        which records its clicks. Other URLs and URLs that can't be decorated are returned
-        unchanged and aren't included.
+        which records its clicks, when its source is in
+        `notifications.tracking.pull-request-redirect-sources`. Other URLs and URLs that can't be
+        decorated are returned unchanged and aren't included.
         """
         if not is_tracking_enabled(self.data.source, self.provider):
             return url
 
         try:
             # A redirect, not a provider callback, so PR clicks count the same in every provider.
-            if is_trackable_pull_request_url(url):
+            if is_trackable_pull_request_url(url) and self.data.source in options.get(
+                "notifications.tracking.pull-request-redirect-sources"
+            ):
                 decorated = self._build_pull_request_redirect_url(url)
                 self.links.add(NotificationLink.PULL_REQUEST)
                 return decorated

@@ -17,7 +17,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.notifications.platform import MockNotification
 from sentry.testutils.silo import control_silo_test
 
-ENABLED_OPTIONS = {"notifications.tracking.sources": ["activity-seer-pr-ready-for-review"]}
+ENABLED_OPTIONS = {
+    "notifications.tracking.sources": ["activity-seer-pr-ready-for-review"],
+    "notifications.tracking.pull-request-redirect-sources": ["activity-seer-pr-ready-for-review"],
+}
 PULL_REQUEST_URL = "https://github.com/acme/backend/pull/12"
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -163,7 +166,12 @@ class NotificationLinkRedirectTest(TestCase):
     def test_disabled_source_still_redirects(self, mock_record: mock.MagicMock) -> None:
         path = self.path()
 
-        with override_options({"notifications.tracking.sources": []}):
+        with override_options(
+            {
+                "notifications.tracking.sources": [],
+                "notifications.tracking.pull-request-redirect-sources": [],
+            }
+        ):
             response = self.get(path)
 
         assert response.status_code == 302
