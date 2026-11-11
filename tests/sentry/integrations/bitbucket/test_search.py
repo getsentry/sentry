@@ -58,18 +58,15 @@ class BitbucketSearchEndpointTest(APITestCase):
             {"label": "#456 Issue Title 456", "value": "456"},
         ]
 
-        assert len(mock_record.mock_calls) == 8
+        assert len(mock_record.mock_calls) == 6
 
         # first 2 are middleware calls to ensure control silo, then the next one and the last one are also middleware calls for get_response_from_control_silo
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
 
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = product_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -87,14 +84,9 @@ class BitbucketSearchEndpointTest(APITestCase):
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
 
-        product_calls = mock_record.mock_calls[3:-1]
-        start1, start2, halt1, halt2 = (
-            product_calls  # calls get, which calls handle_search_repositories
-        )
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        start, success = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -115,13 +107,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         middleware_calls = mock_record.mock_calls[:3] + mock_record.mock_calls[-1:]
         assert_middleware_metrics(middleware_calls)
 
-        product_calls = mock_record.mock_calls[3:-1]
-
-        start1, start2, halt1, halt2 = product_calls  # calls get, which calls handle_search_issues
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        start, halt = mock_record.mock_calls[3:-1]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.NO_ISSUE_TRACKER.value)
-        # NOTE: handle_search_issues returns without raising an API error, so for the
-        # purposes of logging the GET request completes successfully
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS

@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -55,7 +56,11 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
 
         status = request.GET.get("status")
         if status is not None:
-            queryset = queryset.filter(status=SentryAppStatus.as_int(status))
+            try:
+                app_status = SentryAppStatus.as_int(status)
+            except ValueError:
+                raise ParseError("Invalid status")
+            queryset = queryset.filter(status=app_status)
 
         return self.paginate(
             request=request,

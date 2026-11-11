@@ -1,6 +1,7 @@
 from sentry.newsletter.dummy import DummyNewsletter
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
 @control_silo_test
@@ -12,7 +13,7 @@ class DummyNewsletterTest(TestCase):
         assert self.newsletter.DEFAULT_LISTS == self.newsletter.get_default_list_ids()
         assert self.newsletter.DEFAULT_LIST_ID == self.newsletter.get_default_list_id()
 
-    def assert_subscriptions(self, user, count):
+    def assert_subscriptions(self, user: User, count: int) -> None:
         subscriptions = self.newsletter.get_subscriptions(user)
         assert subscriptions.get("subscriptions") is not None
         subscribed = [sub for sub in subscriptions["subscriptions"] if sub.subscribed]

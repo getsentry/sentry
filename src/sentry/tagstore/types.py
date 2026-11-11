@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, ClassVar, TypedDict
+from typing import Annotated, Any, ClassVar, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.utils import convert_user_tag_to_query
 from sentry.tagstore.base import TagKeyStatus
 
@@ -66,7 +68,7 @@ class TagKey(TagType):
         self.count = count
         self.top_values = top_values
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, str]:
         return {"key": self.key}
 
 
@@ -118,8 +120,8 @@ class GroupTagValue(TagType):
         key: str,
         value: str | None,
         times_seen: int,
-        first_seen,
-        last_seen,
+        first_seen: datetime | None,
+        last_seen: datetime | None,
     ):
         self.group_id = group_id
         self.key = key
@@ -130,20 +132,39 @@ class GroupTagValue(TagType):
 
 
 class TagKeySerializerResponseOptional(TypedDict, total=False):
-    uniqueValues: int | None
-    totalValues: int | None
-    topValues: list[TagValueSerializerResponse] | None
+    uniqueValues: Annotated[
+        int | None, ApiDescription("Number of distinct values seen for the tag key")
+    ]
+    totalValues: Annotated[
+        int | None,
+        ApiDescription(
+            "Number of events counted for the tag key. For an issue tag, this is the issue's "
+            "retained event count, including events without the tag"
+        ),
+    ]
+    topValues: Annotated[
+        list[TagValueSerializerResponse] | None,
+        ApiDescription("Most frequent values of the tag key, ordered by count"),
+    ]
 
 
 class TagKeySerializerResponse(TagKeySerializerResponseOptional):
-    key: str
-    name: str
+    key: Annotated[
+        str, ApiDescription("Tag key, with the `sentry:` prefix removed from built-in keys")
+    ]
+    name: Annotated[str, ApiDescription("Display label of the tag key")]
 
 
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer[TagKeySerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> TagKeySerializerResponse:
+    def serialize(
+        self,
+        obj: TagKey | GroupTagKey,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> TagKeySerializerResponse:
         from sentry import tagstore
 
         output: TagKeySerializerResponse = {
@@ -160,23 +181,49 @@ class TagKeySerializer(Serializer[TagKeySerializerResponse]):
 
 
 class TagValueSerializerResponseOptional(TypedDict, total=False):
-    query: str | None
+    query: Annotated[
+        str | None,
+        ApiDescription(
+            "Search query that matches events with the tag value. Only set for the user tag"
+        ),
+    ]
 
 
 class TagValueSerializerResponse(TagValueSerializerResponseOptional):
-    key: str
-    name: str
-    value: str | None
+    key: Annotated[
+        str, ApiDescription("Tag key, with the `sentry:` prefix removed from built-in keys")
+    ]
+    name: Annotated[
+        str | None,
+        ApiDescription(
+            "Display label of the tag value. For the user tag, the `id:`, `email:`, `username:` or `ip:` prefix is removed"
+        ),
+    ]
+    value: Annotated[str | None, ApiDescription("Tag value")]
     # Empty values do not have counts, last seen or first seen timestamps.
-    count: int | None
-    lastSeen: str | None
-    firstSeen: str | None
+    count: Annotated[
+        int | None, ApiDescription("Number of events with the tag value. Null for an empty value")
+    ]
+    lastSeen: Annotated[
+        datetime | None,
+        ApiDescription("When the tag value was last seen (ISO 8601). Null for an empty value"),
+    ]
+    firstSeen: Annotated[
+        datetime | None,
+        ApiDescription("When the tag value was first seen (ISO 8601). Null for an empty value"),
+    ]
 
 
 @register(GroupTagValue)
 @register(TagValue)
 class TagValueSerializer(Serializer[TagValueSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> TagValueSerializerResponse:
+    def serialize(
+        self,
+        obj: TagValue | GroupTagValue,
+        attrs: Mapping[Any, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> TagValueSerializerResponse:
         from sentry import tagstore
 
         key = tagstore.backend.get_standardized_key(obj.key)
@@ -189,7 +236,7 @@ class TagValueSerializer(Serializer[TagValueSerializerResponse]):
             "firstSeen": obj.first_seen,
         }
 
-        query = convert_user_tag_to_query(key, obj.value)
+        query = convert_user_tag_to_query(key, obj.value) if obj.value is not None else None
         if query:
             serialized["query"] = query
 

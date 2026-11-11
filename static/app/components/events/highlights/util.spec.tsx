@@ -3,14 +3,13 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
   getRuntimeLabelAndTooltip,
-} from 'sentry/components/events/highlights/util';
-
-import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
+} from './util';
 
 describe('getHighlightContextData', () => {
   it('returns only highlight context data', () => {

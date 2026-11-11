@@ -71,6 +71,7 @@ class SeerCodeReviewRepoDefinition(BaseModel):
     the fields actually sent by Sentry for code review requests.
     """
 
+    repository_id: int
     provider: str
     owner: str
     name: str

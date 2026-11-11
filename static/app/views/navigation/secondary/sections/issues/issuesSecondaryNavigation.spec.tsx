@@ -4,10 +4,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
-import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+
+import {IssuesSecondaryNavigation} from './issuesSecondaryNavigation';
 
 describe('IssuesSecondaryNavigation', () => {
   const inboxCountQuery = `is:unresolved issue.progress:[fix_proposed,diagnosed,assigned,identified] assigned_or_suggested:[me,my_teams]${INBOX_AUTOFIX_CATEGORY_FILTER}`;

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import cast
+
 from django.db import router, transaction
 from django.db.models import (
     Case,
@@ -41,6 +45,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     DEFAULT_STATUS_ORDER,
     MONITOR_ENVIRONMENT_ORDERING,
@@ -60,13 +65,14 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
 
-def map_value_to_constant(constant, value):
+def map_value_to_constant(constant: type[object], value: str) -> int:
     value = value.upper()
     if value == "OK":
         value = "ACTIVE"
     if not hasattr(constant, value):
         raise ValueError(value)
-    return getattr(constant, value)
+    result = getattr(constant, value)
+    return result
 
 
 def flip_sort_direction(sort_field: str) -> str:
@@ -86,6 +92,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         # TODO(davidenwang): After this is merged and good to go, make this public
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationAlertRulePermission,)
 
@@ -264,7 +271,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                     try:
                         queryset = queryset.filter(
                             monitorenvironment__status__in=map_value_to_constant(
-                                MonitorStatus, value
+                                MonitorStatus, cast("str", value)
                             )
                         )
                     except ValueError:
@@ -296,7 +303,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         },
     )
     def post(
-        self, request: AuthenticatedHttpRequest, organization
+        self, request: AuthenticatedHttpRequest, organization: Organization
     ) -> Response[MonitorSerializerResponse]:
         """
         Create a new monitor.
@@ -328,7 +335,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         },
     )
     def put(
-        self, request: AuthenticatedHttpRequest, organization
+        self, request: AuthenticatedHttpRequest, organization: Organization
     ) -> Response[MonitorBulkEditResponse]:
         """
         Bulk edit the muted and disabled status of a list of monitors determined by slug
@@ -386,6 +393,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 if result:
                     monitor.update(**result)
                 updated.append(monitor)
+            if "status" in result:
+                sync_cron_detector_enabled(monitor)
             self.create_audit_entry(
                 request=request,
                 organization=organization,

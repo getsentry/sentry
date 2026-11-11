@@ -1,6 +1,12 @@
 from __future__ import annotations
 
+from typing import Any
+
+from rest_framework.response import Response
+
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
     is_autofix_enabled,
@@ -62,8 +68,7 @@ class TestHasSupportedScmIntegration(TestCase):
         assert has_supported_scm_integration(org1)
         assert not has_supported_scm_integration(org2)
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_gitlab_integration_with_feature_flag(self) -> None:
+    def test_gitlab_integration(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider="gitlab",
@@ -72,21 +77,6 @@ class TestHasSupportedScmIntegration(TestCase):
         )
 
         assert has_supported_scm_integration(self.organization)
-
-    @with_feature("organizations:seer-gitlab-support")
-    def test_no_integration_with_gitlab_feature_flag(self) -> None:
-        assert not has_supported_scm_integration(self.organization)
-
-    def test_gitlab_integration_without_feature_flag(self) -> None:
-        # GitLab should not count as a supported SCM without the feature flag
-        self.create_integration(
-            organization=self.organization,
-            provider="gitlab",
-            name="GitLab Test",
-            external_id="789",
-        )
-
-        assert not has_supported_scm_integration(self.organization)
 
     def test_cursor_origin_integration_needs_the_feature_flag(self) -> None:
         self.create_integration(
@@ -224,6 +214,12 @@ class TestIsAutofixEnabled(TestCase):
 
         assert not is_autofix_enabled(self.organization)
 
+    def test_linked_repo_without_seer_config(self) -> None:
+        repo = self.create_repo(project=self.project)
+        self.create_project_repository(project=self.project, repository=repo)
+
+        assert not is_autofix_enabled(self.organization)
+
     def test_multiple_projects(self) -> None:
         project1 = self.create_project(organization=self.organization)
         self.create_project(organization=self.organization)
@@ -246,6 +242,69 @@ class TestIsAutofixEnabled(TestCase):
         assert not is_autofix_enabled(org2)
 
 
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestIsAutofixEnabledTokenBasedBilling(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="ext123"
+        )
+
+    def create_linked_repo(self, project: Project) -> Repository:
+        repo = self.create_repo(
+            project=project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="111",
+            integration_id=self.integration.id,
+        )
+        self.create_project_repository(project=project, repository=repo)
+        return repo
+
+    def test_no_repositories(self) -> None:
+        assert not is_autofix_enabled(self.organization)
+
+    def test_linked_repo_without_seer_config(self) -> None:
+        self.create_linked_repo(self.project)
+
+        assert is_autofix_enabled(self.organization)
+
+    def test_inactive_repository(self) -> None:
+        repo = self.create_linked_repo(self.project)
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
+
+        assert not is_autofix_enabled(self.organization)
+
+    def test_repository_without_integration(self) -> None:
+        repo = self.create_linked_repo(self.project)
+        repo.integration_id = None
+        repo.save()
+
+        assert not is_autofix_enabled(self.organization)
+
+    def test_inactive_project(self) -> None:
+        inactive_project = self.create_project(
+            organization=self.organization, status=ObjectStatus.DISABLED
+        )
+        self.create_linked_repo(inactive_project)
+
+        assert not is_autofix_enabled(self.organization)
+
+    def test_multiple_organizations(self) -> None:
+        org2 = self.create_organization()
+        self.create_project(organization=org2)
+        self.create_linked_repo(self.project)
+
+        assert is_autofix_enabled(self.organization)
+        assert not is_autofix_enabled(org2)
+
+
 class OrganizationSeerOnboardingCheckTest(APITestCase):
     """Integration tests for the GET endpoint"""
 
@@ -256,9 +315,10 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         self.login_as(user=self.user)
         self.project = self.create_project(organization=self.organization)
 
-    def get_response(self, organization_slug, **kwargs):
+    def get_response(self, organization_slug: str, **kwargs: Any) -> Response:
         url = f"/api/0/organizations/{organization_slug}/seer/onboarding-check/"
-        return self.client.get(url, format="json", **kwargs)
+        response: Response[Any] = self.client.get(url, format="json", **kwargs)
+        return response
 
     def test_nothing_configured(self) -> None:
         response = self.get_response(self.organization.slug)

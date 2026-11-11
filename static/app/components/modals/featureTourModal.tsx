@@ -4,9 +4,9 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 
 export type TourStep = {

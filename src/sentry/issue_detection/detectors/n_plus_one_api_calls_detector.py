@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 from collections import defaultdict
 from datetime import timedelta
@@ -10,6 +9,7 @@ from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     get_total_span_duration,
     get_url_from_span,
@@ -52,11 +52,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.spans: list[Span] = []
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span):
-            return
-
+        # Check the op before `_is_span_eligible`, which parses the span's URL.
         op = span.get("op", None)
         if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        if not self._is_span_eligible(span):
             return
 
         previous_span = self.spans[-1] if len(self.spans) > 0 else None
@@ -91,11 +92,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not span_id or not parent_span_id or not op or not hash:
             return False
 
-        description = span.get("description")
+        description = get_span_description(span)
         if not description:
             return False
 
-        if description.strip()[:3].upper() != "GET":
+        if description[:3].upper() != "GET":
             return False
 
         url = get_url_from_span(span)
@@ -164,17 +165,14 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         if self.stored_problems.get(fingerprint):
-            logging.info(
-                "Multiple occurrences detected for fingerprint",
-                extra={"detector": self.settings_key},
-            )
+            self.duplicate_fingerprint_count += 1
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]
         problem_description = self._get_parameterized_url(self.spans[0])
         if problem_description == "":
             problem_description = os.path.commonprefix(
-                [span.get("description", "") or "" for span in self.spans]
+                [get_span_description(span) for span in self.spans]
             )
 
         parent_span_id = last_span.get("parent_span_id")
@@ -282,7 +280,6 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
-        return (
+        return span_a["parent_span_id"] == span_b["parent_span_id"] and (
             self._get_parameterized_url(span_a) == self._get_parameterized_url(span_b)
-            and span_a["parent_span_id"] == span_b["parent_span_id"]
         )

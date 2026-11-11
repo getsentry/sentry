@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from collections.abc import Iterator
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -29,7 +30,7 @@ class DirectMessageTest(BaseEventTest):
     that DMs are routed to on_direct_message instead of the help message handler.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode_of(Integration):
             self.integration.metadata["scopes"] = [SlackScope.ASSISTANT_WRITE]
@@ -38,14 +39,14 @@ class DirectMessageTest(BaseEventTest):
         self.link_identity(slack_user_id=MESSAGE_DM_EVENT["user"])
 
     @pytest.fixture(autouse=True)
-    def mock_set_thread_status(self):
+    def mock_set_thread_status(self) -> Iterator[None]:
         with patch(
             "sentry.integrations.slack.integration.SlackIntegration.set_thread_status",
         ) as self.mock_status:
             yield
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_dispatches_task(self, mock_apply_async):
+    def test_dm_dispatches_task(self, mock_apply_async: MagicMock) -> None:
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=MESSAGE_DM_EVENT, data=AUTHORIZATIONS_DATA)
 
@@ -62,7 +63,7 @@ class DirectMessageTest(BaseEventTest):
         assert kwargs["bot_user_id"] == AUTHORIZATIONS_DATA["authorizations"][0]["user_id"]
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_threaded_dispatches_task(self, mock_apply_async):
+    def test_dm_threaded_dispatches_task(self, mock_apply_async: MagicMock) -> None:
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=THREADED_MESSAGE_DM_EVENT, data=AUTHORIZATIONS_DATA)
 
@@ -74,7 +75,9 @@ class DirectMessageTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_identity_not_linked(self, mock_apply_async, mock_record):
+    def test_dm_identity_not_linked(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         """When no identity is linked, halt without dispatching the mention task."""
         self.unlink_identity()
         with self.feature(SEER_EXPLORER_FEATURES):
@@ -86,7 +89,9 @@ class DirectMessageTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_feature_flag_disabled(self, mock_apply_async, mock_record):
+    def test_dm_feature_flag_disabled(
+        self, mock_apply_async: MagicMock, mock_record: MagicMock
+    ) -> None:
         resp = self.post_webhook(event_data=MESSAGE_DM_EVENT)
 
         assert resp.status_code == 200
@@ -95,7 +100,7 @@ class DirectMessageTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_no_integration(self, mock_apply_async, mock_record):
+    def test_dm_no_integration(self, mock_apply_async: MagicMock, mock_record: MagicMock) -> None:
         with patch(
             "sentry.integrations.slack.requests.event.integration_service.get_organization_integrations",
             return_value=[],
@@ -109,7 +114,7 @@ class DirectMessageTest(BaseEventTest):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_dm_empty_text(self, mock_apply_async, mock_record):
+    def test_dm_empty_text(self, mock_apply_async: MagicMock, mock_record: MagicMock) -> None:
         event_data = {**MESSAGE_DM_EVENT, "text": ""}
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=event_data)

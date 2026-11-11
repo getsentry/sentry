@@ -8,19 +8,9 @@ import {IconPlay} from '@sentry/icons/play';
 import {IconTimer} from '@sentry/icons/timer';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  StacktraceContext,
-  useStacktraceContext,
-} from 'sentry/components/events/interfaces/stackTraceContext';
-import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
-import {
-  getMappedThreadState,
-  getThreadStateHelpText,
-  ThreadStates,
-} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {Pill} from 'sentry/components/pill';
@@ -45,7 +35,14 @@ import {ThreadSelector} from './threads/threadSelector';
 import {findBestThread} from './threads/threadSelector/findBestThread';
 import {getThreadException} from './threads/threadSelector/getThreadException';
 import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
+import {getLockReason} from './threads/threadSelector/lockReason';
+import {
+  getMappedThreadState,
+  getThreadStateHelpText,
+  ThreadStates,
+} from './threads/threadSelector/threadStates';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type Props = {
@@ -54,6 +51,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  initialCollapse?: boolean;
 };
 
 function getIntendedStackView(
@@ -167,7 +165,14 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
+export function Threads({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+  initialCollapse,
+}: Props) {
   // Sort threads by crashed first
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -243,7 +248,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
-          <Grid>
+          <Grid gap="xl" columns="auto 1fr">
             <div>
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
@@ -315,6 +320,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         }
       >
         <TraceEventDataSection
+          initialCollapse={initialCollapse}
           type={SectionKey.THREADS}
           projectSlug={projectSlug}
           event={event}
@@ -390,6 +396,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   // If there is only one thread, we expect the stacktrace to wrap itself in a section
   return hasMoreThanOneThread ? (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={SectionKey.STACKTRACE}
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence
@@ -400,12 +407,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     threadComponent
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
 
 const TheadStateContainer = styled('div')`
   display: block;

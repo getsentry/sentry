@@ -1,169 +1,20 @@
 from __future__ import annotations
 
-import logging
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
-from django.test import RequestFactory
 from django.urls import reverse
-from rest_framework.exceptions import ParseError
-from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.timeseries import IncompleteReason
-from sentry.api.helpers.timeseries_processing import (
-    EmaSmoothTransformation,
-    FillTransformation,
-    SmaSmoothTransformation,
-    Transformation,
-)
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
-
-
-@pytest.mark.parametrize(
-    "query, expected",
-    [
-        ("", {}),
-        ("transformationsExtra=ignored&query=anything", {}),
-        ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
-        (
-            "transformations[0]=smooth(sma,,5)",
-            {0: [SmaSmoothTransformation(mode="sma", window_size=5)]},
-        ),
-        (
-            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
-            {
-                0: [
-                    SmaSmoothTransformation(mode="sma", window_size=5),
-                    SmaSmoothTransformation(mode="sma", window_size=3),
-                ]
-            },
-        ),
-        (
-            "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
-            "&transformations%5B1%5D=smooth%28sma%2C3%29&transformations%5B0%5D=fill%28zero%29",
-            {
-                1: [
-                    FillTransformation(mode="locf"),
-                    SmaSmoothTransformation(mode="sma", window_size=3),
-                ],
-                0: [FillTransformation(mode="zero")],
-            },
-        ),
-        (
-            "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
-            "&transformations[2]=smooth(sma,3)",
-            {2: [SmaSmoothTransformation(mode="sma", window_size=3)]},
-        ),
-        (
-            "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
-            {0: [FillTransformation(mode="locf"), FillTransformation(mode="locf")]},
-        ),
-        (
-            "transformations[0]=smooth(ema,7)",
-            {0: [EmaSmoothTransformation(mode="ema", window_size=7)]},
-        ),
-        (
-            "transformations[0]=smooth(ema,7,0.25)&transformations[0]=smooth(sma,3)",
-            {
-                0: [
-                    EmaSmoothTransformation(mode="ema", window_size=7, smoothing_factor=0.25),
-                    SmaSmoothTransformation(mode="sma", window_size=3),
-                ]
-            },
-        ),
-    ],
-)
-def test_decode_transformations(query: str, expected: dict[int, list[Transformation]]) -> None:
-    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
-
-    assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
-
-
-@pytest.mark.parametrize(
-    "key",
-    [
-        "transformations",
-        "transformations[]",
-        "transformations[-1]",
-        "transformations[abc]",
-        "transformations[01]",
-        "transformations[0][]",
-        "transformations[0]extra",
-        "transformations[0",
-        "transformations[٠]",
-        pytest.param(f"transformations[{'9' * 5000}]", id="oversized-index"),
-    ],
-)
-def test_decode_transformations_invalid_key(key: str) -> None:
-    request = Request(RequestFactory().get("/events-timeseries/", {key: "fill(locf)"}))
-
-    with pytest.raises(ParseError, match="Invalid transformations index"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
-
-
-@pytest.mark.parametrize(
-    "query",
-    [
-        "transformations[1]=fill(locf)",
-        "yAxis=count()&yAxis=avg(span.duration)&transformations[2]=fill(locf)",
-        "transformations[1000000000]=fill(locf)",
-    ],
-)
-def test_decode_transformations_index_out_of_range(query: str) -> None:
-    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
-
-    with pytest.raises(ParseError, match="transformations index must match a yAxis position"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
-
-
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        ("", " is not a valid transformation"),
-        ("[fill(locf), smooth(sma)]", "[fill(locf), smooth(sma)] is not a valid transformation"),
-        (
-            "fill(sma)",
-            "fill(sma): mode argument invalid: expected one of locf, zero, linear",
-        ),
-        (
-            "smooth(sma,0)",
-            "smooth(sma,0): window_size argument invalid: Window size must be positive.",
-        ),
-        ("fill()", "fill(): argument count must be 1"),
-        ("smooth()", "smooth(): argument count must be 2"),
-        ("smooth(sma)", "smooth(sma): argument count must be 2"),
-        ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
-        ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
-        ("smooth(ema)", "smooth(ema): argument count must be 2 or 3"),
-        ("smooth(ema,7,0.5,1)", "smooth(ema,7,0.5,1): argument count must be 2 or 3"),
-        (
-            "smooth(ema,7,0)",
-            "smooth(ema,7,0): smoothing_factor argument invalid: "
-            "Smoothing factor must be greater than zero and at most one.",
-        ),
-    ],
-)
-def test_decode_transformations_invalid_value(
-    value: str, expected: str, caplog: pytest.LogCaptureFixture
-) -> None:
-    request = Request(
-        RequestFactory().get("/events-timeseries/", {"transformations[0]": ["fill(locf)", value]})
-    )
-
-    with caplog.at_level(logging.INFO, logger="sentry.api.utils"):
-        with pytest.raises(ParseError) as error:
-            OrganizationEventsTimeseriesEndpoint().get_transformations(request)
-
-    assert error.value.detail == expected
-    assert caplog.record_tuples == [("sentry.api.utils", logging.INFO, "A query error was handled")]
-    assert getattr(caplog.records[0], "query.error_reason") == expected
 
 
 class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
@@ -199,7 +50,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             )
 
         assert response.data == {
-            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema"
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:
@@ -282,11 +133,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def do_request(self, data, url=None, features=None):
+    def do_request(
+        self,
+        data: dict[str, Any],
+        url: str | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            response: Response = self.client.get(
+                self.url if url is None else url, data=data, format="json"
+            )
+            return response
 
     def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
@@ -642,7 +501,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert other["meta"]["order"] == 1
         assert other["values"][0]["value"] == 1
 
-    def test_incomplete_bucket(self):
+    def test_incomplete_bucket(self) -> None:
         with freeze_time(self.end):
             response = self.do_request(
                 {
@@ -687,18 +546,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def _api_token_request(self, data, features):
+    def _api_token_request(self, data: dict[str, Any], features: dict[str, bool]) -> Response:
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         with self.feature(features):
-            return self.client.get(
+            response: Response = self.client.get(
                 self.url,
                 data=data,
                 format="json",
                 HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
+            return response
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -718,6 +578,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"] == {
             "org_id": self.organization.id,
             "org_slug": self.organization.slug,
+            "is_blocked": True,
             # no dataset param was passed, so the requested value is empty
             "requested_dataset": "",
             # but the default dataset is used
@@ -726,7 +587,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         }
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_transactions(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_transactions(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -748,7 +611,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"]["requested_dataset"] == "transactions"
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_when_flag_off(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_allowlisted_org(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -763,10 +628,12 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         )
 
-        mock_sdk_logger.warning.assert_not_called()
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["is_blocked"] is False
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_external_request(
+    def test_legacy_dataset_log_not_fired_for_non_external_request(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -787,7 +654,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+    def test_legacy_dataset_log_not_fired_for_non_legacy_dataset(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -821,7 +688,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans") -> Response:
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -830,10 +697,11 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "dataset": dataset,
         }
         with self.feature(features):
-            return self.client.get(self.url, data=data, format="json")
+            response: Response = self.client.get(self.url, data=data, format="json")
+            return response
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
+    def test_ingestion_delay_absent_without_flag(self, mock_measure: MagicMock) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
@@ -841,7 +709,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_present(self, mock_measure) -> None:
+    def test_ingestion_delay_present(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(minutes=5)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -863,7 +731,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         }
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_unknown_status_is_reported_without_values(self, mock_measure) -> None:
+    def test_unknown_status_is_reported_without_values(self, mock_measure: MagicMock) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
             complete_through=None,
@@ -879,7 +747,9 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.data["meta"]["ingestion"] == {"status": "unknown"}
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
+    def test_ingestion_delay_query_failure_does_not_break_the_response(
+        self, mock_measure: MagicMock
+    ) -> None:
         mock_measure.side_effect = Exception("snuba is down")
         response = self._do_request(
             {
@@ -891,7 +761,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert "ingestion" not in response.data["meta"]
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
+    def test_complete_through_is_returned_in_milliseconds(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -913,7 +783,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_are_marked_incomplete_from_measured_complete_through(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         complete_through = self.end - timedelta(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
@@ -938,7 +808,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
@@ -958,7 +828,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     @mock.patch("sentry.quotas.backend.get_event_retention")
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_starting_before_retention_are_marked_outside_it(
-        self, mock_measure, mock_retention
+        self, mock_measure: MagicMock, mock_retention: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=1.0,

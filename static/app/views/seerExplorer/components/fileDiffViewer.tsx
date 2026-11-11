@@ -3,9 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {getPrismLanguage} from '@sentry/scraps/code';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {getPrismLanguage} from '@sentry/scraps/codeBlock';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -14,10 +13,12 @@ import {
   type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
-import {OpenFileButton} from 'sentry/views/seerExplorer/components/openFileButton';
+
+import {OpenFileButton} from './openFileButton';
 
 interface FileDiffViewerProps {
   patch: FilePatch;
@@ -165,7 +166,7 @@ export function FileDiffViewer({
             <DiffContainer>
               {patch.hunks.map((hunk, hunkIndex) => (
                 <Fragment key={hunkIndex}>
-                  <HunkHeaderEmptySpace />
+                  <Container background="secondary" column="1 / 3" />
                   <HunkHeader
                     sourceStart={hunk.source_start}
                     sourceLength={hunk.source_length}
@@ -269,11 +270,6 @@ const DiffContainer = styled('div')`
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
-`;
-
-const HunkHeaderEmptySpace = styled('div')`
-  grid-column: 1 / 3;
-  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`

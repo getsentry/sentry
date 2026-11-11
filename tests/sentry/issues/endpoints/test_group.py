@@ -6,13 +6,20 @@ from rest_framework.views import APIView
 
 from sentry.auth.access import from_request
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
 from sentry.users.models.user import User
-from sentry.viewer_context import ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -53,7 +60,7 @@ class GroupAiPermissionTest(TestCase):
         self,
         method: str,
         obj: Group,
-        auth: ApiToken | None = None,
+        auth: ApiToken | ApiKey | None = None,
         user: User | None = None,
         is_superuser: bool | None = None,
     ) -> bool:
@@ -174,10 +181,12 @@ class GroupAiEndpointTest(TestCase):
         request = drf_request_from_request(request)
         request._request.organization = None
 
-        with viewer_context_scope(ViewerContext(user_id=user.id)):
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=user.id))
+        ):
             self.endpoint.convert_args(request, str(self.group.id), self.project.organization.slug)
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == user.id
+        assert ctx.actor.actor_id == user.id
         assert ctx.organization_id == self.project.organization.id

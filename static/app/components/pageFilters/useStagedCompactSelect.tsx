@@ -425,12 +425,15 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       keyRef.current = null;
       setModifierActive(false);
     };
-    window.addEventListener('keydown', onKeyChange);
-    window.addEventListener('keyup', onKeyChange);
+    // Listen in the capture phase: option leading/trailing items stop keydown
+    // propagation, so a Shift press while a checkbox has focus (e.g. right after
+    // clicking it) would otherwise never reach a bubbling window listener.
+    window.addEventListener('keydown', onKeyChange, true);
+    window.addEventListener('keyup', onKeyChange, true);
     window.addEventListener('blur', onBlur);
     return () => {
-      window.removeEventListener('keydown', onKeyChange);
-      window.removeEventListener('keyup', onKeyChange);
+      window.removeEventListener('keydown', onKeyChange, true);
+      window.removeEventListener('keyup', onKeyChange, true);
       window.removeEventListener('blur', onBlur);
     };
   }, []);

@@ -27,13 +27,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  getUserDisplayName,
-  normalizeUserField,
-  UserNotInstrumentedTooltip,
-} from 'sentry/views/explore/conversations/components/conversationsTable';
-import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {
   ConversationModelUsage,
   ConversationStats,
@@ -64,10 +57,19 @@ import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenB
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {
+  getUserDisplayName,
+  normalizeUserField,
+  UserNotInstrumentedTooltip,
+} from './conversationsTable';
+import {ConversationTraceLink, type ConversationTrace} from './conversationTraceLink';
+import {ToolTag} from './toolTag';
+
 interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
+  hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -94,6 +96,7 @@ export function ConversationSummary({
   conversationId,
   title,
   project,
+  hasMoreSpans,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -124,19 +127,21 @@ export function ConversationSummary({
   });
 
   // Distinct traces the conversation spans, keyed by trace ID with a
-  // representative span ID to deep-link into the trace view.
+  // representative span to deep-link into the trace view. The span's start
+  // time lets the trace view find the trace regardless of the page's date range.
   const traces = useMemo(() => {
     if (!nodeTraceMap) {
       return [];
     }
-    const seen = new Map<string, string>();
+    const startTimestamps = new Map(nodes.map(node => [node.id, node.startTimestamp]));
+    const seen = new Map<string, ConversationTrace>();
     for (const [spanId, traceId] of nodeTraceMap) {
       if (!seen.has(traceId)) {
-        seen.set(traceId, spanId);
+        seen.set(traceId, {traceId, spanId, timestamp: startTimestamps.get(spanId)});
       }
     }
-    return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
-  }, [nodeTraceMap]);
+    return Array.from(seen.values());
+  }, [nodes, nodeTraceMap]);
 
   return (
     <Flex
@@ -239,7 +244,11 @@ export function ConversationSummary({
                   </InfoText>
                 </Flex>
               )}
-              <ConversationTraceLink conversationId={conversationId} traces={traces} />
+              <ConversationTraceLink
+                conversationId={conversationId}
+                traces={traces}
+                hasMoreSpans={hasMoreSpans}
+              />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />

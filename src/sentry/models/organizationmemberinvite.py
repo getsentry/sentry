@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import secrets
+from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -22,6 +25,14 @@ from sentry.signals import member_invited
 
 INVITE_DAYS_VALID = 30
 
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise  # fake type added by django-stubs
+
+    from sentry.models.apikey import ApiKey
+    from sentry.roles.manager import OrganizationRole
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
+
 __all__ = ("OrganizationMemberInvite",)
 
 
@@ -31,7 +42,7 @@ class InviteStatus(Enum):
     REQUESTED_TO_JOIN = 2
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> Sequence[tuple[int, _StrPromise]]:
         return (
             (InviteStatus.APPROVED.value, _("Approved")),
             (
@@ -52,11 +63,11 @@ ERR_CANNOT_INVITE = "Your organization is not allowed to invite members."
 ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join."
 
 
-def default_expiration():
+def default_expiration() -> datetime:
     return timezone.now() + timedelta(days=INVITE_DAYS_VALID)
 
 
-def generate_token():
+def generate_token() -> str:
     return secrets.token_hex(nbytes=32)
 
 
@@ -74,7 +85,7 @@ class OrganizationMemberInviteResponse(TypedDict):
     dateCreated: datetime
     inviteStatus: str
     inviterName: str | None
-    teams: list[dict]
+    teams: list[dict[str, int | str | None]]
 
 
 @cell_silo_model
@@ -120,42 +131,42 @@ class OrganizationMemberInvite(DefaultFieldsModel):
 
     __repr__ = sane_repr("organization_id", "email", "role")
 
-    def get_invite_link(self, referrer: str | None = None):
+    def get_invite_link(self, referrer: str | None = None) -> None:
         pass
 
-    def send_invite_email(self, referrer: str | None = None):
+    def send_invite_email(self, referrer: str | None = None) -> None:
         pass
 
-    def generate_token(self):
+    def generate_token(self) -> str:
         return secrets.token_hex(nbytes=32)
 
-    def regenerate_token(self):
+    def regenerate_token(self) -> None:
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def refresh_expires_at(self):
+    def refresh_expires_at(self) -> None:
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
 
-    def approve_invite(self):
+    def approve_invite(self) -> None:
         self.invite_status = InviteStatus.APPROVED.value
         self.regenerate_token()
 
-    def get_invite_status_name(self):
+    def get_invite_status_name(self) -> str:
         return invite_status_names[self.invite_status]
 
-    def set_org_role(self, orgRole: str):
+    def set_org_role(self, orgRole: str) -> None:
         self.role = orgRole
         self.save()
 
-    def set_teams(self, teams: list[Team]):
+    def set_teams(self, teams: list[Team]) -> None:
         team_data = []
         for team in teams:
             team_data.append({"id": team.id, "slug": team.slug, "role": None})
         self.organization_member_team_data = team_data
         self.save()
 
-    def validate_invitation(self, allowed_roles):
+    def validate_invitation(self, allowed_roles: Iterable[OrganizationRole]) -> bool:
         """
         Validates whether an org has the options to invite members, handle join requests,
         and that the member role doesn't exceed the allowed roles to invite.
@@ -177,7 +188,13 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             )
         return True
 
-    def approve_invite_request(self, approving_user, api_key=None, ip_address=None, referrer=None):
+    def approve_invite_request(
+        self,
+        approving_user: User | RpcUser | None,
+        api_key: ApiKey | None = None,
+        ip_address: str | None = None,
+        referrer: str | None = None,
+    ) -> None:
         """
         Approve a member invite/join request and send an audit log entry
         """
@@ -200,7 +217,13 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             event=(audit_log.get_event_id("MEMBER_INVITE")),
         )
 
-    def remove_invite_from_db(self, acting_user, event_name, api_key=None, ip_address=None):
+    def remove_invite_from_db(
+        self,
+        acting_user: User | RpcUser | None,
+        event_name: str,
+        api_key: ApiKey | None = None,
+        ip_address: str | None = None,
+    ) -> None:
         """
         Remove a member invite obejct from the DB and send an audit log entry
         """
@@ -222,19 +245,19 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             )
 
     @property
-    def invite_approved(self):
+    def invite_approved(self) -> bool:
         return self.invite_status == InviteStatus.APPROVED.value
 
     @property
-    def requested_to_join(self):
+    def requested_to_join(self) -> bool:
         return self.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
 
     @property
-    def requested_to_be_invited(self):
+    def requested_to_be_invited(self) -> bool:
         return self.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
     @property
-    def token_expired(self):
+    def token_expired(self) -> bool:
         return self.token_expires_at <= timezone.now()
 
     def write_relocation_import(
@@ -252,7 +275,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
 
         return super().write_relocation_import(scope, flags)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         teams = self.organization_member_team_data
         return {
             "email": self.email,

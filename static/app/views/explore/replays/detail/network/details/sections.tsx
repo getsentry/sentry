@@ -20,7 +20,10 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import type {KeyValueTuple} from 'sentry/views/explore/replays/detail/network/details/components';
+import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
+import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+import type {KeyValueTuple} from './components';
 import {
   Indent,
   InspectorMargin,
@@ -28,10 +31,8 @@ import {
   SectionItem,
   SizeTooltip,
   Warning,
-} from 'sentry/views/explore/replays/detail/network/details/components';
-import {useDismissReqRespBodiesAlert} from 'sentry/views/explore/replays/detail/network/details/onboarding';
-import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
-import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+} from './components';
+import {useDismissReqRespBodiesAlert} from './onboarding';
 
 export type SectionProps = {
   item: SpanFrame;
@@ -113,7 +114,7 @@ export function RequestHeadersSection({item}: SectionProps) {
     contentTypeHeaders.resp !== undefined &&
     contentTypeHeaders.req !== contentTypeHeaders.resp;
 
-  const data = isRequestFrame(item) ? item.data : {};
+  const data = isRequestFrame(item) ? (item.data ?? {}) : {};
   const headers: KeyValueTuple[] = Object.entries(data.request?.headers || {}).map(
     ([key, value]) => {
       const warn = key === 'content-type' && isContentTypeMismatched;
@@ -149,7 +150,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
     contentTypeHeaders.resp !== undefined &&
     contentTypeHeaders.req !== contentTypeHeaders.resp;
 
-  const data = isRequestFrame(item) ? item.data : {};
+  const data = isRequestFrame(item) ? (item.data ?? {}) : {};
   const headers: KeyValueTuple[] = Object.entries(data.response?.headers || {}).map(
     ([key, value]) => {
       const warn = key === 'content-type' && isContentTypeMismatched;
@@ -199,7 +200,7 @@ export function QueryParamsSection({item}: SectionProps) {
 export function RequestPayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const data = useMemo(() => (isRequestFrame(item) ? (item.data ?? {}) : {}), [item]);
   const {warnings, body} = getBodyAndWarnings(data.request);
 
   useEffect(() => {
@@ -237,7 +238,7 @@ export function RequestPayloadSection({item}: SectionProps) {
 export function ResponsePayloadSection({item}: SectionProps) {
   const {dismiss, isDismissed} = useDismissReqRespBodiesAlert();
 
-  const data = useMemo(() => (isRequestFrame(item) ? item.data : {}), [item]);
+  const data = useMemo(() => (isRequestFrame(item) ? (item.data ?? {}) : {}), [item]);
   const {warnings, body} = getBodyAndWarnings(data.response);
 
   useEffect(() => {

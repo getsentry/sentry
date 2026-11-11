@@ -1,6 +1,5 @@
 /* eslint-disable @sentry/sort-interface-keys */
-import {MetricsArtifactType} from 'sentry/views/preprod/types/appSizeTypes';
-
+import {MetricsArtifactType} from './appSizeTypes';
 import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {

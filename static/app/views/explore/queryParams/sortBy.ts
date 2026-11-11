@@ -1,14 +1,11 @@
-import type {Location} from 'history';
-
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 
-export function getSortBysFromLocation(
-  location: Location,
-  key: string,
+export function getSortBys(
+  rawSortBys: readonly string[],
   fields: string[]
 ): Sort[] | null {
-  const sortBys = decodeSorts(location.query?.[key]);
+  const sortBys = decodeSorts([...rawSortBys]);
 
   if (sortBys.length > 0) {
     if (sortBys.every(sort => validateSort(sort, fields))) {

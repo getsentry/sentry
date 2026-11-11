@@ -24,6 +24,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -37,7 +38,6 @@ import type {
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodeChanges} from './codeChanges';
@@ -762,7 +762,7 @@ function CardFrame({
             {body}
           </Stack>
         ) : null}
-        <Aside gap="lg" align="end" justify="between">
+        <Aside area="aside" display={{zero: 'contents', sm: 'flex'}}>
           <Stack area="actions" align={{xs: 'start', sm: 'end'}}>
             {actions}
           </Stack>
@@ -775,14 +775,11 @@ function CardFrame({
   );
 }
 
-const Aside = styled(Stack)`
-  grid-area: aside;
-
-  @container (width < ${p => p.theme.container.sm}) {
-    && {
-      display: contents;
-    }
-  }
+const Aside = styled(Container)`
+  flex-direction: column;
+  gap: ${p => p.theme.space.lg};
+  align-items: flex-end;
+  justify-content: space-between;
 `;
 
 export function TextLineSkeleton({

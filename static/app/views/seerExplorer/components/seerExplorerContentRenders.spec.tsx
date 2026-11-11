@@ -4,10 +4,11 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+import {SeerExplorerContent} from './seerExplorerContent';
 
 const mockMarkdownRender = jest.fn();
 
@@ -69,6 +70,7 @@ function makeTurn(turn: number): Block[] {
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
+  featureId: null,
   isPolling: false,
   isError: false,
   hasSessionLoadError: false,
@@ -76,7 +78,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isTimedOut: false,
   runId: 1,
   overrideBashModeEnabled: false,
-  overrideCtxEngEnable: true,
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
@@ -85,9 +86,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
-  setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
 };
 

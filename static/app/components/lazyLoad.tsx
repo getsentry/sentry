@@ -3,11 +3,12 @@ import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {InitialLoadingIndicator} from 'sentry/components/initialLoadingIndicator';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
+
+import {InitialLoadingIndicator} from './initialLoadingIndicator';
+import {LoadingError} from './loadingError';
+import {LoadingIndicator} from './loadingIndicator';
 
 type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   /**

@@ -1,4 +1,5 @@
 import urllib.parse
+from collections.abc import Mapping
 from datetime import timedelta
 
 import pytest
@@ -16,7 +17,11 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
 
 
-def _make_query(qs, params=None, allow_minute_resolution=True):
+def _make_query(
+    qs: str,
+    params: Mapping[str, object] | None = None,
+    allow_minute_resolution: bool = True,
+) -> QueryDefinition:
     if params is None:
         params = {}
     return QueryDefinition.from_query_dict(QueryDict(qs), params, allow_minute_resolution)

@@ -47,9 +47,7 @@ function useIssueDetailsTourModal() {
   const {isRegistered, currentStepId, startTour, endTour} = useContext(
     IssueDetailsTourContext
   )!;
-  const {data: assistantData} = useAssistant({
-    notifyOnChangeProps: ['data'],
-  });
+  const {data: assistantData} = useAssistant();
   const {mutate: mutateAssistant} = useMutateAssistant();
   const forceShowTourModal = window.location.hash === ISSUE_DETAILS_TOUR_FORCE_HASH;
   const hasUnseenIssueDetailsTour =
@@ -77,6 +75,7 @@ function useIssueDetailsTourModal() {
     };
 
     hasOpenedTourModal.current = true;
+    // oxlint-disable-next-line react/todo
     void import('sentry/components/tours/startTour').then(
       ({StartTourModal, startTourModalCss}) => {
         if (cancelled) {

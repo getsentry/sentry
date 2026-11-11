@@ -24,6 +24,7 @@ from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
 from sentry.integrations.gcp.utils import (
     GCP_MCP_URLS,
+    GCP_STATUS_CONNECTED,
     GCP_STATUS_UNVERIFIED,
     parse_customer_sa_email,
     parse_gcp_project_ids,
@@ -423,6 +424,21 @@ class GcpOrgMonitoringProvider(OrgMonitoringProvider):
     """Surfaces the org-level GCP integration to Seer as shared monitoring connections."""
 
     provider_key = IntegrationProviderSlug.GCP.value
+
+    def is_verified(self, organization: Organization) -> bool:
+        org_integration = integration_service.organization_context(
+            organization_id=organization.id, provider=self.provider_key
+        ).organization_integration
+        if org_integration is None:
+            return False
+        config = org_integration.config
+        # Integrations installed before verification existed have no status.
+        if "connection_status" not in config:
+            return True
+        return any(
+            project.get("connection_status") == GCP_STATUS_CONNECTED
+            for project in config.get("project_statuses", [])
+        )
 
     def build_connection(
         self, organization: Organization

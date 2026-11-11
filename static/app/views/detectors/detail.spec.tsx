@@ -25,10 +25,11 @@ import {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
-import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {CheckStatus} from './components/uptime/types';
+import DetectorDetails from './detail';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture();
@@ -294,7 +295,7 @@ describe('DetectorDetails', () => {
       );
     });
 
-    it('displays recent issues when each firing opens its own issue', async () => {
+    it('displays recent issues when each activation opens its own issue', async () => {
       render(<DetectorDetails />, {
         organization: OrganizationFixture({
           features: ['workflow-engine-rotate-activation-id'],

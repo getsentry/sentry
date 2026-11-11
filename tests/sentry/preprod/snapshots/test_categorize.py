@@ -20,7 +20,7 @@ def _m(
     )
 
 
-def test_full_head_marks_missing_base_images_removed():
+def test_full_head_marks_missing_base_images_removed() -> None:
     head = _m({"a": "h1", "b": "h2"})
     base = _m({"a": "h0", "c": "h3"})
     matched, added, removed, skipped = categorize_image_sets(head, base)
@@ -30,7 +30,7 @@ def test_full_head_marks_missing_base_images_removed():
     assert skipped == set()
 
 
-def test_selective_no_list_skips_uninvolved_base_images():
+def test_selective_no_list_skips_uninvolved_base_images() -> None:
     head = _m({"a": "h1"}, selective=True)
     base = _m({"a": "h0", "c": "h3"})
     matched, added, removed, skipped = categorize_image_sets(head, base)
@@ -40,7 +40,7 @@ def test_selective_no_list_skips_uninvolved_base_images():
     assert skipped == {"c"}
 
 
-def test_selective_with_all_names_expresses_removals():
+def test_selective_with_all_names_expresses_removals() -> None:
     head = _m({"a": "h1"}, selective=True, all_image_file_names=["a", "c"])
     base = _m({"a": "h0", "c": "h3", "d": "h4"})
     matched, added, removed, skipped = categorize_image_sets(head, base)

@@ -4,10 +4,15 @@ import {useQuery} from '@tanstack/react-query';
 import type {FuseResult, IFuseOptions} from 'fuse.js/basic';
 
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
-import type {
-  KeySectionItem,
-  SearchKeyItem,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import type {Tag} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+
+import type {KeySectionItem, SearchKeyItem} from './filterKeyListBox/types';
 import {
   createFilterValueItem,
   createItem,
@@ -16,14 +21,7 @@ import {
   createRawSearchFilterIsValueItem,
   createRawSearchFuzzyFilterItem,
   createRawSearchItem,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
-import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import type {Tag} from 'sentry/types/group';
-import {defined} from 'sentry/utils/defined';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+} from './filterKeyListBox/utils';
 
 type FilterKeySearchItem = {
   description: string;

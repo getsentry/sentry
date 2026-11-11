@@ -1,8 +1,9 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {FieldKind} from 'sentry/utils/fields';
+
+import {useConditionalFilterAutocomplete} from './conditionalFilterAutocomplete';
 
 const functionArguments = [{name: 'span.op', kind: FieldKind.TAG, label: 'span.op'}];
 

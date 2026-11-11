@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_401_UNAUTHORIZED
+from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -14,12 +14,13 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log import (
     action_context_scope,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.grouptype import get_test_notification_event_data
@@ -82,7 +83,9 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         ],
         responses={
             200: None,
-            400: TestFireActionErrorsResponse,
+            400: inline_sentry_response_serializer(
+                "TestFireActionErrorsResponse", TestFireActionErrorsResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOT_FOUND,
         },
@@ -100,12 +103,10 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         data = serializer.validated_data
 
-        if not request.user.is_authenticated:
-            return Response(status=HTTP_401_UNAUTHORIZED)
-
+        user_id = require_user(request).id
         qs = Project.objects.filter(
             organization=organization,
-            teams__organizationmember__user_id=request.user.id,
+            teams__organizationmember__user_id=user_id,
             status=ObjectStatus.ACTIVE,
         ).order_by("slug")
 
@@ -141,6 +142,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
     workflow_event_data = WorkflowEventData(
         event=test_event,
         group=test_event.group,
+        organization=project.organization,
     )
 
     for action_data in actions:

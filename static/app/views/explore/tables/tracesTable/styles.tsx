@@ -30,10 +30,11 @@ export const BreakdownCell = styled(SimpleTable.RowCell, {
 })<{highlightedSliceName: string}>`
   ${p =>
     p.highlightedSliceName
-      ? css`--highlightedSlice-${p.highlightedSliceName}-opacity: 1.0;
-         --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1.0) contrast(1.0);
-         --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
-       `
+      ? css`
+          --highlightedSlice-${p.highlightedSliceName}-opacity: 1;
+          --highlightedSlice-${p.highlightedSliceName}-saturate: saturate(1) contrast(1);
+          --highlightedSlice-${p.highlightedSliceName}-transform: translateY(0px);
+        `
       : null}
   ${p =>
     p.highlightedSliceName

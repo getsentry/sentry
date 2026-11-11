@@ -7,6 +7,7 @@ import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
@@ -78,8 +79,8 @@ export function BreadCrumbs({
   }
 
   const actions = (
-    <ActionsWrapper>
-      <SearchWrapper>
+    <Flex gap="md" align="center" display={{zero: 'none', '2xs': 'flex'}}>
+      <Container display={{zero: 'none', sm: 'block'}}>
         <InputGroup>
           <SearchInput
             size="xs"
@@ -92,7 +93,7 @@ export function BreadCrumbs({
             <IconSearch size="xs" />
           </InputGroup.TrailingItems>
         </InputGroup>
-      </SearchWrapper>
+      </Container>
       <CompactSelect
         size="xs"
         multiple
@@ -132,7 +133,7 @@ export function BreadCrumbs({
         value={sort}
         options={BREADCRUMB_SORT_OPTIONS}
       />
-    </ActionsWrapper>
+    </Flex>
   );
 
   return (
@@ -163,22 +164,6 @@ export function BreadCrumbs({
 
 const BreadcrumbsContainer = styled('div')`
   container-type: inline-size;
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-
-  @container (max-width: 400px) {
-    display: none;
-  }
-`;
-
-const SearchWrapper = styled('div')`
-  @container (max-width: 500px) {
-    display: none;
-  }
 `;
 
 const SearchInput = styled(InputGroup.Input)`

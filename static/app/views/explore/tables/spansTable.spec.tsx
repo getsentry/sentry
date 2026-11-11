@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {QueryObserver} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -13,7 +14,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ResponseMeta} from 'sentry/types/api';
@@ -25,10 +27,8 @@ import {FieldValueType} from 'sentry/utils/fields';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {
-  addValidatedFieldTypesToMeta,
-  SpansTable,
-} from 'sentry/views/explore/tables/spansTable';
+
+import {addValidatedFieldTypesToMeta, SpansTable} from './spansTable';
 
 jest.mock('sentry/utils/analytics');
 
@@ -260,6 +260,70 @@ describe('SpansTable', () => {
     );
   });
 
+  it.each([false, true])(
+    'prioritizes sentry raw names or span aliases in span details (raw names: %s)',
+    async useRawAttributeNames => {
+      mockSpanDetails(firstRow, [
+        {name: 'span.op', rawName: 'sentry.op', type: 'str', value: 'operation value'},
+        {
+          name: 'span.duration',
+          rawName: 'sentry.duration_ms',
+          type: 'int',
+          value: 42,
+        },
+        {name: 'middle', type: 'str', value: 'fallback value'},
+        {
+          name: 'tags[aaa.custom,string]',
+          rawName: 'aaa.custom',
+          type: 'str',
+          value: 'custom value',
+        },
+        {
+          name: 'tags[zzz.custom,string]',
+          rawName: 'sentry.custom',
+          type: 'str',
+          value: 'sentry custom value',
+        },
+      ]);
+
+      render(<ExampleSpansTable result={makeQueryResult([firstRow])} />, {
+        ...renderOptions(),
+        organization: OrganizationFixture({
+          ...organization,
+          features: useRawAttributeNames
+            ? [...organization.features, 'trace-item-details-raw-attribute-names']
+            : organization.features,
+        }),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show span details'}));
+      expect(await screen.findByText('custom value')).toBeInTheDocument();
+      expect(
+        screen
+          .getAllByText(
+            /^(operation value|42|fallback value|custom value|sentry custom value)$/
+          )
+          .map(element => element.textContent)
+      ).toEqual(
+        useRawAttributeNames
+          ? [
+              'sentry custom value',
+              '42',
+              'operation value',
+              'custom value',
+              'fallback value',
+            ]
+          : [
+              '42',
+              'operation value',
+              'fallback value',
+              'custom value',
+              'sentry custom value',
+            ]
+      );
+    }
+  );
+
   it('offers filtering, column, and group-by actions for attributes', async () => {
     mockSpanDetails(firstRow, [
       {name: 'span.custom', type: 'str', value: 'custom value'},
@@ -306,7 +370,7 @@ describe('SpansTable', () => {
   });
 
   it('retains expanded details and their hint while a new column loads and rolls it back on failure', async () => {
-    const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const addErrorMessage = jest.spyOn(toast, 'error');
     const request = mockSpanDetails(firstRow, [
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);
@@ -369,6 +433,58 @@ describe('SpansTable', () => {
     expect(screen.getByText('custom value')).toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(request.mock.calls[0]![1].query.routing_hint).toBe('original-hint');
+  });
+
+  it('shows the query timeout message instead of a generic loading error', () => {
+    const failedResult = makeQueryResult(undefined);
+    Object.assign(failedResult, {
+      error: new QueryError(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      ),
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      status: 'error',
+    });
+
+    render(<ExampleSpansTable result={failedResult} />, renderOptions());
+
+    expect(
+      screen.getByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the query timeout message when retained span rows fail to refresh', () => {
+    const timeoutMessage =
+      'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.';
+    const {rerender} = render(
+      <ExampleSpansTable result={makeQueryResult([firstRow])} />,
+      renderOptions()
+    );
+
+    expect(screen.getByText('GET /one')).toBeInTheDocument();
+
+    const failedResult = makeQueryResult(undefined);
+    Object.assign(failedResult, {
+      error: new QueryError(timeoutMessage),
+      isError: true,
+      isPending: false,
+      isSuccess: false,
+      status: 'error',
+    });
+    rerender(<ExampleSpansTable result={failedResult} />);
+
+    expect(screen.getByText('GET /one')).toBeInTheDocument();
+    expect(screen.getByText(timeoutMessage)).toBeInTheDocument();
+    expect(screen.queryByText('Failed to update span samples')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
   });
 
   it('resets expanded details when the result identity changes', async () => {

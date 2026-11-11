@@ -1,7 +1,7 @@
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, cast
 from urllib.parse import urlencode, urlparse
 
 import brotli
@@ -15,7 +15,6 @@ from urllib3.response import HTTPResponse as VroomResponse
 from sentry.grouping.enhancer import EnhancementsConfig, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
-from sentry.utils.sdk import set_span_attribute
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, list[Any]]
@@ -115,16 +114,21 @@ def get_from_profiling_service(
         )
         with traces.start_span(name="json.dumps", attributes={"sentry.op": "json.dumps"}):
             data = json.dumps(json_data).encode("utf-8")
-        set_span_attribute("payload.size", len(data))
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("payload.size", len(data))
         if metric:
             metric_name, metric_tags = metric
             metrics.distribution(metric_name, len(data), tags=metric_tags)
 
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
-    return _profiling_pool.urlopen(
-        method,
-        path,
-        **kwargs,
+    return cast(
+        VroomResponse,
+        _profiling_pool.urlopen(
+            method,
+            path,
+            **kwargs,
+        ),
     )
 
 

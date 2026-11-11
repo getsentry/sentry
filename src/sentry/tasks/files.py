@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.db import DatabaseError, IntegrityError, router
 from django.utils import timezone
@@ -8,6 +12,12 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils.db import atomic_transaction
+
+if TYPE_CHECKING:
+    from sentry.models.files.control_fileblob import ControlFileBlob
+    from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
+    from sentry.models.files.fileblob import FileBlob
+    from sentry.models.files.fileblobindex import FileBlobIndex
 
 MAX_RETRIES = 5
 
@@ -22,7 +32,7 @@ MAX_RETRIES = 5
     ),
     silo_mode=SiloMode.CELL,
 )
-def delete_file_region(path, checksum, **kwargs):
+def delete_file_region(path: str | None, checksum: str, **kwargs: object) -> None:
     from sentry.models.files import FileBlob
 
     delete_file(FileBlob, path, checksum, **kwargs)
@@ -38,14 +48,22 @@ def delete_file_region(path, checksum, **kwargs):
     ),
     silo_mode=SiloMode.CONTROL,
 )
-def delete_file_control(path, checksum, **kwargs):
+def delete_file_control(path: str | None, checksum: str, **kwargs: object) -> None:
     from sentry.models.files import ControlFileBlob
 
     delete_file(ControlFileBlob, path, checksum, **kwargs)
 
 
-def delete_file(file_blob_model, path, checksum, **kwargs):
+def delete_file(
+    file_blob_model: type[FileBlob] | type[ControlFileBlob],
+    path: str | None,
+    checksum: str,
+    **kwargs: object,
+) -> None:
     from sentry.models.files.utils import get_storage
+
+    if path is None:
+        return
 
     # check that the fileblob with *this* path exists, as its possible
     # that a concurrent re-upload added the same chunk once again, with a
@@ -64,7 +82,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
     ),
     silo_mode=SiloMode.CELL,
 )
-def delete_unreferenced_blobs_region(blob_ids):
+def delete_unreferenced_blobs_region(blob_ids: Sequence[int]) -> None:
     from sentry.models.files.fileblob import FileBlob
     from sentry.models.files.fileblobindex import FileBlobIndex
 
@@ -81,14 +99,18 @@ def delete_unreferenced_blobs_region(blob_ids):
     ),
     silo_mode=SiloMode.CONTROL,
 )
-def delete_unreferenced_blobs_control(blob_ids):
+def delete_unreferenced_blobs_control(blob_ids: Sequence[int]) -> None:
     from sentry.models.files.control_fileblob import ControlFileBlob
     from sentry.models.files.control_fileblobindex import ControlFileBlobIndex
 
     delete_unreferenced_blobs(ControlFileBlob, ControlFileBlobIndex, blob_ids)
 
 
-def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
+def delete_unreferenced_blobs(
+    blob_model: type[FileBlob] | type[ControlFileBlob],
+    blob_index_model: type[FileBlobIndex] | type[ControlFileBlobIndex],
+    blob_ids: Sequence[int],
+) -> None:
     for blob_id in blob_ids:
         # If a blob is referenced, we do not want to delete it
         if blob_index_model.objects.filter(blob_id=blob_id).exists():

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from django.db import models
 from django.db.models.functions import Now
@@ -89,7 +90,7 @@ class GroupDerivedData(DefaultFieldsModel):
     # Open-ended JSON object for storing derived features that don't need their own column.
     # Data in here should be kept small; we typically have to read and write the full blob.
     # If it changes frequently, needs to be indexed, or needs convenient joins, consider a column.
-    data = models.JSONField(default=dict)
+    data: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(default=dict)
 
     # Column-backed features — promoted from JSON for indexing/querying.
 

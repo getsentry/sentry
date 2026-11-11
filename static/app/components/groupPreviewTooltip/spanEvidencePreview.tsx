@@ -1,17 +1,14 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
-import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {
-  useDelayedLoadingState,
-  usePreviewEvent,
-} from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {KeyValueTableCardPanel} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
+
+import {GroupPreviewHovercard} from './groupPreviewHovercard';
+import {useDelayedLoadingState, usePreviewEvent} from './utils';
 
 type SpanEvidencePreviewProps = {
   children: React.ReactNode;
@@ -63,13 +60,9 @@ function SpanEvidencePreviewBody({
 
   if (data) {
     return (
-      <Container
-        padding="lg lg 0 lg"
-        width="700px"
-        data-test-id="span-evidence-preview-body"
-      >
+      <PreviewBody data-test-id="span-evidence-preview-body">
         <SpanEvidenceKeyValueList event={data} />
-      </Container>
+      </PreviewBody>
     );
   }
 
@@ -105,6 +98,15 @@ export function SpanEvidencePreview({
     </GroupPreviewHovercard>
   );
 }
+
+const PreviewBody = styled('div')`
+  width: 700px;
+
+  > ${KeyValueTableCardPanel} {
+    border: none;
+    margin: 0;
+  }
+`;
 
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};

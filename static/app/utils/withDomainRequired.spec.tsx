@@ -5,9 +5,10 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useParams} from 'sentry/utils/useParams';
-import {withDomainRequired} from 'sentry/utils/withDomainRequired';
+
+import {testableWindowLocation} from './testableWindowLocation';
+import {useParams} from './useParams';
+import {withDomainRequired} from './withDomainRequired';
 
 describe('withDomainRequired', () => {
   function MyComponent() {

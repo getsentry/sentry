@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
+import {IconClose} from '@sentry/icons/close';
 import {IconGithub} from '@sentry/icons/github';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSeer} from '@sentry/icons/seer';
@@ -22,7 +23,6 @@ import {
   type RawFeedback,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -30,15 +30,18 @@ import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
 
+import {ArtifactDetails} from './artifactDetails';
+
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
 
 /**
  * - `processed`: the iteration it drove has finished and its changes are pushed.
+ * - `error`: the iteration or its push failed.
  * - `in_progress`: it's driving the iteration currently being processed.
  * - `queued`: submitted while a run was processing, not yet picked up.
  */
-type FeedbackStatus = 'processed' | 'in_progress' | 'queued';
+type FeedbackStatus = 'processed' | 'error' | 'in_progress' | 'queued';
 
 interface ParsedBaseFeedback {
   text: string;
@@ -101,6 +104,7 @@ type ParsedFeedback =
 type IterationFeedback = ParsedFeedback & {
   iterationIndex: number;
   status: FeedbackStatus;
+  errorCode?: string | null;
 };
 
 // Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
@@ -174,15 +178,17 @@ function parseFeedback(raw: string): ParsedFeedback[] {
  * PR iterations are folded into the section's blocks. Each drove one iteration;
  * the cumulative diff is already merged into the section's code-change artifact
  * by `getOrderedAutofixSections`, so here we only surface the feedback text.
- * Feedback on a block at/after the current step marker drives the iteration
- * still running (when the section is processing); everything earlier is pushed.
+ * The iteration at the current step marker is the one still running (when the
+ * section is processing). Only that iteration can use the run's current push
+ * error; earlier feedback keeps its processed state. A retry runs another turn
+ * of the same iteration and carries its feedback again, so each iteration's
+ * feedback is shown once.
  * Feedback submitted mid-run that hasn't been folded into a block yet is
  * appended as `queued`. The list is returned newest-first.
  */
 export function usePrIterationFeedback(
   section: AutofixSection,
-  autofix: ReturnType<typeof useExplorerAutofix>,
-  enabled: boolean
+  autofix: ReturnType<typeof useExplorerAutofix>
 ): {feedback: IterationFeedback[]; latestIterationIndex: number | null} {
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
@@ -190,11 +196,25 @@ export function usePrIterationFeedback(
   );
 
   const blockFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!enabled) {
-      return [];
-    }
+    const repoStates = Object.values(autofix.runState?.repo_pr_states ?? {});
+    const pushErrors = repoStates.filter(repo => repo.pr_creation_status === 'error');
+    const errorCode = pushErrors.find(
+      repo => repo.pr_creation_error_code === 'branch_moved'
+    )?.pr_creation_error_code;
+    const inProgress =
+      section.status === 'processing' ||
+      autofix.runState?.status === 'processing' ||
+      autofix.runState?.status === 'awaiting_user_input' ||
+      repoStates.some(repo => repo.pr_creation_status === 'creating');
 
-    return section.blocks.flatMap((block, blockIndex) => {
+    const currentStep = section.blocks[currentStepStart];
+    const currentIterationIndex =
+      currentStep && isPrIterationBlock(currentStep)
+        ? currentStep.message.metadata?.iteration_index
+        : undefined;
+    const seenIterations = new Set<number>();
+
+    return section.blocks.flatMap(block => {
       if (!isPrIterationBlock(block)) {
         return [];
       }
@@ -207,18 +227,31 @@ export function usePrIterationFeedback(
         return [];
       }
 
-      const status: FeedbackStatus =
-        section.status === 'processing' && blockIndex >= currentStepStart
-          ? 'in_progress'
-          : 'processed';
+      if (seenIterations.has(Number(iterationIndex))) {
+        return [];
+      }
+      seenIterations.add(Number(iterationIndex));
+
+      let status: FeedbackStatus = 'processed';
+      if (
+        currentIterationIndex !== undefined &&
+        Number(iterationIndex) === Number(currentIterationIndex)
+      ) {
+        if (inProgress) {
+          status = 'in_progress';
+        } else if (section.status === 'error' || pushErrors.length > 0) {
+          status = 'error';
+        }
+      }
 
       return parseFeedback(value).map(parsed => ({
         ...parsed,
         iterationIndex: Number(iterationIndex),
         status,
+        errorCode: status === 'error' ? errorCode : undefined,
       }));
     });
-  }, [section.blocks, section.status, currentStepStart, enabled]);
+  }, [section.blocks, section.status, autofix.runState, currentStepStart]);
 
   const latestIterationIndex = useMemo(
     () =>
@@ -231,10 +264,6 @@ export function usePrIterationFeedback(
   );
 
   const queuedFeedback = useMemo<IterationFeedback[]>(() => {
-    if (!enabled) {
-      return [];
-    }
-
     return (autofix.runState?.queued_feedback ?? []).flatMap(raw => {
       const parsed = parseFeedbackItem(raw);
       if (!parsed) {
@@ -249,7 +278,7 @@ export function usePrIterationFeedback(
         },
       ];
     });
-  }, [autofix.runState?.queued_feedback, latestIterationIndex, enabled]);
+  }, [autofix.runState?.queued_feedback, latestIterationIndex]);
 
   const feedback = useMemo(
     () => [...blockFeedback, ...queuedFeedback].reverse(),
@@ -455,7 +484,7 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
       </Cell>
       {/* Status icon sits at the far right, after the timestamp. */}
       <Cell>
-        <FeedbackStatusIcon status={item.status} />
+        <FeedbackStatusIcon status={item.status} errorCode={item.errorCode} />
       </Cell>
     </Grid>
   );
@@ -772,10 +801,37 @@ function PrimaryIconAvatar({Icon, tooltip}: {Icon: typeof IconSeer; tooltip: str
   );
 }
 
-// Source-agnostic: the same three status glyphs regardless of where the
-// iteration came from.
-function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
+// Source-agnostic: the same status glyphs regardless of where the iteration came from.
+function FeedbackStatusIcon({
+  status,
+  errorCode,
+}: {
+  status: FeedbackStatus;
+  errorCode?: string | null;
+}) {
   switch (status) {
+    case 'error':
+      return (
+        <Tooltip
+          title={
+            errorCode === 'branch_moved'
+              ? t(
+                  'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
+                )
+              : t('Changes from this feedback could not be pushed')
+          }
+          skipWrapper
+        >
+          <Flex
+            align="center"
+            justify="center"
+            role="img"
+            aria-label={t('Feedback failed')}
+          >
+            <IconClose variant="danger" />
+          </Flex>
+        </Tooltip>
+      );
     case 'processed':
       return (
         <Tooltip title={t('Changes from this feedback have been pushed')} skipWrapper>

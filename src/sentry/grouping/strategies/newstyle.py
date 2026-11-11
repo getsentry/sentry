@@ -244,7 +244,7 @@ def get_function_component(
     else:
         func = function or raw_function
         if not raw_function and function:
-            func = trim_function_name(func, platform)
+            func = trim_function_name(function, platform)
 
     if not func:
         return FunctionGroupingComponent()
@@ -303,7 +303,7 @@ def get_function_component(
 )
 def frame(
     interface: Frame, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     frame = interface
     platform = frame.platform or event.platform
     variant_name = context["variant_name"]
@@ -414,7 +414,7 @@ def get_contextline_component(
 @strategy(ids=["stacktrace:v1"], interface=Stacktrace, score=1800)
 def stacktrace(
     interface: Stacktrace, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     assert context.get("variant_name") is None
 
     stacktrace_components_by_variant = call_with_variants(
@@ -481,7 +481,7 @@ def stacktrace(
 
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: BaseEvent, context: GroupingContext, kwargs: dict[str, Any]
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     variant_name = context["variant_name"]
     assert variant_name is not None
 
@@ -542,8 +542,8 @@ def _single_stacktrace_variant(
 
 @stacktrace.variant_processor
 def stacktrace_variant_processor(
-    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+    variants: ComponentsByVariant[Any], context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant[Any]:
     return remove_non_stacktrace_variants(variants)
 
 
@@ -553,7 +553,7 @@ def stacktrace_variant_processor(
 )
 def single_exception(
     interface: SingleException, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     exception = interface
 
     type_component = ErrorTypeGroupingComponent(
@@ -644,9 +644,12 @@ def single_exception(
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
     interface: ChainedException, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     # Get all the exceptions to consider.
-    all_exceptions = interface.exceptions()
+    all_exceptions: list[SingleException] = []
+    for exception in interface.exceptions():
+        assert exception is not None
+        all_exceptions.append(exception)
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
@@ -863,15 +866,15 @@ def filter_exceptions_for_exception_groups(
 
 @chained_exception.variant_processor
 def chained_exception_variant_processor(
-    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+    variants: ComponentsByVariant[Any], context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant[Any]:
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(ids=["threads:v1"], interface=Threads, score=1900)
 def threads(
     interface: Threads, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
     thread_components = _get_thread_components(crashed_threads, event, context, **kwargs)
     if thread_components is not None:
@@ -904,7 +907,7 @@ def _get_thread_components(
     event: BaseEvent,
     context: GroupingContext,
     **kwargs: dict[str, Any],
-) -> ComponentsByVariant | None:
+) -> ComponentsByVariant[Any] | None:
     if len(threads) != 1:
         return None
 
@@ -930,8 +933,8 @@ def _get_thread_components(
 
 @threads.variant_processor
 def threads_variant_processor(
-    variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+    variants: ComponentsByVariant[Any], context: GroupingContext, **kwargs: Any
+) -> ComponentsByVariant[Any]:
     return remove_non_stacktrace_variants(variants)
 
 
@@ -1018,7 +1021,8 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
                 and exception.mechanism.parent_id == rxjava_exception_id
                 and exception.mechanism.exception_id is not None
             ):
-                return exception.mechanism.exception_id
+                exception_id = exception.mechanism.exception_id
+                return exception_id
 
     return None
 

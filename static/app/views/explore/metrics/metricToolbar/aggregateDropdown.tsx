@@ -92,6 +92,7 @@ export function AggregateDropdown({
     <CompositeSelect
       disabled={isDisabled || groups.length === 0}
       menuHeaderTrailingItems={
+        // Without a menu title, a hidden Clear button would leave an empty header.
         isDefaultSelection
           ? undefined
           : () => <CompositeSelect.ClearButton onClick={() => handleChange([])} />

@@ -12,7 +12,8 @@ import dataclasses
 import logging
 import math
 from collections import defaultdict
-from typing import Any, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 import orjson
 from sentry_sdk import traces
@@ -29,13 +30,19 @@ from sentry.seer.signed_seer_api import (
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+    from sentry.projects.services.project.model import RpcProject
+
 logger = logging.getLogger(__name__)
+
+JsonObject: TypeAlias = dict[str, Any]
 
 # Maximum rows Snuba returns per query
 _SNUBA_MAX_ROWS = 10000
 
 
-def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
+def _query_service_dependencies(snuba_params: SnubaParams) -> list[JsonObject]:
     """
     Query segment spans and their parent spans to find cross-project dependencies.
 
@@ -57,9 +64,9 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     seen: set[tuple[int, str | None]] = set()  # (child_project_id, parent_span_id)
     covered_project_ids: set[int] = set()
-    segments_by_parent: dict[str, list[dict]] = defaultdict(list)
+    segments_by_parent: dict[str, list[JsonObject]] = defaultdict(list)
 
-    def _process_rows(rows: list[dict]) -> None:
+    def _process_rows(rows: list[JsonObject]) -> None:
         for row in rows:
             child_project_id = row.get("project.id")
             child_project_slug = row.get("project.slug")
@@ -209,7 +216,9 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     return edges
 
 
-def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
+def _build_nodes(
+    edges: list[JsonObject], all_projects: Sequence[Project | RpcProject]
+) -> list[JsonObject]:
     """
     Build a node list from edges for the Seer payload in a single pass.
 
@@ -292,7 +301,7 @@ def _build_nodes(edges: list[dict], all_projects: list[Any]) -> list[dict]:
     return nodes
 
 
-def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
+def _send_to_seer(org_id: int, nodes: list[JsonObject], edges: list[JsonObject]) -> None:
     """
     Send service map data to Seer.
 

@@ -13,21 +13,20 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
-import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
+import {SearchButton} from './searchButton';
+import {TopBarSlots} from './topBarSlot';
+import {useTopBarActionDisplay} from './useTopBarActionDisplay';
+import {useTopOffset} from './useTopOffset';
 
 type TopBarSlotProps =
   | {
@@ -88,22 +87,18 @@ function TopBarContent() {
   return (
     <Flex
       as="header"
-      minHeight={{
-        'screen:sm': `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
-        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
-      }}
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       justify="between"
       background="secondary"
       align="center"
       gap="sm"
-      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
+      padding={{'screen:sm': '0 lg', 'screen:md': '0 xl'}}
       position="sticky"
       borderBottom="primary"
       top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
-      wrap="wrap"
     >
       <SizeProvider size="sm">
         {/*

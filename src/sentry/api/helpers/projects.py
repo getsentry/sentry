@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import NamedTuple, TypeAlias
 
 from django.http.request import HttpRequest
@@ -86,7 +86,7 @@ def filter_projects_by_permissions(
         # NOTE: We must check staff before superuser or else _admin will fail when both cookies are active
         if is_active_staff(request):
             span.set_attribute("mode", "staff_fetch_all")
-            proj_filter = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
+            proj_filter: Callable[[Project], bool] = lambda proj: proj.status == ObjectStatus.ACTIVE  # noqa: E731
         # Superuser should fetch all projects.
         # Also fetch all accessible projects if requesting $all
         elif is_active_superuser(request) or include_all_accessible:

@@ -1,174 +1,95 @@
-import {Fragment, useId, useState} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
 
-import {Button} from '@sentry/scraps/button';
-import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {Count} from 'sentry/components/count';
+import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
 import type {
+  AskSeerHandler,
   OutcomeSection,
   ReasonRow,
-} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  dataCategoryInfo,
-  formatDroppedShare,
-  reasonDescription,
-  reasonLongDescription,
-  reasonTitle,
-  type OutcomeColors,
-} from 'sentry/components/droppedData/outcomes';
+} from 'sentry/components/droppedData/outcomeSections';
+import {reasonDocsUrl, reasonTitle} from 'sentry/components/droppedData/reasonInfo';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-const COLUMN_WIDTHS = {reason: '1fr', dropped: '160px', share: '96px', toggle: '48px'};
+const COLUMN_WIDTHS = {reason: '1fr', dropped: '96px', share: '88px', actions: '48px'};
 const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
   ([key, width]) => ({key, width})
 );
 const HEADER_COLUMNS = Object.values(COLUMN_WIDTHS).join(' ');
 
-function FixThisMenu({
+function ReasonAskSeerButton({
   row,
-  onInvestigate,
+  onAskSeer,
 }: {
+  onAskSeer: AskSeerHandler;
   row: ReasonRow;
-  onInvestigate?: (row: ReasonRow) => void;
 }) {
-  const organization = useOrganization();
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
-  const {panelRef} = useDrawer();
-
-  const info = dataCategoryInfo(row.category);
-
-  const settingsTo = normalizeUrl(
-    `/settings/${organization.slug}/stats/${info ? `?dataCategory=${info.plural}` : ''}`
-  );
-
-  // TODO: this will be a dynamic URL once the per-reason docs page
-  // fully up-to-date.
-  const docsHref = 'https://docs.sentry.io/';
-
-  const items: MenuItemProps[] = [
-    ...(onInvestigate
-      ? [
-          {
-            key: 'investigate',
-            label: t('Investigate'),
-            onAction: () => {
-              closeDroppedDataDrawer?.();
-              onInvestigate(row);
-            },
-          },
-        ]
-      : []),
-    {
-      key: 'project-settings',
-      label: t('Project Settings'),
-      to: settingsTo,
-    },
-    {
-      key: 'docs',
-      label: t('Go to Docs'),
-      externalHref: docsHref,
-    },
-  ];
 
   return (
-    <DropdownMenu
-      items={items}
-      position="bottom-end"
-      usePortal
-      portalContainerRef={panelRef}
-      trigger={(triggerProps, isOpen) => (
-        <OverlayTrigger.Button
-          {...triggerProps}
-          showChevron={false}
-          variant="primary"
-          size="sm"
-          aria-expanded={isOpen}
-        >
-          {t('Learn more')}
-        </OverlayTrigger.Button>
-      )}
+    <RevealOnHover.Action>
+      <Button
+        size="zero"
+        variant="primary"
+        icon={<IconSeer />}
+        aria-label={t('Ask Seer')}
+        tooltipProps={{title: t('Ask Seer')}}
+        onClick={() => {
+          closeDroppedDataDrawer?.();
+          onAskSeer(row);
+        }}
+      />
+    </RevealOnHover.Action>
+  );
+}
+
+function ReasonDocsLinkButton({href}: {href: string}) {
+  return (
+    <LinkButton
+      size="zero"
+      variant="transparent"
+      icon={<IconOpen size="xs" />}
+      aria-label={t('Go to docs')}
+      tooltipProps={{title: t('Go to docs')}}
+      href={href}
+      external
     />
   );
 }
 
-function ReasonExpansion({
-  row,
-  onInvestigate,
-}: {
-  row: ReasonRow;
-  onInvestigate?: (row: ReasonRow) => void;
-}) {
-  const longDescription = reasonLongDescription(row.reason);
-
+function ReasonTableRow({row, onAskSeer}: {row: ReasonRow; onAskSeer?: AskSeerHandler}) {
   return (
-    <SimpleTable.FullWidthRow>
-      <Flex
-        align="center"
-        justify={longDescription ? 'between' : 'end'}
-        gap="md"
-        padding="lg xl"
-        background="secondary"
-      >
-        {longDescription && <Text size="md">{longDescription}</Text>}
-        <FixThisMenu row={row} onInvestigate={onInvestigate} />
-      </Flex>
-    </SimpleTable.FullWidthRow>
-  );
-}
-
-function ReasonTableRow({
-  row,
-  onInvestigate,
-}: {
-  row: ReasonRow;
-  onInvestigate?: (row: ReasonRow) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const description = reasonDescription(row.reason, row.category);
-
-  return (
-    <Fragment>
-      <SimpleTable.Row>
-        <SimpleTable.RowCell direction="column" align="start" gap="xs" padding="md xl">
-          <Text size="md">{reasonTitle(row.reason)}</Text>
-          {description && (
-            <Text size="sm" variant="muted">
-              {description}
+    <RevealOnHover>
+      {props => (
+        <SimpleTable.Row {...props}>
+          <SimpleTable.RowCell padding="md xl" gap="sm">
+            <Text size="md">{reasonTitle(row.reason)}</Text>
+            <ReasonDocsLinkButton href={reasonDocsUrl(row.reason)} />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" padding="md xl">
+            <Text size="md" variant="muted" tabular>
+              <Count value={row.events} />
             </Text>
-          )}
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="end" padding="md xl">
-          <Text size="md" variant="muted" tabular>
-            {row.events.toLocaleString()}
-          </Text>
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="end" padding="md xl">
-          <Text size="md" variant="muted" tabular>
-            {formatDroppedShare(row.shareRatio)}
-          </Text>
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="center" padding="0">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('Toggle fix options')}
-            aria-expanded={expanded}
-            onClick={() => setExpanded(value => !value)}
-          />
-        </SimpleTable.RowCell>
-      </SimpleTable.Row>
-      {expanded && <ReasonExpansion row={row} onInvestigate={onInvestigate} />}
-    </Fragment>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="end" padding="md xl">
+            <Text size="md" variant="muted" tabular>
+              {formatDroppedShare(row.shareRatio)}
+            </Text>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="center" padding="0" overflow="visible">
+            {onAskSeer && <ReasonAskSeerButton row={row} onAskSeer={onAskSeer} />}
+          </SimpleTable.RowCell>
+        </SimpleTable.Row>
+      )}
+    </RevealOnHover>
   );
 }
 
@@ -181,17 +102,14 @@ function ColumnHeading({children}: {children: React.ReactNode}) {
 }
 
 function ReasonTable({
-  id,
   reasons,
-  onInvestigate,
+  onAskSeer,
 }: {
-  id: string;
   reasons: ReasonRow[];
-  onInvestigate?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }) {
   return (
     <SimpleTable
-      id={id}
       columns={TABLE_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
@@ -204,7 +122,7 @@ function ReasonTable({
           <SimpleTable.HeaderCell align="right" divider={false}>
             <ColumnHeading>{t('Share')}</ColumnHeading>
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell />
+          <SimpleTable.HeaderCell aria-label={t('Actions')} />
         </SimpleTable.HeaderRow>
       }
     >
@@ -212,7 +130,7 @@ function ReasonTable({
         <ReasonTableRow
           key={`${row.outcome}:${row.reason}`}
           row={row}
-          onInvestigate={onInvestigate}
+          onAskSeer={onAskSeer}
         />
       ))}
     </SimpleTable>
@@ -221,81 +139,51 @@ function ReasonTable({
 
 function OutcomeSectionRow({
   section,
-  color,
-  onInvestigate,
+  onAskSeer,
 }: {
-  color: string | undefined;
   section: OutcomeSection;
-  onInvestigate?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const reasonTableId = useId();
-  const toggle = () => setExpanded(value => !value);
-
   return (
     <Stack gap="md">
-      <Grid columns={HEADER_COLUMNS} align="center" onClick={toggle} cursor="pointer">
-        <Flex align="center" gap="md" padding="md xl">
-          <CircleIndicator color={color} size={12} />
-          <Text size="lg" bold>
+      <Grid columns={HEADER_COLUMNS} align="center">
+        <Flex align="center" padding="0 xl">
+          <Text size="md" bold>
             {section.label}
           </Text>
         </Flex>
-        <Flex justify="end" padding="md xl">
+        <Flex justify="end" padding="0 xl">
           <Text size="md" variant="muted" tabular>
-            {section.events.toLocaleString()}
+            <Count value={section.events} />
           </Text>
         </Flex>
-        <Flex justify="end" padding="md xl">
+        <Flex justify="end" padding="0 xl">
           <Text size="md" variant="muted" tabular>
             {formatDroppedShare(section.shareRatio)}
           </Text>
         </Flex>
-        <Flex align="center" justify="center">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('%s reasons', section.label)}
-            aria-expanded={expanded}
-            aria-controls={expanded ? reasonTableId : undefined}
-            onClick={event => {
-              event.stopPropagation();
-              toggle();
-            }}
-          />
-        </Flex>
       </Grid>
-      {expanded && (
-        <ReasonTable
-          id={reasonTableId}
-          reasons={section.reasons}
-          onInvestigate={onInvestigate}
-        />
-      )}
+      <ReasonTable reasons={section.reasons} onAskSeer={onAskSeer} />
     </Stack>
   );
 }
 
 interface DroppedDataOutcomeListProps {
-  colors: OutcomeColors;
   sections: OutcomeSection[];
-  onInvestigate?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }
 
 export function DroppedDataOutcomeList({
   sections,
-  colors,
-  onInvestigate,
+  onAskSeer,
 }: DroppedDataOutcomeListProps) {
   return (
-    <Stack gap="md">
+    <Stack gap="2xl">
       {sections.map(section => (
         <OutcomeSectionRow
           key={section.outcome}
           section={section}
-          color={colors[section.outcome]}
-          onInvestigate={onInvestigate}
+          onAskSeer={onAskSeer}
         />
       ))}
     </Stack>

@@ -7,7 +7,8 @@ import type {
   PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
 import type {AggregationKey} from 'sentry/utils/fields';
-import type {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+
+import type {AlwaysPresentLogFields} from './constants';
 
 type OurLogCustomFieldKey = string; // We could brand this for nominal types.
 
@@ -120,7 +121,8 @@ export type OurLogsAggregate =
   | AggregationKey.P95
   | AggregationKey.P99
   | AggregationKey.MIN
-  | AggregationKey.MAX;
+  | AggregationKey.MAX
+  | AggregationKey.ANY;
 
 type OurLogsAggregateKeys = `${OurLogsAggregate}(${OurLogFieldKey})`;
 export type OurLogsAggregateResponseItem = Record<

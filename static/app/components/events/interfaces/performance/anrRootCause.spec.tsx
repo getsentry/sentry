@@ -2,11 +2,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+
+import {AnrRootCause} from './anrRootCause';
 
 jest.mock('sentry/views/performance/traceDetails/traceApi/useTrace', () => {
   return {
@@ -176,6 +177,10 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
 describe('anrRootCause', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/customers/org-slug/',
       method: 'GET',

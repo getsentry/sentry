@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.release_health.base import is_overview_stat
 from sentry.releases.auto_creation import should_auto_create_releases
@@ -44,7 +45,7 @@ class ProjectReleaseStatsResponse(TypedDict):
     usersBreakdown: list[ReleaseStatsUserBreakdown]
 
 
-def upsert_missing_release(project, version) -> datetime | None:
+def upsert_missing_release(project: Project, version: str) -> datetime | None:
     """This adds a release to postgres if it should exist but does not do yet."""
     try:
         return Release.objects.values_list("date_added", flat=True).get(
@@ -105,7 +106,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         },
     )
     def get(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[ProjectReleaseStatsResponse] | Response[DetailResponse]:
         """
         Return crash-free session/user health stats and a per-day breakdown for a release

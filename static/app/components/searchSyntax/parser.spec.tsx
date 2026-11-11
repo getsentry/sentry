@@ -2,11 +2,7 @@ import {parse} from 'query-string';
 
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
-import type {
-  ParseResult,
-  SearchConfig,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, SearchConfig, TokenResult} from './parser';
 import {
   BooleanOperator,
   FilterType,
@@ -14,12 +10,8 @@ import {
   parseSearch,
   TermOperator,
   Token,
-} from 'sentry/components/searchSyntax/parser';
-import {
-  getKeyLabel,
-  getKeyName,
-  stringifyToken,
-} from 'sentry/components/searchSyntax/utils';
+} from './parser';
+import {getKeyLabel, getKeyName, stringifyToken} from './utils';
 
 type TestCase = {
   /**
@@ -243,6 +235,22 @@ describe('searchSyntax/parser', () => {
         value: '10',
       },
     });
+  });
+
+  it('parses aggregate size filters only when an argument is a size key', () => {
+    const filterOf = (query: string, config?: Partial<SearchConfig>) =>
+      parseSearch(query, config)?.find(
+        (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
+      );
+    const sizeConfig = {sizeKeys: new Set(['span.size'])};
+
+    expect(filterOf('avg(span.size):>1kb', sizeConfig)?.filter).toBe(
+      FilterType.AGGREGATE_SIZE
+    );
+    // Like a duration value on a non-duration aggregate, a size value on a
+    // non-size aggregate is not a typed filter.
+    expect(filterOf('avg(span.duration):>1kb', sizeConfig)).toBeUndefined();
+    expect(filterOf('avg(span.size):>1kb')).toBeUndefined();
   });
 
   it('returns the matched text for keys, values, and aggregate params', () => {

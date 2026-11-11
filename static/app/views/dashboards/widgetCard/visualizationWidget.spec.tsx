@@ -1,45 +1,52 @@
 import {Fragment, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
-import {WidgetCardDataLoader} from 'sentry/views/dashboards/widgetCard/widgetCardDataLoader';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {VisualizationWidget} from './visualizationWidget';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
   () => ({
-    TimeSeriesWidgetVisualization: jest.fn(
-      ({
-        plottables,
-      }: {
-        plottables: Array<{
-          name: string;
-          thresholds?: {max_values: {max1?: number; max2?: number}};
-        }>;
-      }) => {
-        const thresholdValues = plottables.find(
-          plottable => plottable.name === '__thresholds__'
-        )?.thresholds?.max_values;
+    TimeSeriesWidgetVisualization: Object.assign(
+      jest.fn(
+        ({
+          plottables,
+        }: {
+          plottables: Array<{
+            name: string;
+            thresholds?: {max_values: {max1?: number; max2?: number}};
+          }>;
+        }) => {
+          const thresholdValues = plottables.find(
+            plottable => plottable.name === '__thresholds__'
+          )?.thresholds?.max_values;
 
-        return (
-          <div data-test-id="chart">
-            {thresholdValues && (
-              <div data-test-id="threshold-values">
-                {thresholdValues.max1}, {thresholdValues.max2}
-              </div>
-            )}
-          </div>
-        );
-      }
+          return (
+            <div data-test-id="chart">
+              {thresholdValues && (
+                <div data-test-id="threshold-values">
+                  {thresholdValues.max1}, {thresholdValues.max2}
+                </div>
+              )}
+            </div>
+          );
+        }
+      ),
+      {LoadingPlaceholder: () => <div data-test-id="loading-placeholder" />}
     ),
   })
 );
@@ -65,13 +72,28 @@ const spansBreakdownWidget = {
 
 const selection = PageFiltersFixture();
 
-// Series name format for a grouped SPANS query: "<groupValue> : <aggregate>"
+function makeResult(
+  yAxis: string,
+  groupBy: Array<{key: string; value: string}>,
+  value: number
+): WidgetTimeSeries {
+  const groupName = groupBy.map(group => group.value).join(',');
+  return {
+    queryIndex: 0,
+    widgetQuery: spansBreakdownWidget.queries[0]!,
+    // Series name format for a grouped query: "<groupValue> : <aggregate>"
+    seriesName: `${groupName} : ${yAxis}`,
+    timeSeries: {
+      yAxis,
+      groupBy,
+      values: [{timestamp: 1_000_000, value}],
+      meta: {interval: 300_000, valueType: 'integer', valueUnit: null},
+    },
+  };
+}
+
 const timeseriesResults = [
-  {
-    seriesName: 'my_transaction : count()',
-    data: [{name: 1_000_000, value: 10}],
-    color: '#000',
-  },
+  makeResult('count()', [{key: 'transaction', value: 'my_transaction'}], 10),
 ];
 
 // tableResults must be non-empty to trigger showBreakdownData
@@ -139,16 +161,22 @@ describe('VisualizationWidget breakdown series labels', () => {
     jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
       children({
         timeseriesResults: [
-          {
-            seriesName: 'gemini-3.7-flash,timed out : count()',
-            data: [{name: 1_000_000, value: 4}],
-            color: '#000',
-          },
-          {
-            seriesName: 'gemini-3.7-flash,connection refused : count()',
-            data: [{name: 1_000_000, value: 1}],
-            color: '#000',
-          },
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'timed out'},
+            ],
+            4
+          ),
+          makeResult(
+            'count()',
+            [
+              {key: SpanFields.GEN_AI_REQUEST_MODEL, value: 'gemini-3.7-flash'},
+              {key: 'gen_ai.generation.error', value: 'connection refused'},
+            ],
+            1
+          ),
         ],
         tableResults: [
           {
@@ -277,11 +305,7 @@ describe('VisualizationWidget threshold time windows', () => {
     jest.mocked(WidgetCardDataLoader).mockImplementationOnce(({children}: any) =>
       children({
         timeseriesResults: [
-          {
-            seriesName: 'v1 : sum(session)',
-            data: [{name: 1_000_000, value: 10}],
-            color: '#000',
-          },
+          makeResult('sum(session)', [{key: 'release', value: 'v1'}], 10),
         ],
         timeseriesInterval: '1h',
         loading: false,
@@ -371,4 +395,162 @@ describe('VisualizationWidget threshold time windows', () => {
       expect(screen.getByTestId('threshold-values')).toHaveTextContent('600, 1200');
     }
   );
+});
+
+describe('VisualizationWidget dropped-data heatmap', () => {
+  const orgWithFlags = () =>
+    OrganizationFixture({
+      features: [
+        'explore-data-fidelity-annotations',
+        'dashboards-data-fidelity-annotations',
+      ],
+    });
+
+  let droppedDataRequest: jest.Mock;
+
+  beforeEach(() => {
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+    droppedDataRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-dropped/',
+      body: {
+        droppedEvents: [OutcomeRowFixture({count: 10})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      },
+    });
+  });
+
+  function lastDroppedDataProp() {
+    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
+    return calls.at(-1)![0].droppedData;
+  }
+
+  it('passes the band to the chart', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() =>
+      expect(lastDroppedDataProp()).toEqual(
+        expect.objectContaining({dataset: DiscoverDatasets.SPANS})
+      )
+    );
+  });
+
+  it('waits for the band before drawing the chart', async () => {
+    let resolveDroppedData!: () => void;
+    const asyncDelay = new Promise<void>(resolve => {
+      resolveDroppedData = resolve;
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-dropped/',
+      body: {
+        droppedEvents: [OutcomeRowFixture({count: 10})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      },
+      asyncDelay,
+    });
+
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    expect(await screen.findByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(TimeSeriesWidgetVisualization).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveDroppedData();
+      await asyncDelay;
+    });
+
+    expect(await screen.findByTestId('chart')).toBeInTheDocument();
+    expect(
+      jest.mocked(TimeSeriesWidgetVisualization).mock.calls[0]![0].droppedData
+    ).toEqual(expect.objectContaining({dataset: DiscoverDatasets.SPANS}));
+  });
+
+  it('hides the heatmap while editing a widget (disableFullscreen)', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+        disableFullscreen
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() => expect(droppedDataRequest).toHaveBeenCalled());
+    expect(lastDroppedDataProp()).toBeUndefined();
+  });
+
+  it('does not request dropped data for unsupported widget types', async () => {
+    render(
+      <VisualizationWidget
+        widget={{...spansBreakdownWidget, widgetType: WidgetType.TRANSACTIONS}}
+        selection={selection}
+        widgetInterval="5m"
+      />,
+      {organization: orgWithFlags()}
+    );
+
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
+    expect(droppedDataRequest).not.toHaveBeenCalled();
+    expect(lastDroppedDataProp()).toBeUndefined();
+  });
+});
+
+describe('VisualizationWidget releases', () => {
+  let releasesRequest: jest.Mock;
+
+  beforeEach(() => {
+    jest.mocked(TimeSeriesWidgetVisualization).mockClear();
+    releasesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+  });
+
+  function lastShowReleaseAsProp() {
+    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
+    return calls.at(-1)![0].showReleaseAs;
+  }
+
+  it('shows release bubbles', async () => {
+    render(
+      <VisualizationWidget
+        widget={spansBreakdownWidget}
+        selection={selection}
+        widgetInterval="5m"
+      />
+    );
+
+    await waitFor(() => expect(releasesRequest).toHaveBeenCalled());
+    expect(lastShowReleaseAsProp()).toBe('bubble');
+  });
+
+  it('hides releases for mobile builds widgets', async () => {
+    render(
+      <VisualizationWidget
+        widget={{...spansBreakdownWidget, widgetType: WidgetType.PREPROD_APP_SIZE}}
+        selection={selection}
+        widgetInterval="5m"
+      />
+    );
+
+    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
+    expect(releasesRequest).not.toHaveBeenCalled();
+    expect(lastShowReleaseAsProp()).toBe('none');
+  });
 });

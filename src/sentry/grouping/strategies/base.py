@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast, overload
 
 from sentry.grouping.component import (
     BaseGroupingComponent,
@@ -42,13 +42,13 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         event: BaseEvent,
         context: GroupingContext,
         **kwargs: Any,
-    ) -> ComponentsByVariant: ...
+    ) -> ComponentsByVariant[Any]: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ComponentsByVariant, context: GroupingContext, **kwargs: Any
-    ) -> ComponentsByVariant: ...
+        self, variants: ComponentsByVariant[Any], context: GroupingContext, **kwargs: Any
+    ) -> ComponentsByVariant[Any]: ...
 
 
 def strategy(
@@ -116,15 +116,15 @@ class Strategy(Generic[ConcreteInterface]):
         return f"<{self.__class__.__name__} id={self.id!r}>"
 
     def _invoke(
-        self, func: Callable[..., ComponentsByVariant], *args: Any, **kwargs: Any
-    ) -> ComponentsByVariant:
+        self, func: Callable[..., ComponentsByVariant[Any]], *args: Any, **kwargs: Any
+    ) -> ComponentsByVariant[Any]:
         # We forcefully override strategy here. This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents.
         kwargs["strategy"] = self
         return func(*args, **kwargs)
 
-    def __call__(self, *args: Any, **kwargs: Any) -> ComponentsByVariant:
+    def __call__(self, *args: Any, **kwargs: Any) -> ComponentsByVariant[Any]:
         return self._invoke(self.func, *args, **kwargs)
 
     def variant_processor(self, func: VariantProcessor) -> VariantProcessor:
@@ -136,7 +136,7 @@ class Strategy(Generic[ConcreteInterface]):
 
     def get_grouping_components(
         self, event: BaseEvent, context: GroupingContext
-    ) -> ComponentsByVariant:
+    ) -> ComponentsByVariant[Any]:
         """
         Return a dictionary, keyed by variant name, of components produced by this strategy.
         """
@@ -335,7 +335,7 @@ def produces_variants(
     def decorator(
         strategy_func: StrategyFunc[ConcreteInterface],
     ) -> StrategyFunc[ConcreteInterface]:
-        def inner(*args: Any, **kwargs: Any) -> ComponentsByVariant:
+        def inner(*args: Any, **kwargs: Any) -> ComponentsByVariant[Any]:
             return call_with_variants(strategy_func, variants, *args, **kwargs)
 
         return inner
@@ -344,11 +344,11 @@ def produces_variants(
 
 
 def call_with_variants(
-    strategy_func: Callable[..., ComponentsByVariant],
+    strategy_func: Callable[..., ComponentsByVariant[Any]],
     variants_to_produce: Sequence[str],
     *args: Any,
     **kwargs: Any,
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     context = kwargs["context"]
     incoming_variant_name = context.get("variant_name")
 
@@ -383,7 +383,7 @@ def call_with_variants(
 
 def _get_grouping_components_for_interface(
     interface: Interface, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     """
     Apply a delegate strategy to the given interface to get a dictionary of grouping components
     keyed by variant name.
@@ -436,12 +436,14 @@ def get_single_grouping_component(
     )
 
     assert len(components_by_variant) == 1
-    return components_by_variant[variant_name]
+    return cast(
+        "FrameGroupingComponent | ExceptionGroupingComponent", components_by_variant[variant_name]
+    )
 
 
 def get_grouping_components_by_variant(
     interface: Interface, event: BaseEvent, context: GroupingContext, **kwargs: Any
-) -> ComponentsByVariant:
+) -> ComponentsByVariant[Any]:
     """
     Called by a strategy to invoke delegates on its child interfaces.
 

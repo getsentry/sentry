@@ -805,7 +805,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       "hash": "b0dbf92202bf38adc8710e8ccd55d3df",
       "hint": null,
       "key": "app_exception_stacktrace_hybrid_fingerprint",
-      "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
+      "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}\", \"soft-timelimit-exceeded\"",
       "type": "salted_component",
       "values": [
         "{{ default }}",
@@ -1613,7 +1613,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       "hash": "e440cd285687bab8b861ff96fe713929",
       "hint": null,
       "key": "system_exception_stacktrace_hybrid_fingerprint",
-      "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
+      "matched_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}\", \"soft-timelimit-exceeded\"",
       "type": "salted_component",
       "values": [
         "{{ default }}",

@@ -5,7 +5,8 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+import {parseConditionalAggregate} from './parseConditionalAggregate';
 
 export function generateTargetQuery({
   fields,

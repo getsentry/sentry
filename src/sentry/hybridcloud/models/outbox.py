@@ -366,7 +366,7 @@ class OutboxBase(Model):
         logger.error("outbox.unexpected_coalescing", extra=extra)
 
     def _set_span_data_for_coalesced_message(self, span: StreamedSpan, message: OutboxBase) -> None:
-        tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
+        tag_for_outbox = OutboxScope.get_tag_name(OutboxScope(message.shard_scope))
         span.set_attribute(tag_for_outbox, message.shard_identifier)
         span.set_attribute("outbox_id", message.id)
         span.set_attribute("outbox_shard_id", message.shard_identifier)
@@ -437,7 +437,12 @@ class OutboxBase(Model):
                     return
 
             shard_row: OutboxBase | None
-            retry_on_disconnect = not flush_all and self.shard_scope == OutboxScope.API_TOKEN_SCOPE
+            # Only scopes whose handlers are idempotent belong here. Keyed on scope rather
+            # than category because drain_shard processes every row in the shard.
+            retry_on_disconnect = not flush_all and self.shard_scope in (
+                OutboxScope.API_TOKEN_SCOPE,
+                OutboxScope.PROVISION_SCOPE,
+            )
             while True:
                 try:
                     with self.process_shard(latest_shard_row) as shard_row:

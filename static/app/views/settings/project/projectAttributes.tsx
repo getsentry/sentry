@@ -1,16 +1,18 @@
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {createSerializer, parseAsString, useQueryStates} from 'nuqs';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
@@ -19,42 +21,23 @@ import {t, tct} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {FieldValueType} from 'sentry/utils/fields';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
+import {encodeSort} from 'sentry/utils/queryString';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
-import type {
-  TraceItemAttribute,
-  TraceItemAttributeType,
-} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type AttributeDataset = 'spans' | 'logs' | 'tracemetrics';
-
-interface Attribute extends Pick<
-  TraceItemAttribute,
-  'attributeSource' | 'attributeType' | 'name'
-> {
-  datasets: AttributeDataset[];
-  context?: {
-    brief?: string;
-    isDeprecated?: boolean;
-  };
-}
-
-const ATTRIBUTE_VALUE_TYPES: Record<TraceItemAttributeType, FieldValueType> = {
-  string: FieldValueType.STRING,
-  number: FieldValueType.NUMBER,
-  boolean: FieldValueType.BOOLEAN,
-  array: FieldValueType.ARRAY,
-};
+import {
+  ATTRIBUTE_VALUE_TYPES,
+  ATTRIBUTES_STATS_PERIOD,
+  type Attribute,
+  type AttributeDataset,
+} from './projectAttributesCommon';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const ATTRIBUTES_PER_PAGE = 25;
-const ATTRIBUTES_STATS_PERIOD = '14d';
 
 const DATASET_LABELS: Record<AttributeDataset, string> = {
   spans: t('Spans'),
@@ -84,15 +67,24 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'description', width: 'minmax(200px, 3fr)'},
 ];
 
-function decodeOption(value: string | undefined, options: Array<{value: string}>) {
+const attributesQueryParsers = {
+  cursor: parseAsString,
+  sort: parseAsSort,
+  dataset: parseAsString,
+  type: parseAsString,
+  search: parseAsString.withDefault(''),
+};
+
+const serializeAttributesQuery = createSerializer(attributesQueryParsers);
+
+function decodeOption(value: string | null, options: Array<{value: string}>) {
   return options.find(option => option.value === value)?.value ?? ALL_OPTION_VALUE;
 }
 
 function ProjectAttributesSettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [attributesQuery, setAttributesQuery] = useQueryStates(attributesQueryParsers);
 
   const typeOptions = [
     {value: ALL_OPTION_VALUE, label: t('All')},
@@ -105,20 +97,20 @@ function ProjectAttributesSettings() {
       .map(type => ({value: type, label: type})),
   ];
 
-  const cursor = decodeScalar(location.query.cursor);
+  const cursor = attributesQuery.cursor || undefined;
+  const sortParam = attributesQuery.sort;
   const sort =
-    decodeSorts(location.query.sort).find(({field}) =>
-      SORT_FIELDS.some(sortField => sortField === field)
-    ) ?? DEFAULT_SORT;
-  const dataset = decodeOption(decodeScalar(location.query.dataset), DATASET_OPTIONS);
-  const type = decodeOption(decodeScalar(location.query.type), typeOptions);
-  const search = decodeScalar(location.query.search, '');
+    sortParam && SORT_FIELDS.some(sortField => sortField === sortParam.field)
+      ? sortParam
+      : DEFAULT_SORT;
+  const dataset = decodeOption(attributesQuery.dataset, DATASET_OPTIONS);
+  const type = decodeOption(attributesQuery.type, typeOptions);
+  const search = attributesQuery.search;
 
-  function updateQuery(query: Record<string, string | undefined>) {
-    navigate({
-      ...location,
-      query: {...location.query, cursor: undefined, ...query},
-    });
+  function updateQuery(
+    query: Partial<Record<'dataset' | 'search' | 'type', string | null>>
+  ) {
+    setAttributesQuery({cursor: null, ...query}, {history: 'push'});
   }
 
   const {data, isPending, isError, refetch} = useQuery({
@@ -159,7 +151,11 @@ function ProjectAttributesSettings() {
   return (
     <SentryDocumentTitle title={t('Attributes')} projectSlug={project.slug}>
       <SettingsPageHeader
-        title={t('Attributes')}
+        title={{
+          type: 'page-title',
+          label: t('Attributes'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+        }}
         subtitle={t(
           'Browse the attributes sent with your logs, metrics, and spans in the last 14 days.'
         )}
@@ -173,7 +169,7 @@ function ProjectAttributesSettings() {
           options={DATASET_OPTIONS}
           onChange={option =>
             updateQuery({
-              dataset: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+              dataset: option.value === ALL_OPTION_VALUE ? null : option.value,
             })
           }
         />
@@ -185,7 +181,7 @@ function ProjectAttributesSettings() {
           options={typeOptions}
           onChange={option =>
             updateQuery({
-              type: option.value === ALL_OPTION_VALUE ? undefined : option.value,
+              type: option.value === ALL_OPTION_VALUE ? null : option.value,
             })
           }
         />
@@ -193,7 +189,7 @@ function ProjectAttributesSettings() {
           <SearchBar
             query={search}
             placeholder={t('Search attribute names or descriptions')}
-            onSearch={query => updateQuery({search: query || undefined})}
+            onSearch={query => updateQuery({search: query})}
           />
         </Container>
       </Flex>
@@ -247,12 +243,12 @@ function SortableHeaderCell({
     <SimpleTable.HeaderCell
       sort={sort.field === field ? sort.kind : undefined}
       to={{
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          sort: encodeSort(getNextSort(field, sort, 'asc')),
-        },
+        pathname: location.pathname,
+        search: serializeAttributesQuery(location.search, {
+          cursor: null,
+          sort: getNextSort(field, sort, 'asc'),
+        }),
+        hash: location.hash,
       }}
     >
       {children}
@@ -261,13 +257,23 @@ function SortableHeaderCell({
 }
 
 function AttributeRow({attribute}: {attribute: Attribute}) {
+  const organization = useOrganization();
+  const {project} = useProjectSettingsOutlet();
+
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text monospace wordBreak="break-all">
-            {attribute.name}
-          </Text>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/projects/${project.slug}/attributes/${attribute.attributeType}/${encodeURIComponent(attribute.name)}/`,
+              query: {source: attribute.attributeSource.source_type},
+            }}
+          >
+            <Text monospace variant="inherit" wordBreak="break-all">
+              {attribute.name}
+            </Text>
+          </Link>
           {attribute.attributeSource.source_type === 'sentry' && (
             <Tooltip title={t('Added by Sentry')} skipWrapper>
               <IconSentry size="xs" aria-label={t('Added by Sentry')} />

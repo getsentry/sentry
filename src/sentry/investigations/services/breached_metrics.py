@@ -8,12 +8,17 @@ from typing import Any, Iterable
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.notebooks.services.notebooks import (
+    NotebookSourceNotFound,
+    NotebookValidationError,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.workflow_engine.models import DataCondition, DataSourceDetector, DetectorGroup
@@ -30,7 +35,7 @@ class BreachedMetricSource:
     source: dict[str, Any]
 
 
-def _code_mode_dataset(
+def code_mode_dataset(
     dataset: Dataset, event_types: list[SnubaQueryEventType.EventType]
 ) -> str | None:
     if dataset == Dataset.Events:
@@ -213,8 +218,8 @@ def resolve_breached_metric_sources(
             dataset = Dataset(snuba_query.dataset)
         except ValueError:
             continue
-        code_mode_dataset = _code_mode_dataset(dataset, snuba_query.event_types)
-        if code_mode_dataset is None:
+        resolved_dataset = code_mode_dataset(dataset, snuba_query.event_types)
+        if resolved_dataset is None:
             continue
         condition_group = detector.workflow_condition_group
         if condition_group is None:
@@ -232,7 +237,7 @@ def resolve_breached_metric_sources(
             "monitor": {
                 "id": str(detector.id),
                 "name": detector.name,
-                "dataset": code_mode_dataset,
+                "dataset": resolved_dataset,
                 "query": snuba_query.query,
                 "aggregate": snuba_query.aggregate,
                 "groupBy": snuba_query.group_by or [],
@@ -258,7 +263,64 @@ def resolve_breached_metric_sources(
         }
         resolved[source_ref] = BreachedMetricSource(
             project_id=group.project_id,
-            dataset=code_mode_dataset,
+            dataset=resolved_dataset,
             source=source,
         )
+    return resolved
+
+
+def _metric_open_period_ref(source: dict[str, Any]) -> tuple[int, int]:
+    if source.get("type") != "metric_open_period":
+        raise NotebookValidationError({"source": "Unsupported investigation source."})
+    source_ref = source.get("ref")
+    if not isinstance(source_ref, dict) or set(source_ref) != {"groupId", "openPeriodId"}:
+        raise NotebookValidationError(
+            {"source": "metric_open_period requires groupId and openPeriodId."}
+        )
+    group_id = source_ref["groupId"]
+    open_period_id = source_ref["openPeriodId"]
+    if (
+        isinstance(group_id, bool)
+        or not isinstance(group_id, int | str)
+        or isinstance(open_period_id, bool)
+        or not isinstance(open_period_id, int | str)
+    ):
+        raise NotebookValidationError({"source": "groupId and openPeriodId must be IDs."})
+    try:
+        normalized_ref = int(group_id), int(open_period_id)
+    except (TypeError, ValueError):
+        raise NotebookSourceNotFound
+    if any(not 0 < value <= I64_MAX for value in normalized_ref):
+        raise NotebookSourceNotFound
+    return normalized_ref
+
+
+def resolve_investigation_sources(
+    *,
+    organization: Organization,
+    sources: list[dict[str, Any]],
+    accessible_project_ids: AbstractSet[int],
+) -> list[BreachedMetricSource | None]:
+    refs = [_metric_open_period_ref(source) for source in sources]
+    resolved = resolve_breached_metric_sources(
+        organization=organization,
+        source_refs=refs,
+        accessible_project_ids=accessible_project_ids,
+    )
+    return [resolved.get(source_ref) for source_ref in refs]
+
+
+def resolve_investigation_source(
+    *,
+    organization: Organization,
+    source: dict[str, Any],
+    accessible_project_ids: AbstractSet[int],
+) -> BreachedMetricSource:
+    resolved = resolve_investigation_sources(
+        organization=organization,
+        sources=[source],
+        accessible_project_ids=accessible_project_ids,
+    )[0]
+    if resolved is None:
+        raise NotebookSourceNotFound
     return resolved

@@ -2,24 +2,22 @@ import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useJoinTeam} from 'sentry/views/settings/organizationTeams/hooks/useJoinTeam';
-import {useRequestTeamAccess} from 'sentry/views/settings/organizationTeams/hooks/useRequestTeamAccess';
-import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
-import {
-  TeamLink,
-  TeamsTable,
-} from 'sentry/views/settings/organizationTeams/teamsTableStyles';
-import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
+
+import {useJoinTeam} from './hooks/useJoinTeam';
+import {useRequestTeamAccess} from './hooks/useRequestTeamAccess';
+import {TeamProjectsCell} from './teamProjectsCell';
+import {TeamLink, TeamsTable} from './teamsTableStyles';
+import {getButtonHelpText} from './utils';
 
 interface OtherTeamsTableProps {
   allTeamsCount: number;

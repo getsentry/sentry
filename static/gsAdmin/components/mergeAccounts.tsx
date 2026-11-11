@@ -3,10 +3,10 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
@@ -44,7 +44,7 @@ export function MergeAccountsModal(props: Props) {
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
   const doMergeMutation = useMutation({
     mutationFn: (userIds: string[]) => {
-      addLoadingMessage();
+      toast.loading('Saving changes...');
       return fetchMutation({
         url: endpoint,
         method: 'POST',
@@ -52,12 +52,12 @@ export function MergeAccountsModal(props: Props) {
       });
     },
     onSuccess: () => {
-      clearIndicators();
+      toast.dismiss();
       closeModal();
       onAction({});
     },
     onError: err => {
-      clearIndicators();
+      toast.dismiss();
       onAction({error: err});
     },
   });
@@ -91,7 +91,7 @@ export function MergeAccountsModal(props: Props) {
               <field.Layout.Stack label="Accounts to merge">
                 <field.SelectAsync
                   multiple
-                  isSearchable
+                  searchable
                   value={field.state.value}
                   onChange={field.handleChange}
                   queryOptions={search => {

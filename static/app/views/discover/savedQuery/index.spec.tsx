@@ -8,7 +8,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {getAllViews} from 'sentry/views/discover/results/data';
-import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
+import {SavedQueryButtonGroup} from 'sentry/views/discover/savedQuery';
 
 function mount(
   location: ReturnType<typeof LocationFixture>,
@@ -47,7 +47,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
 
   beforeEach(() => {
     organization = OrganizationFixture({
-      features: ['discover-query', 'dashboards-edit'],
+      features: ['discover-query'],
     });
 
     errorsQuery = {

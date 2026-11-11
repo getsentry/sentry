@@ -1,9 +1,11 @@
 import {useMemo} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -11,15 +13,17 @@ import {FieldKind} from 'sentry/utils/fields';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import type {FormulaDataset} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {BuilderSection, FIELD_MAX_WIDTH} from './builderSection';
 import {
+  MAX_REFERENCES,
   newReference,
   type DraftParam,
   type DraftReference,
-} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+} from './draft';
 
-const TRACE_ITEM_DATASET_MAP: Record<FormulaDataset, TraceItemDataset> = {
+export const TRACE_ITEM_DATASET_MAP: Record<FormulaDataset, TraceItemDataset> = {
   spans: TraceItemDataset.SPANS,
   logs: TraceItemDataset.LOGS,
   metrics: TraceItemDataset.TRACEMETRICS,
@@ -72,6 +76,7 @@ type Props = {
 export function ReferencesSection({dataset, params, references, onChange}: Props) {
   const traceItemType = TRACE_ITEM_DATASET_MAP[dataset];
   const {numberTags, stringTags, booleanTags} = useParamAttributes(params, traceItemType);
+  const isFull = references.length >= MAX_REFERENCES;
 
   function update(key: string, changes: Partial<DraftReference>) {
     onChange(
@@ -88,13 +93,14 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
         'Named equations the formula combines. Parameters can be used anywhere an attribute can.'
       )}
     >
-      <Stack gap="md">
+      <Stack gap="lg">
         {references.map(reference => (
           <Grid
             key={reference.key}
-            columns="140px minmax(0, 1fr) max-content"
+            columns="200px minmax(0, 1fr) max-content"
             align="center"
             gap="md"
+            maxWidth={FIELD_MAX_WIDTH}
           >
             <Input
               value={reference.name}
@@ -111,6 +117,7 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
               numberTags={numberTags}
               stringTags={stringTags}
               booleanTags={booleanTags}
+              truncateArguments={false}
             />
             <Button
               variant="transparent"
@@ -124,12 +131,19 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
           </Grid>
         ))}
         <Flex>
-          <Button
-            variant="link"
-            onClick={() => onChange([...references, newReference()])}
+          <Tooltip
+            title={t('Formulas take at most %s references', MAX_REFERENCES)}
+            disabled={!isFull}
           >
-            {t('+ Add reference')}
-          </Button>
+            <Button
+              size="sm"
+              icon={<IconAdd />}
+              disabled={isFull}
+              onClick={() => onChange([...references, newReference()])}
+            >
+              {t('Add Reference')}
+            </Button>
+          </Tooltip>
         </Flex>
       </Stack>
     </BuilderSection>

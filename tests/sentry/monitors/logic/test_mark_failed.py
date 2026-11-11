@@ -422,8 +422,10 @@ class MarkFailedTestCase(TestCase):
     @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
     @mock.patch("sentry.monitors.logic.incident_occurrence.resolve_incident_group")
     def test_mark_failed_fingerprint_after_resolution(
-        self, mock_resolve_incident_group, mock_dispatch_incident_occurrence
-    ):
+        self,
+        mock_resolve_incident_group: mock.MagicMock,
+        mock_dispatch_incident_occurrence: mock.MagicMock,
+    ) -> None:
         """Test that resolving and recreating an incident maintains the same fingerprint"""
         monitor = Monitor.objects.create(
             name="test monitor",

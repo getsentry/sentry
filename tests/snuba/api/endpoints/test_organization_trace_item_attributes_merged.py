@@ -1,6 +1,8 @@
+from typing import Any
 from uuid import uuid4
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.organization_trace_item_attributes_merged import (
     MergedTraceItemAttribute,
@@ -216,15 +218,20 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, query=None, features=None):
+    def do_request(
+        self,
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         with self.feature(self.feature_flags if features is None else features):
             url = reverse(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 url, {"project": self.project.id, **(query or {})}, format="json"
             )
+            return response
 
     def _store_span_and_log(self) -> None:
         self.store_segment(
@@ -248,7 +255,7 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
             ]
         )
 
-    def _custom_attributes(self, response) -> dict[str, dict]:
+    def _custom_attributes(self, response: Response) -> dict[str, dict[str, Any]]:
         return {
             attribute["name"]: attribute
             for attribute in response.data
@@ -296,6 +303,23 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         attributes = {attribute["name"]: attribute for attribute in response.data}
         assert attributes["shared.attribute"]["context"] == {}
         assert attributes["project"]["context"]["brief"]
+
+    def test_includes_otel_status_in_context_when_the_convention_is_in_otel(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            tags={"gen_ai.request.model": "gpt-4"},
+        )
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+
+        assert response.status_code == 200, response.content
+        attributes = {attribute["name"]: attribute for attribute in response.data}
+        assert attributes["gen_ai.request.model"]["context"]["isInOtel"] is True
+        assert "isInOtel" not in attributes["device.class"]["context"]
 
     def test_includes_internal_convention_attributes_when_user_is_staff(self) -> None:
         self.store_segment(

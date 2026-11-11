@@ -3,8 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
-
-import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 const MIN_WIDTH = 100;
 const MIN_HEIGHT = 60;

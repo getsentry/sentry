@@ -1,8 +1,25 @@
 import {useMemo} from 'react';
-import * as qs from 'query-string';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
+
+// Every key normalizeDateTimeParams reads for start/end/statsPeriod, as lists so it can skip invalid repeats.
+export const traceDateTimeParsers = {
+  end: parseAsRawList,
+  pageEnd: parseAsRawList,
+  pageStart: parseAsRawList,
+  pageStatsPeriod: parseAsRawList,
+  period: parseAsRawList,
+  start: parseAsRawList,
+  statsPeriod: parseAsRawList,
+};
+
+const loadTraceViewQueryParams = createLoader({
+  ...traceDateTimeParsers,
+  timestamp: parseAsString,
+});
 
 export interface TraceViewQueryParams {
   end: string | undefined;
@@ -15,11 +32,11 @@ export function useTraceQueryParams(
   params?: Partial<TraceViewQueryParams>
 ): TraceViewQueryParams {
   return useMemo(() => {
-    const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
+    const {timestamp, ...dateTimeParams} = loadTraceViewQueryParams(location.search);
+    const normalizedParams = normalizeDateTimeParams(dateTimeParams, {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(normalizedParams.start);
-    const timestamp = decodeScalar(normalizedParams.timestamp);
     const end = decodeScalar(normalizedParams.end);
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
     const numberTimestamp =

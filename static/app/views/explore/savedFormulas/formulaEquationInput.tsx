@@ -16,10 +16,12 @@ export function FormulaEquationInput({
   names,
   onChange,
   disabled,
+  className,
 }: {
   names: string[];
   onChange: (expression: string) => void;
   value: string;
+  className?: string;
   disabled?: boolean;
 }) {
   // Names are mid-edit while this renders, and the builder throws on one it can't
@@ -32,6 +34,7 @@ export function FormulaEquationInput({
 
   return (
     <ArithmeticBuilder
+      className={className}
       aggregations={[]}
       functionArguments={[]}
       getFieldDefinition={() => null}

@@ -20,6 +20,7 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import ReleaseStatus
 from sentry.signals import issue_unresolved
 from sentry.silo.base import SiloMode
+from sentry.tasks.auto_resolve_issues import auto_resolve_project_issues
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -168,16 +169,18 @@ class TestSyncStatusInbound(TestCase):
             group=self.group, integration=self.integration, key=TEST_ISSUE_KEY
         )
 
-    def _assert_group_resolved(self, group_id: int):
+    def _assert_group_resolved(self, group_id: int) -> None:
         group = Group.objects.get(id=group_id)
         assert group.status == GroupStatus.RESOLVED
 
-    def _assert_group_unresolved(self, group_id: int):
+    def _assert_group_unresolved(self, group_id: int) -> None:
         group = Group.objects.get(id=group_id)
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-    def _assert_resolve_activity_created(self, additional_data=None):
+    def _assert_resolve_activity_created(
+        self, additional_data: dict[str, object] | None = None
+    ) -> None:
         activity = self.group.activity_set.filter(type=ActivityType.SET_RESOLVED.value).first()
         assert activity is not None
         assert activity.data["provider"] == "Example"
@@ -188,7 +191,7 @@ class TestSyncStatusInbound(TestCase):
             for key, value in additional_data.items():
                 assert activity.data.get(key) == value
 
-    def _assert_unresolve_activity_created(self):
+    def _assert_unresolve_activity_created(self) -> None:
         activity = self.group.activity_set.filter(type=ActivityType.SET_UNRESOLVED.value).first()
         assert activity is not None
         assert activity.data["provider"] == "Example"
@@ -196,8 +199,8 @@ class TestSyncStatusInbound(TestCase):
         assert activity.data["integration_id"] == self.integration.id
 
     def _assert_resolve_in_release_activity_created(
-        self, in_next_release=False, additional_data=None
-    ):
+        self, in_next_release: bool = False, additional_data: dict[str, object] | None = None
+    ) -> None:
         activity = self.group.activity_set.filter(
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         ).first()
@@ -215,7 +218,7 @@ class TestSyncStatusInbound(TestCase):
             for key, value in additional_data.items():
                 assert activity.data.get(key) == value
 
-    def _assert_no_resolve_activity(self):
+    def _assert_no_resolve_activity(self) -> None:
         activity_count = self.group.activity_set.filter(
             type=ActivityType.SET_RESOLVED.value
         ).count()
@@ -237,7 +240,11 @@ class TestSyncStatusInbound(TestCase):
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_unresolve(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
-        self.group.update(status=GroupStatus.RESOLVED)
+        self.project.update_option("sentry:resolve_age", 1)
+        self.group.update(
+            status=GroupStatus.RESOLVED,
+            last_seen=django_timezone.now() - timedelta(days=1),
+        )
 
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.UNRESOLVE
 
@@ -250,6 +257,9 @@ class TestSyncStatusInbound(TestCase):
 
         self._assert_group_unresolved(self.group.id)
         self._assert_unresolve_activity_created()
+
+        auto_resolve_project_issues(self.project.id)
+        self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_noop(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
@@ -373,6 +383,46 @@ class TestSyncStatusInbound(TestCase):
         )
         assert activity is not None
         assert activity.ident == str(resolution.id)
+
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_resolve_next_release_ignores_skipped_groups_projects(
+        self, mock_get_resolve_sync_action: mock.MagicMock
+    ) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
+        self.create_release(project=self.project, version="1.0.0")
+
+        # Already resolved, so it's skipped, and its project has no release.
+        skipped_group = self.create_group(
+            project=self.create_project(organization=self.organization),
+            status=GroupStatus.RESOLVED,
+        )
+        GroupLink.objects.create(
+            group_id=skipped_group.id,
+            project_id=skipped_group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(
+                config={"sync_status_inbound": True, "resolution_strategy": "resolve_next_release"}
+            )
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        self._assert_group_resolved(self.group.id)
+        self._assert_resolve_in_release_activity_created(in_next_release=True)
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert not GroupResolution.objects.filter(group=skipped_group).exists()
 
     @with_feature("organizations:release-resolution-finalized-order")
     @mock.patch(

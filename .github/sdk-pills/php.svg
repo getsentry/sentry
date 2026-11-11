@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="81" height="40" viewBox="0 0 81 40">
+<style>
+  .pill { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .pill { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="pill" x="0.5" y="0.5" width="80" height="39" rx="9.5" />
+<defs><clipPath id="r"><rect x="8" y="8" width="24" height="24" rx="6" /></clipPath></defs>
+<g clip-path="url(#r)"><svg x="8" y="8" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%" fill="#5C669A"/>
+  <path fill="#fff" d="M3.06 7.48H5.5c.72 0 1.24.21 1.57.62.32.41.42.97.32 1.66a3.2 3.2 0 0 1-.87 1.78c-.27.3-.6.5-.98.6a4.5 4.5 0 0 1-1.08.13h-1.1L3.03 14H1.75l1.3-6.52Zm1.06 1.04-.54 2.73h.23c.5.01 1-.04 1.47-.18.39-.12.65-.57.77-1.32.11-.64 0-1-.33-1.1A4.21 4.21 0 0 0 4.3 8.5h-.2.02Zm4.71-2.77h1.26l-.36 1.73h1.13c.5-.02.98.11 1.39.39.3.24.4.7.27 1.38l-.6 3.03h-1.3l.6-2.9a.82.82 0 0 0-.06-.64.77.77 0 0 0-.63-.19H9.5l-.74 3.73H7.51l1.31-6.52.01-.01Zm5.05 1.73h2.45c.72 0 1.24.21 1.56.62.32.41.43.97.32 1.66a3.2 3.2 0 0 1-.87 1.78c-.26.3-.6.5-.98.6a4.5 4.5 0 0 1-1.07.13h-1.1L13.84 14h-1.27l1.31-6.52Zm1.07 1.04-.55 2.73h.24c.5.01.99-.04 1.46-.18.39-.12.65-.57.77-1.32.11-.64 0-1-.32-1.1a4.19 4.19 0 0 0-1.43-.14h-.19"/>
+</svg></g>
+<text class="label" x="40" y="24.5">PHP</text>
+</svg>

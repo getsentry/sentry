@@ -3,6 +3,7 @@ import {createPortal} from 'react-dom';
 import {
   Outlet,
   UNSAFE_createMemoryHistory,
+  UNSAFE_createRouter,
   useRouteError,
   type DataRouter,
   type InitialEntry,
@@ -10,6 +11,7 @@ import {
   type RouteObject,
   type To,
 } from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClientProvider} from '@tanstack/react-query';
@@ -26,6 +28,7 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
@@ -36,7 +39,6 @@ import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext'
 import {initializeOrg} from './initializeOrg';
 import {SentryNuqsTestingAdapter} from './nuqsTestingAdapter';
 import {makeTestQueryClient} from './queryClient';
-import {createTestRouter, TestRouterProvider} from './reactRouter';
 import {ScrapsTestingProviders} from './scrapsTestingProviders';
 
 interface ProviderOptions {
@@ -149,11 +151,13 @@ function makeAllTheProviders(options: ProviderOptions) {
         <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
-            <GlobalAlertProvider>
-              <GlobalDrawer>
-                <AdditionalWrapper>{children}</AdditionalWrapper>
-              </GlobalDrawer>
-            </GlobalAlertProvider>
+            <SentryOverlayProvider>
+              <GlobalAlertProvider>
+                <GlobalDrawer>
+                  <AdditionalWrapper>{children}</AdditionalWrapper>
+                </GlobalDrawer>
+              </GlobalAlertProvider>
+            </SentryOverlayProvider>
           </OrganizationContext>
         </LLMContextProvider>
       </TopBarSlots.Provider>
@@ -184,7 +188,7 @@ function createRoutesFromConfig(
   children: React.ReactNode,
   config: RouterConfig | undefined
 ): RouteObject[] {
-  // By default react-router 6 catches exceptions and displays the stack
+  // By default React Router catches exceptions and displays the stack
   // trace. For tests we want them to bubble out
   function ErrorBoundary(): React.ReactNode {
     throw useRouteError();
@@ -245,10 +249,10 @@ function makeRouter({
       ]
     : childRoutes;
 
-  const router = createTestRouter({
+  const router = UNSAFE_createRouter({
     history,
     routes,
-  });
+  }).initialize();
 
   return router;
 }
@@ -366,10 +370,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <TestRouterProvider router={memoryRouter} useTransitions />,
-    options
-  );
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -379,7 +380,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(<TestRouterProvider router={newRouter} useTransitions />);
+    renderResult.rerender(<RouterProvider router={newRouter} />);
     // Force the router to update children
     rtl.act(() => {
       newRouter.revalidate();
@@ -422,7 +423,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <TestRouterProvider router={memoryRouter} useTransitions />;
+    return <RouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;

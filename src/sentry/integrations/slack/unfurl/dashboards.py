@@ -11,8 +11,8 @@ from urllib.parse import urlparse
 from django.db.models import Prefetch
 from django.http.request import QueryDict
 
-from sentry import analytics, features, options
-from sentry.api import client
+from sentry import analytics, options
+from sentry.api.client import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer
@@ -127,28 +127,22 @@ def _unfurl_dashboards(
     )
     orgs_by_slug = {org.slug: org for org in organizations}
 
-    enabled_orgs = {
-        slug: org
-        for slug, org in orgs_by_slug.items()
-        if features.has("organizations:dashboards-basic", org, actor=user)
-    }
-    if not enabled_orgs:
-        return {}
-
     unfurls = {}
 
     for link in links:
         args = cast(DashboardsUnfurlArgs, link.args)
         org_slug = args["org_slug"]
-        org = enabled_orgs.get(org_slug)
+        org = orgs_by_slug.get(org_slug)
 
         if not org:
             continue
 
+        assert org.id is not None
         widget = _get_widget(org.id, args["dashboard_id"], args["widget_index"])
         if widget is None:
             continue
 
+        assert widget.widget_type is not None
         config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
         if config is None:
             continue
@@ -245,6 +239,7 @@ def build_widget_timeseries_params(
     widget: DashboardWidget, url_params: QueryDict
 ) -> list[dict[str, str | list[str]]]:
     """Build one timeseries param dict per widget query."""
+    assert widget.widget_type is not None
     config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
     if config is None:
         raise ValueError(f"Unsupported widget type: {widget.widget_type}")

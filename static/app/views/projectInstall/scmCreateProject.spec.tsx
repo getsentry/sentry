@@ -31,10 +31,10 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import * as analytics from 'sentry/utils/analytics';
-import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
-import {PlatformDocHeader} from 'sentry/views/projectInstall/platformDocHeader';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from './issueAlertOptions';
+import {PlatformDocHeader} from './platformDocHeader';
 import {ScmCreateProject} from './scmCreateProject';
 
 // Mock the virtualizer so the platform-features manual-picker Select renders.
@@ -1078,8 +1078,13 @@ describe('ScmCreateProject', () => {
   });
 
   it('creates from an existing integration and detected repository platform', async () => {
-    const repoLinkRequest = mockExistingGithubRepository();
-    const {createRequest, project} = mockProjectCreation('python', 'python');
+    mockExistingGithubRepository();
+    const {createRequest, project} = mockProjectCreation('sentry', 'python');
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {},
+    });
     const {router} = render(<ScmCreateProject />, {organization});
 
     expect(await screen.findByRole('button', {name: /getsentry/})).toBeInTheDocument();
@@ -1089,7 +1094,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('sentry');
     });
     expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
       'aria-disabled',
@@ -1141,7 +1146,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('sentry');
     });
     expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
       'aria-disabled',
@@ -1210,7 +1215,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('relay');
     });
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
 

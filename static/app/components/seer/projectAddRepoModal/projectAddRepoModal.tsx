@@ -18,12 +18,12 @@ import {
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages, type ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -32,6 +32,7 @@ import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSel
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   orgDefaultAgentQueryOptions,
@@ -122,7 +123,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
-            addSuccessMessage(t('Project saved successfully'));
+            toast.success(t('Project saved successfully'));
             closeModal();
           },
         })
@@ -167,6 +168,10 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
     }
   }, [isOnlyGithubRepos, form]);
 
+  const manageRepositoriesLink = (
+    <ExternalLink href={`/settings/${organization.slug}/repos/`} />
+  );
+
   return (
     <Fragment>
       <Header closeButton>
@@ -176,14 +181,15 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
         <Body>
           <Stack gap="xl">
             <Text size="md">
-              {tct(
-                "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
-                {
-                  manage_repositories_link: (
-                    <ExternalLink href={`/settings/${organization.slug}/repos/`} />
-                  ),
-                }
-              )}
+              {isSeerTokenBasedBillingOnboardingEnabled(organization)
+                ? tct(
+                    "Seer uses the repositories linked to your project. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
+                    {manage_repositories_link: manageRepositoriesLink}
+                  )
+                : tct(
+                    "Autofix requires you to attach one or more repositories to your project in order to run. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
+                    {manage_repositories_link: manageRepositoriesLink}
+                  )}
             </Text>
 
             <Separator orientation="horizontal" />

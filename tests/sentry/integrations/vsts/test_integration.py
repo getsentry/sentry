@@ -354,7 +354,10 @@ class VstsIntegrationApiPipelineTest(VstsIntegrationTestCase):
         return self.client.get(self._get_pipeline_url())
 
     def _get_pipeline_signature(self, init_resp: Any) -> str:
-        return parse_qs(urlparse(init_resp.data["data"]["oauthUrl"]).query)["state"][0]
+        oauth_url = init_resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("VSTS pipeline response carries no OAuth URL")
+        return parse_qs(urlparse(oauth_url).query)["state"][0]
 
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
@@ -1003,7 +1006,7 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
         comment = Mock()
         comment.data = {"text": comment_text}
 
-        work_item = self.installation.create_comment(1, self.user.id, comment)
+        work_item = self.installation.create_comment("1", self.user.id, comment)
 
         assert work_item and work_item["id"]
         assert (
@@ -1017,4 +1020,4 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
         group_note.data = {"text": comment, "external_id": "123"}
 
         # Does nothing.
-        self.installation.update_comment(1, self.user.id, group_note)
+        self.installation.update_comment("1", self.user.id, group_note)

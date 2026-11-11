@@ -1,7 +1,8 @@
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
+import type {TraceRootEventQueryResults} from './useTraceRootEvent';
 
 export function isBrowserRequestNode(node: BaseNode): boolean {
   return (

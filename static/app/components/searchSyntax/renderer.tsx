@@ -263,10 +263,12 @@ function ListToken({
 }) {
   return (
     <InList>
-      {token.items.map(({value, separator}) => [
-        <ListComma key="comma">{separator}</ListComma>,
-        value && renderToken(value, cursor),
-      ])}
+      {token.items.map(({value, separator}, i) => (
+        <Fragment key={i}>
+          <ListComma>{separator}</ListComma>
+          {value && renderToken(value, cursor)}
+        </Fragment>
+      ))}
     </InList>
   );
 }

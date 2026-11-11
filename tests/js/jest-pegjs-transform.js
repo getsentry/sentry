@@ -35,6 +35,7 @@ function getAllowedStartRules(sourceText) {
 function getCacheKey(fileData, _filePath, config, _options) {
   return createHash('md5')
     .update(TRANSFORM_VERSION)
+    .update(peggy.VERSION)
     .update(fileData)
     .update(config.configString)
     .digest('hex');

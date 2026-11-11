@@ -3,22 +3,22 @@ import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
-import {setApiNavigate} from 'sentry/api';
-import {AppQueryClientProvider} from 'sentry/appQueryClient';
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
-import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
-import {USE_TANSTACK_DEVTOOL} from 'sentry/constants';
-import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
-import {preload} from 'sentry/router/preload';
-import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
-import {routes} from 'sentry/router/routes';
-import {ServiceWorkerProvider} from 'sentry/serviceWorker/client/serviceWorkerContext';
-import {useColorscheme} from 'sentry/utils/useColorscheme';
-import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {CommandPaletteProvider} from './components/commandPalette/ui/cmdk';
+import {FrontendVersionProvider} from './components/frontendVersionContext';
+import {DocumentTitleManager} from './components/sentryDocumentTitle/documentTitleManager';
+import {ThemeAndStyleProvider} from './components/themeAndStyleProvider';
+import {SENTRY_RELEASE_VERSION} from './constants/sdk';
+import {NuqsAdapter} from './router/nuqsAdapter';
+import {preload} from './router/preload';
+import {RouteConfigProvider} from './router/routeConfigContext';
+import {routes} from './router/routes';
+import {ServiceWorkerProvider} from './serviceWorker/client/serviceWorkerContext';
+import {useColorscheme} from './utils/useColorscheme';
+import {createReactRouter3Navigate} from './utils/useNavigate';
+import {setApiNavigate} from './api';
+import {AppQueryClientProvider} from './appQueryClient';
+import {USE_TANSTACK_DEVTOOL} from './constants';
 
 // Keep the production check at the import site so DefinePlugin can remove the
 // dynamic import from Rspack's production module graph.

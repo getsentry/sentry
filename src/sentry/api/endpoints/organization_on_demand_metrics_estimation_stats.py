@@ -181,14 +181,17 @@ def get_stats_generator(
         if remove_on_demand:
             query = to_standard_metrics_query(query)
 
-        return module.timeseries_query(
-            selected_columns=query_columns,
-            query=query,
-            snuba_params=snuba_params,
-            rollup=rollup,
-            referrer=Referrer.API_ORGANIZATION_METRICS_ESTIMATION_STATS.value,
-            zerofill_results=True,
-            has_metrics=True,
+        return cast(
+            "SnubaTSResult",
+            module.timeseries_query(
+                selected_columns=query_columns,
+                query=query,
+                snuba_params=snuba_params,
+                rollup=rollup,
+                referrer=Referrer.API_ORGANIZATION_METRICS_ESTIMATION_STATS.value,
+                zerofill_results=True,
+                has_metrics=True,
+            ),
         )
 
     return get_discover_stats

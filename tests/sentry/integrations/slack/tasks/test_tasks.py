@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -19,7 +20,7 @@ class SlackTasksTest(TestCase):
         self.integration = install_slack(self.organization)
 
     @pytest.fixture(autouse=True)
-    def mock_chat_scheduleMessage(self):
+    def mock_chat_scheduleMessage(self) -> Iterator[None]:
         with mock_slack_response(
             "chat_scheduleMessage",
             body={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
@@ -27,7 +28,7 @@ class SlackTasksTest(TestCase):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_deleteScheduledMessage(self):
+    def mock_chat_deleteScheduledMessage(self) -> Iterator[None]:
         with mock_slack_response(
             "chat_deleteScheduledMessage", body={"ok": True}
         ) as self.mock_delete:
@@ -60,8 +61,17 @@ class SlackTasksTest(TestCase):
         )
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @responses.activate
-    def test_post_message_failure_sdk(self, mock_metrics: MagicMock) -> None:
+    def test_post_message_failure_sdk(
+        self, mock_api_call: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "invalid_auth"}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         with self.tasks():
             post_message.apply_async(
                 kwargs={

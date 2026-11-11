@@ -229,6 +229,7 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 f.write(f"P4TICKETS={ticket_path}\n")
 
             p4 = P4()
+            p4.timeout = 10
             p4.cwd = p4_home
             p4.port = self.p4port
             p4.user = self.user

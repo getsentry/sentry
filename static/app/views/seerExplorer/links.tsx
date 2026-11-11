@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -39,13 +38,9 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
-import type {
-  CallRecord,
-  ToolCall,
-  ToolLink,
-  ToolResult,
-} from 'sentry/views/seerExplorer/types';
+
+import {callRecordLabel} from './callRecords';
+import type {CallRecord, ToolCall, ToolLink, ToolResult} from './types';
 
 /**
  * Where a Code Mode call sends you.
@@ -449,32 +444,6 @@ export const LINK_RULES: LinkRule[] = [
             'monitor_check_in_failure'
           ),
           ...(project?.id ? {query: {project: project.id}} : {}),
-        },
-      };
-    },
-  },
-  {
-    id: 'get_issue_alert_rule',
-    prefix: /\/rules\/\{rule_id\}/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const ruleId = asUrlSegment(params.rule_id);
-      if (!ruleId) {
-        return null;
-      }
-
-      const project = resolveProject(params.project_id_or_slug, projects);
-      if (!project) {
-        return null;
-      }
-
-      // Legacy issue-alert detail; workflow-engine orgs redirect this onto the automation page.
-      return {
-        label: title ?? t('View alert rule'),
-        url: {
-          pathname: makeAlertsPathname({
-            organization,
-            path: `/rules/${project.slug}/${ruleId}/`,
-          }),
         },
       };
     },

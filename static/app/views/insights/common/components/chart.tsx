@@ -39,7 +39,8 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
+
+import {ChartType} from './chartTypes';
 
 export {ChartType, isChartType} from 'sentry/views/insights/common/components/chartTypes';
 
@@ -297,9 +298,6 @@ export function Chart({
       return 1;
     }
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
-    // React Compiler treats one of these dependencies as mutated later in the
-    // component, so it cannot prove the memoization is preserved.
-    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [bucketSize, lastBucketTimestamp]);
 
   // TODO: Support bar charts

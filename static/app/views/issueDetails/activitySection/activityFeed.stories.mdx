@@ -1,0 +1,96 @@
+---
+title: Issue Activity Feed
+description: Display issue activity and comments.
+category: patterns
+source: sentry/views/issueDetails/activitySection/activityFeed
+---
+
+import {useState} from 'react';
+
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+import {GroupActivityType, IssueCategory} from 'sentry/types/group';
+import {useUser} from 'sentry/utils/useUser';
+import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
+import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+
+Build rows with `buildActivityFeedItems({activities})`. Add a `body` to a row to
+display content beneath its headline. Comments include editing and deletion controls.
+
+export function ContentExample() {
+  const user = useUser();
+  const [activities, setActivities] = useState([
+    {
+      id: 'note',
+      commentId: 'comment-1',
+      type: GroupActivityType.NOTE,
+      data: {text: 'I can reproduce this in the latest release.'},
+      dateCreated: '2026-10-01T12:05:00Z',
+      user,
+    },
+    {
+      id: 'reopened',
+      type: GroupActivityType.SET_UNRESOLVED,
+      data: {},
+      dateCreated: '2026-10-01T12:00:00Z',
+      user: null,
+    },
+    {
+      id: 'resolved',
+      type: GroupActivityType.SET_RESOLVED,
+      data: {},
+      dateCreated: '2026-10-01T11:00:00Z',
+      user: null,
+    },
+  ]);
+  const group = {
+    activity: activities,
+    issueCategory: IssueCategory.ERROR,
+    project: {id: '1', slug: 'example-project'},
+  };
+  const items = buildActivityFeedItems({activities}).map(item =>
+    item.activity.id === 'reopened'
+      ? {
+          ...item,
+          body: (
+            <Container paddingTop="md">
+              <Stack gap="sm" border="muted" radius="md" padding="md">
+                <Text bold>Investigation Context</Text>
+                <Text>The latest release still reproduces this issue.</Text>
+              </Stack>
+            </Container>
+          ),
+        }
+      : item
+  );
+  return (
+    <ActivityFeed
+      group={group}
+      items={items}
+      inputVariant="full"
+      onCommentDelete={async comment => {
+        setActivities(current =>
+          current.filter(
+            activity =>
+              !isActivityNote(activity) || activity.commentId !== comment.commentId
+          )
+        );
+      }}
+      onCommentUpdate={async (comment, data) => {
+        setActivities(current =>
+          current.map(activity =>
+            isActivityNote(activity) && activity.commentId === comment.commentId
+              ? {...activity, data: {...activity.data, ...data}}
+              : activity
+          )
+        );
+      }}
+    />
+  );
+}
+
+<Storybook.Demo resizable direction="column" align="stretch" standalone>
+  <ContentExample />
+</Storybook.Demo>

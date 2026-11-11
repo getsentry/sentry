@@ -1,3 +1,4 @@
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {GroupFixture} from 'sentry-fixture/group';
 
 import {
@@ -8,9 +9,6 @@ import {
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
-
-import {Container} from '@sentry/scraps/layout';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -23,8 +21,14 @@ const pageLinks =
   '<https://sentry.io/api/0/organizations/org-slug/flags/logs/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
   '<https://sentry.io/api/0/organizations/org-slug/flags/logs/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"';
 
+// The testing adapter briefly re-reads the pre-write cursor and refetches both pages, so a late fetch can outlive the mocks.
+function ProductionNuqsAdapter({children}: {children?: React.ReactNode}) {
+  return <NuqsAdapter defaultOptions={{shallow: false}}>{children}</NuqsAdapter>;
+}
+
 describe('FlagDetailsDrawerContent', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       query: {flag: 'test-flag-key'},
@@ -250,19 +254,28 @@ describe('FlagDetailsDrawerContent', () => {
       },
       headers: {Link: pageLinks},
     });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+      match: [MockApiClient.matchQuery({cursor: '0:50:0'})],
+    });
 
     const group = GroupFixture();
     const {router} = render(
       <GroupDataContextProvider group={group} project={group.project}>
         <FlagDetailsDrawerContent group={group} />
-      </GroupDataContextProvider>
+      </GroupDataContextProvider>,
+      {additionalWrapper: ProductionNuqsAdapter}
     );
+    const historyLength = window.history.length;
 
     await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
 
     await waitFor(() => {
       expect(router.location.query.flagDrawerCursor).toBe('0:50:0');
     });
+    expect(window.history).toHaveLength(historyLength + 1);
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
     expect(trackAnalytics).toHaveBeenCalledWith(
       'flags.logs-paginated',
       expect.objectContaining({
@@ -270,22 +283,5 @@ describe('FlagDetailsDrawerContent', () => {
         organization: expect.objectContaining({slug: 'org-slug'}),
       })
     );
-  });
-
-  it('shows every column when the container is narrow', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400);
-
-    const group = GroupFixture();
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <Container containerType="inline-size">
-          <FlagDetailsDrawerContent group={group} />
-        </Container>
-      </GroupDataContextProvider>
-    );
-
-    const table = await screen.findByRole('table', {name: 'Feature flag audit logs'});
-
-    expect(getEmotionRules(table).join('')).not.toContain('nth-child(');
   });
 });

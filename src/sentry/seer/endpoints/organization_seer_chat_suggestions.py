@@ -18,6 +18,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import Dashboard
@@ -32,7 +33,7 @@ from sentry.seer.oneshot import run_oneshot
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.organization_detector_details import (
-    _check_metric_detector_allowed,
+    check_metric_detector_allowed,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     ORGANIZATION_WORKFLOW_WRITE_SCOPES,
@@ -116,6 +117,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 request, organization, project_ids=set(sorted(project_ids)[:MAX_PROJECTS])
             )
 
+        actions_enabled = features.has(
+            "organizations:seer-chat-suggestions-actions", organization, actor=request.user
+        )
         payload = {
             **data,
             "page_context": data["page_context"][:MAX_PAGE_CONTEXT_LENGTH],
@@ -125,20 +129,24 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "code_mode": features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             ),
-            # Whether the user has permission to create alerts and monitors.
-            "can_create_alerts": any(
-                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
-            ),
-            # The page's context node type, if the user can edit its item.
-            "can_edit_node_type": self._can_edit_node_type(request, organization, route_params),
+            "actions_enabled": actions_enabled,
         }
+        if actions_enabled:
+            # Whether the user has permission to create alerts and monitors.
+            payload["can_create_alerts"] = any(
+                request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES
+            )
+            # The page's context node type, if the user can edit its item.
+            payload["can_edit_node_type"] = self._can_edit_node_type(
+                request, organization, route_params
+            )
 
         try:
             result = run_oneshot(
                 "chat_suggestions",
                 payload,
                 organization,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 timeout=3.5,
             )
         except HTTPError:
@@ -196,7 +204,9 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
 
         elif workflow_id := _to_valid_int_id("automationId", route_params.get("automationId")):
             workflow = Workflow.objects.filter(
-                id=workflow_id, organization_id=organization.id
+                id=workflow_id,
+                organization_id=organization.id,
+                type=Workflow.Type.ALERT,
             ).first()
             if workflow:
                 try:
@@ -226,7 +236,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 return None
 
             try:
-                _check_metric_detector_allowed(detector, organization)
+                check_metric_detector_allowed(detector, organization)
             except ResourceDoesNotExist:
                 return None
             if can_edit_detector(detector, request):

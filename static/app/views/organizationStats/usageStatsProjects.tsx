@@ -1,9 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptorObject} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -20,9 +21,8 @@ import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -116,19 +116,13 @@ export function UsageStatsProjects({
     isError,
     error,
     isPending: loading,
-  } = useApiQuery<UsageSeries>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        // We do not need more granularity in the data so interval is '1d'
-        query: endpointQuery,
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      // We do not need more granularity in the data so interval is '1d'
+      query: endpointQuery,
       staleTime: Infinity,
-    }
+    })
   );
 
   const tableSort: {
@@ -482,7 +476,7 @@ export function UsageStatsProjects({
         </Flex>
       )}
       {!isSingleProject && (
-        <Container>
+        <Container marginBottom="xl">
           <SearchBar
             query={tableQuery}
             placeholder={t('Filter your projects')}
@@ -491,7 +485,7 @@ export function UsageStatsProjects({
           />
         </Container>
       )}
-      <Container data-test-id="usage-stats-table">
+      <Container marginBottom="xl" data-test-id="usage-stats-table">
         <UsageTable
           isLoading={loading || !projectsLoaded}
           isError={isError}
@@ -507,10 +501,6 @@ export function UsageStatsProjects({
     </Fragment>
   );
 }
-
-const Container = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};

@@ -115,7 +115,7 @@ describe('UptimeAssertionsField', () => {
       </Form>
     );
 
-    // Wait for component to settle (react-popper causes async updates)
+    // Wait for component to settle (overlays cause async updates)
     await waitFor(() => {
       expect(screen.getAllByRole('textbox')).toHaveLength(2);
     });
@@ -176,7 +176,7 @@ describe('UptimeAssertionsField', () => {
       </Form>
     );
 
-    // Wait for component to settle (react-popper causes async updates)
+    // Wait for component to settle (overlays cause async updates)
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });
@@ -223,7 +223,7 @@ describe('UptimeAssertionsField', () => {
       </Form>
     );
 
-    // Wait for component to settle (react-popper causes async updates)
+    // Wait for component to settle (overlays cause async updates)
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
     });

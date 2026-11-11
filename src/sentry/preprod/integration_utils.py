@@ -9,7 +9,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.commit_context import CommitContextClient
 from sentry.models.organization import Organization
-from sentry.models.repository import Repository
+from sentry.preprod.vcs.repo_utils import get_integrated_repository
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,11 @@ def get_github_client(
     organization: Organization, repo_name: str, provider: str = "github"
 ) -> GitHubBaseClient | None:
     """Get the GitHub client for this organization and repository."""
-    repository = Repository.objects.filter(
+    repository = get_integrated_repository(
         organization_id=organization.id,
         name=repo_name,
-        provider=f"integrations:{provider}",
-    ).first()
+        provider=provider,
+    )
     if not repository:
         logger.info(
             "preprod.integration_utils.no_repository",

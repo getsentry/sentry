@@ -46,11 +46,16 @@ export function useIncompleteBucketTooltipDetails(
     }
 
     const delayLine = t('Event ingestion is incomplete.');
+    const retentionLine = t('Some of this data is outside your retention period.');
 
     const notes = new Map<number, string>();
     for (const {meta, values} of series) {
-      for (const {timestamp, incomplete} of values) {
+      for (const {timestamp, incomplete, incompleteReason} of values) {
         if (!incomplete || notes.has(timestamp)) {
+          continue;
+        }
+        if (incompleteReason === 'OUTSIDE_RETENTION') {
+          notes.set(timestamp, renderNote(theme, retentionLine));
           continue;
         }
         const secondsRemaining = (timestamp + meta.interval - completeThrough) / 1000;

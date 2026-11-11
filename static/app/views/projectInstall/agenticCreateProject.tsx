@@ -10,7 +10,6 @@ import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agentic
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
 import {useAgenticSetupRun} from 'sentry/components/onboarding/agenticProgress/useAgenticSetupRun';
-import {ManualSetupCard} from 'sentry/components/onboarding/manualSetupCard';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -134,20 +133,16 @@ export function AgenticCreateProject({
                 onSelectSnippet={handleSelectSnippet}
                 feedbackSource="project-creation-agent-setup"
                 issueLinkReferrer="project-creation-agentic-first-issue"
-                manualSetup={
-                  <ManualSetupCard
-                    onSetupInBrowser={() => {
-                      trackAnalytics('project_creation.agent_setup_manual_clicked', {
-                        organization,
-                        variant: 'scm',
-                        run_id: run?.runId,
-                      });
+                onSetupInBrowser={() => {
+                  trackAnalytics('project_creation.agent_setup_manual_clicked', {
+                    organization,
+                    variant: 'scm',
+                    run_id: run?.runId,
+                  });
 
-                      setHasOpenedManualSetup(true);
-                      setSetupMethod('manual');
-                    }}
-                  />
-                }
+                  setHasOpenedManualSetup(true);
+                  setSetupMethod('manual');
+                }}
               />
               {isSetupComplete && (
                 <LinkButton

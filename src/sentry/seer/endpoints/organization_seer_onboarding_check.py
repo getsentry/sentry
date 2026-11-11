@@ -12,8 +12,13 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.seer.autofix.utils import (
+    get_token_based_billing_repo_filter,
+    is_seer_token_based_billing_onboarding_enabled,
+)
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -24,10 +29,8 @@ def has_supported_scm_integration(organization: Organization) -> bool:
     providers = [
         IntegrationProviderSlug.GITHUB.value,
         IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        IntegrationProviderSlug.GITLAB.value,
     ]
-
-    if features.has("organizations:seer-gitlab-support", organization):
-        providers.append(IntegrationProviderSlug.GITLAB.value)
 
     if features.has("organizations:seer-cursor-origin-support", organization):
         providers.append(IntegrationProviderSlug.CURSOR_ORIGIN.value)
@@ -51,10 +54,15 @@ def is_code_review_enabled(organization: Organization) -> bool:
 
 
 def is_autofix_enabled(organization: Organization) -> bool:
-    """
-    Check if autofix/RCA is enabled for any active project in the organization,
-    ie, if any project has repositories configured in Seer preferences.
-    """
+    """Check if any active project in the organization has a repo for autofix/RCA: a usable linked
+    repo under token-based billing, otherwise a repo picked in Seer settings."""
+    if is_seer_token_based_billing_onboarding_enabled(organization):
+        return ProjectRepository.objects.filter(
+            get_token_based_billing_repo_filter(organization, prefix="repository__"),
+            project__organization_id=organization.id,
+            project__status=ObjectStatus.ACTIVE,
+        ).exists()
+
     return SeerProjectRepository.objects.filter(
         project_repository__project__organization_id=organization.id,
         project_repository__project__status=ObjectStatus.ACTIVE,

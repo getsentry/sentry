@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -16,7 +17,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import raw_snql_query
@@ -33,6 +33,8 @@ class GroupAttributesTest(TestCase):
             first_seen=timezone.now() - timedelta(days=5),
             num_comments=50,
         )
+        assert group.num_comments is not None
+        assert group_2.num_comments is not None
         assert _bulk_retrieve_group_values([group.id, group_2.id]) == [
             GroupValues(
                 id=group.id,
@@ -154,7 +156,7 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
             ) as _log_group_attributes_changed,
             patch("sentry.issues.attributes.send_snapshot_values") as send_snapshot_values,
         ):
-            kwargs = {}
+            kwargs: dict[str, Any] = {}
             if update_fields:
                 kwargs["update_fields"] = update_fields
             self.group.save(**kwargs)
@@ -210,8 +212,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
         with patch(
             "sentry.issues.attributes._log_group_attributes_changed"
         ) as _log_group_attributes_changed:
-            with override_options({"groups.enable-post-update-signal": True}):
-                Group.objects.filter(id__in=[g.id for g in groups]).update(**update_fields)
+            Group.objects.filter(id__in=[g.id for g in groups]).update(**update_fields)
             _log_group_attributes_changed.assert_called_with(
                 Operation.UPDATED, "group", expected_str
             )

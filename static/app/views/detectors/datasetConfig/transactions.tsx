@@ -9,23 +9,23 @@ import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandM
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
-import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
+import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
+
+import {TraceSearchBar} from './components/traceSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
   transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
-} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
+} from './utils/discoverSeries';
 import {
   BASE_DYNAMIC_INTERVALS,
   BASE_INTERVALS,
   getStandardTimePeriodsForInterval,
-} from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
+} from './utils/timePeriods';
 import {
   translateAggregateTag,
   translateAggregateTagBack,
-} from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
-import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
-
+} from './utils/translateAggregateTag';
 import type {DetectorDatasetConfig} from './base';
 import {parseEventTypesFromQuery} from './eventTypes';
 

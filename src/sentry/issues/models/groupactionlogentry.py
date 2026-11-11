@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from django.db import models
 from django.db.models.functions import Now
@@ -18,21 +17,10 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
 
-if TYPE_CHECKING:
-    from sentry.models.group import Group
-
 
 class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
     def user_visible(self) -> models.QuerySet[GroupActionLogEntry]:
         return self.filter(type__in=GroupAction.get_user_visible_types())
-
-    def get_actions_for_group(self, group: Group, num: int) -> Sequence[GroupActionLogEntry]:
-        """
-        Fetch user visible GALE rows for a given group
-        """
-        return list(
-            self.user_visible().filter(group_id=group.id).order_by("-date_added", "-id")[:num]
-        )
 
 
 @cell_silo_model
@@ -76,6 +64,10 @@ class GroupActionLogEntry(Model):
     data = models.JSONField(default=dict)
 
     # DB-defaulted; backfill code may pass an explicit value.
+    # Defines the log's canonical order. For published actions this is when the outbox
+    # drained, not when publish_action() was called. Usually that's near-immediate, but
+    # with a deferred flush, or during an incident, it can be noticeably later (tens of
+    # seconds to minutes). See the GroupAction docstring before relying on exact times.
     date_added = models.DateTimeField(db_default=Now())
 
     # Primarly intended for debugging; not intended to be relied upon

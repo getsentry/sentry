@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {AnsiText} from 'sentry/components/ansiText';
 import type {BaseGroup} from 'sentry/types/group';
 import {getTitle} from 'sentry/utils/events';
 
+import {AnsiText} from './ansiText';
 import {GroupPreviewTooltip} from './groupPreviewTooltip';
 
 interface GroupTitleProps {

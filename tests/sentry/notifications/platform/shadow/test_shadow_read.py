@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import uuid
 from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, contextmanager, nullcontext
@@ -28,6 +29,7 @@ from sentry.notifications.notification_action.utils import (
     issue_notification_data_factory,
     metric_alert_notification_data_factory,
 )
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.shadow.capture import _variant
 from sentry.notifications.platform.shadow.compare import ShadowOutcome
 from sentry.notifications.platform.types import (
@@ -214,6 +216,26 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
         assert observation.outcome == ShadowOutcome.GROUP_CHANGED
 
+    def test_skips_when_the_group_status_changed_during_the_platform_render(self) -> None:
+        self.issue_group.update(status=GroupStatus.RESOLVED, substatus=None)
+        action = self.create_shadow_action("discord", {"tags": ""})
+        invocation = self.invocation(action)
+        render_template = NotificationService.render_template
+
+        def regress_then_render(**kwargs: Any) -> Any:
+            Group.objects.get(id=self.issue_group.id).update(
+                status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED
+            )
+            return render_template(**kwargs)
+
+        with mock.patch(
+            f"{COMPARE_PATH}.NotificationService.render_template", side_effect=regress_then_render
+        ):
+            observation, _ = self.send(invocation)
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
+
     def test_compares_when_last_seen_changed_before_the_event(self) -> None:
         action = self.create_shadow_action("discord", {"tags": ""})
         invocation = self.invocation(action)
@@ -224,6 +246,58 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         observation, _ = self.send(invocation)
 
         self.assert_match(observation)
+
+    def test_slack_event_count_changed_is_not_a_mismatch(self) -> None:
+        self.issue_group.update(substatus=GroupSubStatus.ONGOING)
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        # The stats line reads the count twice per render: legacy sees 5, the platform sees 6.
+        counts = itertools.chain(["5", "5"], itertools.repeat("6"))
+
+        with mock.patch(
+            "sentry.integrations.slack.message_builder.issues.get_group_global_count",
+            side_effect=lambda group: next(counts),
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
+        legacy, platform = observation.compared[0]
+        assert "Events: *5*" in orjson.dumps(legacy).decode()
+        assert "Events: *6*" in orjson.dumps(platform).decode()
+
+    def test_slack_counts_dropped_at_a_single_event_are_not_a_mismatch(self) -> None:
+        assert self.issue_group.times_seen == 1
+        self.issue_group.update(substatus=GroupSubStatus.ONGOING)
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        # Legacy reads a pending second event and shows the counts; by the platform render the
+        # buffer was read as empty, so `get_context` leaves them out.
+        counts = itertools.chain(["2", "2"], itertools.repeat("1"))
+
+        with mock.patch(
+            "sentry.integrations.slack.message_builder.issues.get_group_global_count",
+            side_effect=lambda group: next(counts),
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        legacy, platform = observation.compared[0]
+        assert "Events: *2*" in orjson.dumps(legacy).decode()
+        assert "Events:" not in orjson.dumps(platform).decode()
+
+    def test_slack_first_seen_crossing_a_minute_is_not_a_mismatch(self) -> None:
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        first_seen = iter(["Just now", "1 minute ago"])
+
+        with mock.patch(
+            "sentry.integrations.slack.message_builder.issues.time_since",
+            side_effect=lambda value: next(first_seen),
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        legacy, platform = observation.compared[0]
+        assert "State: *New*   First Seen: *Just now*" in orjson.dumps(legacy).decode()
+        assert "State: *New*   First Seen: *1 minute ago*" in orjson.dumps(platform).decode()
 
     def test_slack_mentions_read_scope_without_nudge(self) -> None:
         action = self.create_shadow_action(

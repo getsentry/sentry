@@ -1,0 +1,23 @@
+---
+title: OAuth Organization Picker
+description: Organization selection for OAuth consent.
+category: patterns
+source: sentry/views/authV2/oauth/organizationConsentCard
+---
+
+import {OrganizationConsentCard} from './organizationConsentCard';
+import * as Storybook from 'sentry/stories';
+
+The organization card displays the selected organization and a change menu with organization badges. The orchestration view owns the section heading and form, and uses `useOAuthOrganization` to select the last active eligible organization or the first available organization. Selection is scoped to the prepared consent session.
+
+<Storybook.Demo>
+  <OrganizationConsentCard
+    organization={{id: '1', name: 'Example Organization', slug: 'org-slug'}}
+    organizations={[
+      {id: '1', name: 'Example Organization', slug: 'org-slug'},
+      {id: '2', name: 'Another Organization', slug: 'another-org'},
+    ]}
+    disabled={false}
+    onChange={() => {}}
+  />
+</Storybook.Demo>

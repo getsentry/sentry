@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -33,7 +34,7 @@ function IssueOwnerDebbuging() {
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     if (!projectSlug || !stacktracePath) {
-      addErrorMessage(
+      toast.error(
         'Requires the organization slug, the project slug and the stacktrace path.'
       );
       return;
@@ -52,7 +53,7 @@ function IssueOwnerDebbuging() {
       );
       setRuleMatches(data);
     } catch {
-      addErrorMessage('Failed to fetch matching Issue Owner rules.');
+      toast.error('Failed to fetch matching Issue Owner rules.');
     }
   };
 
@@ -172,7 +173,7 @@ function IssueEscalatingDebugging() {
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     if (!groupId) {
-      addErrorMessage('Requires the group id.');
+      toast.error('Requires the group id.');
       return;
     }
 
@@ -278,14 +279,18 @@ export function DebuggingTools() {
   );
 }
 
-export const SearchContainer = styled('div')`
-  display: grid;
-  grid-template-rows: 1fr;
-  grid-template-columns: repeat(2, 1fr 2fr) 1fr 5fr 1fr;
-  gap: ${p => p.theme.space['2xl']};
-  padding: ${p => p.theme.space.lg};
-  align-items: center;
-`;
+export function SearchContainer(props: GridProps) {
+  return (
+    <Grid
+      align="center"
+      padding="lg"
+      gap="2xl"
+      columns="repeat(2, 1fr 2fr) 1fr 5fr 1fr"
+      rows="1fr"
+      {...props}
+    />
+  );
+}
 
 const StyledTag = styled(Tag)`
   padding: 0 ${p => p.theme.space['3xl']};

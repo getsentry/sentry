@@ -1,0 +1,15 @@
+name: 'Setup Node toolchain'
+description: 'Installs Node.js and pnpm'
+# Both actions parse $GITHUB_EVENT_PATH when they start, and the runner truncates
+# and rewrites that file every time any step starts. Run this while no other step
+# is running (i.e. not inside a `parallel:` group or alongside a `background:` step),
+# otherwise it intermittently fails with "SyntaxError: Unexpected end of JSON input".
+# See https://github.com/actions/runner/issues/4641 and getsentry/sentry#127566.
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+      with:
+        node-version-file: '.node-version'
+
+    - uses: pnpm/action-setup@9b5745cdf0a2e8c2620f0746130f809adb911c19 # v4

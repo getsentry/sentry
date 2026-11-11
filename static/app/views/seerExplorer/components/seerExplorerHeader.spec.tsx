@@ -4,8 +4,9 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+
+import {SeerExplorerHeader} from './seerExplorerHeader';
 
 const BASE_FEATURES = ['seer-explorer'];
 
@@ -23,8 +24,6 @@ function defaultProps(overrides = {}) {
     onChangeSession: jest.fn(),
     onCopySessionClick: jest.fn(),
     onCopyLinkClick: jest.fn(),
-    overrideCtxEngEnable: false,
-    onOverrideCtxEngEnableToggle: jest.fn(),
     overrideBashModeEnabled: false,
     onOverrideBashModeToggle: jest.fn(),
     showThinking: false,
@@ -74,30 +73,32 @@ describe('SeerExplorerHeader', () => {
       );
     });
 
-    it('does not render when no debug feature flags are enabled', async () => {
+    it('renders the force bash mode toggle', async () => {
       await renderHeader();
-      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(
+        screen.getByRole('option', {name: /Force bash mode on/})
+      ).toBeInTheDocument();
     });
 
-    it('does not render for non-employees with a debug flag enabled', async () => {
+    it('does not render for non-employees', async () => {
       ConfigStore.set('user', UserFixture());
-      await renderHeader({}, orgWith('seer-explorer-allow-bash-mode'));
+      await renderHeader();
 
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
 
-    it('renders only the enabled toggle', async () => {
+    it('renders the thinking toggle behind its flag', async () => {
       await renderHeader({}, orgWith('seer-explorer-thinking-blocks'));
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
       expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
       expect(
-        screen.queryByRole('option', {name: /Context Engine/})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('option', {name: /Force bash mode on/})
-      ).not.toBeInTheDocument();
+        screen.getByRole('option', {name: /Force bash mode on/})
+      ).toBeInTheDocument();
     });
 
     it('hides the thinking toggle when code mode tools is enabled', async () => {
@@ -106,17 +107,16 @@ describe('SeerExplorerHeader', () => {
         orgWith('seer-explorer-thinking-blocks', 'seer-explorer-code-mode-tools')
       );
 
-      // Code mode always shows thinking, so the Debug menu has nothing left to
-      // offer when only the thinking toggle would have been present.
-      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(
+        screen.queryByRole('option', {name: /Show thinking/})
+      ).not.toBeInTheDocument();
     });
 
-    it('renders the force bash mode toggle behind its own flag', async () => {
+    it('toggles force bash mode', async () => {
       const onOverrideBashModeToggle = jest.fn();
-      await renderHeader(
-        {overrideBashModeEnabled: true, onOverrideBashModeToggle},
-        orgWith('seer-explorer-allow-bash-mode')
-      );
+      await renderHeader({overrideBashModeEnabled: true, onOverrideBashModeToggle});
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
@@ -130,22 +130,47 @@ describe('SeerExplorerHeader', () => {
       expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
-    it('reflects the toggle state and fires the handler', async () => {
-      const onOverrideCtxEngEnableToggle = jest.fn();
-      await renderHeader(
-        {overrideCtxEngEnable: true, onOverrideCtxEngEnableToggle},
-        orgWith('seer-explorer-context-engine-fe-override-ui-flag')
-      );
+    it('renders the agent trace link alongside the toggles', async () => {
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader({conversationsUrl});
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
-      expect(screen.getByRole('option', {name: /Context Engine/})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
+      expect(
+        screen.getByRole('option', {name: /Force bash mode on/})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Open agent trace'})).toBeInTheDocument();
+    });
 
-      await userEvent.click(screen.getByRole('option', {name: /Context Engine/}));
-      expect(onOverrideCtxEngEnableToggle).toHaveBeenCalled();
+    it('opens the agent trace in a new tab without toggling anything', async () => {
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+      const onOverrideBashModeToggle = jest.fn();
+      const conversationsUrl =
+        'https://sentry.io/organizations/sentry/explore/conversations/run-id/';
+      await renderHeader({conversationsUrl, onOverrideBashModeToggle});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Open agent trace'}));
+
+      expect(openSpy).toHaveBeenCalledWith(
+        conversationsUrl,
+        '_blank',
+        'noopener,noreferrer'
+      );
+      expect(onOverrideBashModeToggle).not.toHaveBeenCalled();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      openSpy.mockRestore();
+    });
+
+    it('does not render the agent trace link for non-employees', async () => {
+      ConfigStore.set('user', UserFixture());
+      await renderHeader({
+        conversationsUrl:
+          'https://sentry.io/organizations/sentry/explore/conversations/run-id/',
+      });
+
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
   });
 

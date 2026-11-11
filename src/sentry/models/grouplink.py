@@ -23,7 +23,9 @@ if TYPE_CHECKING:
 
 
 class GroupLinkManager(BaseManager["GroupLink"]):
-    def get_group_issues(self, group: Group, external_issue_id: int | None = None) -> QuerySet:
+    def get_group_issues(
+        self, group: Group, external_issue_id: int | None = None
+    ) -> QuerySet[GroupLink]:
         kwargs = dict(
             group=group,
             project_id=group.project_id,

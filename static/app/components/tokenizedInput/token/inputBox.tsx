@@ -13,7 +13,7 @@ import type {KeyboardEvent} from '@react-types/shared';
 import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
-import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
+import {UnstyledInput} from './unstyledInput';
 
 interface InputBoxProps {
   inputLabel: string;

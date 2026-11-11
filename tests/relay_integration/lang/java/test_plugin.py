@@ -1,10 +1,14 @@
 import zipfile
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
 from io import BytesIO
+from typing import Any
 from uuid import uuid4
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from pytest_django.live_server_helper import LiveServer
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
@@ -424,12 +428,16 @@ class AnotherClassInSameFile {
 @debug_files_test_both_backends
 class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, set_sentry_option, live_server):
+    def initialize(
+        self,
+        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+        live_server: LiveServer,
+    ) -> Iterator[None]:
         with set_sentry_option("system.url-prefix", live_server.url):
             # Run test case
             yield
 
-    def upload_proguard_mapping(self, uuid, mapping_file_content):
+    def upload_proguard_mapping(self, uuid: str, mapping_file_content: bytes) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -1082,7 +1090,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
         assert error["type"] == "proguard_missing_lineno"
 
-    def upload_jvm_bundle(self, debug_id, source_files):
+    def upload_jvm_bundle(self, debug_id: str, source_files: dict[str, bytes]) -> None:
         files = {}
 
         for source_file in source_files:
@@ -1602,7 +1610,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
     def test_invalid_exception(self) -> None:
-        event_data = {
+        event_data: dict[str, Any] = {
             "user": {"ip_address": "31.172.207.97"},
             "extra": {},
             "project": self.project.id,

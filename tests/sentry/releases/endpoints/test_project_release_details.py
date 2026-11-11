@@ -5,9 +5,10 @@ import pytest
 from django.urls import reverse
 
 from sentry.api.serializers.rest_framework.release import ReleaseSerializer
-from sentry.constants import MAX_VERSION_LENGTH
+from sentry.constants import MAX_VERSION_LENGTH, ObjectStatus
 from sentry.models.activity import Activity
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
@@ -18,6 +19,35 @@ from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+
+def log_in_member_of_one_project(
+    case: APITestCase, *, open_membership: bool
+) -> tuple[Project, Project]:
+    """Returns a project the logged-in member's team owns and one owned by another team."""
+    org = case.organization
+    org.flags.allow_joinleave = open_membership
+    org.save()
+    team = case.create_team(organization=org)
+    project = case.create_project(teams=[team], organization=org)
+    other_project = case.create_project(
+        teams=[case.create_team(organization=org)], organization=org
+    )
+    user = case.create_user()
+    case.create_member(teams=[team], user=user, organization=org)
+    case.login_as(user=user)
+    return project, other_project
+
+
+def release_details_url(project: Project, release: Release) -> str:
+    return reverse(
+        "sentry-api-0-project-release-details",
+        kwargs={
+            "organization_id_or_slug": project.organization.slug,
+            "project_id_or_slug": project.slug,
+            "version": release.version,
+        },
+    )
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -74,6 +104,34 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.ref == "master"
+
+    def test_release_shared_with_project_of_another_team(self) -> None:
+        project, other_project = log_in_member_of_one_project(self, open_membership=False)
+        release = self.create_release(project, additional_projects=[other_project])
+
+        response = self.client.put(release_details_url(project, release), {"ref": "master"})
+
+        assert response.status_code == 403, response.content
+        assert Release.objects.get(id=release.id).ref is None
+
+    def test_release_shared_with_project_of_another_team_open_membership(self) -> None:
+        project, other_project = log_in_member_of_one_project(self, open_membership=True)
+        release = self.create_release(project, additional_projects=[other_project])
+
+        response = self.client.put(release_details_url(project, release), {"ref": "master"})
+
+        assert response.status_code == 200, response.content
+        assert Release.objects.get(id=release.id).ref == "master"
+
+    def test_release_shared_with_project_pending_deletion(self) -> None:
+        project, other_project = log_in_member_of_one_project(self, open_membership=False)
+        release = self.create_release(project, additional_projects=[other_project])
+        other_project.update(status=ObjectStatus.PENDING_DELETION)
+
+        response = self.client.put(release_details_url(project, release), {"ref": "master"})
+
+        assert response.status_code == 200, response.content
+        assert Release.objects.get(id=release.id).ref == "master"
 
     def test_commits(self) -> None:
         self.login_as(user=self.user)
@@ -257,6 +315,15 @@ class ReleaseDeleteTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
+        assert Release.objects.filter(id=release.id).exists()
+
+    def test_release_shared_with_project_of_another_team(self) -> None:
+        project, other_project = log_in_member_of_one_project(self, open_membership=False)
+        release = self.create_release(project, additional_projects=[other_project])
+
+        response = self.client.delete(release_details_url(project, release))
+
+        assert response.status_code == 403, response.content
         assert Release.objects.filter(id=release.id).exists()
 
 

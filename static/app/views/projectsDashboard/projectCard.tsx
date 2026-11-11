@@ -23,6 +23,7 @@ import {
 } from 'sentry/components/scoreCard';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import type {SettingsEntryPoint} from 'sentry/utils/analytics/settingsAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -121,6 +122,9 @@ export function ProjectCard({
               tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
               to={`/settings/${organization.slug}/projects/${slug}/`}
+              analyticsEventKey="settings.entry_point_clicked"
+              analyticsEventName="Settings: Entry Point Clicked"
+              analyticsParams={{entry_point: 'project_card' satisfies SettingsEntryPoint}}
             />
             <BookmarkStar organization={organization} project={simpleProject} />
           </Grid>
@@ -167,7 +171,7 @@ export function ProjectCard({
           <Placeholder height="150px" />
         )}
       </ChartContainer>
-      <CardFooter>
+      <Grid gap="md" columns="1fr 1fr">
         <ScoreCardWrapper>
           {stats ? (
             hasHealthData ? (
@@ -201,7 +205,7 @@ export function ProjectCard({
             <FooterPlaceholder />
           )}
         </div>
-      </CardFooter>
+      </Grid>
     </CardPanel>
   );
 }
@@ -213,12 +217,6 @@ const CardPanel = styled(Panel)`
   height: 100%;
   padding: ${p => p.theme.space.xl};
   margin: 0;
-`;
-
-const CardFooter = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.md};
 `;
 
 const ChartContainer = styled('div')`

@@ -1,10 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  PageAlert,
-  PageAlertProvider,
-  usePageAlert,
-} from 'sentry/utils/performance/contexts/pageAlert';
+import {PageAlert, PageAlertProvider, usePageAlert} from './pageAlert';
 
 function SimpleErrorButton() {
   const {setPageDanger} = usePageAlert();
@@ -39,6 +35,7 @@ describe('Performance > Contexts > pageError', () => {
 
     function RenderCountingComponent() {
       const {setPageDanger} = usePageAlert();
+      // oxlint-disable-next-line react/todo
       renderCount++;
 
       return (

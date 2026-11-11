@@ -10,12 +10,12 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import * as discoverUtils from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {useSaveAsItems} from './useSaveAsItems';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -215,18 +215,48 @@ describe('useSaveAsItems', () => {
     expect(alertItem?.children).toHaveLength(1);
   });
 
-  it('preserves the chart type when adding a dashboard widget', () => {
-    const handleAddQueryToDashboard = jest
-      .spyOn(discoverUtils, 'handleAddQueryToDashboard')
-      .mockImplementation(() => {});
+  it('notes only the dashboard widget always matches case when ignoring case on a grouped view', () => {
+    const {result} = renderHookWithProviders(useSaveAsItems, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({
+        features: ['ourlogs-enabled', 'explore-ignore-case-default'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {...initialLocation.query, logsQuery: '', caseInsensitive: '1'},
+        },
+      },
+      initialProps: {
+        visualizes: [new VisualizeFunction('count()')],
+        groupBys: ['message.template'],
+        interval: '5m',
+        mode: Mode.AGGREGATE,
+        search: new MutableSearch(''),
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+      },
+    });
 
+    const getDetails = (key: string) => {
+      const item = result.current.find(saveAsItem => saveAsItem.key === key);
+      return item && 'details' in item ? item.details : undefined;
+    };
+
+    expect(getDetails('create-alert')).toBeNull();
+    expect(getDetails('add-to-dashboard')).toBe('Always matches case');
+  });
+
+  it('preserves the selected chart type and transformations when adding a dashboard widget', () => {
     const {result, router} = renderHookWithProviders(useSaveAsItems, {
       additionalWrapper: Wrapper,
       organization,
       initialRouterConfig: {location: initialLocation},
       initialProps: {
         visualizes: [
-          new VisualizeFunction('count(message)', {chartType: ChartType.LINE}),
+          new VisualizeFunction('count(message)', {
+            chartType: ChartType.LINE,
+            transformations: ['fill(locf)', 'smooth(sma,5)'],
+          }),
         ],
         groupBys: ['message.template'],
         interval: '5m',
@@ -250,9 +280,19 @@ describe('useSaveAsItems', () => {
         logsSortBys: '-timestamp',
       })
     );
-    expect(handleAddQueryToDashboard).toHaveBeenCalledWith(
+    expect(modal.openAddToDashboardModal).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventView: expect.objectContaining({display: DisplayType.LINE}),
+        widgets: [
+          expect.objectContaining({
+            displayType: DisplayType.LINE,
+            queries: [
+              expect.objectContaining({
+                aggregates: ['count(message)'],
+                transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+              }),
+            ],
+          }),
+        ],
       })
     );
   });
@@ -302,7 +342,7 @@ describe('useSaveAsItems', () => {
             dataset: 'logs',
             start: '2024-01-01T00:00:00.000Z',
             end: '2024-01-01T01:00:00.000Z',
-            range: '1h',
+            statsPeriod: '1h',
             environment: ['production'],
             interval: '1m',
             query: [

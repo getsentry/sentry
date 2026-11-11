@@ -12,7 +12,7 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder.discover import DiscoverQueryBuilder, TopEventsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -806,6 +806,19 @@ class DiscoverQueryBuilderTest(TestCase):
                 query="",
                 selected_columns=['fn_span_count("db", hostName)'],
             )
+
+    def test_non_numeric_function_argument(self) -> None:
+        with pytest.raises(
+            InvalidFunctionArgumentQuery, match="title is not a numeric column"
+        ) as excinfo:
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["min(title)"],
+            )
+        assert excinfo.value.function == "min"
+        assert excinfo.value.argument == "title"
 
     def test_array_join_clause(self) -> None:
         query = DiscoverQueryBuilder(

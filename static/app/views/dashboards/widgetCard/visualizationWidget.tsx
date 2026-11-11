@@ -8,13 +8,15 @@ import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -24,6 +26,7 @@ import {
   WidgetType,
   type DashboardFilters,
   type Widget as TWidget,
+  type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
@@ -31,12 +34,8 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {getIngestionCompleteThrough} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
+import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
-import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
-import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
-import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
-import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {
   LegendSelection,
@@ -45,12 +44,15 @@ import type {
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesLabelForWidgetQuery} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabelForWidgetQuery';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -63,23 +65,24 @@ import {
 } from 'sentry/views/insights/pages/platform/shared/styles';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {canScaleThresholds} from './canScaleThresholds';
 import {WidgetCardConfidenceFooter} from './confidenceFooter';
+import {matchTimeSeriesToTableRowValue} from './matchTimeSeriesToTableRowValue';
+import {scaleThresholdsToInterval} from './scaleThresholdsToInterval';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: TWidget;
   dashboardFilters?: DashboardFilters;
+  disableFullscreen?: boolean;
   isFullScreen?: boolean;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     pageLinks?: string;
     tableResults?: any[];
-    timeseriesResults?: Series[];
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
-    totalIssuesCount?: string;
+    timeseriesResults?: WidgetTimeSeries[];
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
@@ -101,6 +104,7 @@ function VisualizationWidgetComponent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
+  disableFullscreen,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
 
@@ -118,7 +122,11 @@ function VisualizationWidgetComponent({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection);
+  // Mobile build sizes are not associated with Sentry releases
+  const showReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
+  const {releases: releasesWithDate} = useReleaseStats(selection, {
+    enabled: showReleases,
+  });
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -139,8 +147,6 @@ function VisualizationWidgetComponent({
       {({
         timeseriesResults,
         timeseriesInterval,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
         tableResults,
         errorMessage,
         loading,
@@ -148,6 +154,7 @@ function VisualizationWidgetComponent({
         dataScanned,
         isSampled,
         sampleCount,
+        ingestion,
       }) => {
         if (errorMessage && onWidgetError) {
           onWidgetError(widget, errorMessage);
@@ -157,23 +164,23 @@ function VisualizationWidgetComponent({
           <VisualizationWidgetContent
             widget={widget}
             timeseriesResults={timeseriesResults ?? []}
-            timeseriesResultsTypes={timeseriesResultsTypes}
-            timeseriesResultsUnits={timeseriesResultsUnits}
             tableResults={tableResults}
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs="bubble"
+            showReleaseAs={showReleases ? 'bubble' : 'none'}
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
             dataScanned={dataScanned}
             isSampled={isSampled}
             sampleCount={sampleCount}
+            ingestion={ingestion}
             onZoom={onZoom}
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
+            disableFullscreen={disableFullscreen}
             widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
@@ -181,6 +188,16 @@ function VisualizationWidgetComponent({
     </WidgetCardDataLoader>
   );
 }
+
+// Only these widget datasets map to an Outcomes category on the backend
+// (DATASET_TO_CATEGORY in data_annotations.py). Everything else gets no band.
+const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<Record<WidgetType, DiscoverDatasets>> =
+  {
+    [WidgetType.SPANS]: DiscoverDatasets.SPANS,
+    [WidgetType.LOGS]: DiscoverDatasets.OURLOGS,
+    [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
+    [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
+  };
 
 function shouldMemoizeVisualizationWidget(
   prevProps: VisualizationWidgetProps,
@@ -204,12 +221,14 @@ interface VisualizationWidgetContentProps {
   loading: boolean;
   releases: Array<{timestamp: string; version: string}>;
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
-  timeseriesResults: Series[];
+  timeseriesResults: WidgetTimeSeries[];
   widget: TWidget;
   confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
+  disableFullscreen?: boolean;
   errorMessage?: string;
+  ingestion?: IngestionMeta;
   isFullScreen?: boolean;
   isSampled?: boolean | null;
   legendSelection?: LegendSelection;
@@ -218,16 +237,12 @@ interface VisualizationWidgetContentProps {
   sampleCount?: number;
   showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
   widgetInterval?: string;
 }
 
 function VisualizationWidgetContent({
   widget,
   timeseriesResults,
-  timeseriesResultsTypes,
-  timeseriesResultsUnits,
   tableResults,
   errorMessage,
   loading,
@@ -239,34 +254,48 @@ function VisualizationWidgetContent({
   dataScanned,
   isSampled,
   sampleCount,
+  ingestion,
   onZoom,
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
+  disableFullscreen,
   widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
   const location = useLocation();
   const {selection} = usePageFilters();
 
-  const firstWidgetQuery = widget.queries[0];
-  const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
+  // The band reflects the page filters, not this widget's own projects/query, so
+  // it won't follow a fullscreen zoom. Parameterize useDroppedData for per-widget
+  // scope before GA.
+  const droppedDataDataset = widget.widgetType
+    ? WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType]
+    : undefined;
+  const droppedData = useDroppedDataLayer(
+    {
+      dataset: droppedDataDataset ?? DiscoverDatasets.SPANS,
+      interval: widgetInterval ?? '',
+    },
+    {
+      enabled:
+        defined(droppedDataDataset) &&
+        organization.features.includes('dashboards-data-fidelity-annotations'),
+      // disableFullscreen is true while creating or editing a widget.
+      hidden: disableFullscreen,
+    }
+  );
 
   const timeSeriesWithPlottable = timeseriesResults
-    .map(series => {
-      const transformed = transformWidgetSeriesToTimeSeries(
-        series,
-        widget,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits
-      );
-
-      if (!transformed) {
+    .map(({timeSeries, seriesName, queryIndex}) => {
+      const widgetQuery = widget.queries[queryIndex];
+      if (!widgetQuery) {
         return null;
       }
 
-      const {timeSeries, label, seriesName, widgetQuery} = transformed;
+      const label = formatTimeSeriesLabelForWidgetQuery(timeSeries, widget, widgetQuery);
       const plottable = createPlottableFromTimeSeriesAndWidget(
         timeSeries,
         widget,
@@ -279,20 +308,20 @@ function VisualizationWidgetContent({
       }
 
       // Match the timeseries to its corresponding table result by query index
-      const queryIndex = widget.queries.indexOf(widgetQuery);
       const tableData = tableResults?.[queryIndex]?.data;
 
-      return [timeSeries, plottable, tableData] satisfies [
+      return [timeSeries, plottable, tableData, widgetQuery] satisfies [
         TimeSeries,
         Plottable,
         TableDataWithTitle['data'] | undefined,
+        WidgetQuery,
       ];
     })
     .filter(defined);
 
   const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
     timeSeriesWithPlottable.map(([timeSeries]) => timeSeries),
-    getIngestionCompleteThrough(timeseriesResults)
+    ingestion?.completeThrough
   );
 
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
@@ -311,17 +340,17 @@ function VisualizationWidgetContent({
     tableResults &&
     tableResults.length > 0;
 
-  // We only support one column for legend breakdown right now
-  const firstColumn = columns[0];
-  const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
-
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
-      {timeSeriesWithPlottable.map(([timeSeries, plottable, tableDataRows], index) => {
+      {timeSeriesWithPlottable.map((series, index) => {
+        const [timeSeries, plottable, tableDataRows, widgetQuery] = series;
         if (timeSeries.meta.isOther) {
           return null;
         }
 
+        // Linked dashboards and custom labels use the query's first grouping column.
+        const firstColumn = widgetQuery.columns[0];
+        const linkedDashboard = findLinkedDashboardForField(widgetQuery, firstColumn);
         const yAxis = timeSeries.yAxis;
         const firstColumnGroupByValue = timeSeries.groupBy?.find(
           groupBy => groupBy.key === firstColumn
@@ -341,16 +370,16 @@ function VisualizationWidgetContent({
 
         let labelContent = <Text>{labelDisplay}</Text>;
 
-        // TODO: to simplify things, we only support one widget query for explore urls right now
-        // Otherwise we have to map the correct widget query to the timeseries result
         if (
           organization.features.includes('visibility-explore-view') &&
-          firstColumn &&
-          typeof firstColumnGroupByValue === 'string' &&
-          widget.queries.length === 1 &&
+          ((firstColumn &&
+            (firstColumnGroupByValue === null ||
+              typeof firstColumnGroupByValue === 'string')) ||
+            (!firstColumn && widgetQuery.seriesLabel === 'query')) &&
+          (widget.queries.length === 1 || widgetQuery.seriesLabel) &&
           widget.widgetType === WidgetType.SPANS
         ) {
-          const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
+          const exploreQuery = new MutableSearch(widgetQuery.conditions);
           for (const {key, value: groupByValue} of timeSeries.groupBy ?? []) {
             if (groupByValue === null) {
               exploreQuery.addFilterValue('!has', key);
@@ -370,7 +399,7 @@ function VisualizationWidgetContent({
               baseQuery: exploreQuery.formatString(),
               dashboardFilters: withGlobalFilterFallback(
                 dashboardFilters,
-                widget.queries[0]?.globalFilterFallback
+                widgetQuery.globalFilterFallback
               ),
               widgetType: widget.widgetType,
             }),
@@ -423,7 +452,7 @@ function VisualizationWidgetContent({
     </WidgetFooterTable>
   ) : null;
 
-  if (loading) {
+  if (loading || (droppedData.isLoading && !errorMessage)) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
@@ -465,19 +494,26 @@ function VisualizationWidgetContent({
     return <TimeSeriesWidgetVisualization.NoData />;
   }
 
-  const confidenceFooter = showConfidenceWarning ? (
-    <WidgetCardConfidenceFooter
-      confidence={confidence}
-      dataScanned={dataScanned}
-      isSampled={isSampled}
-      loading={loading}
-      sampleCount={sampleCount}
-      series={timeseriesResults}
-      timeseriesResults={timeseriesResults}
-      widget={widget}
-      yAxis={widget.queries[0]?.aggregates[0] ?? ''}
-    />
-  ) : null;
+  let confidenceFooter: React.ReactNode = null;
+  if (showConfidenceWarning && hasExtrapolationConfidenceFooter) {
+    confidenceFooter = loading ? null : (
+      <ExtrapolationConfidenceFooter plottables={plottables} />
+    );
+  } else if (showConfidenceWarning) {
+    confidenceFooter = (
+      <WidgetCardConfidenceFooter
+        confidence={confidence}
+        dataScanned={dataScanned}
+        isSampled={isSampled}
+        loading={loading}
+        sampleCount={sampleCount}
+        series={timeseriesResults.map(({timeSeries}) => timeSeries)}
+        timeseriesResults={timeseriesResults}
+        widget={widget}
+        yAxis={widget.queries[0]?.aggregates[0] ?? ''}
+      />
+    );
+  }
 
   if (showBreakdownData) {
     return (
@@ -493,6 +529,7 @@ function VisualizationWidgetContent({
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+            droppedData={droppedData.band}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -517,6 +554,7 @@ function VisualizationWidgetContent({
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+          droppedData={droppedData.band}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

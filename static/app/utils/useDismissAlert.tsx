@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocalStorageState} from './useLocalStorageState';
 
 type Opts = {
   /**

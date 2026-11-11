@@ -2,7 +2,6 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
-import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,6 +15,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
+import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -47,7 +47,7 @@ export type SavedSearch = {
   visibility: SavedSearchVisibility;
 };
 
-export enum SavedSearchVisibility {
+enum SavedSearchVisibility {
   ORGANIZATION = 'organization',
   OWNER = 'owner',
   OWNER_PINNED = 'owner_pinned',
@@ -544,7 +544,9 @@ export type TagValue = {
   firstSeen: string;
   lastSeen: string;
   name: string;
-  value: string;
+  // Missing tags come back as '' or, for tags Snuba stores in their own
+  // column (like user), null.
+  value: string | null;
   email?: string;
   identifier?: string;
   ipAddress?: string;
@@ -559,7 +561,7 @@ type Topvalue = {
   key: string;
   lastSeen: string;
   name: string;
-  value: string;
+  value: string | null;
   // Might not actually exist.
   query?: string;
   readable?: string;
@@ -676,6 +678,9 @@ export enum GroupActivityType {
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
   TRIGGER_AUTOFIX = 'trigger_autofix',
+  UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
+  UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
+  IMPACT_ASSESSMENT = 'impact_assessment',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -698,6 +703,10 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  /**
+   * Where the action came from, e.g. `web`, `api`, `sentry-cli`, `mcp:cursor`
+   */
+  source?: null | string;
   user?: null | User;
 }
 
@@ -1133,7 +1142,40 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
+  data: {external_issue_key: string; provider: string};
+  type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
+}
+
+interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
+  data: {display_name: string; service_type: string; web_url: string};
+  type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
+type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+
+interface ImpactCitation {
+  claim: string;
+  reference: string;
+  source: string;
+}
+
+interface ImpactAssessment {
+  citations: ImpactCitation[];
+  description: string;
+  level: ImpactLevel | null;
+  score: number | null;
+  sourceEventId: string;
+}
+
+export interface GroupActivityImpactAssessment extends GroupActivityBase {
+  data: ImpactAssessment;
+  type: GroupActivityType.IMPACT_ASSESSMENT;
+}
+
 export type GroupActivity =
+  | GroupActivityUnlinkExternalIssue
+  | GroupActivityUnlinkPlatformExternalIssue
   | GroupActivityNote
   | GroupActivitySetResolved
   | GroupActivitySetResolvedIntegration
@@ -1176,7 +1218,8 @@ export type GroupActivity =
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged
   | GroupActivityPullRequestUnlinked
-  | GroupActivityTriggerAutofix;
+  | GroupActivityTriggerAutofix
+  | GroupActivityImpactAssessment;
 
 export type Activity = GroupActivity;
 
@@ -1300,6 +1343,7 @@ interface GroupDerivedData {
   progress: ProgressState;
   status: 'open' | 'closed';
   viewCount: number;
+  impact?: ImpactAssessment | null;
 }
 
 // TODO(ts): incomplete

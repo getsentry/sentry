@@ -41,6 +41,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, is_owned_by_acting_user, require_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
@@ -377,8 +378,11 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
         "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
         "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
-        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:write"],
     }
+
+    # dashboard:read and dashboard:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
     def has_object_permission(
         self,
@@ -394,29 +398,20 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             # allow strictly for Owners and superusers, this allows them to delete dashboards
             # of users that no longer have access to the organization
             if is_superuser or request.access.has_role_in_organization(
-                role=roles.get_top_dog().id, organization=obj.organization, user_id=request.user.id
+                role=roles.get_top_dog().id,
+                organization=obj.organization,
+                user_id=acting_user_id(request.user),
             ):
                 return True
 
             # check if user is restricted from editing dashboard
             if hasattr(obj, "permissions"):
-                return obj.permissions.has_edit_permissions(request.user.id)
+                return obj.permissions.has_edit_permissions(acting_user_id(request.user))
 
             # if no permissions are assigned, it is considered accessible to all users
             return True
 
         return True
-
-
-class OrganizationDashboardsCreatePermission(OrganizationDashboardsPermission):
-    # `dashboard:create` is only accepted here, where POST creates a new dashboard.
-    # Other dashboard endpoints use POST to modify existing dashboards (e.g.
-    # revision restore), so the shared permission must not accept it.
-    # `dashboard:write` stays listed for tokens whose stored scopes predate `dashboard:create`.
-    scope_map = {
-        **OrganizationDashboardsPermission.scope_map,
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:create", "dashboard:write"],
-    }
 
 
 @extend_schema(tags=["Dashboards"])
@@ -426,8 +421,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (OrganizationDashboardsCreatePermission,)
+    permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
         operation_id="listOrganizationDashboards",
@@ -461,9 +457,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        if not features.has("organizations:dashboards-basic", organization, actor=request.user):
-            return Response(status=404)
-
         has_dashboards_starred = features.has(
             "organizations:dashboards-starred", organization, actor=request.user
         )
@@ -487,15 +480,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             except Exception as err:
                 sentry_sdk.capture_exception(err)
 
-            if has_dashboards_starred:
+            user_id = acting_user_id(request.user)
+            if has_dashboards_starred and user_id is not None:
                 try:
                     favorite_lock = locks.get(
-                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
+                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{user_id}",
                         duration=10,
                         name="sync_prebuilt_dashboards_favorited",
                     )
                     with favorite_lock.acquire():
-                        sync_prebuilt_dashboards_favorited(organization, request.user.id)
+                        sync_prebuilt_dashboards_favorited(organization, user_id)
                 except UnableToAcquireLock:
                     pass
                 except Exception as err:
@@ -507,18 +501,22 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         for f in filters:
             if f == "onlyFavorites":
                 dashboards = dashboards.filter(
-                    dashboardfavoriteuser__user_id=request.user.id,
+                    is_owned_by_acting_user(request.user, "dashboardfavoriteuser__user_id"),
                     dashboardfavoriteuser__favorited=True,
                 )
             elif f == "excludeFavorites":
                 dashboards = dashboards.exclude(
-                    dashboardfavoriteuser__user_id=request.user.id,
+                    is_owned_by_acting_user(request.user, "dashboardfavoriteuser__user_id"),
                     dashboardfavoriteuser__favorited=True,
                 )
             elif f == "owned":
-                dashboards = dashboards.filter(created_by_id=request.user.id)
+                dashboards = dashboards.filter(
+                    is_owned_by_acting_user(request.user, "created_by_id")
+                )
             elif f == "shared":
-                dashboards = dashboards.exclude(created_by_id=request.user.id)
+                dashboards = dashboards.exclude(
+                    is_owned_by_acting_user(request.user, "created_by_id")
+                )
             elif f == "excludePrebuilt":
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
             elif f == "onlyPrebuilt":
@@ -567,7 +565,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = dashboards.annotate(
                 user_last_visited=Subquery(
                     DashboardLastVisited.objects.filter(
-                        user_id=request.user.id,
+                        is_owned_by_acting_user(request.user),
                         dashboard_id=OuterRef("id"),
                     ).values("last_visited")[:1]
                 )
@@ -625,7 +623,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             )
             order_by = [
                 Case(
-                    When(created_by_id=request.user.id, then=-1),
+                    When(is_owned_by_acting_user(request.user, "created_by_id"), then=-1),
                     default=1,
                     output_field=IntegerField(),
                 ),
@@ -636,14 +634,16 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         elif sort_by == "myDashboardsAndRecentlyViewed":
             # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
             order_by = [
-                Case(When(created_by_id=request.user.id, then=-1), default=1),
+                Case(
+                    When(is_owned_by_acting_user(request.user, "created_by_id"), then=-1), default=1
+                ),
                 F("user_last_visited").desc(nulls_last=True)
                 if use_user_last_visited
                 else "-last_visited",
             ]
         elif "onlyFavorites" in filters and has_dashboards_starred:
             favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
-                organization, request.user.id
+                organization, require_user(request).id
             ).filter(dashboard_id=OuterRef("id"))
             dashboards = dashboards.annotate(
                 favorite_position=Subquery(favorite_dashboards.values("position")[:1])
@@ -660,7 +660,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                dashboard=OuterRef("pk"), user_id=request.user.id, favorited=True
+                is_owned_by_acting_user(request.user), dashboard=OuterRef("pk"), favorited=True
             )
 
             order_by_favorites = [
@@ -718,9 +718,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
-            return Response(status=404)
 
         projects = self.get_projects(request, organization)
         serializer = DashboardSerializer(

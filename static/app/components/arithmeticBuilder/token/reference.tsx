@@ -9,12 +9,6 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {Token, TokenReference} from 'sentry/components/arithmeticBuilder/token';
 import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
-import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
-import {
-  GridCell,
-  LeftGridCell,
-  Row,
-} from 'sentry/components/arithmeticBuilder/token/styles';
 import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
@@ -22,6 +16,9 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {DeleteButton} from './deleteButton';
+import {GridCell, LeftGridCell, Row} from './styles';
 
 interface ArithmeticBuilderTokenReferenceProps {
   item: Node<Token>;

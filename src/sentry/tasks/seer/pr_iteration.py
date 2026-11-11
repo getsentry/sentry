@@ -52,6 +52,7 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
@@ -104,6 +105,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 )
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
+    iteration_prs_any_external_head,
     record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -839,7 +841,11 @@ def _drain_queued_autofix_feedback(
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
             iteration_id=iteration_id,
         )
-    except (PrIterationNoPullRequestException, SeerPermissionError) as error:
+    except (
+        PrIterationNoPullRequestException,
+        SeerPermissionError,
+        SeerOutOfCreditsException,
+    ) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",
             outcome="skipped",
@@ -848,10 +854,13 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
-        _record_drain_outcome(
-            "skipped_permission" if isinstance(error, SeerPermissionError) else "skipped_no_pr",
-            trigger_source,
-        )
+        if isinstance(error, SeerPermissionError):
+            drain_outcome = "skipped_permission"
+        elif isinstance(error, SeerOutOfCreditsException):
+            drain_outcome = "skipped_out_of_credits"
+        else:
+            drain_outcome = "skipped_no_pr"
+        _record_drain_outcome(drain_outcome, trigger_source)
         # The drain popped the queue, so this iteration will never run.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return
@@ -1910,6 +1919,15 @@ def _trigger_pr_iteration_from_review(
             username=author_username,
             external_id=author_external_id,
         )
+
+    # Someone else has pushed to the PR, so the review may not be about Seer's
+    # work. Only an explicit request (an @sentry comment, the UI) acts now.
+    if iteration_prs_any_external_head(organization_id, agent_state):
+        logger.info(
+            "autofix.pr_iteration.review_trigger.external_head",
+            extra={**log_extra, "run_id": agent_state.run_id},
+        )
+        return None
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
 

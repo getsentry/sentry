@@ -35,6 +35,9 @@ class TestUpdater(TestCase):
             scopes=("project:read", "event:read"),
             schema={"elements": [self.create_issue_link_schema()]},
         )
+        proxy_user = self.sentry_app.proxy_user
+        assert proxy_user is not None
+        self.proxy_user = proxy_user
         self.updater = SentryAppUpdater(sentry_app=self.sentry_app)
 
     def test_updates_name(self) -> None:
@@ -78,15 +81,13 @@ class TestUpdater(TestCase):
         # create both expired token and not expired tokens
         ApiToken.objects.create(
             application=self.sentry_app.application,
-            user=self.sentry_app.proxy_user,
-            scopes=self.sentry_app.scopes,
+            user=self.proxy_user,
             scope_list=self.sentry_app.scope_list,
             expires_at=(timezone.now() + timedelta(hours=1)),
         )
         ApiToken.objects.create(
             application=self.sentry_app.application,
-            user=self.sentry_app.proxy_user,
-            scopes=self.sentry_app.scopes,
+            user=self.proxy_user,
             scope_list=self.sentry_app.scope_list,
             expires_at=(timezone.now() - timedelta(hours=1)),
         )
@@ -176,6 +177,16 @@ class TestUpdater(TestCase):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
         assert service_hook.url == "http://example.com/hooks"
         assert service_hook.events == expand_events(["event.alert"])
+
+    def test_app_without_application_keeps_other_tokens_scopes(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+        self.sentry_app.update(application=None)
+
+        self.updater.scopes = ["project:read", "project:write"]
+        self.updater.run(user=self.user)
+
+        token.refresh_from_db()
+        assert token.scope_list == ["org:read"]
 
     def test_updates_redirect_url(self) -> None:
         self.updater.redirect_url = "http://example.com/finish-setup"

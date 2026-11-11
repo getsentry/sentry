@@ -17,7 +17,7 @@ class RelayDetailsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
     owner = ApiOwner.OWNERS_INGEST
 
-    def delete(self, request: Request, relay_id) -> Response:
+    def delete(self, request: Request, relay_id: str) -> Response:
         """
         Delete one Relay
         ````````````````

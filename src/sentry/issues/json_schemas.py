@@ -117,6 +117,10 @@ LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "additionalProperties": False,
         },
         "server_name": {"type": ["string", "null"], "minLength": 1},
+        "spans": {
+            "type": ["array", "null"],
+            "items": {"type": "object"},
+        },
         "stacktrace": {
             "type": ["object", "null"],
             "properties": {

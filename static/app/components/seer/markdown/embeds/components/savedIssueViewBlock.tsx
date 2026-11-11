@@ -6,15 +6,15 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
-import {QueryEmbedIssueList} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedIssueList';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
+import {QueryEmbedIssueList} from './queryEmbed/queryEmbedIssueList';
 import {getSavedIssueViewHref} from './savedIssueViewLink';
 
 export default function SavedIssueViewBlock({id, name}: EmbedOutput<'savedIssueView'>) {

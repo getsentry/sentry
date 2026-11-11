@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from django.db.models import Model
+
 from sentry.db.models import DefaultFieldsModelExisting
 from sentry.integrations.models import Integration, RepositoryProjectPathConfig
 from sentry.models.groupsearchview import GroupSearchView
@@ -27,7 +29,7 @@ from sentry.uptime.models import UptimeSubscription
 
 
 class PreventDefaultFieldsModelExistingUseTest(TestCase):
-    def all_subclasses(self, cls):
+    def all_subclasses(self, cls: type[Model]) -> set[type[Model]]:
         return set(cls.__subclasses__()).union(
             [s for c in cls.__subclasses__() for s in self.all_subclasses(c)]
         )

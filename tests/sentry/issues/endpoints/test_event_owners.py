@@ -193,14 +193,13 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert len(resp.data["rules"]) == 3
 
     def test_owners_of_different_types_ordered_correctly(self) -> None:
-        owners = [self.user, self.team3, self.user2, self.team2, self.user3, self.team]
         rules = [
-            Rule(Matcher("path", "*.py"), [Owner("user", owners[0].email)]),
-            Rule(Matcher("path", "*py"), [Owner("team", owners[1].slug)]),
-            Rule(Matcher("path", "*foo*"), [Owner("user", owners[2].email)]),
-            Rule(Matcher("path", "*y"), [Owner("team", owners[3].slug)]),
-            Rule(Matcher("path", "*"), [Owner("user", owners[4].email)]),
-            Rule(Matcher("path", "*o.py"), [Owner("team", owners[5].slug)]),
+            Rule(Matcher("path", "*.py"), [Owner("user", self.user.email)]),
+            Rule(Matcher("path", "*py"), [Owner("team", self.team3.slug)]),
+            Rule(Matcher("path", "*foo*"), [Owner("user", self.user2.email)]),
+            Rule(Matcher("path", "*y"), [Owner("team", self.team2.slug)]),
+            Rule(Matcher("path", "*"), [Owner("user", self.user3.email)]),
+            Rule(Matcher("path", "*o.py"), [Owner("team", self.team.slug)]),
         ]
 
         ProjectOwnership.objects.create(
@@ -223,7 +222,14 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert len(resp.data["owners"]) == 6
-        assert [o["id"] for o in resp.data["owners"]] == [str(o.id) for o in owners]
+        assert [o["id"] for o in resp.data["owners"]] == [
+            str(self.user.id),
+            str(self.team3.id),
+            str(self.user2.id),
+            str(self.team2.id),
+            str(self.user3.id),
+            str(self.team.id),
+        ]
         assert [o["type"] for o in resp.data["owners"]] == ["user", "team"] * 3
         assert resp.data["rule"] == Matcher("path", "*.py")
         assert len(resp.data["rules"]) == 6

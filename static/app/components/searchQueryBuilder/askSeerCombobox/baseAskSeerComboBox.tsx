@@ -11,80 +11,27 @@ import type {Primitive} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerFeedback} from 'sentry/components/searchQueryBuilder/askSeer/askSeerFeedback';
-import {AskSeerQueryStatusIndicator} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerQueryStatusIndicator';
-import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
-import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
-import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
-import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {
-  generateQueryTokensString,
-  stringifyQueryForFeedback,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
 
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  // Keep a ref to the updateOverlayPosition function so that we can
-  // access the latest value in the resize observer callback.
-  const updateOverlayPositionRef = useRef(updateOverlayPosition);
-  // oxlint-disable-next-line react/refs
-  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
-    // oxlint-disable-next-line react/refs
-    updateOverlayPositionRef.current = updateOverlayPosition;
-  }
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (!updateOverlayPositionRef.current) {
-        return;
-      }
-      updateOverlayPositionRef.current?.();
-    });
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [contentRef, isOpen, updateOverlayPosition]);
-}
+import {AskSeerQueryStatusIndicator} from './askSeerQueryStatusIndicator';
+import {AskSeerSearchHeader} from './askSeerSearchHeader';
+import {AskSeerSearchListBox} from './askSeerSearchListBox';
+import {AskSeerSearchPopover} from './askSeerSearchPopover';
+import {QueryTokens} from './queryTokens';
+import type {QueryTokensProps} from './types';
+import {generateQueryTokensString, stringifyQueryForFeedback} from './utils';
 
 export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T) => void;
@@ -99,6 +46,11 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   submitQuery: (query: string) => void;
   additionalFeedbackTags?: Record<string, Primitive>;
   className?: string;
+  /**
+   * Whether Seer finished answering the last submitted query. Used to tell
+   * "Seer returned nothing" apart from "nothing has been asked yet".
+   */
+  hasResponse?: boolean;
   onReset?: () => void;
   unsupportedReason?: string | null;
 }
@@ -108,6 +60,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   className,
   emptyTitle,
   errorTitle,
+  hasResponse = false,
   isError,
   isPending,
   loadingContent,
@@ -116,7 +69,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   queries,
   searchQuery,
   submitQuery,
-  unsupportedReason,
+  unsupportedReason: unsupportedReasonProp,
   additionalFeedbackTags,
   ...props
 }: BaseAskSeerComboBoxProps<T>) {
@@ -183,7 +136,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
 
       const item = items.find(i => i.key === key);
       if (!item) {
-        addErrorMessage(t('Failed to find AI query to apply'));
+        toast.error(t('Failed to find AI query to apply'));
         return;
       }
 
@@ -252,7 +205,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             if (state.isOpen && state.selectionManager.focusedKey) {
               const item = items.find(i => i.key === state.selectionManager.focusedKey);
               if (!item) {
-                addErrorMessage(t('Failed to find AI query to apply'));
+                toast.error(t('Failed to find AI query to apply'));
                 return;
               }
 
@@ -287,11 +240,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     state
   );
 
-  const {
-    overlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
+  const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen: state.isOpen,
     position: 'bottom-start',
@@ -313,12 +262,6 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     onInteractOutside: () => {
       state.close();
     },
-  });
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen: state.isOpen,
   });
 
   useLayoutEffect(() => {
@@ -363,6 +306,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   };
 
   const hasResults = queries.length > 0;
+  const isNoResults = hasResponse && !isPending && !isError && !hasResults;
+  const unsupportedReason =
+    unsupportedReasonProp ||
+    (isNoResults
+      ? t("Seer couldn't turn that into a search. Try rephrasing your question.")
+      : null);
   const isDisplayingResults = !isPending && !isError && hasResults;
   const isUnsupported = Boolean(unsupportedReason) && !hasResults;
   const hasQueryStatus = isPending || isError || hasResults || isUnsupported;
@@ -377,14 +326,14 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
     return null;
   }
 
-  const showFooter = isDisplayingResults || isError;
+  const showFooter = isDisplayingResults || isError || isUnsupported;
 
   return (
     <Wrapper className={className} ref={containerRef} isDropdownOpen={state.isOpen}>
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
-      <InputWrapper>
+      <Container width="100%" height="100%" position="relative">
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
@@ -393,7 +342,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
-      </InputWrapper>
+      </Container>
       <ButtonsWrapper>
         {hasQueryStatus ? (
           <AskSeerQueryStatusIndicator
@@ -554,12 +503,6 @@ const PositionedSearchIconContainer = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
-`;
-
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
 `;
 
 const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`

@@ -23,7 +23,13 @@ from sentry.tasks.utils import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.settings import is_self_hosted
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
@@ -184,7 +190,7 @@ def dispatch_explorer_index_projects(
     processing_deadline_duration=60,
 )
 def run_explorer_index_for_projects(
-    projects: list[tuple[int, int]], start: str, *args, **kwargs
+    projects: list[tuple[int, int]], start: str, *args: object, **kwargs: object
 ) -> None:
     """
     Call the seer /v1/automation/explorer/index endpoint to schedule indexing tasks
@@ -212,10 +218,10 @@ def run_explorer_index_for_projects(
     if len(org_ids) == 1:
         the_org_id = org_ids.pop()
         viewer_context = SeerViewerContext(organization_id=the_org_id)
-        vc = ViewerContext(organization_id=the_org_id, actor_type=ActorType.SYSTEM)
+        vc = ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=the_org_id)
     else:
         viewer_context = None
-        vc = ViewerContext(actor_type=ActorType.SYSTEM)
+        vc = ViewerContext(actor=Actor(type=ActorType.SYSTEM))
 
     scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
     if get_viewer_context() is None:

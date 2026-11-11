@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_utils import (
     ERR_RATE_LIMITED,
     ROLE_CHOICES,
@@ -179,6 +180,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -352,6 +354,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
+        inviter = require_user(request)
         assigned_org_role = (
             request.data.get("orgRole")
             or request.data.get("role")
@@ -396,7 +399,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         if ratelimits.for_organization_member_invite(
             organization=organization,
             email=result["email"],
-            user=request.user,
+            user=inviter,
             auth=request.auth,
         ):
             metrics.incr(
@@ -420,7 +423,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             requester_teams = set(
                 OrganizationMember.objects.filter(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=inviter.id,
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
@@ -460,7 +463,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=request.user.id,
+                inviter_id=inviter.id,
             )
 
             if settings.SENTRY_ENABLE_INVITES:
@@ -480,7 +483,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             referrer = request.query_params.get("referrer")
             om.send_invite_email(referrer)
             member_invited.send_robust(
-                member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
+                member=om, user=inviter, sender=self, referrer=request.data.get("referrer")
             )
 
         self.create_audit_entry(
