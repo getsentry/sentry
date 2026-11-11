@@ -2221,11 +2221,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
                 "config": {"detectionType": AlertRuleDetectionType.STATIC.value},
                 "workflowIds": [self._resource("workflow").id],
             },
-            ("OrganizationNotebooksIndexEndpoint", "POST"): {
+            ("OrganizationNotebookIndexEndpoint", "POST"): {
                 "title": "Permission matrix investigation",
                 "projectIds": [self.project.id],
             },
-            ("OrganizationNotebookBlocksEndpoint", "POST"): {
+            ("OrganizationNotebookBlockIndexEndpoint", "POST"): {
                 "notebookVersion": self._resource("notebook").version,
                 "kind": "text",
                 "content": "Permission matrix block",

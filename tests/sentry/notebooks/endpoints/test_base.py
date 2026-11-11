@@ -227,7 +227,7 @@ class NotebookWriterTest(APITestCase):
         url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
 
         with self.captureOnCommitCallbacks(execute=False):
-            response = client.delete(url, {"investigationVersion": 1}, format="json")
+            response = client.delete(url, {"notebookVersion": 1}, format="json")
 
         assert response.status_code == 204, response.data
         self.notebook.refresh_from_db()
@@ -339,7 +339,7 @@ class NotebookWriterTest(APITestCase):
         )
         assert (
             client.put(
-                details_url, {"investigationVersion": 1, "projectIds": [other.id]}, format="json"
+                details_url, {"notebookVersion": 1, "projectIds": [other.id]}, format="json"
             ).status_code
             == 403
         )
@@ -351,7 +351,7 @@ class NotebookWriterTest(APITestCase):
         )
         assert created.status_code == 201, created.data
         updated = client.put(
-            details_url, {"investigationVersion": 1, "projectIds": [self.project.id]}, format="json"
+            details_url, {"notebookVersion": 1, "projectIds": [self.project.id]}, format="json"
         )
         assert updated.status_code == 200, updated.data
         assert list(
