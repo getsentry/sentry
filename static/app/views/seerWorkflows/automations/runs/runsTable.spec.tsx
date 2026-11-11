@@ -1,7 +1,9 @@
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
 import {RunsTable} from './runsTable';
@@ -36,23 +38,43 @@ function makeExecution(
   } as SeerAutomationRun['executions'][number];
 }
 
+const MONITOR_TRIGGER = {
+  detectorId: '5',
+  environment: 'production',
+  eventId: 'abc',
+  groupId: '4388',
+  observedAt: '2026-04-20T00:00:00Z',
+  occurrenceId: 'def',
+  projectId: '2',
+  type: 'monitor',
+} as const;
+
 describe('RunsTable', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
   const runsUrl = `/organizations/${organization.slug}/seer/workflows/runs/`;
+  const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
+  const monitorsUrl = `/organizations/${organization.slug}/detectors/`;
   const runsPath = `/organizations/${organization.slug}/seer/automations/runs/`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({url: configsUrl, body: {configs: []}});
+    MockApiClient.addMockResponse({url: monitorsUrl, body: []});
   });
 
   it('renders a row per run', async () => {
     MockApiClient.addMockResponse({
+      url: configsUrl,
+      body: {configs: [{id: '7', name: 'Checkout health'}]},
+    });
+    MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
         runs: [
-          makeRun({id: '12', strategy: 'breached_metric_investigation'}),
+          makeRun({id: '12', configId: '7', strategy: 'breached_metric_investigation'}),
           makeRun({
             id: '11',
+            configId: '8',
             status: 'failed',
             error: {code: 'internal_error', message: 'Boom'},
           }),
@@ -62,13 +84,46 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('12')).toBeInTheDocument();
-    expect(screen.getByText('11')).toBeInTheDocument();
-    expect(screen.getByText('Breached metrics')).toBeInTheDocument();
-    expect(screen.getByText('Agentic triage')).toBeInTheDocument();
+    expect(await screen.findByText('Succeeded')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('Boom')).toBeInTheDocument();
+    expect(screen.getAllByText('took 1min')).toHaveLength(2);
+    expect(await screen.findByRole('link', {name: 'Checkout health'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/seer/automations/7/`
+    );
+    expect(screen.getByRole('link', {name: 'Agentic triage'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/seer/automations/8/`
+    );
   });
 
-  it('lists investigations from every execution in the output column', async () => {
+  it('links a single investigation in the result column', async () => {
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {
+        runs: [
+          makeRun({
+            executions: [
+              makeExecution({
+                outputs: [{type: 'investigation', id: '2307', title: 'Latency spike'}],
+              }),
+            ],
+          }),
+        ],
+      },
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByRole('link', {name: 'Latency spike'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/seer/investigations/2307/`
+    );
+    expect(screen.getByText('INV-2307')).toBeInTheDocument();
+  });
+
+  it('collapses several investigations into a count that lists them on hover', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
@@ -91,46 +146,85 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(
-      await screen.findByRole('link', {name: 'INV-2307 | Latency spike'})
-    ).toHaveAttribute(
+    expect(await screen.findByText('2 investigations')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Latency spike'})).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('2 investigations'));
+
+    expect(await screen.findByRole('link', {name: 'Latency spike'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/investigations/2307/`
     );
-    expect(screen.getByRole('link', {name: 'INV-2308 | Error burst'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Error burst'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/investigations/2308/`
     );
   });
 
-  it('shows a dash when a run has no outputs', async () => {
+  it('says when a run has no output', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
-      body: {runs: [makeRun({executions: [makeExecution({outputs: []})]})]},
+      body: {
+        runs: [
+          makeRun({id: '1', executions: [makeExecution({outputs: []})]}),
+          makeRun({id: '2', status: 'running', dateCompleted: null}),
+        ],
+      },
     });
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('—')).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: /INV-/})).not.toBeInTheDocument();
+    expect(await screen.findByText('No output')).toBeInTheDocument();
+    expect(screen.getByText('Investigating…')).toBeInTheDocument();
   });
 
-  it('links to the triggering issue under the strategy', async () => {
+  it('shows a failed run with finished executions as incomplete', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
         runs: [
           makeRun({
-            strategy: 'breached_metric_investigation',
+            status: 'failed',
+            error: null,
+            executions: [
+              makeExecution({id: '1'}),
+              makeExecution({
+                id: '2',
+                status: 'failed',
+                error: {code: 'seer_timeout', message: 'Seer timed out'},
+              }),
+            ],
+          }),
+        ],
+      },
+    });
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByText('Incomplete')).toBeInTheDocument();
+    expect(screen.getByText('Seer timed out')).toBeInTheDocument();
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument();
+  });
+
+  it('links to the monitor and issue that triggered a run', async () => {
+    MockApiClient.addMockResponse({
+      url: monitorsUrl,
+      body: [MetricDetectorFixture({id: '5', name: 'Checkout latency'})],
+    });
+    MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {
+        runs: [
+          makeRun({id: '1', trigger: MONITOR_TRIGGER}),
+          // The monitor has since been deleted
+          makeRun({
+            id: '2',
             trigger: {
-              detectorId: '5',
+              ...MONITOR_TRIGGER,
+              detectorId: '6',
               environment: null,
-              eventId: 'abc',
-              groupId: '4388',
-              observedAt: '2026-04-20T00:00:00Z',
-              occurrenceId: 'def',
-              projectId: '2',
-              type: 'monitor',
+              groupId: '4389',
+              groupShortId: 'CHECKOUT-2',
             },
           }),
         ],
@@ -139,26 +233,23 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('Breached metrics')).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
+      'href',
+      makeMonitorDetailsPathname(organization.slug, '5')
+    );
     expect(screen.getByRole('link', {name: 'issue:4388'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/4388/`
     );
+    expect(screen.getByText('production')).toBeInTheDocument();
+    expect(screen.getByText('Metric monitor breach')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'CHECKOUT-2'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/4389/`
+    );
   });
 
-  it('shows only the strategy when a run has no trigger', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {runs: [makeRun({strategy: 'breached_metric_investigation', trigger: null})]},
-    });
-
-    render(<RunsTable />, {organization});
-
-    expect(await screen.findByText('Breached metrics')).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: /issue:/})).not.toBeInTheDocument();
-  });
-
-  it('shows the formatted trigger type for triggers without an issue', async () => {
+  it('describes triggers without a monitor', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
@@ -177,38 +268,30 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('Cron')).toBeInTheDocument();
+    expect(await screen.findByText('Schedule')).toBeInTheDocument();
     expect(screen.getByText('Custom Trigger Type')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /issue:/})).not.toBeInTheDocument();
   });
 
-  it('hides the strategy in the trigger column when showStrategy is false', async () => {
+  it('leaves the automation out when showStrategy is false', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
-        runs: [
-          makeRun({
-            id: '9',
-            strategy: 'breached_metric_investigation',
-            trigger: {
-              detectorId: '5',
-              environment: null,
-              eventId: 'abc',
-              groupId: '4388',
-              observedAt: '2026-04-20T00:00:00Z',
-              occurrenceId: 'def',
-              projectId: '2',
-              type: 'monitor',
-            },
-          }),
-        ],
+        runs: [makeRun({strategy: 'breached_metric_investigation', trigger: null})],
       },
     });
 
     render(<RunsTable showStrategy={false} />, {organization});
 
-    expect(await screen.findByRole('link', {name: 'issue:4388'})).toBeInTheDocument();
-    expect(screen.queryByText('Breached metrics')).not.toBeInTheDocument();
+    expect(await screen.findByText('Succeeded')).toBeInTheDocument();
+    expect(screen.queryByText('Automation')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Breached metrics'})
+    ).not.toBeInTheDocument();
+    // Status, result, trigger, started
+    const cells = screen.getAllByRole('cell');
+    expect(cells).toHaveLength(4);
+    expect(cells[2]).toHaveTextContent('—');
   });
 
   it('shows a dash in the status cell for runs without a status', async () => {
@@ -219,22 +302,9 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('21')).toBeInTheDocument();
+    expect(await screen.findByText('No output')).toBeInTheDocument();
     const [statusCell] = screen.getAllByRole('cell');
     expect(statusCell).toHaveTextContent('—');
-  });
-
-  it('shows a dash in the trigger cell when it has nothing to show', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {runs: [makeRun({id: '22', trigger: null})]},
-    });
-
-    render(<RunsTable showStrategy={false} />, {organization});
-
-    expect(await screen.findByText('22')).toBeInTheDocument();
-    const triggerCell = screen.getAllByRole('cell').at(-1);
-    expect(triggerCell).toHaveTextContent('—');
   });
 
   it('shows an empty state when there are no runs', async () => {
@@ -242,13 +312,21 @@ describe('RunsTable', () => {
 
     render(<RunsTable />, {organization});
 
-    expect(await screen.findByText('No runs yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No runs yet')).toBeInTheDocument();
   });
 
   it('pages through runs with the cursor', async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
-      body: {runs: [makeRun({id: '2'})]},
+      body: {
+        runs: [
+          makeRun({
+            id: '2',
+            status: 'failed',
+            error: {code: 'internal_error', message: 'Newer run'},
+          }),
+        ],
+      },
       headers: {
         Link:
           `<${runsUrl}?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ` +
@@ -257,7 +335,15 @@ describe('RunsTable', () => {
     });
     const nextPageRequest = MockApiClient.addMockResponse({
       url: runsUrl,
-      body: {runs: [makeRun({id: '1'})]},
+      body: {
+        runs: [
+          makeRun({
+            id: '1',
+            status: 'failed',
+            error: {code: 'internal_error', message: 'Older run'},
+          }),
+        ],
+      },
       match: [MockApiClient.matchQuery({cursor: '0:1:0'})],
     });
 
@@ -266,11 +352,11 @@ describe('RunsTable', () => {
       initialRouterConfig: {location: {pathname: runsPath}},
     });
 
-    expect(await screen.findByText('2')).toBeInTheDocument();
+    expect(await screen.findByText('Newer run')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     expect(router.location.query.cursor).toBe('0:1:0');
-    expect(await screen.findByText('1')).toBeInTheDocument();
+    expect(await screen.findByText('Older run')).toBeInTheDocument();
     expect(nextPageRequest).toHaveBeenCalled();
   });
 
@@ -283,7 +369,7 @@ describe('RunsTable', () => {
 
     render(<RunsTable configId="7" />, {organization});
 
-    expect(await screen.findByText('3')).toBeInTheDocument();
+    expect(await screen.findByText('Succeeded')).toBeInTheDocument();
     expect(request).toHaveBeenCalled();
   });
 
@@ -317,14 +403,15 @@ describe('RunsTable', () => {
       });
 
       render(<RunsTable />, {organization});
-      expect(await screen.findByText('5')).toBeInTheDocument();
+      expect(await screen.findByText('Investigating…')).toBeInTheDocument();
 
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({url: configsUrl, body: {configs: []}});
       const pollRequest = MockApiClient.addMockResponse({url: runsUrl, statusCode: 500});
       act(() => jest.advanceTimersByTime(5000));
 
       await waitFor(() => expect(pollRequest).toHaveBeenCalled());
-      expect(screen.getByText('5')).toBeInTheDocument();
+      expect(screen.getByText('Investigating…')).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
     });
   });

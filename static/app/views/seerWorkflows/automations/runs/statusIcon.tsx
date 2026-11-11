@@ -46,6 +46,10 @@ export function getRunDisplayStatus(
   }
 }
 
+export function getStatusLabel(status: WorkflowDisplayStatus): string {
+  return status === 'running' ? t('Running') : STATUS_VARIANT[status].label;
+}
+
 export function StatusIcon({status}: {status: WorkflowDisplayStatus}) {
   if (status === 'running') {
     return (
