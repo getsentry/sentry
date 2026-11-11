@@ -317,9 +317,20 @@ class TestScheduleAgenticTriage(TestCase):
         token_billed = self.create_organization()
         free_cohort = self.create_organization()
         free_cohort.update_option("agentic-triage-free-cohort", True)
+        token_billed_without_onboarding = self.create_organization()
+        token_billed_free_cohort = self.create_organization()
+        token_billed_free_cohort.update_option("agentic-triage-free-cohort", True)
         onboarding_only = self.create_organization()
         no_seer = self.create_organization()
-        all_orgs = [seat_based, token_billed, free_cohort, onboarding_only, no_seer]
+        all_orgs = [
+            seat_based,
+            token_billed,
+            token_billed_without_onboarding,
+            token_billed_free_cohort,
+            free_cohort,
+            onboarding_only,
+            no_seer,
+        ]
 
         with (
             self.options({"seer.night_shift.enable_for_legacy_orgs": False}),
@@ -331,13 +342,19 @@ class TestScheduleAgenticTriage(TestCase):
                         token_billed.slug,
                         onboarding_only.slug,
                     ],
-                    "organizations:token-billed-seer-enabled": [token_billed.slug],
+                    "organizations:token-billed-seer-enabled": [
+                        token_billed.slug,
+                        token_billed_without_onboarding.slug,
+                        token_billed_free_cohort.slug,
+                    ],
                 }
             ),
         ):
             assert _get_eligible_orgs_from_batch(all_orgs) == [
                 seat_based,
                 token_billed,
+                token_billed_without_onboarding,
+                token_billed_free_cohort,
                 free_cohort,
             ]
 
