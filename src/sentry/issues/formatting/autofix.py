@@ -14,12 +14,11 @@ from sentry.issues.formatting.formatter import (
     Field,
     Format,
     Group,
-    Item,
     Section,
     Text,
     get_formatter,
 )
-from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.client_models import AgentFilePatch, SeerRunState
 from sentry.seer.autofix.single_run import SINGLE_RUN_ROOT_CAUSE_KEY
 
 # p99 of 591 file diffs / 199 runs in Seer Autofix PRs (Nov 2026): 7.9k per file, 20.1k per run.
@@ -62,27 +61,30 @@ def _solution(data: Any) -> Section | None:
     return Section(title="Solution", groups=tuple(groups)) if groups else None
 
 
+def _file_change(repo: str, fp: AgentFilePatch, *, show_diff: bool, link: str | None) -> Group:
+    header = Text(f"{repo}: {fp.patch.path} (+{fp.patch.added} -{fp.patch.removed})")
+    if not fp.diff:
+        return Group(items=(header,))
+    if show_diff:
+        return Group(items=(header, Code(fp.diff)))
+    lines = fp.diff.count("\n") + 1
+    note = f"Diff not shown ({lines} lines)."
+    if link:
+        note += f" See the full change: {link}"
+    return Group(items=(header, Text(note)))
+
+
 def _code_changes(state: SeerRunState) -> Section | None:
     pr_urls = {pr.repo_name: pr.pr_url for pr in state.get_created_pull_request_states()}
+    budget = _MAX_DIFFS_CHARS
     groups: list[Group] = []
-    shown_chars = 0
     for repo, patches in state.get_diffs_by_repo().items():
         for fp in patches:
-            items: list[Item] = [
-                Text(f"{repo}: {fp.patch.path} (+{fp.patch.added} -{fp.patch.removed})")
-            ]
-            if fp.diff and len(fp.diff) <= min(_MAX_DIFF_CHARS, _MAX_DIFFS_CHARS - shown_chars):
-                items.append(Code(fp.diff))
-                shown_chars += len(fp.diff)
-            elif fp.diff:
-                url = pr_urls.get(repo) or fp.code_url
-                lines = fp.diff.count("\n") + 1
-                items.append(
-                    Text(f"Diff not shown ({lines} lines). See the full change: {url}")
-                    if url
-                    else Text(f"Diff not shown ({lines} lines).")
-                )
-            groups.append(Group(items=tuple(items)))
+            show_diff = len(fp.diff) <= min(_MAX_DIFF_CHARS, budget)
+            if show_diff:
+                budget -= len(fp.diff)
+            link = pr_urls.get(repo) or fp.code_url
+            groups.append(_file_change(repo, fp, show_diff=show_diff, link=link))
     if not groups:
         return None
     return Section(title="Code Changes", groups=tuple(groups), repeating=True)
