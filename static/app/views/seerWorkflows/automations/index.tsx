@@ -21,7 +21,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {formatAbbreviatedNumber, userDisplayName} from 'sentry/utils/formatters';
+import {userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
@@ -55,14 +55,6 @@ const MAX_VISIBLE_PROJECTS = 3;
 
 // TODO: Missing fields from backend - to add to configs API
 type AdditionalConfig = {
-  /**
-   * Estimated cost of a single run, in US dollars
-   */
-  costPerRun?: number;
-  /**
-   * Estimated tokens used per month
-   */
-  tokensPerMonth?: number;
   /**
    * What triggers the automation, shown in place of its schedule
    */
@@ -120,7 +112,7 @@ function AutomationCard({config}: {config: AutomationConfig}) {
     ? STRATEGY_META[config.strategy as WorkflowStrategy]
     : undefined;
 
-  const {enabled, tokensPerMonth, costPerRun} = config;
+  const {enabled} = config;
   const trigger =
     config.strategy === 'breached_metric_investigation'
       ? t('Triggered by metric monitors')
@@ -134,24 +126,6 @@ function AutomationCard({config}: {config: AutomationConfig}) {
         .filter((slug): slug is string => slug !== undefined);
   const nextUpdate = getNextUpdate(config.schedule);
 
-  const usage = [
-    tokensPerMonth === undefined
-      ? null
-      : tct('[tokens] tokens/month', {
-          tokens: formatAbbreviatedNumber(tokensPerMonth, undefined, true),
-        }),
-    costPerRun === undefined
-      ? null
-      : tct('[cost]/run', {
-          cost: costPerRun.toLocaleString(undefined, {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          }),
-        }),
-  ].filter(part => part !== null);
-
   return (
     <Container as="li" display="grid">
       <CardLink to={getAutomationDetailPath(organization.slug, config.id)}>
@@ -164,10 +138,29 @@ function AutomationCard({config}: {config: AutomationConfig}) {
           background="primary"
         >
           <Stack gap="lg" flex="1">
-            <Flex align="center" gap="lg">
-              <Heading as="h3" size="md">
-                {title}
-              </Heading>
+            <Heading as="h3" size="md">
+              {title}
+            </Heading>
+            <Flex align="center" gap="sm">
+              {enabled ? (
+                trigger ? (
+                  <Tag variant="muted" icon={<IconFire />}>
+                    {trigger}
+                  </Tag>
+                ) : (
+                  nextUpdate && (
+                    <Tag variant="muted" icon={<IconClock />}>
+                      {tct('Next run [time]', {
+                        time: (
+                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
+                        ),
+                      })}
+                    </Tag>
+                  )
+                )
+              ) : (
+                <Tag variant="warning">{t('Paused')}</Tag>
+              )}
               {config.createdBy ? (
                 createdByUser && (
                   <UserAvatar
@@ -183,43 +176,12 @@ function AutomationCard({config}: {config: AutomationConfig}) {
                 </Tooltip>
               )}
             </Flex>
-            {enabled ? (
-              trigger ? (
-                <Flex>
-                  <Tag variant="muted" icon={<IconFire />}>
-                    {trigger}
-                  </Tag>
-                </Flex>
-              ) : (
-                nextUpdate && (
-                  <Flex>
-                    <Tag variant="muted" icon={<IconClock />}>
-                      {tct('Next run [time]', {
-                        time: (
-                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
-                        ),
-                      })}
-                    </Tag>
-                  </Flex>
-                )
-              )
-            ) : (
-              <Flex>
-                <Tag variant="warning">{t('Paused')}</Tag>
-              </Flex>
-            )}
             {description && <Text as="p">{description}</Text>}
-            {usage.length > 0 && (
-              <Text size="sm" variant="muted">
-                {usage.map((part, index) => (
-                  <Fragment key={index}>
-                    {index > 0 && ' | '}
-                    {part}
-                  </Fragment>
-                ))}
-              </Text>
-            )}
           </Stack>
+          {/* TODO: Replace mock values with real usage totals */}
+          <Text size="sm" variant="muted">
+            {t('Total cost: $(mock) | (mock)m tokens')}
+          </Text>
           {projectSlugs[0] === 'all' ? (
             <Flex align="center" gap="sm">
               <IconAllProjects size="sm" variant="muted" />
