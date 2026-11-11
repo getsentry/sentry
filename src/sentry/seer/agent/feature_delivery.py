@@ -13,6 +13,7 @@ from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOF
 from sentry.seer.autofix.feature.models import (
     SINGLE_RUN_FEATURE_ID as AUTOFIX_SINGLE_RUN_FEATURE_ID,
 )
+from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 
 __all__ = ["DELIVERY_HANDLERS", "FeatureDeliveryFn", "FeatureRunStatus"]
@@ -31,6 +32,7 @@ class FeatureDeliveryFn(Protocol):
 
 
 DELIVERY_HANDLERS: dict[str, FeatureDeliveryFn] = {
+    "monitor_cleanup": deliver_monitor_cleanup_result,
     "night_shift": deliver_agentic_triage_result,
     "smart_assignment": deliver_smart_assignment_result,
     AUTOFIX_FEATURE_ID: deliver_autofix_feature_result,
