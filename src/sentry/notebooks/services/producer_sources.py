@@ -56,7 +56,11 @@ def register_producer_source_type(source_type: ProducerSourceType) -> None:
         raise ValueError(f"{source_type.name} is not a producer source type.")
     _check_name(source_type.name)
     _check_name(source_type.producer)
-    PRODUCER_SOURCE_TYPES[source_type.name] = source_type
+    # Re-running ready() with the same type is fine; a different type under its name isn't.
+    # One producer can own several source types, since each notebook has one source type.
+    existing = PRODUCER_SOURCE_TYPES.setdefault(source_type.name, source_type)
+    if existing != source_type:
+        raise ValueError(f"{source_type.name!r} is already registered.")
 
 
 def get_producer_source_type(source_type: str) -> ProducerSourceType | None:

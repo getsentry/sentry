@@ -45,6 +45,22 @@ class ProducerSourceTypeRegistryTest(TestCase):
                 register_producer_source_type(replace(EXAMPLE_SOURCE_TYPE, producer=producer))
         assert EXAMPLE_SOURCE_TYPE.name not in PRODUCER_SOURCE_TYPES
 
+    def test_a_different_type_cannot_take_a_registered_name(self) -> None:
+        register_example_source_type(self)
+        register_producer_source_type(EXAMPLE_SOURCE_TYPE)
+
+        with pytest.raises(ValueError):
+            register_producer_source_type(replace(EXAMPLE_SOURCE_TYPE, producer="other"))
+        assert PRODUCER_SOURCE_TYPES[EXAMPLE_SOURCE_TYPE.name] is EXAMPLE_SOURCE_TYPE
+
+    def test_one_producer_can_own_several_types(self) -> None:
+        register_example_source_type(self)
+        other = replace(EXAMPLE_SOURCE_TYPE, name="example_trace")
+        register_producer_source_type(other)
+        self.addCleanup(PRODUCER_SOURCE_TYPES.pop, other.name)
+
+        assert get_producer_source_type(other.name) is other
+
     def test_key_and_source_carry_the_type(self) -> None:
         resolved = ResolvedProducerSource(
             key="42", source={"type": "other", "ref": {"issueId": 42}}, project_ids=[]
