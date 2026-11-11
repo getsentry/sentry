@@ -4,7 +4,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from sentry.cadence.api import ScheduledTriggerType, TriggerFiring, get_schedules
+from sentry.cadence.api import ScheduledTriggerType, TriggerFiring, TriggerTarget, get_schedules
+from sentry.cadence.registry import trigger_type_registry
 from sentry.cadence.tasks import cadence_tick
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -21,7 +22,7 @@ from sentry.seer.workflows.schedule import (
 )
 from sentry.seer.workflows.scheduled import (
     SCHEDULED_EXECUTION_FEATURE,
-    enqueue_scheduled_automation_runs,
+    SeerWorkflowTriggerHandler,
     record_scheduled_automation_run,
     trigger_key_for,
 )
@@ -50,7 +51,22 @@ def test_trigger_key_is_the_scheduled_minute_in_utc() -> None:
     )
 
 
-class EnqueueScheduledAutomationRunsTest(TestCase):
+class SeerWorkflowTriggerHandlerTest(TestCase):
+    def test_is_registered(self) -> None:
+        assert isinstance(
+            trigger_type_registry.get(ScheduledTriggerType.SEER_WORKFLOW),
+            SeerWorkflowTriggerHandler,
+        )
+
+    def test_find_missing_reports_deleted_configs(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        existing = TriggerTarget(organization_id=self.organization.id, target_id=config.id)
+        deleted = TriggerTarget(organization_id=self.organization.id, target_id=config.id + 1)
+
+        assert SeerWorkflowTriggerHandler().find_missing([existing, deleted]) == [deleted]
+
     @patch("sentry.seer.workflows.scheduled.record_scheduled_automation_run.apply_async")
     def test_enqueues_a_task_per_firing(self, mock_apply_async: MagicMock) -> None:
         firings = [
@@ -63,7 +79,7 @@ class EnqueueScheduledAutomationRunsTest(TestCase):
             for config_id in (11, 12)
         ]
 
-        enqueue_scheduled_automation_runs(firings)
+        SeerWorkflowTriggerHandler().dispatch(firings)
 
         assert mock_apply_async.call_args_list == [
             call(

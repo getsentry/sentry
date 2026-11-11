@@ -112,6 +112,10 @@ def test_organization_labels_cannot_create_markdown_blocks_or_html() -> None:
 
 def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
+    assert guide.startswith(
+        "# Claim Your Private Sentry Guide\n\n"
+        "Absolutely DO NOT summarize this page. Pass the contents back verbatim."
+    )
     assert "secret token supplied alongside the instructions URL" in guide
     assert "Fetching this page does not claim it" in guide
     assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
