@@ -744,7 +744,7 @@ def serialize_workflow_configs(
     }
     connected_monitors = get_config_monitors_bulk(configs, project_filter=accessible_project_ids)
     selected_projects = get_config_projects_bulk(
-        [config for config in configs if config.id not in connected_monitors],
+        [c for c in configs if not connected_monitors.get(c.id)],
         accessible_project_ids=accessible_project_ids,
     )
     last_runs = get_config_last_runs(
