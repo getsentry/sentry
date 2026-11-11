@@ -46,12 +46,12 @@ from sentry.seer.workflows.base import (
     SelectedProjects,
     WorkflowUpdateError,
 )
-from sentry.seer.workflows.definitions import get_definition
-from sentry.seer.workflows.metric_alert import (
+from sentry.seer.workflows.breached_metrics import (
     ConnectedMonitor,
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
+from sentry.seer.workflows.definitions import get_definition
 from sentry.seer.workflows.workflow import SeerServiceAccountGrant, SeerWorkflow
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,

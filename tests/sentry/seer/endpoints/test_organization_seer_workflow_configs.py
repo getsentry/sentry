@@ -31,7 +31,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import ConfigUpdate, SelectedMonitors, WorkflowUpdateError
-from sentry.seer.workflows.metric_alert import ConnectedMonitor
+from sentry.seer.workflows.breached_metrics import ConnectedMonitor
 from sentry.seer.workflows.workflow import SeerServiceAccountGrant, SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode

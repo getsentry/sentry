@@ -34,8 +34,8 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.breached_metrics import MetricBreachInputs
 from sentry.seer.workflows.definitions import is_scheduled
-from sentry.seer.workflows.metric_alert import MetricBreachInputs
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.utils.safe import get_path
 

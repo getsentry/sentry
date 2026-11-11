@@ -5,7 +5,7 @@ from typing import Any
 
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.workflows.base import WorkflowDefinition
-from sentry.seer.workflows.metric_alert import (
+from sentry.seer.workflows.breached_metrics import (
     InvestigateBreachedMetricAction,
     MetricAlertTrigger,
     MetricBreachInputs,
