@@ -69,6 +69,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
     event_data = WorkflowEventData(
         event=activity,
         group=group,
+        organization=activity.project.organization,
     )
     with quiet_redis_noise():
         batch_client = DelayedWorkflowClient()
@@ -77,7 +78,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: Dete
         )
 
     emit_evaluations(
-        organization=event_data.event.project.organization,
+        organization=event_data.get_organization(),
         result=result,
     )
 
@@ -174,7 +175,7 @@ def _process_workflows_event(
                 )
 
     emit_evaluations(
-        organization=event_data.event.project.organization,
+        organization=event_data.get_organization(),
         result=result,
     )
     duration = time.time() - start_time

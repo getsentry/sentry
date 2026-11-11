@@ -3114,7 +3114,9 @@ class Factories:
         import uuid
 
         return ActionInvocation(
-            event_data=WorkflowEventData(event=event, group=group),
+            event_data=WorkflowEventData(
+                event=event, group=group, organization=event.project.organization
+            ),
             action=action,
             detector=detector,
             notification_uuid=notification_uuid or str(uuid.uuid4()),

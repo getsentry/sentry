@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from django.db.models import OuterRef, Subquery
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import (
     Action,
@@ -45,11 +44,7 @@ def create_workflow_fire_histories(
         ).values_list("workflow_id", flat=True)
     )
 
-    event_id = (
-        event_data.event.event_id
-        if isinstance(event_data.event, GroupEvent)
-        else event_data.event.id
-    )
+    event_id = event_data.event_id
 
     if start_timestamp:
         fire_latency_seconds = (datetime.now(timezone.utc) - start_timestamp).total_seconds()
