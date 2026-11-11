@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import Collection
 from typing import Any, Self
 
 from django.db import models
@@ -94,11 +95,15 @@ class WebhookPayload(Model):
     def get_attributes_from_request(
         cls,
         request: HttpRequest,
+        exclude_headers: Collection[str] = (),
     ) -> dict[str, Any]:
+        excluded = {header.lower() for header in exclude_headers}
         return dict(
             request_method=request.method,
             request_path=request.get_full_path(),
-            request_headers=json.dumps({k: v for k, v in request.headers.items()}),
+            request_headers=json.dumps(
+                {k: v for k, v in request.headers.items() if k.lower() not in excluded}
+            ),
             request_body=request.body.decode(encoding="utf-8"),
         )
 
@@ -110,6 +115,7 @@ class WebhookPayload(Model):
         mailbox: MailboxName,
         request: HttpRequest,
         integration_id: int | None = None,
+        exclude_headers: Collection[str] = (),
     ) -> Self:
         metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": mailbox.provider})
         return cls.objects.create(
@@ -118,7 +124,7 @@ class WebhookPayload(Model):
             destination_type=destination_type,
             cell_name=mailbox.cell,
             integration_id=integration_id,
-            **cls.get_attributes_from_request(request),
+            **cls.get_attributes_from_request(request, exclude_headers),
         )
 
     def as_dict(self) -> dict[str, Any]:

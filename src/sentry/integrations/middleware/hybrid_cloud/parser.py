@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
@@ -195,6 +195,7 @@ class BaseRequestParser(ABC):
         mailbox: MailboxName | None = None,  # TODO(getsentry): make required
         integration_id: int | None = None,
         identifier: int | str | None = None,  # TODO(getsentry): remove
+        exclude_headers: Collection[str] = (),
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
@@ -224,6 +225,7 @@ class BaseRequestParser(ABC):
                 mailbox=target.in_cell(cell.name),
                 integration_id=integration_id,
                 request=self.request,
+                exclude_headers=exclude_headers,
             )
             for cell in cells
         ]

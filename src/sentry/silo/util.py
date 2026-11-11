@@ -16,6 +16,7 @@ PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
+WEBHOOK_DELIVERY_SIGNATURE_HEADER = "X-Sentry-Webhook-Delivery-Signature"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
@@ -141,4 +142,38 @@ def verify_subnet_signature(
 
     return hmac.compare_digest(
         assembled_signature.encode("utf-8"), provided_signature.encode("utf-8")
+    )
+
+
+def encode_webhook_delivery_signature(
+    path: str, authorization: str, request_body: bytes
+) -> str | None:
+    """Signs a webhook that control replays to a cell after verifying it on arrival.
+
+    Covers the path, Authorization header and body, so the cell can trust all three came
+    from the original request.
+    """
+    secret = getattr(settings, "SENTRY_SUBNET_SECRET")
+    if not secret:
+        return None
+    return encode_subnet_signature(
+        secret=secret,
+        base_url="",
+        path=path,
+        identifier=authorization,
+        request_body=request_body,
+    )
+
+
+def verify_webhook_delivery_signature(
+    path: str, authorization: str | None, request_body: bytes, provided_signature: str | None
+) -> bool:
+    if not authorization or not provided_signature:
+        return False
+    return verify_subnet_signature(
+        base_url="",
+        path=path,
+        identifier=authorization,
+        request_body=request_body,
+        provided_signature=provided_signature,
     )

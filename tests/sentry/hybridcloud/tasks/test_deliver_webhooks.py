@@ -8,6 +8,7 @@ import pytest
 import responses
 from django.core.cache import cache
 from django.db import connections
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
@@ -33,12 +34,14 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     maybe_trigger_drain,
     schedule_webhook_delivery,
 )
+from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, verify_webhook_delivery_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, CellResolutionError
+from sentry.utils import json
 
 cell_config = [Cell("us", 1, "http://us.testserver")]
 
@@ -3441,3 +3444,41 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         mock_drain.delay.assert_not_called()
         # The trigger must release its guard so the mailbox stays reachable.
         assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
+
+
+@control_silo_test
+@override_settings(SENTRY_SUBNET_SECRET="secret")
+class PerformCellRequestSigningTest(TestCase):
+    @responses.activate
+    @override_cells(cell_config)
+    def test_signs_only_forge_issue_updated_deliveries(self) -> None:
+        forge_path = "/extensions/jira/forge/issue-updated/"
+        connect_path = "/extensions/jira/issue-updated/"
+        body = '{"issue": {"id": "1"}}'
+        headers = json.dumps(
+            {
+                "Authorization": "Bearer fit",
+                # A signature sent by the caller must never be passed on.
+                WEBHOOK_DELIVERY_SIGNATURE_HEADER: "v0=forged",
+            }
+        )
+        for path in (forge_path, connect_path):
+            responses.add(responses.POST, f"http://us.testserver{path}", status=200)
+        for path, request_headers in ((forge_path, headers), (connect_path, "{}")):
+            payload = Factories.create_webhook_payload(
+                mailbox_name="jira:1",
+                cell_name="us",
+                request_path=path,
+                request_headers=request_headers,
+                request_body=body,
+            )
+            deliver_webhooks.perform_cell_request(cell_config[0], payload)
+
+        forge_call, connect_call = responses.calls
+        assert verify_webhook_delivery_signature(
+            forge_path,
+            "Bearer fit",
+            body.encode(),
+            forge_call.request.headers[WEBHOOK_DELIVERY_SIGNATURE_HEADER],
+        )
+        assert WEBHOOK_DELIVERY_SIGNATURE_HEADER not in connect_call.request.headers

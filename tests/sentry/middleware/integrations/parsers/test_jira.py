@@ -1,12 +1,18 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.test import RequestFactory, override_settings
 from rest_framework import status
 
+from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.integrations.jira.forge.invocation_token import (
+    ForgeInvocation,
+    ForgeInvocationTokenError,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.jira import JiraRequestParser
@@ -20,6 +26,7 @@ from sentry.testutils.outbox import (
 )
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, Locality
+from sentry.utils import json
 
 cell = Cell("us", 1, "http://us.testserver")
 eu_cell = Cell("eu", 2, "http://eu.testserver")
@@ -246,4 +253,71 @@ class JiraRequestParserTest(TestCase):
         # Must not 404 — multi-cell falls back to JiraSentryIssueDetailsControlView, not
         # get_response_from_control_silo() which would 404 via the @cell_silo_view restriction.
         assert response.status_code == 200
+        assert_no_webhook_payloads()
+
+
+CLOUD_ID = "11111111-2222-3333-4444-555555555555"
+INSTALLATION_ID = "ari:cloud:ecosystem::installation/test"
+
+
+@control_silo_test
+@patch("sentry.integrations.jira.forge.invocation_token.verify_forge_invocation_token")
+class JiraForgeIssueUpdatedParserTest(TestCase):
+    factory = RequestFactory()
+    path = f"{IntegrationClassification.integration_prefix}jira/forge/issue-updated/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_mailbox_bucket_count(64))
+        self.enterContext(override_cells(cell_config))
+        self.organization = self.create_organization(owner=self.user, cell="us")
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id=CLOUD_ID,
+            provider="jira",
+            metadata={"forge": {"installation_id": INSTALLATION_ID}},
+        )
+
+    def post(self, mock_verify: MagicMock, **invocation: str) -> HttpResponseBase:
+        mock_verify.return_value = ForgeInvocation(
+            app_id="ari:cloud:ecosystem::app/test",
+            installation_id=invocation.get("installation_id", INSTALLATION_ID),
+            api_base_url=f"https://api.atlassian.com/ex/jira/{CLOUD_ID}",
+            cloud_id=CLOUD_ID,
+            environment_type="DEVELOPMENT",
+            module_key=invocation.get("module_key", "issue-updated"),
+            principal=None,
+        )
+        request = self.factory.post(
+            path=self.path,
+            data={"issue": {"id": "10425"}},
+            content_type="application/json",
+            headers={
+                "Authorization": "Bearer fit",
+                "X-Forge-OAuth-System": "system-token",
+                "X-Forge-OAuth-User": "user-token",
+            },
+        )
+        return JiraRequestParser(request, lambda _: HttpResponse(status=200)).get_response()
+
+    def test_queues_event_without_forge_tokens(self, mock_verify: MagicMock) -> None:
+        assert self.post(mock_verify).status_code == 202
+
+        payload = WebhookPayload.objects.get()
+        # 10425 % 64
+        assert payload.mailbox_name == f"jira:us:{self.integration.id}:57"
+        headers = json.loads(payload.request_headers)
+        assert headers["Authorization"] == "Bearer fit"
+        assert "X-Forge-Oauth-System" not in headers
+        assert "X-Forge-Oauth-User" not in headers
+
+    def test_drops_unverified_or_unowned_events(self, mock_verify: MagicMock) -> None:
+        mock_verify.side_effect = ForgeInvocationTokenError("bad")
+        assert self.post(mock_verify).status_code == 401
+        mock_verify.side_effect = None
+
+        # A UI module of the app, which any Jira user can drive.
+        assert self.post(mock_verify, module_key="issue-panel").status_code == 403
+        # Another app installed on the same site.
+        assert self.post(mock_verify, installation_id="other").status_code == 202
         assert_no_webhook_payloads()
