@@ -1,11 +1,10 @@
-import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
-
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';

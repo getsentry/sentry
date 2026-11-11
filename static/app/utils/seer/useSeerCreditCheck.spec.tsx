@@ -1,8 +1,8 @@
-import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
-
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 import {useSeerCreditCheck} from './useSeerCreditCheck';
 

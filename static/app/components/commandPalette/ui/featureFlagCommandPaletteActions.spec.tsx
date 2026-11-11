@@ -192,9 +192,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await waitFor(() =>
       expect(OrganizationStore.getState().organization?.features).toContain('new-feature')
     );
-    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
-      '{"new-feature":true}'
-    );
+    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
   });
 
   it('does not offer to clear overrides when none are stored', async () => {

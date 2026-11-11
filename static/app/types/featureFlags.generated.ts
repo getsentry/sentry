@@ -15,6 +15,7 @@ export type OrganizationFeature =
   | 'anomaly-detection-alerts'
   | 'api-keys'
   | 'ask-seer-create-pr'
+  | 'attachments-quota-exceeded-notice'
   | 'attribute-management'
   | 'authv2-enable-toggle'
   | 'auto-release-creation'
