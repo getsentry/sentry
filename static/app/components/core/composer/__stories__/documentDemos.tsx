@@ -1,4 +1,5 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import {IconAttachment} from '@sentry/icons/attachment';
 import {IconIssues} from '@sentry/icons/issues';
 
@@ -35,7 +36,7 @@ const MENTION_SOURCE = {
   renderSuggestion: person => (
     <Flex gap="sm" align="center">
       <UserAvatar size={20} user={{id: person.id, name: person.label, type: 'user'}} />
-      <Text tabular>@{person.label}</Text>
+      <Text tabular>{person.label}</Text>
     </Flex>
   ),
 } satisfies DocumentSuggestionSource<DocumentMention>;
@@ -270,14 +271,8 @@ export function DocumentComposerDemo() {
             onFilesDrop={queueFiles}
             renderMention={(mention, actions) => (
               <Button
-                icon={
-                  <UserAvatar
-                    size={14}
-                    user={{id: mention.id, name: mention.label, type: 'user'}}
-                  />
-                }
                 size="zero"
-                variant="transparent"
+                variant="link"
                 aria-label={`Change mention ${mention.label}`}
                 onClick={() =>
                   actions.replace({
@@ -287,14 +282,27 @@ export function DocumentComposerDemo() {
                   })
                 }
               >
-                <Text tabular variant="inherit">
-                  @{mention.label}
+                <Text size="md" density="comfortable" tabular variant="primary">
+                  <Flex
+                    as="span"
+                    display="inline-flex"
+                    align="center"
+                    height="1em"
+                    css={css`
+                      vertical-align: text-bottom;
+                    `}
+                  >
+                    <UserAvatar
+                      size={14}
+                      user={{id: mention.id, name: mention.label, type: 'user'}}
+                    />
+                  </Flex>{' '}
+                  {mention.label}
                 </Text>
               </Button>
             )}
             renderReference={(reference, actions) => (
               <Button
-                icon={reference.kind === 'issue' ? <IconIssues size="xs" /> : undefined}
                 size="zero"
                 aria-label={`Change reference ${reference.label}`}
                 onClick={() =>
@@ -306,7 +314,22 @@ export function DocumentComposerDemo() {
                 }
               >
                 <Text size="sm" tabular variant="inherit">
-                  {reference.kind === 'issue' && 'Issue: '}
+                  {reference.kind === 'issue' && (
+                    <Fragment>
+                      <Flex
+                        as="span"
+                        display="inline-flex"
+                        align="center"
+                        height="1em"
+                        css={css`
+                          vertical-align: text-bottom;
+                        `}
+                      >
+                        <IconIssues size="xs" />
+                      </Flex>{' '}
+                      Issue:{' '}
+                    </Fragment>
+                  )}
                   <Text size="sm" bold tabular variant="inherit">
                     {reference.label}
                   </Text>

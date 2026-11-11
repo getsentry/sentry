@@ -82,7 +82,7 @@ function Atom({
       return (
         renderers.renderMention?.(value, actions) ?? (
           <Text bold tabular>
-            @{value.label}
+            {value.label}
           </Text>
         )
       );

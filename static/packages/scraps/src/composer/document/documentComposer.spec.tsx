@@ -358,7 +358,7 @@ it('inserts an atomic mention after code without flattening its identity', async
   act(() => commands.current?.insertMention(MENTION));
   const document = parseComposerDocument(JSON.parse(output().textContent ?? ''));
   expect(document.blocks).toEqual([code, {type: 'paragraph', children: [MENTION]}]);
-  expect(screen.getByText('@Alice')).toBeVisible();
+  expect(screen.getByText('Alice')).toBeVisible();
 });
 
 it('preserves rich clipboard identities when pasting from inside a code block', async () => {
@@ -392,7 +392,7 @@ it('copies just the selected mention and pastes its identity with one-step undo'
     wrapper: Providers,
   });
   await user.click(editor());
-  const atom = screen.getByText('@Alice').closest('[data-document-atom]');
+  const atom = screen.getByText('Alice').closest('[data-document-atom]');
   if (!atom?.parentNode) {
     throw new Error('Expected an atomic mention');
   }
@@ -408,10 +408,10 @@ it('copies just the selected mention and pastes its identity with one-step undo'
   );
   placeCaret(editor());
   await user.paste(copied);
-  expect(screen.getAllByText('@Alice')).toHaveLength(2);
+  expect(screen.getAllByText('Alice')).toHaveLength(2);
   expect(output()).toHaveTextContent('PROJ-1');
   await user.keyboard('{Control>}z{/Control}');
-  expect(screen.getAllByText('@Alice')).toHaveLength(1);
+  expect(screen.getAllByText('Alice')).toHaveLength(1);
 });
 
 it('hands file drops to the app without inserting filenames', () => {
