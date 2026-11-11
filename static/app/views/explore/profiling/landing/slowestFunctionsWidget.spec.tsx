@@ -1,6 +1,13 @@
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -58,6 +65,68 @@ describe('SlowestFunctionsWidget', () => {
 
     // switches to the no functions view
     expect(await screen.findByText('No functions found')).toBeInTheDocument();
+  });
+
+  it('pushes the cursor when paginating', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      headers: {
+        Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/events/?cursor=0:5:0>; rel="next"; results="true"; cursor="0:5:0"',
+      },
+    });
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+
+    const {router} = render(
+      <SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />,
+      {
+        onNuqsUrlUpdate,
+        initialRouterConfig: {location: {pathname: '/profiling/', query: {tab: 'x'}}},
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'x', slowFnCursor: '0:5:0'})
+    );
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
+  it('removes the cursor without a history entry when the sort changes', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+
+    const {router} = render(
+      <SlowestFunctionsWidget widgetHeight="100px" breakdownFunction="p75()" />,
+      {
+        onNuqsUrlUpdate,
+        initialRouterConfig: {
+          location: {pathname: '/profiling/', query: {tab: 'x', slowFnCursor: '0:5:0'}},
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'total self time spent'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'average self time spent'}));
+
+    await waitFor(() => expect(router.location.query).toEqual({tab: 'x'}));
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
   });
 
   it.isKnownFlake('renders examples and chart', async () => {

@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import type {Location} from 'history';
+import {parseAsString, parseAsStringLiteral, useQueryState, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -29,11 +29,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProfileEventsApiOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -59,22 +56,20 @@ const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';
 const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
 
-function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
-  return tab === 'flamegraph' || tab === 'transactions';
-}
+const TABS = ['flamegraph', 'transactions'] as const;
 
-function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
-  // Fallback to transactions if tab is invalid. We default to transactions
-  // because that is going to be the most common perf setup when we release.
-  return validateTab(tab) ? tab : 'transactions';
-}
+const transactionsTabParsers = {
+  cursor: parseAsString,
+  query: parseAsString.withDefault(''),
+  sort: parseAsString,
+};
 
 function ProfilingContentInner() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [tabParam, setTab] = useQueryState('tab', parseAsStringLiteral(TABS));
+  const [{query: searchQuery, sort}] = useQueryStates(transactionsTabParsers);
 
   const dispatchDataState = useLandingAnalytics();
   const updateWidget1DataState = useCallback(
@@ -114,7 +109,8 @@ function ProfilingContentInner() {
     return shouldShowProfilingOnboardingPanel(selection, projects);
   }, [selection, projects]);
 
-  const tab = decodeTab(location.query.tab);
+  // Default to transactions because that is the most common perf setup.
+  const tab = tabParam ?? 'transactions';
   const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
@@ -123,8 +119,8 @@ function ProfilingContentInner() {
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     currentTab: tab,
-    searchQuery: decodeScalar(location.query.query, ''),
-    sort: decodeScalar(location.query.sort, ''),
+    searchQuery,
+    sort: sort ?? '',
     currentSelectedDateRange: selection.datetime,
     ...toLLMContextProjectFields(selectedProjects),
   });
@@ -144,13 +140,7 @@ function ProfilingContentInner() {
       organization,
       tab: newTab,
     });
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
-    });
+    setTab(newTab, {history: 'push'});
   };
 
   const maxPickableDays = useMaxPickableDays({
@@ -248,7 +238,6 @@ function ProfilingContentInner() {
                       <FlamegraphTab onDataState={updateFlamegraphDataState} />
                     ) : (
                       <TransactionsTab
-                        location={location}
                         selection={selection}
                         onDataState={updateTransactionsTableDataState}
                       />
@@ -269,38 +258,28 @@ interface ProfilingTabProps {
 }
 
 interface TabbedContentProps extends ProfilingTabProps {
-  location: Location;
   selection: PageFilters;
 }
 
-function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
-  const navigate = useNavigate();
-  const query = decodeScalar(location.query.query, '');
+function TransactionsTab({onDataState, selection}: TabbedContentProps) {
+  const [{cursor, query, sort: sortParam}, setQueryParams] =
+    useQueryStates(transactionsTabParsers);
   const handleSearch = useCallback(
     (searchQuery: string) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchQuery || undefined,
-        },
-      });
+      setQueryParams({cursor: null, query: searchQuery}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const fields = ALL_FIELDS;
 
-  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
+  const sort = formatSort<FieldType>(sortParam ?? undefined, fields, {
     key: 'count()',
     order: 'desc',
   });
 
-  const cursor = decodeScalar(location.query.cursor);
-
   const transactionsOptions = useProfileEventsApiOptions<FieldType>({
-    cursor,
+    cursor: cursor || undefined,
     fields,
     query,
     sort,
@@ -360,6 +339,9 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
       <StyledPagination
         pageLinks={
           transactions.status === 'success' ? transactions.data.headers.Link : null
+        }
+        onCursor={newCursor =>
+          setQueryParams({cursor: newCursor ?? null}, {history: 'push'})
         }
       />
     </Stack>

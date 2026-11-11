@@ -1,19 +1,27 @@
 import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
+
+const continuousProfileParsers = {
+  start: parseAsString,
+  end: parseAsString,
+  profilerId: parseAsString,
+  eventId: parseAsString,
+  transactionId: parseAsString,
+  traceId: parseAsString,
+};
 
 function isValidDate(date: string): boolean {
   return !isNaN(Date.parse(date));
@@ -22,16 +30,16 @@ function isValidDate(date: string): boolean {
 export default function ProfileAndTransactionProvider(): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
-  const location = useLocation();
+  const [queryParams] = useQueryStates(continuousProfileParsers);
 
   const projectSlug = params.projectId!;
   const {projects} = useProjects({slugs: [projectSlug]});
   const projectIds = useMemo(() => projects.map(p => Number(p.id)), [projects]);
 
   const profileMeta = useMemo(() => {
-    const start = decodeScalar(location.query.start);
-    const end = decodeScalar(location.query.end);
-    const profilerId = decodeScalar(location.query.profilerId);
+    const start = queryParams.start;
+    const end = queryParams.end;
+    const profilerId = queryParams.profilerId;
 
     if (!start || !end || !profilerId) {
       return null;
@@ -46,18 +54,18 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       end,
       profiler_id: profilerId,
     };
-  }, [location.query.start, location.query.end, location.query.profilerId]);
+  }, [queryParams.start, queryParams.end, queryParams.profilerId]);
 
   // Legacy event ID for spans extracted from transactions (`transaction.event_id`)
-  const eventId = decodeScalar(location.query.eventId) || undefined;
+  const eventId = queryParams.eventId || undefined;
   // New transaction ID for streaming spans (`transaction.span_id`)
-  const transactionId = decodeScalar(location.query.transactionId) || undefined;
+  const transactionId = queryParams.transactionId || undefined;
 
   const [profile, setProfile] = useState<RequestState<Profiling.ProfileInput>>({
     type: eventId || transactionId ? 'initial' : 'empty',
   });
 
-  const traceId = decodeScalar(location.query.traceId) || undefined;
+  const traceId = queryParams.traceId || undefined;
   const start = profileMeta ? Date.parse(profileMeta.start) / 1000 : undefined;
   const end = profileMeta ? Date.parse(profileMeta.end) / 1000 : undefined;
   const transactionResult = useTransactionAsSpans({

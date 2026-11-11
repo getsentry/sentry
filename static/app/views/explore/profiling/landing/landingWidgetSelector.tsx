@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -9,8 +9,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {DataState} from 'sentry/views/explore/profiling/useLandingAnalytics';
@@ -46,8 +44,7 @@ export function LandingWidgetSelector({
   onDataState,
   widgetHeight,
 }: LandingWidgetSelectorProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setCursor] = useQueryState(cursorName, parseAsString);
   const organization = useOrganization();
 
   const [selectedWidget, setSelectedWidget] = useSyncedLocalStorageState<WidgetOption>(
@@ -57,14 +54,7 @@ export function LandingWidgetSelector({
 
   const onWidgetChange = useCallback(
     (opt: any) => {
-      const newQuery = omit(location.query, [cursorName]);
-      navigate(
-        {
-          pathname: location.pathname,
-          query: newQuery,
-        },
-        {replace: true}
-      );
+      setCursor(null);
       setSelectedWidget(opt.value);
       trackAnalytics('profiling_views.landing.widget_change', {
         organization,
@@ -72,7 +62,7 @@ export function LandingWidgetSelector({
         target: getAnalyticsName(opt.value),
       });
     },
-    [cursorName, location, navigate, selectedWidget, setSelectedWidget, organization]
+    [setCursor, selectedWidget, setSelectedWidget, organization]
   );
 
   const functionQuery = useMemo(() => {

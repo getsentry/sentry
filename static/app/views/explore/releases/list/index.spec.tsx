@@ -1,3 +1,4 @@
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -316,12 +317,17 @@ describe('ReleasesList', () => {
       body: [],
     });
 
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
     const {router} = render(<ReleasesList />, {
       organization,
+      onNuqsUrlUpdate,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {query: 'derp'},
+          query: {query: 'derp', cursor: '0:20:0'},
         },
       },
     });
@@ -338,7 +344,73 @@ describe('ReleasesList', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'a{enter}');
 
-    expect(router.location.query.query).toBe('a');
+    await waitFor(() => expect(router.location.query.query).toBe('a'));
+    expect(router.location.query.cursor).toBeUndefined();
+    expect(screen.getByDisplayValue('a')).toBeInTheDocument();
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
+  it('pushes the next cursor and requests the next page when Next is clicked', async () => {
+    endpointMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/`,
+      body: [ReleaseFixture({version: '1.0.0'})],
+      headers: {
+        Link: '<http://127.0.0.1:8000/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://127.0.0.1:8000/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
+      },
+    });
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    const {router} = render(<ReleasesList />, {
+      organization,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {query: 'derp'},
+        },
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    await waitFor(() => expect(router.location.query.cursor).toBe('0:20:0'));
+    expect(router.location.query.query).toBe('derp');
+    const [{searchParams, options}] = onNuqsUrlUpdate.mock.calls[0]!;
+    expect(searchParams.get('cursor')).toBe('0:20:0');
+    expect(options.history).toBe('push');
+    expect(endpointMock).toHaveBeenLastCalledWith(
+      `/organizations/${organization.slug}/releases/`,
+      expect.objectContaining({
+        query: expect.objectContaining({cursor: '0:20:0', query: 'derp'}),
+      })
+    );
+  });
+
+  it('replaces an unsupported stats period with the closest supported one when the page loads', async () => {
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
+    const {router} = render(<ReleasesList />, {
+      organization,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/releases/`,
+          query: {statsPeriod: '3d', sort: ReleasesSortOption.SESSIONS},
+        },
+      },
+    });
+
+    await waitFor(() => expect(router.location.query.statsPeriod).toBe('48h'));
+    expect(router.location.query.sort).toBe(ReleasesSortOption.SESSIONS);
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
+    );
   });
 
   it('sorts releases', async () => {
@@ -437,7 +509,7 @@ describe('ReleasesList', () => {
     await userEvent.click(statusActiveOption);
     expect(router.location.query.status).toBe(ReleasesStatusOption.ACTIVE);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Status Active'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Status Active'}));
     statusArchivedOption = screen.getByRole('option', {name: 'Archived'});
     await userEvent.click(statusArchivedOption);
     expect(router.location.query.status).toBe(ReleasesStatusOption.ARCHIVED);

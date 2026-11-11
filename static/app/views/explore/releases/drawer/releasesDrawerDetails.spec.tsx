@@ -135,9 +135,44 @@ describe('ReleasesDrawerDetails', () => {
     expect(link).toHaveAttribute(
       'href',
       expect.stringContaining(
-        '/releases/?rdEnd=2017-10-17T02%3A41%3A20.000Z&rdStart=2017-10-17T02%3A41%3A20.000Z'
+        '/releases/?rdEnd=2017-10-17T02:41:20.000Z&rdStart=2017-10-17T02:41:20.000Z'
       )
     );
+  });
+
+  it('drops the release but keeps other params in the back link when start and end are provided', async () => {
+    render(
+      <ReleasesDrawerDetails
+        {...defaultProps}
+        projectId="1"
+        start={new Date()}
+        end={new Date()}
+      />,
+      {
+        ...renderOptions,
+        initialRouterConfig: {
+          location: {
+            pathname: '/releases/',
+            query: {
+              project: '1',
+              [ReleasesDrawerFields.DRAWER]: 'show',
+              [ReleasesDrawerFields.RELEASE]: 'test-release',
+              [ReleasesDrawerFields.RELEASE_PROJECT_ID]: '1',
+            },
+          },
+        },
+      }
+    );
+
+    const link = await screen.findByRole('link', {name: 'Releases'});
+    const {pathname, searchParams} = new URL(link.getAttribute('href')!, 'http://x');
+    expect(pathname).toBe('/releases/');
+    expect(Object.fromEntries(searchParams)).toEqual({
+      project: '1',
+      [ReleasesDrawerFields.DRAWER]: 'show',
+      [ReleasesDrawerFields.START]: '2017-10-17T02:41:20.000Z',
+      [ReleasesDrawerFields.END]: '2017-10-17T02:41:20.000Z',
+    });
   });
 
   it('renders content when single project exists in release meta', async () => {

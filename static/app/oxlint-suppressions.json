@@ -2962,28 +2962,17 @@
       "count": 1
     }
   },
-  "views/explore/profiling/content.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    }
-  },
   "views/explore/profiling/landing/functionTrendsWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/explore/profiling/landing/landingWidgetSelector.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
   },
   "views/explore/profiling/landing/slowestFunctionsWidget.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
@@ -3019,16 +3008,6 @@
       "count": 1
     }
   },
-  "views/explore/releases/detail/commitsAndFiles/repositorySwitcher.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/explore/releases/detail/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/explore/releases/detail/overview/index.tsx": {
     "@sentry/prefer-nuqs": {
       "count": 2
@@ -3038,9 +3017,6 @@
     }
   },
   "views/explore/releases/detail/overview/releaseComparisonChart/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
@@ -3075,24 +3051,9 @@
       "count": 2
     }
   },
-  "views/explore/releases/drawer/releasesDrawerDetails.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/explore/releases/drawer/releasesDrawerList.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/explore/releases/drawer/releasesDrawerTable.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
-    }
-  },
-  "views/explore/releases/list/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 5
     }
   },
   "views/explore/releases/list/mobileBuildsChart.tsx": {

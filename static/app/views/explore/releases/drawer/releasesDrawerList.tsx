@@ -1,6 +1,7 @@
 import {useCallback, useRef} from 'react';
 import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
+import {useQueryStates} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 
@@ -22,15 +23,13 @@ import type {
   SeriesDataUnit,
 } from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
 
 import {ReleasesDrawerFeatureFlagsTable} from './releasesDrawerFeatureFlagsTable';
 import {ReleasesDrawerTable} from './releasesDrawerTable';
-import {ReleasesDrawerFields} from './utils';
+import {RELEASES_DRAWER_PARSERS, ReleasesDrawerFields} from './utils';
 
 interface ReleasesDrawerListProps {
   pageFilters: PageFilters;
@@ -107,9 +106,11 @@ export function ReleasesDrawerList({
   pageFilters,
   eventId,
 }: ReleasesDrawerListProps) {
-  const navigate = useNavigate();
   const {groupId} = useParams();
-  const location = useLocation();
+  const [, setDrawerQuery] = useQueryStates({
+    [ReleasesDrawerFields.START]: RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.START],
+    [ReleasesDrawerFields.END]: RELEASES_DRAWER_PARSERS[ReleasesDrawerFields.END],
+  });
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const chartHeight = chart === EVENT_GRAPH_WIDGET_ID ? '160px' : '220px';
 
@@ -175,16 +176,16 @@ export function ReleasesDrawerList({
         // ensure the bounds has 1 minute resolution
         startValue = Math.min(startValue, endValue - 60_000);
 
-        navigate({
-          query: {
-            ...location.query,
+        setDrawerQuery(
+          {
             [ReleasesDrawerFields.START]: getUtcDateString(startValue),
             [ReleasesDrawerFields.END]: getUtcDateString(endValue),
           },
-        });
+          {history: 'push'}
+        );
       }
     },
-    [navigate, location.query]
+    [setDrawerQuery]
   );
 
   return (

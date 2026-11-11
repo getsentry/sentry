@@ -1,3 +1,4 @@
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -73,6 +74,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   });
 
   it('can change chart by clicking on a row', async () => {
+    const onNuqsUrlUpdate = jest.fn<
+      ReturnType<OnUrlUpdateFunction>,
+      Parameters<OnUrlUpdateFunction>
+    >();
     const {router} = render(
       <ReleaseComparisonChart
         release={release}
@@ -88,13 +93,19 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {
         organization,
         initialRouterConfig,
+        onNuqsUrlUpdate,
       }
     );
 
     await userEvent.click(screen.getByLabelText(/crash free user rate/i));
 
-    expect(router.location.query).toEqual(
-      expect.objectContaining({chart: 'crashFreeUsers'})
+    await waitFor(() =>
+      expect(router.location.query).toEqual(
+        expect.objectContaining({chart: 'crashFreeUsers'})
+      )
+    );
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
     );
 
     expect(screen.getByLabelText('Chart Title')).toHaveTextContent(

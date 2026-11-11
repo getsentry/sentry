@@ -1,6 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {
+  createSerializer,
+  parseAsString,
+  useQueryStates,
+  type inferParserType,
+} from 'nuqs';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -35,11 +41,10 @@ import {defined} from 'sentry/utils/defined';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
@@ -83,27 +88,41 @@ const RELEASE_FILTER_KEYS = [
   return acc;
 }, {});
 
+const releasesListParsers = {
+  project: parseAsStringArray,
+  environment: parseAsStringArray,
+  statsPeriod: parseAsString,
+  cursor: parseAsString,
+  query: parseAsString,
+  sort: parseAsString,
+  display: parseAsString,
+  status: parseAsString,
+  tab: parseAsString,
+};
+
+const serializeReleasesListQuery = createSerializer(releasesListParsers);
+
 function makeReleaseListApiOptions({
   organizationSlug,
-  location,
+  queryParams,
   activeSort,
   activeStatus,
 }: {
-  location: ReturnType<typeof useLocation>;
   organizationSlug: string;
+  queryParams: inferParserType<typeof releasesListParsers>;
   activeSort?: ReleasesSortOption;
   activeStatus?: ReleasesStatusOption;
 }) {
   return apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
     path: {organizationIdOrSlug: organizationSlug},
     query: {
-      project: location.query.project,
-      environment: location.query.environment,
-      cursor: location.query.cursor,
-      query: location.query.query,
-      sort: location.query.sort,
+      project: queryParams.project,
+      environment: queryParams.environment,
+      cursor: queryParams.cursor ?? undefined,
+      query: queryParams.query ?? undefined,
+      sort: queryParams.sort ?? undefined,
       summaryStatsPeriod: validateSummaryStatsPeriod(
-        decodeScalar(location.query.statsPeriod)
+        queryParams.statsPeriod || undefined
       ),
       per_page: 20,
       flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
@@ -130,35 +149,25 @@ function ReleasesListInnerPage() {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates(releasesListParsers);
 
   // date filter should reflect updated statsPeriod value
   useEffect(() => {
-    const currentStatsPeriod = decodeScalar(location.query.statsPeriod);
-    const validatedStatsPeriod = validateSummaryStatsPeriod(currentStatsPeriod);
+    const currentStatsPeriod = queryParams.statsPeriod;
+    const validatedStatsPeriod = validateSummaryStatsPeriod(
+      currentStatsPeriod || undefined
+    );
 
     // if the validated value is different from the current value, update the URL
     if (currentStatsPeriod && currentStatsPeriod !== validatedStatsPeriod) {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            statsPeriod: validatedStatsPeriod,
-          },
-        },
-        {replace: true}
-      );
+      setQueryParams({statsPeriod: validatedStatsPeriod});
     }
-  }, [navigate, location.pathname, location.query]);
+  }, [queryParams.statsPeriod, setQueryParams]);
 
-  const activeQuery = useMemo(() => {
-    const {query: locationQuery} = location.query;
-    return typeof locationQuery === 'string' ? locationQuery : '';
-  }, [location.query]);
+  const activeQuery = queryParams.query ?? '';
 
   const activeSort = useMemo(() => {
-    const {sort: locationSort} = location.query;
+    const locationSort = queryParams.sort;
 
     // Require 1 environment for date adopted
     if (
@@ -176,29 +185,25 @@ function ReleasesListInnerPage() {
     }
 
     return ReleasesSortOption.DATE;
-  }, [selection.environments, location.query]);
+  }, [selection.environments, queryParams.sort]);
 
   const activeDisplay = useMemo(() => {
-    const {display: locationDisplay} = location.query;
-
-    switch (locationDisplay) {
+    switch (queryParams.display) {
       case ReleasesDisplayOption.USERS:
         return ReleasesDisplayOption.USERS;
       default:
         return ReleasesDisplayOption.SESSIONS;
     }
-  }, [location.query]);
+  }, [queryParams.display]);
 
   const activeStatus = useMemo(() => {
-    const {status} = location.query;
-
-    switch (status) {
+    switch (queryParams.status) {
       case ReleasesStatusOption.ARCHIVED:
         return ReleasesStatusOption.ARCHIVED;
       default:
         return ReleasesStatusOption.ACTIVE;
     }
-  }, [location.query]);
+  }, [queryParams.status]);
 
   const selectedProject = useMemo(() => {
     // Return the first project when 'All Projects' is displayed.
@@ -259,12 +264,12 @@ function ReleasesListInnerPage() {
   const shouldShowMobileBuildsTab = hasBuildsData || hasAnyStrictlyMobileProject;
 
   const selectedTab = useMemo(() => {
-    const tab = decodeScalar(location.query.tab) as ReleaseTab | undefined;
+    const tab = (queryParams.tab || undefined) as ReleaseTab | undefined;
     if (tab === 'mobile-builds' && !shouldShowMobileBuildsTab) {
       return 'releases';
     }
     return tab || 'releases';
-  }, [shouldShowMobileBuildsTab, location.query.tab]);
+  }, [shouldShowMobileBuildsTab, queryParams.tab]);
 
   const {
     data,
@@ -274,7 +279,7 @@ function ReleasesListInnerPage() {
   } = useQuery({
     ...makeReleaseListApiOptions({
       organizationSlug: organization.slug,
-      location,
+      queryParams,
       activeSort,
       activeStatus,
     }),
@@ -318,27 +323,21 @@ function ReleasesListInnerPage() {
 
   const handleSearch = useCallback(
     (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query},
-      });
+      setQueryParams({cursor: null, query}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const handleSortBy = useCallback(
     (sort: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, sort},
-      });
+      setQueryParams({cursor: null, sort}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const handleDisplay = useCallback(
     (display: string) => {
-      let sort = location.query.sort;
+      let sort = queryParams.sort;
       if (
         sort === ReleasesSortOption.USERS_24_HOURS &&
         display === ReleasesDisplayOption.SESSIONS
@@ -361,22 +360,16 @@ function ReleasesListInnerPage() {
         sort = ReleasesSortOption.CRASH_FREE_USERS;
       }
 
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, display, sort},
-      });
+      setQueryParams({cursor: null, display, sort}, {history: 'push'});
     },
-    [location, navigate]
+    [queryParams.sort, setQueryParams]
   );
 
   const handleStatus = useCallback(
     (status: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, status},
-      });
+      setQueryParams({cursor: null, status}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const handleTabChange = (newTab: string) => {
@@ -393,25 +386,16 @@ function ReleasesListInnerPage() {
 
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
-      const {project} = location.query;
-
-      // Coerce the url param into an array
-      const projectIds = Array.isArray(project)
-        ? project
-        : typeof project === 'string'
-          ? [project]
-          : [];
-
       return fetchTagValues({
         api,
         orgSlug: organization.slug,
         tagKey: key,
         search,
-        projectIds,
+        projectIds: queryParams.project,
         endpointParams: normalizeDateTimeParams(location.query),
       });
     },
-    [api, location, organization]
+    [api, location, organization, queryParams.project]
   );
 
   const getTagValues = useCallback<GetTagValues>(
@@ -493,11 +477,10 @@ function ReleasesListInnerPage() {
                       key="releases"
                       to={{
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: undefined,
-                        },
+                        search: serializeReleasesListQuery(location.search, {
+                          query: null,
+                          tab: null,
+                        }),
                       }}
                       textValue={t('Releases')}
                     >
@@ -508,11 +491,10 @@ function ReleasesListInnerPage() {
                       hidden={!shouldShowMobileBuildsTab}
                       to={{
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
+                        search: serializeReleasesListQuery(location.search, {
+                          query: null,
                           tab: 'mobile-builds',
-                        },
+                        }),
                       }}
                       textValue={t('Mobile Builds')}
                     >
@@ -525,11 +507,10 @@ function ReleasesListInnerPage() {
                       key="snapshots"
                       to={{
                         pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
+                        search: serializeReleasesListQuery(location.search, {
+                          query: null,
                           tab: 'snapshots',
-                        },
+                        }),
                       }}
                       textValue={t('Snapshots')}
                     >
@@ -626,6 +607,9 @@ function ReleasesListInnerPage() {
                         <div {...props}>
                           <ReleaseListInner
                             activeDisplay={activeDisplay}
+                            activeQuery={activeQuery}
+                            activeSort={activeSort}
+                            activeStatus={activeStatus}
                             loading={isReleasesPending}
                             organization={organization}
                             releases={releases ?? []}
