@@ -496,8 +496,12 @@ export function CustomerDetails() {
           },
           {
             key: 'convertToSponsored',
-            name: 'Convert to Sponsored',
-            help: 'Convert this account to a sponsored plan (e.g. education, open source).',
+            name: subscription.isSponsored
+              ? 'Change Sponsorship'
+              : 'Convert to Sponsored',
+            help: subscription.isSponsored
+              ? "Change or remove this account's sponsorship."
+              : 'Convert this account to a sponsored plan (e.g. education, open source).',
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on sponsored plans',
             confirmModalOpts: {
