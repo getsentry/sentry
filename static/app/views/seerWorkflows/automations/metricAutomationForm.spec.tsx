@@ -60,6 +60,7 @@ describe('MetricAutomationForm', () => {
           readOnly={false}
           name={editConfig.name ?? ''}
           setFormHasChanges={jest.fn()}
+          setMonitorsUnavailable={jest.fn()}
         />
         <button type="submit" form="automation-form">
           Save changes
@@ -215,7 +216,6 @@ describe('MetricAutomationForm', () => {
         expect.objectContaining({
           data: {
             monitorIds: [1],
-            enabled: false,
             name: 'Checkout errors',
             serviceAccount: allProjectsServiceAccount,
           },
@@ -241,7 +241,6 @@ describe('MetricAutomationForm', () => {
         expect.objectContaining({
           data: {
             monitorIds: [1],
-            enabled: false,
             name: 'Checkout errors',
             serviceAccount: {
               scopes: serviceAccount.scopes,
@@ -286,7 +285,6 @@ describe('MetricAutomationForm', () => {
         expect.objectContaining({
           data: {
             monitorIds: [2],
-            enabled: false,
             name: 'Checkout errors',
             serviceAccount,
           },

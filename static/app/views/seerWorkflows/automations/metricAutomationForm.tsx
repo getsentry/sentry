@@ -94,6 +94,11 @@ type Props =
        * Reports whether any field differs from its saved value
        */
       setFormHasChanges: (hasChanges: boolean) => void;
+      /**
+       * Reports whether connected monitors are still loading or failed to load.
+       * Saving then could drop service account projects that follow the monitors.
+       */
+      setMonitorsUnavailable: (unavailable: boolean) => void;
     };
 
 export function MetricAutomationForm(props: Props) {
@@ -118,7 +123,6 @@ export function MetricAutomationForm(props: Props) {
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
-      enabled: value.enabled,
       monitorIds: value.monitorIds.map(Number),
       serviceAccount: {
         scopes: value.scopes,
@@ -133,6 +137,7 @@ export function MetricAutomationForm(props: Props) {
     if (props.mode === 'create') {
       const config = await createConfig.mutateAsync({
         ...fields,
+        enabled: value.enabled,
         strategy: 'breached_metric_investigation',
         name: value.name,
       });
@@ -140,6 +145,8 @@ export function MetricAutomationForm(props: Props) {
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
+    // Pausing and resuming happen from the page header, so saving leaves `enabled`
+    // alone. Sending it would also require access to every project the automation covers.
     const config = await updateConfig.mutateAsync({...fields, name: props.name});
     toast.success(t('Automation saved.'));
     props.onSaved();
@@ -218,6 +225,13 @@ export function MetricAutomationForm(props: Props) {
   const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
   const isResolvingMonitors =
     monitorIds.length > 0 && (monitorsQuery.isLoading || monitorsQuery.isPlaceholderData);
+  const monitorsUnavailable = isResolvingMonitors || hasMonitorsError;
+  const setMonitorsUnavailable =
+    props.mode === 'edit' ? props.setMonitorsUnavailable : undefined;
+  useEffect(
+    () => setMonitorsUnavailable?.(monitorsUnavailable),
+    [setMonitorsUnavailable, monitorsUnavailable]
+  );
   // For typing
   const monitors =
     monitorIds.length > 0
