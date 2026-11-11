@@ -71,7 +71,7 @@ from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
 from sentry.seer.autofix.single_run import (
     is_single_run,
     is_single_run_record,
-    public_single_run_artifacts,
+    rename_single_run_root_cause,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
@@ -709,17 +709,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         run = get_seer_run(state.run_id, group.organization)
         visible = state if has_elevated_mode(request) else redact_autofix_prompts(state)
         blocks = [block.dict() for block in visible.blocks]
-        if is_single_run(state):
+        single_run = is_single_run(state)
+        if single_run:
             for block in blocks:
-                block["artifacts"] = public_single_run_artifacts(block["artifacts"])
+                block["artifacts"] = rename_single_run_root_cause(block["artifacts"])
         return Response(
             {
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
-                    "feature_id": SINGLE_RUN_FEATURE_ID
-                    if is_single_run(state)
-                    else AUTOFIX_FEATURE_ID,
+                    "feature_id": SINGLE_RUN_FEATURE_ID if single_run else AUTOFIX_FEATURE_ID,
                     "status": state.status,
                     "failure_reason": state.failure_reason,
                     "blocks": blocks,

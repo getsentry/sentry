@@ -35,7 +35,7 @@ def single_run_root_cause_payload(state: SeerRunState) -> dict[str, Any] | None:
     }
 
 
-def public_single_run_artifacts(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def rename_single_run_root_cause(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [
         {**artifact, "key": "root_cause"}
         if artifact["key"] == SINGLE_RUN_ROOT_CAUSE_KEY
