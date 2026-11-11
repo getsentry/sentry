@@ -733,6 +733,13 @@ class SeerWorkflowServiceAccountTest(TestCase):
         assert account.scope_list == ["project:read"]
         assert account.all_projects
 
+        with self.workflow.update_config() as update:
+            assert not update.set_service_account_grant(grant)
+            assert CellOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
+            ).exists()
+        assert self.workflow.get_config().version == version + 1
+
     def test_resolution_uses_the_account_id_not_the_replica_id(self) -> None:
         with outbox_runner():
             unrelated = Factories.create_service_account(self.organization, name="unrelated")
