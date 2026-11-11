@@ -30,8 +30,8 @@ from sentry.notebooks.endpoints.validators import (
     NotebookDeleteValidator,
     NotebookUpdateValidator,
 )
-from sentry.notebooks.models import Notebook, NotebookStatus
-from sentry.notebooks.services.producer import archive_notebook, update_notebook
+from sentry.notebooks.models import Notebook
+from sentry.notebooks.services.producer import archive_notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -108,12 +108,14 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         membership.
         """
         require_notebook_writer(request, notebook)
-        validator = NotebookUpdateValidator(data=request.data)
+        validator = NotebookUpdateValidator(
+            instance=notebook,
+            data=request.data,
+            context={"actor": request_creator_actor(request)},
+        )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-        values = dict(validator.validated_data)
-        expected_version = values.pop("notebook_version")
-        requested_project_ids = values.pop("project_ids", None)
+        requested_project_ids = validator.validated_data.get("project_ids")
         if requested_project_ids is not None and not set(requested_project_ids).issubset(
             organization_project_ids(organization)
         ):
@@ -123,45 +125,8 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             )
         if requested_project_ids is not None:
             require_project_access(request, requested_project_ids)
-        restoring_only = (
-            values == {"status": NotebookStatus.ACTIVE} and requested_project_ids is None
-        )
-        if notebook.status == NotebookStatus.ARCHIVED and not restoring_only:
-            return Response(
-                {"detail": "Archived investigations are read-only."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if values.get("status") == NotebookStatus.ARCHIVED:
-            if set(values) != {"status"} or requested_project_ids is not None:
-                return Response(
-                    {"detail": "Archiving cannot be combined with other changes."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            try:
-                archived = archive_notebook(
-                    notebook=notebook,
-                    expected_version=expected_version,
-                    actor=request_creator_actor(request),
-                )
-            except Exception as error:
-                response = service_error(error)
-                if response is not None:
-                    return response
-                raise
-            return Response(
-                serialize(
-                    archived,
-                    request.user,
-                    NotebookDetailsSerializer(access=request.access),
-                )
-            )
         try:
-            updated = update_notebook(
-                notebook=notebook,
-                expected_version=expected_version,
-                fields=values,
-                project_ids=requested_project_ids,
-            )
+            updated = validator.save()
         except Exception as error:
             response = service_error(error)
             if response is not None:
