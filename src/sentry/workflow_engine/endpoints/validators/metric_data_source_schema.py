@@ -67,9 +67,7 @@ EAP_MONITOR_FUNCTIONS = {
     "spans": _alertable_eap_functions(SPAN_DEFINITIONS),
     "logs": _alertable_eap_functions(OURLOG_DEFINITIONS),
 }
-_SPANS_AGGREGATE_PATTERN = _function_call_pattern(
-    EAP_MONITOR_FUNCTIONS["spans"], allow_equations=True
-)
+_SPANS_AGGREGATE_PATTERN = _function_call_pattern(EAP_MONITOR_FUNCTIONS["spans"])
 _LOGS_AGGREGATE_PATTERN = _function_call_pattern(EAP_MONITOR_FUNCTIONS["logs"])
 _TRACE_METRICS_AGGREGATE_PATTERN = _function_call_pattern(
     sorted(_defined_functions(TRACE_METRICS_DEFINITIONS)), allow_equations=True
