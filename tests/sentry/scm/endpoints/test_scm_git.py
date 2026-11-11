@@ -201,7 +201,11 @@ class ScmGitEndpointTest(TestCase):
         assert b"".join(responses.calls[0].request.body) == body
 
     @responses.activate
-    def test_refuses_a_push_to_a_branch_outside_the_grant(self) -> None:
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+    @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
+    def test_refuses_a_push_to_a_branch_outside_the_grant(
+        self, mock_record_count: mock.MagicMock, mock_sdk: mock.MagicMock
+    ) -> None:
         grant = sign(self.organization.id, push_rules(self.repo.id))
 
         response = self.git(
@@ -215,8 +219,22 @@ class ScmGitEndpointTest(TestCase):
 
         # git reads the refusal from the status report it asked for, as a rejected ref.
         assert response.status_code == 200
-        assert b"refs/heads/main" in b"".join(response)
+        report = b"".join(response)
+        assert b"ng refs/heads/main the git grant does not cover this branch\n" in report
         assert len(responses.calls) == 0
+        # The only refusal answered with a 200, so check it's still counted and reported.
+        mock_record_count.assert_called_once_with(
+            "sentry.scm.git.request.failed",
+            1,
+            {"code": "git_operation_not_granted", "referrer": REFERRER},
+        )
+        self.assert_reported_message(
+            mock_sdk,
+            "The git grant does not allow this push: refs/heads/main "
+            "(the git grant does not cover this branch).",
+        )
+        scope = mock_sdk.new_scope.return_value.__enter__.return_value
+        assert scope.fingerprint == ["scm-git", "git_operation_not_granted"]
 
     @responses.activate
     @override_settings(SENTRY_BACKEND_APM_SAMPLING=0)
