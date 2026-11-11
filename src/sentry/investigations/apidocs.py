@@ -7,14 +7,14 @@ They are excluded from the public schema and its downstream publishing workflow.
 
 from typing import Any
 
-from sentry.notebooks.endpoints.base import OrganizationInvestigationsBaseEndpoint
+from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint
 
 
 def investigation_endpoints(endpoints: Any) -> Any:
     return [
         endpoint
         for endpoint in endpoints
-        if issubclass(endpoint[3].view_class, OrganizationInvestigationsBaseEndpoint)
+        if issubclass(endpoint[3].view_class, OrganizationNotebooksBaseEndpoint)
     ]
 
 

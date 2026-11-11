@@ -28,8 +28,8 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
     ],
     unmatched: [],
     summary: {
-      start: '2026-01-01T00:00:00+00:00',
-      end: '2026-01-02T00:00:00+00:00',
+      start: '2026-01-01',
+      end: '2026-01-01',
       legacy_count: 1,
       platform_count: 1,
       over_threshold_count: 1,
@@ -78,8 +78,8 @@ describe('InvoiceComparison', () => {
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
       expect.objectContaining({
-        start: '2026-11-09T00:00:00.000Z',
-        end: '2026-11-10T00:00:00.000Z',
+        start: '2026-11-09',
+        end: '2026-11-09',
       })
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
@@ -101,8 +101,8 @@ describe('InvoiceComparison', () => {
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
       expect.objectContaining({
-        start: '2026-11-09T00:00:00.000Z',
-        end: '2026-11-10T00:00:00.000Z',
+        start: '2026-11-09',
+        end: '2026-11-09',
       })
     );
   });
@@ -140,8 +140,8 @@ describe('InvoiceComparison', () => {
       expect.objectContaining({
         host: US_URL,
         query: expect.objectContaining({
-          start: '2026-01-01T00:00:00.000Z',
-          end: '2026-01-04T00:00:00.000Z',
+          start: '2026-01-01',
+          end: '2026-01-03',
         }),
       })
     );

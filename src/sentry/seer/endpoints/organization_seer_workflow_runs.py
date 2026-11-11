@@ -24,7 +24,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
@@ -258,7 +258,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
                 runs,
                 # TODO(telkins): Align automation and investigation access checks instead of
                 # returning empty outputs for otherwise visible runs.
-                include_investigations=has_investigations_access(organization, actor=request.user),
+                include_investigations=has_notebooks_access(organization, actor=request.user),
             ),
         )
 
