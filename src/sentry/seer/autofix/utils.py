@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal, NotRequired, TypedDict
@@ -23,6 +23,7 @@ from sentry.constants import (
 )
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
     get_sorted_code_mapping_configs,
 )
 from sentry.models.group import Group
@@ -58,6 +59,12 @@ from sentry.seer.models.project_repository import (
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils.cache import cache
+from sentry.utils.event_frames import (
+    EventFrame,
+    find_stack_frames,
+    get_sdk_name,
+    try_munge_frame_path,
+)
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -555,6 +562,7 @@ def build_seer_repo_definition(
 
 # Automatic links only fill a project up to this many repos. Links a user made are never cut.
 MAX_SEER_REPOS_PER_PROJECT = 8
+EVENT_MATCHED_REPOS_CACHE_TTL_SECONDS = 300
 USER_CREATED_LINK_PRIORITY = SOURCE_PRIORITY[ProjectRepositorySource.MANUAL]
 
 
@@ -565,20 +573,121 @@ def _get_link_priority(project_repo: ProjectRepository) -> int:
     return SOURCE_PRIORITY.get(ProjectRepositorySource(project_repo.source), 0)
 
 
+def get_event_matched_project_repo_ids(group: Group) -> set[int]:
+    """Linked repos of the group's project whose code mapping matches an in-app frame of its event."""
+    organization = group.project.organization
+    if not is_seer_token_based_billing_onboarding_enabled(organization):
+        return set()
+    project_repos = get_token_based_billing_project_repos(organization, [group.project_id])
+    # The order only matters when the limit can cut a repo, and loading the event hits Snuba.
+    if project_repos.count() <= MAX_SEER_REPOS_PER_PROJECT:
+        return set()
+
+    cache_key = f"seer:event-matched-project-repo-ids:{group.id}"
+    try:
+        cached_ids = cache.get(cache_key)
+        if cached_ids is not None:
+            return set(cached_ids)
+        matched_ids = _match_event_frames_to_project_repos(group, project_repos)
+        cache.set(cache_key, list(matched_ids), timeout=EVENT_MATCHED_REPOS_CACHE_TTL_SECONDS)
+        return matched_ids
+    except Exception:
+        sentry_sdk.capture_exception()
+        return set()
+
+
+def _match_event_frames_to_project_repos(
+    group: Group, project_repos: Iterable[ProjectRepository]
+) -> set[int]:
+    event = group.get_recommended_event_for_environments() or group.get_latest_event()
+    if event is None:
+        return set()
+    sdk_name = get_sdk_name(event.data)
+
+    # Recursion repeats frames, so match each distinct one once.
+    distinct_frames = {
+        EventFrame(
+            abs_path=frame.get("abs_path"),
+            filename=frame.get("filename"),
+            package=frame.get("package"),
+            module=frame.get("module"),
+        )
+        for frame in find_stack_frames(event.data)
+        if frame and frame.get("in_app")
+    }
+    frames_by_paths: dict[tuple[str, ...], EventFrame] = {}
+    for frame in distinct_frames:
+        stacktrace_path = (
+            try_munge_frame_path(frame=frame, platform=event.platform, sdk_name=sdk_name)
+            or frame.filename
+        )
+        paths = tuple(path for path in (stacktrace_path, frame.abs_path) if path)
+        if paths:
+            frames_by_paths.setdefault(paths, frame)
+
+    # Most specific mappings first, so the first match for a frame is its best one.
+    code_mappings = sorted(
+        (
+            (project_repo.id, code_mapping)
+            for project_repo in project_repos
+            for code_mapping in project_repo.repositoryprojectpathconfig_set.all()
+        ),
+        key=lambda item: -len(item[1].stack_root),
+    )
+
+    matched_ids: set[int] = set()
+    for paths, frame in frames_by_paths.items():
+        best_root_len = -1
+        best_ids: set[int] = set()
+        for project_repo_id, code_mapping in code_mappings:
+            stack_root = code_mapping.stack_root
+            if len(stack_root) < best_root_len or len(best_ids) > 1:
+                break
+            # A cheap prefix check keeps the full conversion off the mappings that can't match.
+            if not any(path.startswith(stack_root) for path in paths):
+                continue
+            if (
+                convert_stacktrace_frame_path_to_source_path(
+                    frame=frame,
+                    code_mapping=code_mapping,
+                    platform=event.platform,
+                    sdk_name=sdk_name,
+                )
+                is None
+            ):
+                continue
+            best_root_len = len(stack_root)
+            best_ids.add(project_repo_id)
+        # If several repos tie (say, many with an empty stack_root), we can't tell which one
+        # the frame belongs to, so it counts for none.
+        if len(best_ids) == 1:
+            matched_ids |= best_ids
+    return matched_ids
+
+
 def _get_repo_definitions_by_project(
-    organization: Organization, project_ids: Sequence[int], *, limit_repos: bool = False
+    organization: Organization,
+    project_ids: Sequence[int],
+    *,
+    limit_repos: bool = False,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> dict[int, list[SeerRepoDefinition]]:
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
         project_repos = sorted(
             get_token_based_billing_project_repos(organization, project_ids),
-            key=lambda project_repo: (-_get_link_priority(project_repo), project_repo.id),
+            key=lambda project_repo: (
+                project_repo.id not in priority_project_repo_ids,
+                -_get_link_priority(project_repo),
+                project_repo.id,
+            ),
         )
         for project_repo in project_repos:
             repo_defs = repo_definitions_by_project[project_repo.project_id]
             if (
                 limit_repos
                 and len(repo_defs) >= MAX_SEER_REPOS_PER_PROJECT
+                and project_repo.id not in priority_project_repo_ids
                 and _get_link_priority(project_repo) < USER_CREATED_LINK_PRIORITY
             ):
                 continue
@@ -626,11 +735,17 @@ def get_automation_handoff(
 
 
 def read_preference_from_sentry_db(
-    project: Project, *, limit_repos: bool = False
+    project: Project,
+    *,
+    limit_repos: bool = False,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
     repo_definitions = _get_repo_definitions_by_project(
-        project.organization, [project.id], limit_repos=limit_repos
+        project.organization,
+        [project.id],
+        limit_repos=limit_repos,
+        priority_project_repo_ids=priority_project_repo_ids,
     ).get(project.id, [])
     return SeerProjectPreference(
         organization_id=project.organization_id,
@@ -643,7 +758,11 @@ def read_preference_from_sentry_db(
 
 
 def bulk_read_preferences_from_sentry_db(
-    organization_id: int, project_ids: list[int], *, limit_repos: bool = False
+    organization_id: int,
+    project_ids: list[int],
+    *,
+    limit_repos: bool = False,
+    priority_project_repo_ids: Collection[int] = (),
 ) -> dict[int, SeerProjectPreference]:
     """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
@@ -656,7 +775,10 @@ def bulk_read_preferences_from_sentry_db(
     organization = Organization.objects.get_from_cache(id=organization_id)
 
     repo_definitions_by_project = _get_repo_definitions_by_project(
-        organization, [project.id for project in projects], limit_repos=limit_repos
+        organization,
+        [project.id for project in projects],
+        limit_repos=limit_repos,
+        priority_project_repo_ids=priority_project_repo_ids,
     )
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
