@@ -145,7 +145,9 @@ export function NewWelcomeUI(props: StepProps) {
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
-        title: t("Code breaks.\nWe'll help you fix it faster"),
+        title: showAgentSetup
+          ? t('Ship happens.')
+          : t("Code breaks.\nWe'll help you fix it faster"),
         description: t('Monitor, debug, and fix your code, all in one place.'),
       };
 
@@ -176,20 +178,30 @@ export function NewWelcomeUI(props: StepProps) {
     <MotionContainer
       width="100%"
       margin="0 auto"
-      maxWidth={SCM_STEP_CONTENT_WIDTH}
+      maxWidth={showAgentSetup ? '600px' : SCM_STEP_CONTENT_WIDTH}
       position="relative"
     >
       <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
-            <Stack gap="lg" paddingBottom="xl">
+            <Stack gap="md" paddingBottom={showAgentSetup ? '2xl' : 'xl'}>
               <MotionContainer {...ONBOARDING_ENTER}>
-                <Heading as="h2" size="3xl" align="center" wrap="pre-line">
+                <Heading
+                  as="h2"
+                  size={showAgentSetup ? '4xl' : '3xl'}
+                  align="center"
+                  wrap="pre-line"
+                >
                   {scmHeading.title}
                 </Heading>
               </MotionContainer>
               <MotionContainer {...ONBOARDING_ENTER}>
-                <Text align="center" variant="muted" size="lg" density="comfortable">
+                <Text
+                  align="center"
+                  variant={showAgentSetup ? 'secondary' : 'muted'}
+                  size={showAgentSetup ? 'xl' : 'lg'}
+                  density="comfortable"
+                >
                   {scmHeading.description}
                 </Text>
               </MotionContainer>
