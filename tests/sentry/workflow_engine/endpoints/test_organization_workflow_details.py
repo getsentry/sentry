@@ -200,6 +200,25 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         condition.refresh_from_db()
         assert condition.type == Condition.FIRST_SEEN_EVENT
 
+    def test_update_cannot_remove_internal_action_filter(self) -> None:
+        group = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=group, type=Condition.ISSUE_OCCURRENCES, comparison={"value": 1}
+        )
+        link = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=group
+        )
+        handler = condition_handler_registry.get(Condition.ISSUE_OCCURRENCES)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                status_code=400,
+                raw_data={**self.valid_workflow, "actionFilters": []},
+            )
+        assert "Internal condition groups" in str(response.data)
+        assert self.workflow.workflowdataconditiongroup_set.filter(id=link.id).exists()
+
     def setUp(self) -> None:
         super().setUp()
         self.valid_workflow = {
