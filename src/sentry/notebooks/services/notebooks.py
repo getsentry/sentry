@@ -171,7 +171,8 @@ def get_or_create_source_notebook(
             source_key=source_key,
         ).aggregate(latest=Max("source_revision"))["latest"]
         try:
-            return create((latest_revision or 0) + 1), True
+            with transaction.atomic(using=router.db_for_write(Notebook)):
+                return create((latest_revision or 0) + 1), True
         except IntegrityError:
             if attempt == 2:
                 active = Notebook.objects.filter(

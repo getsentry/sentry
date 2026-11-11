@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, close_old_connections, router, transaction
 
 from sentry.api.helpers.creator import CreatorReference
 from sentry.notebooks.models import Notebook, NotebookProject, NotebookSourceType, NotebookStatus
@@ -15,7 +15,8 @@ from sentry.notebooks.services.notebooks import (
     lock_notebook,
     update_notebook_row,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 def user_creator(user_id: int) -> CreatorReference:
@@ -217,23 +218,30 @@ class GetOrCreateSourceNotebookTest(TestCase):
         assert created is True
         assert notebook.source_revision == 1
 
-    def test_a_concurrent_create_wins(self) -> None:
-        winners: list[Notebook] = []
+    def test_retries_after_a_create_that_fails_without_its_own_savepoint(self) -> None:
+        self.create_revision(1)
+        Notebook.objects.filter(source_key=self.source_key).update(status=NotebookStatus.ARCHIVED)
+        revisions: list[int] = []
 
         def create(revision: int) -> Notebook:
-            # Another launch commits its revision between our lookup and our insert.
-            if not winners:
-                winners.append(self.create_revision(revision, title="Winner"))
-            return self.create_revision(revision, title="Loser")
+            revisions.append(revision)
+            # The first insert reuses the archived revision and conflicts.
+            return Notebook.objects.create(
+                organization=self.organization,
+                title="Bare",
+                source_type="example_issue",
+                source_key=self.source_key,
+                source={"issueId": 1},
+                source_revision=revision if len(revisions) > 1 else 1,
+            )
 
         notebook, created = get_or_create_source_notebook(
             organization=self.organization, source_key=self.source_key, create=create
         )
 
-        assert (notebook, created) == (winners[0], False)
-        assert list(
-            Notebook.objects.filter(source_key=self.source_key).values_list("title", flat=True)
-        ) == ["Winner"]
+        assert created is True
+        assert notebook.source_revision == 2
+        assert revisions == [2, 2]
 
     def test_raises_when_every_attempt_conflicts_without_an_active_notebook(self) -> None:
         def create(revision: int) -> Notebook:
@@ -246,3 +254,48 @@ class GetOrCreateSourceNotebookTest(TestCase):
             get_or_create_source_notebook(
                 organization=self.organization, source_key=self.source_key, create=create
             )
+
+
+class ConcurrentSourceNotebookTest(TransactionTestCase):
+    source_key = "example_issue:1"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+
+    def create_revision(self, revision: int, title: str) -> Notebook:
+        return Notebook.objects.create(
+            organization=self.org,
+            title=title,
+            source_type="example_issue",
+            source_key=self.source_key,
+            source={"issueId": 1},
+            source_revision=revision,
+        )
+
+    def test_a_concurrent_create_wins_inside_an_outer_transaction(self) -> None:
+        winners: list[Notebook] = []
+
+        def commit_winner(revision: int) -> None:
+            close_old_connections()
+            try:
+                winners.append(self.create_revision(revision, "Winner"))
+            finally:
+                close_old_connections()
+
+        def create(revision: int) -> Notebook:
+            # Another launch commits its revision between our lookup and our insert.
+            if not winners:
+                with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+                    executor.submit(commit_winner, revision).result(timeout=15)
+            return self.create_revision(revision, "Loser")
+
+        with transaction.atomic(using=router.db_for_write(Notebook)):
+            notebook, created = get_or_create_source_notebook(
+                organization=self.org, source_key=self.source_key, create=create
+            )
+
+        assert (notebook, created) == (winners[0], False)
+        assert list(
+            Notebook.objects.filter(source_key=self.source_key).values_list("title", flat=True)
+        ) == ["Winner"]
