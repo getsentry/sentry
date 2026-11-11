@@ -1,7 +1,9 @@
 import {
-  MetricDetectorFixture,
-  SnubaQueryDataSourceFixture,
-} from 'sentry-fixture/detectors';
+  ActionFilterFixture,
+  ActionFixture,
+  AutomationFixture,
+} from 'sentry-fixture/automations';
+import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
@@ -9,6 +11,7 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
 
 import AutomationConfiguration from './detail/configuration';
 import AutomationDetail from './detail';
@@ -46,6 +49,32 @@ describe('MetricAutomationForm', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      body: [
+        AutomationFixture({
+          detectorIds: ['1'],
+          actionFilters: [
+            ActionFilterFixture({
+              actions: [
+                ActionFixture({
+                  type: ActionType.SLACK,
+                  config: {
+                    targetType: ActionTarget.SPECIFIC,
+                    targetIdentifier: 'C123',
+                    targetDisplay: '#checkout-alerts',
+                  },
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'checkout-api'}),
       ProjectFixture({id: '2', slug: 'payments-worker'}),
@@ -81,8 +110,12 @@ describe('MetricAutomationForm', () => {
     const name = screen.getByRole('textbox', {name: 'Name'});
     await userEvent.clear(name);
     await userEvent.type(name, 'Checkout errors');
-    await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
-    await userEvent.click(await screen.findByText('Checkout error rate · checkout-api'));
+    await userEvent.click(screen.getByRole('button', {name: 'Connect monitors'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Connect Checkout error rate'})
+    );
+    expect(await screen.findAllByText('#checkout-alerts')).not.toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(
       screen.getByRole('textbox', {name: 'Service account projects'})
     );
@@ -136,7 +169,7 @@ describe('MetricAutomationForm', () => {
       organization,
     });
 
-    await screen.findByRole('link', {name: 'Checkout error rate'});
+    await screen.findByText('Checkout error rate');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     await waitFor(() =>
@@ -166,7 +199,7 @@ describe('MetricAutomationForm', () => {
       }
     );
 
-    await screen.findByRole('link', {name: 'Checkout error rate'});
+    await screen.findByText('Checkout error rate');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     await waitFor(() =>
@@ -205,8 +238,11 @@ describe('MetricAutomationForm', () => {
     await userEvent.click(
       await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Connected monitors'}));
-    await userEvent.click(await screen.findByText('Payment failures · checkout-api'));
+    await userEvent.click(screen.getByRole('button', {name: 'Connect monitors'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Connect Payment failures'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
@@ -219,29 +255,6 @@ describe('MetricAutomationForm', () => {
     expectNoServiceAccountRequests();
   });
 
-  it('lists environments for each connected monitor project', async () => {
-    const productionSource = SnubaQueryDataSourceFixture();
-    productionSource.queryObj.snubaQuery.environment = 'production';
-    const stagingSource = SnubaQueryDataSourceFixture();
-    stagingSource.queryObj.snubaQuery.environment = 'staging';
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/`,
-      body: [
-        MetricDetectorFixture({id: '1', dataSources: [productionSource]}),
-        MetricDetectorFixture({id: '2', projectId: '2', dataSources: [stagingSource]}),
-        MetricDetectorFixture({id: '3'}),
-      ],
-    });
-    render(
-      <MetricAutomationForm mode="edit" config={{...config, monitorIds: [1, 2, 3]}} />,
-      {organization}
-    );
-
-    expect(await screen.findByText('staging')).toBeInTheDocument();
-    expect(screen.getByText('All environments')).toBeInTheDocument();
-    expect(screen.queryByText('production')).not.toBeInTheDocument();
-  });
-
   it('shows the API error when saving fails', async () => {
     MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
@@ -251,7 +264,7 @@ describe('MetricAutomationForm', () => {
     });
     render(<MetricAutomationForm mode="edit" config={config} />, {organization});
 
-    await screen.findByRole('link', {name: 'Checkout error rate'});
+    await screen.findByText('Checkout error rate');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     expect(

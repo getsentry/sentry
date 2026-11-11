@@ -5,6 +5,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.utils import timezone
 from pydantic import BaseModel
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -308,11 +312,16 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = self._mock_run_response(run_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Query", on_page_context="some context").seer_run_state_id
+        run_id = client.start_run(
+            "Query",
+            on_page_context="some context",
+            billing_feature=SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+        ).seer_run_state_id
 
         assert run_id == 789
         call_args = mock_post.call_args
         assert call_args is not None
+        assert call_args.args[0]["billing_feature"] == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
@@ -1785,7 +1794,7 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
-    def test_feature_run_enqueues_proxy_headers(
+    def test_feature_run_enqueues_proxy_headers_and_billing_feature(
         self, mock_request: MagicMock, _mock_access: MagicMock
     ) -> None:
         proxy_headers = {"X-Viewer-Context": "signed-viewer-context"}
@@ -1797,12 +1806,16 @@ class TestStartFeatureRun(TestCase):
             flush=False,
             referrer="autofix",
             proxy_headers=proxy_headers,
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
         )
 
         mock_request.assert_not_called()
         outbox = self._outbox_for(run)
         assert outbox is not None and outbox.payload is not None
         assert outbox.payload["body"]["proxy_headers"] == proxy_headers
+        assert (
+            outbox.payload["body"]["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
