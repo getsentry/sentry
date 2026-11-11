@@ -20,7 +20,6 @@ from sentry.investigations.services.orchestration import (
     rebuild_orchestration_source,
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services.notebooks import InvestigationValidationError
@@ -60,7 +59,6 @@ class BreachedMetricInvestigationTestCase(TestCase):
             project=self.project, subscription_type="incidents", snuba_query=self.snuba_query
         )
         condition_group = self.create_data_condition_group(organization=self.organization)
-        self.condition_group = condition_group
         self.create_data_condition(
             condition_group=condition_group,
             type=Condition.GREATER,
@@ -167,59 +165,6 @@ class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
         assert rebuilt["seed"]["sentrySource"]["snapshot"]["monitor"] == monitor
         unchanged = set(started) - {"monitor", "seed"}
         assert {key: rebuilt[key] for key in unchanged} == {key: started[key] for key in unchanged}
-
-    def add_warning_threshold(self) -> None:
-        self.create_data_condition(
-            condition_group=self.condition_group,
-            type=Condition.GREATER,
-            comparison=200,
-            condition_result=DetectorPriorityLevel.MEDIUM,
-        )
-        self.create_data_condition(
-            condition_group=self.condition_group,
-            type=Condition.LESS_OR_EQUAL,
-            comparison=200,
-            condition_result=DetectorPriorityLevel.OK,
-        )
-
-    def record_priority(
-        self, type: OpenPeriodActivityType, priority: DetectorPriorityLevel
-    ) -> None:
-        GroupOpenPeriodActivity.objects.create(
-            group_open_period=self.open_period, type=type, value=priority
-        )
-
-    def test_threshold_is_the_highest_breached_condition(self) -> None:
-        self.add_warning_threshold()
-        self.record_priority(OpenPeriodActivityType.OPENED, DetectorPriorityLevel.MEDIUM)
-        self.record_priority(OpenPeriodActivityType.STATUS_CHANGE, DetectorPriorityLevel.HIGH)
-
-        rebuilt = rebuild_orchestration_source(self.investigation)
-
-        assert rebuilt is not None
-        breach = {
-            "priority": "high",
-            "conditions": [
-                {
-                    "type": Condition.GREATER,
-                    "comparison": 500,
-                    "result": DetectorPriorityLevel.HIGH,
-                }
-            ],
-        }
-        assert rebuilt["breach"] == breach
-        assert rebuilt["seed"]["sentrySource"]["snapshot"]["breach"] == breach
-        assert rebuilt["threshold"] == 500
-
-    def test_threshold_is_the_warning_when_it_never_went_critical(self) -> None:
-        self.add_warning_threshold()
-        self.record_priority(OpenPeriodActivityType.OPENED, DetectorPriorityLevel.MEDIUM)
-
-        rebuilt = rebuild_orchestration_source(self.investigation)
-
-        assert rebuilt is not None
-        assert rebuilt["breach"]["priority"] == "medium"
-        assert rebuilt["threshold"] == 200
 
     def test_is_none_once_the_monitor_is_gone(self) -> None:
         Detector.objects.filter(id=self.detector.id).update(status=ObjectStatus.PENDING_DELETION)

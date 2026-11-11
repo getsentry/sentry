@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Iterable
 
-from django.db.models import Max
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -15,7 +14,6 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRule
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.organization import Organization
 from sentry.notebooks.services.notebooks import (
     InvestigationSourceNotFound,
@@ -23,7 +21,6 @@ from sentry.notebooks.services.notebooks import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
-from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import DataCondition, DataSourceDetector, DetectorGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -105,20 +102,6 @@ def _condition_snapshot(
     return snapshot
 
 
-def _breach(conditions: list[dict[str, Any]], priority: int | None) -> dict[str, Any] | None:
-    """The highest priority the open period reached, and the monitor conditions at that priority."""
-    if priority is None:
-        return None
-    try:
-        level = PriorityLevel(priority)
-    except ValueError:
-        return None
-    return {
-        "priority": level.to_str(),
-        "conditions": [condition for condition in conditions if condition["result"] == level],
-    }
-
-
 def _analysis_window(open_period: GroupOpenPeriod, now: datetime) -> dict[str, str]:
     end = open_period.date_ended or now
     breach_start = max(open_period.date_started, end - MAX_BREACH_WINDOW)
@@ -164,17 +147,6 @@ def resolve_breached_metric_sources(
             group_id__in=groups,
         ).select_related("group")
     }
-    breach_priorities: dict[int, int] = dict(
-        GroupOpenPeriodActivity.objects.filter(
-            group_open_period_id__in=[period.id for period in open_periods.values()],
-            type__in=[OpenPeriodActivityType.OPENED, OpenPeriodActivityType.STATUS_CHANGE],
-            value__isnull=False,
-        )
-        .order_by()
-        .values("group_open_period_id")
-        .annotate(priority=Max("value"))
-        .values_list("group_open_period_id", "priority")
-    )
     detector_groups = {
         link.group_id: link
         for link in DetectorGroup.objects.filter(
@@ -278,7 +250,6 @@ def resolve_breached_metric_sources(
                     snuba_query.environment.name if snuba_query.environment is not None else None
                 ),
             },
-            "breach": _breach(conditions, breach_priorities.get(open_period.id, group.priority)),
             "project": {"id": str(group.project_id), "slug": group.project.slug},
             "analysisWindow": _analysis_window(open_period, current_time),
         }
