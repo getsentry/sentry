@@ -1218,7 +1218,10 @@ describe('ProjectFilters', () => {
       within(dialog).getByRole('button', {name: 'Edit operator for filter: release'})
     );
     const names = screen.getAllByRole('option').map(option => option.textContent);
-    expect(names.slice(0, 6)).toEqual(['is', 'is not', '>=', '<=', '>', '<']);
+    expect(names.slice(0, 5)).toEqual(['is', '>=', '<=', '>', '<']);
+    // The API has no "is not" for text, so the menu only offers the other negations.
+    expect(names).not.toContain('is not');
+    expect(names).toContain('does not contain');
     await userEvent.click(screen.getByRole('option', {name: '<'}));
     expect(within(dialog).getByRole('row', {name: 'release:<1.0'})).toBeInTheDocument();
 
