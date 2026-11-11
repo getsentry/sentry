@@ -187,9 +187,6 @@ def main(context: dict[str, str]) -> int:
             cwd=reporoot,
         )
 
-    # Left behind by tools/fast_editable.py, which uv's editable install replaced.
-    shutil.rmtree(f"{reporoot}/src/sentry.egg-info", ignore_errors=True)
-
     if not shutil.which("uv"):
         print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
         return 1
@@ -263,6 +260,9 @@ def main(context: dict[str, str]) -> int:
     # pnpm and uv don't depend on each other, so install both at once.
     if not run_procs(reporoot, venv_dir, tuple(dependency_procs), verbose):
         return 1
+    # Left behind by tools/fast_editable.py. Removed only after uv sync, so uv still
+    # sees and uninstalls the old egg-link install.
+    shutil.rmtree(f"{reporoot}/src/sentry.egg-info", ignore_errors=True)
 
     # Worktrees share the main checkout's `.git/hooks` (`.git` is a file), so installing
     # from a worktree would point the hooks at that worktree's venv.
