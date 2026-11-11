@@ -165,21 +165,36 @@ def test_markdown_renders_a_single_run_root_cause_and_its_code_changes() -> None
     assert "stale diff" not in out
 
 
-def test_markdown_caps_a_single_huge_diff() -> None:
+def _patch(path: str, diff: str, code_url: str | None = None) -> dict[str, Any]:
+    return {
+        "repo_name": "r",
+        "patch": {"path": path, "type": "M", "added": 1, "removed": 0},
+        "diff": diff,
+        "code_url": code_url,
+    }
+
+
+def test_markdown_links_a_diff_too_large_to_show() -> None:
     data = _autofix_response(
-        blocks=[
-            {
-                "merged_file_patches": [
-                    {
-                        "repo_name": "r",
-                        "patch": {"path": "a.py", "type": "M", "added": 1, "removed": 0},
-                        "diff": "+" * 50_000,
-                    }
-                ]
-            }
-        ]
+        blocks=[{"merged_file_patches": [_patch("a.py", "+x\n" * 4_000, "https://code/a.py")]}],
+        repo_pr_states={},
     )
-    assert len(format_autofix(data)) < 25_000
+    out = format_autofix(data)
+    assert "r: a.py (+1 -0)" in out
+    assert "Diff not shown (4001 lines). See the full change: https://code/a.py" in out
+    assert "+x" not in out
+
+
+def test_markdown_lists_every_file_once_the_diff_budget_runs_out() -> None:
+    patches = [_patch(f"f{i}.py", "+" * 7_000) for i in range(4)]
+    data = _autofix_response(
+        blocks=[{"merged_file_patches": patches}],
+        repo_pr_states={"r": {"repo_name": "r", "pr_url": "https://github.com/r/pull/1"}},
+    )
+    out = format_autofix(data)
+    assert all(f"r: f{i}.py (+1 -0)" in out for i in range(4))
+    assert out.count("+" * 7_000) == 2
+    assert "Diff not shown (1 lines). See the full change: https://github.com/r/pull/1" in out
 
 
 def test_markdown_renders_a_root_cause_returned_under_root_cause() -> None:
@@ -200,15 +215,8 @@ def test_markdown_renders_a_root_cause_returned_under_root_cause() -> None:
 
 
 def test_json_keeps_each_file_with_its_own_diff() -> None:
-    def patch(path: str, diff: str) -> dict[str, Any]:
-        return {
-            "repo_name": "r",
-            "patch": {"path": path, "type": "M", "added": 1, "removed": 0},
-            "diff": diff,
-        }
-
     data = _autofix_response(
-        blocks=[{"merged_file_patches": [patch("a.py", ""), patch("b.py", "+b")]}],
+        blocks=[{"merged_file_patches": [_patch("a.py", ""), _patch("b.py", "+b")]}],
         repo_pr_states={},
     )
     files = json.loads(format_autofix(data, "json"))["code_changes"]

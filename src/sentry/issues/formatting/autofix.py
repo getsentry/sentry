@@ -14,16 +14,17 @@ from sentry.issues.formatting.formatter import (
     Field,
     Format,
     Group,
+    Item,
     Section,
     Text,
     get_formatter,
-    truncate,
 )
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.single_run import SINGLE_RUN_ROOT_CAUSE_KEY
 
-_MAX_CODE_CHANGES_CHARS = 20_000
-_MAX_DIFF_CHARS = 5_000
+# p99 of 591 file diffs / 199 runs in Seer Autofix PRs (Nov 2026): 7.9k per file, 20.1k per run.
+_MAX_DIFF_CHARS = 8_000
+_MAX_DIFFS_CHARS = 20_000
 
 
 def _root_cause(data: Any) -> Section | None:
@@ -62,24 +63,29 @@ def _solution(data: Any) -> Section | None:
 
 
 def _code_changes(state: SeerRunState) -> Section | None:
-    groups = tuple(
-        Group(
-            items=(
-                Text(f"{repo}: {fp.patch.path} (+{fp.patch.added} -{fp.patch.removed})"),
-                *((Code(truncate(fp.diff, _MAX_DIFF_CHARS)),) if fp.diff else ()),
-            )
-        )
-        for repo, patches in state.get_diffs_by_repo().items()
-        for fp in patches
-    )
+    pr_urls = {pr.repo_name: pr.pr_url for pr in state.get_created_pull_request_states()}
+    groups: list[Group] = []
+    shown_chars = 0
+    for repo, patches in state.get_diffs_by_repo().items():
+        for fp in patches:
+            items: list[Item] = [
+                Text(f"{repo}: {fp.patch.path} (+{fp.patch.added} -{fp.patch.removed})")
+            ]
+            if fp.diff and len(fp.diff) <= min(_MAX_DIFF_CHARS, _MAX_DIFFS_CHARS - shown_chars):
+                items.append(Code(fp.diff))
+                shown_chars += len(fp.diff)
+            elif fp.diff:
+                url = pr_urls.get(repo) or fp.code_url
+                lines = fp.diff.count("\n") + 1
+                items.append(
+                    Text(f"Diff not shown ({lines} lines). See the full change: {url}")
+                    if url
+                    else Text(f"Diff not shown ({lines} lines).")
+                )
+            groups.append(Group(items=tuple(items)))
     if not groups:
         return None
-    return Section(
-        title="Code Changes",
-        groups=groups,
-        repeating=True,
-        max_group_chars=_MAX_CODE_CHANGES_CHARS,
-    )
+    return Section(title="Code Changes", groups=tuple(groups), repeating=True)
 
 
 def _pull_requests(state: SeerRunState) -> Section | None:
