@@ -243,6 +243,28 @@ describe('Commits', () => {
     );
   });
 
+  it('requests only the next page when Next is clicked from a paged URL', async () => {
+    const commitsMock = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/releases/${encodeURIComponent(
+        release.version
+      )}/commits/`,
+      body: [CommitFixture()],
+      headers: {
+        Link: '<http://127.0.0.1:8000/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <http://127.0.0.1:8000/?cursor=0:80:0>; rel="next"; results="true"; cursor="0:80:0"',
+      },
+    });
+    const {router} = renderComponent({query: {cursor: '0:40:0', project: '1'}});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    await waitFor(() => expect(commitsMock).toHaveBeenCalledTimes(2));
+    expect(router.location.query).toEqual({cursor: '0:80:0', project: '1'});
+    expect(commitsMock.mock.calls.map(([, options]) => options.query.cursor)).toEqual([
+      '0:40:0',
+      '0:80:0',
+    ]);
+  });
+
   it('should render the commits from the selected repo', async () => {
     const otherRepo = RepositoryFixture({
       id: '5',

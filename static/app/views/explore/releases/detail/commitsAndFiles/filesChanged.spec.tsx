@@ -4,7 +4,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
@@ -40,7 +40,7 @@ describe('FilesChanged', () => {
     route: '/organizations/:orgId/releases/:release/files-changed/',
   };
 
-  function renderComponent() {
+  function renderComponent({query = {}}: {query?: Record<string, string>} = {}) {
     return render(
       <ReleaseContext
         value={{
@@ -57,7 +57,13 @@ describe('FilesChanged', () => {
       </ReleaseContext>,
       {
         organization,
-        initialRouterConfig,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: `/organizations/${organization.slug}/releases/${release.version}/files-changed/`,
+            query,
+          },
+        },
       }
     );
   }
@@ -122,6 +128,28 @@ describe('FilesChanged', () => {
       await screen.findByText('static/app/components/alert.tsx')
     ).toBeInTheDocument();
     expect(screen.getByText(/1 file changed/)).toBeInTheDocument();
+  });
+
+  it('requests only the next page when Next is clicked from a paged URL', async () => {
+    const filesMock = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/releases/${encodeURIComponent(
+        release.version
+      )}/commitfiles/`,
+      body: [CommitFileFixture()],
+      headers: {
+        Link: '<http://127.0.0.1:8000/?cursor=0:0:1>; rel="previous"; results="true"; cursor="0:0:1", <http://127.0.0.1:8000/?cursor=0:80:0>; rel="next"; results="true"; cursor="0:80:0"',
+      },
+    });
+    const {router} = renderComponent({query: {cursor: '0:40:0', project: '1'}});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    await waitFor(() => expect(filesMock).toHaveBeenCalledTimes(2));
+    expect(router.location.query).toEqual({cursor: '0:80:0', project: '1'});
+    expect(filesMock.mock.calls.map(([, options]) => options.query.cursor)).toEqual([
+      '0:40:0',
+      '0:80:0',
+    ]);
   });
 
   it('should render repo picker', async () => {

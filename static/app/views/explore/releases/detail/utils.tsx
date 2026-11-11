@@ -79,7 +79,7 @@ type GetQueryProps = {
 
 export function getQuery({location}: GetQueryProps) {
   const query = {
-    ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+    ...pick(location.query, Object.values(URL_PARAM)),
     per_page: 40,
   };
 

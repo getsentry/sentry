@@ -236,9 +236,8 @@ function ReleasesDetail({
 
 function ReleasesDetailContainer() {
   const params = useParams<{release: string}>();
-  const location = useLocation();
   const organization = useOrganization();
-  const [{start, end, statsPeriod, utc}, setQueryParams] =
+  const [{start, end, statsPeriod, utc, project}, setQueryParams] =
     useQueryStates(releaseDetailParsers);
   const {release} = params;
 
@@ -277,11 +276,8 @@ function ReleasesDetailContainer() {
   }
 
   const {projects} = releaseMeta;
-  // nuqs lags the router location, which re-opens PickProjectToContinue after a pick.
-  const projectId = location.query.project;
-  const isProjectMissingInUrl = !projectId || typeof projectId !== 'string';
 
-  if (isProjectMissingInUrl) {
+  if (project.length !== 1) {
     return (
       <PickProjectToContinue
         projects={projects.map(({id, slug}: ReleaseProject) => ({

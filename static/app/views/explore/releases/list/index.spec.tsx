@@ -321,7 +321,7 @@ describe('ReleasesList', () => {
       ReturnType<OnUrlUpdateFunction>,
       Parameters<OnUrlUpdateFunction>
     >();
-    render(<ReleasesList />, {
+    const {router} = render(<ReleasesList />, {
       organization,
       onNuqsUrlUpdate,
       initialRouterConfig: {
@@ -344,12 +344,12 @@ describe('ReleasesList', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'a{enter}');
 
-    // The testing adapter re-syncs the input to the stale URL after this write.
-    await waitFor(() => expect(onNuqsUrlUpdate).toHaveBeenCalled());
-    const [{searchParams, options}] = onNuqsUrlUpdate.mock.calls[0]!;
-    expect(searchParams.get('query')).toBe('a');
-    expect(searchParams.has('cursor')).toBe(false);
-    expect(options.history).toBe('push');
+    await waitFor(() => expect(router.location.query.query).toBe('a'));
+    expect(router.location.query.cursor).toBeUndefined();
+    expect(screen.getByDisplayValue('a')).toBeInTheDocument();
+    expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
   });
 
   it('pushes the next cursor and requests the next page when Next is clicked', async () => {
