@@ -31,6 +31,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
     SeerAutofixError,
+    SeerAutofixStopped,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusion,
@@ -102,6 +103,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     sources=[
         NotificationSource.SEER_AUTOFIX_TRIGGER,
         NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_STOPPED,
         NotificationSource.SEER_AUTOFIX_SUCCESS,
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
@@ -129,6 +131,15 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         elif isinstance(data, SeerAutofixError):
             return cls._render_autofix_error(data)
+        elif isinstance(data, SeerAutofixStopped):
+            return SlackRenderable(
+                blocks=[
+                    SectionBlock(text="Seer stopped early"),
+                    SectionBlock(text=MarkdownTextObject(text=f">{data.reason}")),
+                    SectionBlock(text=MarkdownTextObject(text=f"*Next step:* {data.next_step}")),
+                ],
+                text="Seer stopped early",
+            )
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data, link_decorator)
         elif isinstance(data, SeerAgentError):

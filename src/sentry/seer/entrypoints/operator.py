@@ -51,7 +51,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -891,7 +891,7 @@ def process_autofix_updates(
 
         if (
             event_type not in SEER_EVENT_TO_ACTIVITY_TYPE
-            and event_type != SentryAppEventType.SEER_ERRORED
+            and event_type not in INTERNAL_SEER_EVENT_TYPES
         ):
             lifecycle.record_halt(halt_reason="skipped")
             return

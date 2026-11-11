@@ -24,6 +24,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixError,
+    SeerAutofixStopped,
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationStarted,
@@ -461,18 +462,36 @@ class SlackAutofixEntrypoint(
         }
 
         match event_type:
-            case SentryAppEventType.SEER_ERRORED:
+            case SentryAppEventType.SEER_ERRORED | SentryAppEventType.SEER_STOPPED:
+                stopped = event_type == SentryAppEventType.SEER_STOPPED
+                message: SeerAutofixError | SeerAutofixStopped
+                if stopped:
+                    from sentry.integrations.slack.utils.escape import escape_slack_text
+
+                    stop = event_payload["stop"]
+                    message = SeerAutofixStopped(
+                        organization_id=cache_payload["organization_id"],
+                        reason=escape_slack_text(stop["reason"]),
+                        next_step=escape_slack_text(stop["next_step"]),
+                    )
+                else:
+                    message = SeerAutofixError(
+                        organization_id=cache_payload["organization_id"],
+                        error_message=AUTOFIX_RUN_FAILED_MESSAGE,
+                    )
                 # Posted to the whole thread: the run may have been started by anyone.
                 schedule_all_thread_updates(
                     threads=cache_payload["threads"],
                     integration_id=cache_payload["integration_id"],
                     organization_id=cache_payload["organization_id"],
-                    data=SeerAutofixError(
-                        organization_id=cache_payload["organization_id"],
-                        error_message=AUTOFIX_RUN_FAILED_MESSAGE,
-                    ),
+                    data=message,
                 )
-                logger.info("seer.entrypoint.slack.autofix_error_scheduled", extra=logging_ctx)
+                logger.info(
+                    "seer.entrypoint.slack.autofix_stop_scheduled"
+                    if stopped
+                    else "seer.entrypoint.slack.autofix_error_scheduled",
+                    extra=logging_ctx,
+                )
                 metrics.incr(
                     "seer.entrypoint.slack.autofix_update_scheduled",
                     tags={
