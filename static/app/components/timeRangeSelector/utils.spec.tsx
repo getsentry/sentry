@@ -52,7 +52,11 @@ describe('parseStatsPeriod', () => {
 
 describe('getAbsoluteSummary', () => {
   it('formats offset-less UTC page filters in UTC', () => {
-    render(<>{getAbsoluteSummary('2025-01-01T01:00:00', '2025-01-02T02:00:00', true)}</>);
+    render(
+      <React.Fragment>
+        {getAbsoluteSummary('2025-01-01T01:00:00', '2025-01-02T02:00:00', true)}
+      </React.Fragment>
+    );
 
     expect(screen.getByText('Jan 1, 2025 1:00 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('Jan 2, 2025 2:00 AM UTC')).toBeInTheDocument();
