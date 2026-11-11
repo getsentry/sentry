@@ -38,6 +38,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_or_token_billed,
+    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -79,6 +80,11 @@ AGENTIC_TRIAGE_SPREAD_DURATION = timedelta(hours=1)
 
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
+]
+PER_ORG_FEATURE_NAMES = [
+    # INTERNAL handlers aren't routed through batch_has_for_organizations,
+    # so this gets checked per-org on the survivors of the batch loop.
+    "organizations:seat-based-seer-enabled",
 ]
 
 
@@ -636,9 +642,8 @@ def _get_eligible_orgs_from_batch(
     paid_eligible: list[Organization] = []
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
-        # Billing flags have INTERNAL handlers, which batch_has_for_organizations
-        # doesn't route, so they're checked per org on the batch loop's survivors.
-        if is_seer_seat_or_token_billed(org):
+        has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
+        if has_seat_based_seer or is_seer_token_based_billing_onboarding_enabled(org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)
