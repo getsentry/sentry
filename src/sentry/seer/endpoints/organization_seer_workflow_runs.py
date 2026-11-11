@@ -25,10 +25,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_notebooks_access
-from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-    SEER_CRON_WORKFLOW_STRATEGIES,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -36,21 +34,12 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
-from sentry.seer.workflows.breached_metrics import MetricBreachTrigger
+from sentry.seer.workflows.definitions import is_scheduled
+from sentry.seer.workflows.metric_alert import MetricBreachInputs
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-
-
-class WorkflowRunCreateSerializer(serializers.Serializer):
-    strategy = serializers.ChoiceField(choices=[SeerWorkflowStrategy.DUPLICATE_MONITORS])
-
-
-class WorkflowRunCreateResponse(TypedDict):
-    runId: str
 
 
 class WorkflowRunListSerializer(serializers.Serializer):
@@ -166,7 +155,6 @@ class SeerWorkflowRunsResponse(TypedDict):
 class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
-        "POST": ["org:read"],
     }
 
 
@@ -175,18 +163,9 @@ class OrganizationSeerWorkflowRunsPermission(OrganizationPermission):
 class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
     permission_classes = (OrganizationSeerWorkflowRunsPermission,)
-    enforce_rate_limit = True
-    rate_limits = RateLimitConfig(
-        limit_overrides={
-            "POST": {
-                RateLimitCategory.USER: RateLimit(limit=1, window=60),
-            },
-        }
-    )
 
     @extend_schema(
         operation_id="List Seer workflow runs",
@@ -262,22 +241,6 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             ),
         )
 
-    @extend_schema(
-        operation_id="Start a Seer workflow run",
-        request=WorkflowRunCreateSerializer,
-        responses={
-            202: inline_sentry_response_serializer(
-                "SeerWorkflowRunCreate", WorkflowRunCreateResponse
-            ),
-        },
-    )
-    def post(self, request: Request, organization: Organization) -> Response:
-        serializer = WorkflowRunCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response({"detail": serializer.errors}, status=400)
-        run = create_monitor_cleanup_run(request, organization, source="manual")
-        return Response({"runId": str(run.id)}, status=202)
-
 
 def serialize_workflow_runs(
     runs: Sequence[SeerWorkflowRun], *, include_investigations: bool
@@ -326,14 +289,14 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
 def serialize_trigger(run: SeerWorkflowRun) -> TriggerResponse | None:
     """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation."""
     strategy = getattr(run, "strategy")
-    if strategy in SEER_CRON_WORKFLOW_STRATEGIES:
+    if is_scheduled(strategy):
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(
         run.extras, "snapshot", "inputs"
     ):
         try:
             inputs = SeerWorkflowRunExtras.parse_obj(run.extras).snapshot.inputs
-            trigger = MetricBreachTrigger.parse_obj(inputs)
+            trigger = MetricBreachInputs.parse_obj(inputs)
             return {
                 "type": "monitor",
                 "detectorId": str(trigger.detector_id),

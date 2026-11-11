@@ -1,7 +1,5 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Any
-from unittest.mock import patch
 
 from django.db import connections, router
 from django.db.models import F
@@ -13,15 +11,12 @@ from openapi_schema_validator import OAS30Validator
 from sentry.apidocs.examples.seer_workflow_examples import WORKFLOW_RUNS_RESPONSE
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.db.models.fields.bounded import I64_MAX
-from sentry.hybridcloud.models.outbox import CellOutbox
-from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.notebooks.models import NotebookStatus
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
     WorkflowRunListErrorResponse,
     serialize_workflow_runs,
 )
-from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
@@ -29,13 +24,11 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
-from sentry.workflow_engine.models import Workflow
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -565,175 +558,3 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         return Factories.create_seer_workflow_run(
             self.organization, workflow_config=self.config, **kwargs
         )
-
-
-@override_settings(SENTRY_SELF_HOSTED=False)
-class OrganizationSeerMonitorCleanupTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflow-runs"
-    method = "post"
-
-    def setUp(self) -> None:
-        super().setUp()
-        rate_limit_patcher = patch(
-            "sentry.middleware.ratelimit.get_rate_limit_value", return_value=None
-        )
-        rate_limit_patcher.start()
-        self.addCleanup(rate_limit_patcher.stop)
-        self.keep = self.create_detector(project=self.project, type="metric_issue", name="Keep")
-        self.duplicate = self.create_detector(
-            project=self.project, type="metric_issue", name="Copy"
-        )
-        self.login_as(self.user)
-
-    def test_scan_stores_findings(self) -> None:
-        run = self.trigger()
-        assert run.source == "monitor_cleanup"
-        assert run.extras["source"] == "manual"
-        outbox = CellOutbox.objects.get(
-            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
-        )
-        assert outbox.payload is not None
-        assert outbox.payload["body"]["payload"] == {"response_version": 1}
-        result = self.result()
-        result["data"]["projects"][0]["scan_status"] = "partial"
-        findings = result["data"]["projects"][0]["findings"]
-        findings.extend(
-            [
-                {**findings[0], "monitor_ids": [str(self.keep.id), "999999"]},
-                {**findings[0], "alert_ids": ["999999"]},
-            ]
-        )
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", result, None
-        )
-        run.refresh_from_db()
-        assert run.run.workflow_execution.run.date_completed is not None
-        assert run.extras["status"] == "partial"
-        assert len(run.extras["results"]) == 1
-        (finding,) = run.extras["results"][0]["findings"]
-        assert finding["suggestedKeepId"] == str(self.keep.id)
-        assert finding["monitors"] == [
-            {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
-            {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
-        ]
-
-    def test_hidden_workflow_findings_are_dropped(self) -> None:
-        alert_workflow = self.create_workflow(organization=self.organization, name="Alert")
-
-        hidden_workflow = self.create_workflow(
-            organization=self.organization, name="Hidden", type=Workflow.Type.INBOX
-        )
-
-        self.create_detector_workflow(detector=self.keep, workflow=alert_workflow)
-        self.create_detector_workflow(detector=self.keep, workflow=hidden_workflow)
-
-        run = self.trigger()
-
-        result = self.result()
-
-        findings = result["data"]["projects"][0]["findings"]
-        findings[0]["alert_ids"] = [str(alert_workflow.id)]
-        findings.append({**findings[0], "alert_ids": [str(hidden_workflow.id)]})
-
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", result, None
-        )
-
-        run.refresh_from_db()
-        (finding,) = run.extras["results"][0]["findings"]
-
-        assert finding["alerts"] == [
-            {"id": str(alert_workflow.id), "name": "Alert", "enabled": alert_workflow.enabled}
-        ]
-
-    def test_invalid_results_report_safe_errors(self) -> None:
-        run = self.trigger()
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", {"schema_version": 1, "data": {}}, None
-        )
-        run.refresh_from_db()
-        assert run.extras["status"] == "failed"
-        assert not run.extras["results"]
-        assert run.extras["error"] == "Seer returned results that could not be loaded."
-
-        run = self.trigger()
-        result = self.result()
-        result["data"]["projects"][0]["project_id"] = "999999999"
-        deliver_monitor_cleanup_result(
-            self.organization.id, run.run.uuid, "completed", result, None
-        )
-        run.refresh_from_db()
-        assert run.extras["status"] == "failed"
-        assert run.extras["error"] == "Some scanned projects are no longer accessible."
-
-    def test_requires_feature_and_seer_access(self) -> None:
-        with patch("sentry.seer.monitor_cleanup.runs.ratelimits.is_limited") as limit:
-            self.get_error_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=404
-            )
-            with (
-                override_settings(SENTRY_SELF_HOSTED=True),
-                self.feature("organizations:seer-workflows-monitor-cleanup"),
-            ):
-                response = self.get_error_response(
-                    self.organization.slug, strategy="duplicate_monitors", status_code=403
-                )
-            assert response.data == {"detail": "Seer is not available for this organization."}
-            limit.assert_not_called()
-
-            limit.return_value = True
-            with self.feature("organizations:seer-workflows-monitor-cleanup"):
-                self.get_error_response(
-                    self.organization.slug, strategy="duplicate_monitors", status_code=429
-                )
-            limit.assert_called_once_with(
-                f"seer-workflow:{self.organization.id}:duplicate_monitors", limit=5, window=3600
-            )
-
-    def test_requires_organization_access(self) -> None:
-        other = self.create_organization()
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            self.get_error_response(other.slug, strategy="duplicate_monitors", status_code=403)
-
-    def test_callback_for_deleted_user_marks_run_failed(self) -> None:
-        agent_run = self.trigger()
-        agent_run.run.update(user_id=999999999)
-        deliver_monitor_cleanup_result(
-            self.organization.id, agent_run.run.uuid, "completed", self.result(), None
-        )
-        agent_run.refresh_from_db()
-        assert agent_run.extras["status"] == "failed"
-        assert agent_run.extras["error"] == "The triggering user no longer exists."
-
-    def trigger(self) -> SeerAgentRun:
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.get_success_response(
-                self.organization.slug, strategy="duplicate_monitors", status_code=202
-            )
-        return SeerAgentRun.objects.select_related("run").get(
-            run__workflow_execution__run_id=response.data["runId"]
-        )
-
-    def result(self) -> dict[str, Any]:
-        return {
-            "schema_version": 1,
-            "data": {
-                "scan_status": "complete",
-                "projects": [
-                    {
-                        "project_id": str(self.project.id),
-                        "scan_status": "complete",
-                        "monitors_scanned": 2,
-                        "summary": "Duplicate monitors found.",
-                        "findings": [
-                            {
-                                "kind": "exact_duplicate",
-                                "monitor_ids": [str(self.keep.id), str(self.duplicate.id)],
-                                "suggested_keep_id": str(self.keep.id),
-                                "reason": "Identical settings.",
-                            }
-                        ],
-                    }
-                ],
-            },
-        }
