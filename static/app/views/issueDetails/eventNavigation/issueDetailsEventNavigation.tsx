@@ -151,7 +151,7 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <LinkTabs value={currentEventKey} onActivate={onTabChange} size="xs">
+      <LinkTabs value={currentEventKey} onChange={onTabChange} size="xs">
         {({TabList}) => (
           <TabList variant="floating">
             {eventNavPresets.map(({key, label, tooltip}) => {

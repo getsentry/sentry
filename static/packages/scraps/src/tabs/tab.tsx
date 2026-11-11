@@ -218,7 +218,7 @@ export function Tab({
   tooltipProps,
 }: TabProps) {
   const {
-    rootProps: {kind, onActivate},
+    rootProps: {kind, onChange},
   } = useContext(TabsContext);
   const wrapperRef = useObjectRef(ref);
   const controlRef = useRef<HTMLElement>(null);
@@ -276,7 +276,7 @@ export function Tab({
             }
           }}
           onClick={event => {
-            onActivate?.(String(key));
+            onChange?.(String(key));
             if (!isModifiedClick(event)) {
               tabProps.onClick?.(event);
             }

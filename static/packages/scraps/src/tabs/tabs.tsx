@@ -70,18 +70,16 @@ export type LinkTabsProps<T extends TabKey = TabKey> = Omit<
   defaultValue?: never;
   disabledKeys?: Iterable<NoInfer<T>>;
   /** Reports link activation, including modified clicks, rather than selection or URL changes. */
-  onActivate?: (key: NoInfer<T>) => void;
-  onChange?: never;
+  onChange?: (key: NoInfer<T>) => void;
 };
 
 export type InternalTabsProps = BaseTabsProps & {children: ReactNode} & (
-    | ({kind: 'selection'; onActivate?: never} & SelectionProps<TabKey>)
+    | ({kind: 'selection'} & SelectionProps<TabKey>)
     | {
         kind: 'links';
         value: TabKey;
         defaultValue?: never;
-        onActivate?: (key: TabKey) => void;
-        onChange?: never;
+        onChange?: (key: TabKey) => void;
       }
   );
 

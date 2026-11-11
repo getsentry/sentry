@@ -439,7 +439,7 @@ Resize the demo to see tabs move into and out of the overflow menu.
 
 Use `LinkTabs` for navigation. Every `TabList.Item` requires `to`; regular `Tabs` items forbid it. Derive `LinkTabs.value` from the current route so navigation selects the matching tab, including links in the overflow menu.
 
-Arrow keys move focus between links. Press Enter or Space, or click a link, to navigate. Links do not have independent selection state: `value` is required, and `onChange` and `defaultValue` are not allowed. Use optional `onActivate` for activation analytics; it fires for visible and overflow link clicks, including modified clicks, but not focus or URL changes.
+Arrow keys move focus between links. Press Enter or Space, or click a link, to navigate. Links do not have independent selection state: `value` is required, and `defaultValue` is not allowed. Use optional `onChange` for activation analytics; it fires for visible and overflow link clicks, including modified clicks, but not focus or URL changes.
 
 This demo uses `nuqs` to read the `linkedTab` query parameter and build link URLs that keep navigation on this page. Resize the demo to test overflow. Ctrl-click or Command-click a link to open it in a new browser tab.
 

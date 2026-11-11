@@ -39,7 +39,7 @@ describe('Tabs', () => {
     const linked = (
       <LinkTabs
         value={value}
-        onActivate={key => {
+        onChange={key => {
           expectTypeOf(key).toEqualTypeOf<'details' | 'activity'>();
         }}
       >
@@ -81,7 +81,7 @@ describe('Tabs', () => {
     expectTypeOf(selection).not.toBeAny();
   });
 
-  it('requires an observed value without selection props for link tabs', () => {
+  it('requires an observed value and keeps link callback keys narrow', () => {
     // @ts-expect-error The URL controls selection; value is required.
     const missingValue = <LinkTabs>{() => null}</LinkTabs>;
     const defaultValue = (
@@ -91,8 +91,11 @@ describe('Tabs', () => {
       </LinkTabs>
     );
     const onChange = (
-      // @ts-expect-error Link activation is not a state selection callback.
-      <LinkTabs value="details" onChange={() => {}}>
+      <LinkTabs
+        value={'details' as 'details' | 'activity'}
+        // @ts-expect-error The callback must accept the whole inferred key union.
+        onChange={(_key: 'details') => {}}
+      >
         {() => null}
       </LinkTabs>
     );

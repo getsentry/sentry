@@ -301,7 +301,6 @@ function BaseTabList({
     size,
     keyboardActivation = 'manual',
     kind,
-    onActivate,
     ...otherRootProps
   } = rootProps;
 
@@ -357,7 +356,7 @@ function BaseTabList({
         isSelected: state.selectedKey === key,
         onAction:
           kind === 'links'
-            ? () => onActivate?.(String(key))
+            ? () => onChange?.(String(key))
             : () => state.setSelectedKey(key),
         label: (
           <Flex align="center" gap="md">
@@ -370,7 +369,7 @@ function BaseTabList({
         textValue: item.textValue,
       } satisfies MenuItemProps;
     });
-  }, [state, overflowTabs, kind, onActivate]);
+  }, [state, overflowTabs, kind, onChange]);
 
   return (
     <Container

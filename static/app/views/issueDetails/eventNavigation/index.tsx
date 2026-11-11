@@ -250,7 +250,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
             <LinkTabs
               size="sm"
               value={selectedContentTab}
-              onActivate={trackContentSelected}
+              onChange={trackContentSelected}
               {...props}
             >
               {({TabList}) => (
