@@ -18,11 +18,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
 from sentry.investigations.models import InvestigationOrchestrationStatus
-from sentry.investigations.services import (
-    create_agentic_breached_metric_investigation,
-    create_agentic_manual_investigation,
-)
-from sentry.investigations.services.breached_metrics import resolve_investigation_source
+from sentry.investigations.services import start_investigation
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
@@ -226,45 +222,15 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         project_ids = organization_project_ids(organization)
         try:
             if "source" in values:
-                source = values["source"]
-                requested_project_ids = values.get("project_ids", [])
-                if source["type"] == "metric_open_period":
-                    resolved_source = resolve_investigation_source(
-                        organization=organization,
-                        source=source,
-                        accessible_project_ids=project_ids,
-                    )
-                    requested_project_ids = sorted(
-                        set(requested_project_ids) | {resolved_source.project_id}
-                    )
-                    if not set(requested_project_ids).issubset(project_ids):
-                        return Response(
-                            {"detail": "One or more projects are inaccessible."},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                    investigation, created = create_agentic_breached_metric_investigation(
-                        organization=organization,
-                        creator=request_creator_actor(request),
-                        title=values.get("title"),
-                        resolved_source=resolved_source,
-                        project_ids=requested_project_ids,
-                        filters=values.get("filters", {}),
-                    )
-                else:
-                    if not set(requested_project_ids).issubset(project_ids):
-                        return Response(
-                            {"detail": "One or more projects are inaccessible."},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                    created = True
-                    investigation, _ = create_agentic_manual_investigation(
-                        organization=organization,
-                        creator=request_creator_actor(request),
-                        title=values.get("title"),
-                        source=source,
-                        project_ids=requested_project_ids,
-                        filters=values.get("filters", {}),
-                    )
+                investigation, created = start_investigation(
+                    organization=organization,
+                    creator=lambda: request_creator_actor(request),
+                    title=values.get("title"),
+                    source=values["source"],
+                    project_ids=values.get("project_ids", []),
+                    accessible_project_ids=project_ids,
+                    filters=values.get("filters", {}),
+                )
             else:
                 created = True
                 requested_project_ids = values.get("project_ids", [])

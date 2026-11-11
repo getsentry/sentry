@@ -21,7 +21,10 @@ from sentry.apidocs.extensions import (
 )
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.validators.investigation import InvestigationCreateValidator
+from sentry.investigations.endpoints.validators.investigation import (
+    InvestigationCreateValidator,
+    InvestigationStartValidator,
+)
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
@@ -276,6 +279,13 @@ def test_investigation_delete_schema_requires_camel_case_versions() -> None:
         ),
         (InvestigationCreateValidator, {"source": {"type": "metric_open_period"}}, False),
         (InvestigationCreateValidator, {"source": {"type": "unsupported"}}, False),
+        (
+            InvestigationStartValidator,
+            {"source": {"type": "metric_open_period", "ref": {"groupId": 1, "openPeriodId": 2}}},
+            True,
+        ),
+        (InvestigationStartValidator, {"source": {"type": "unsupported"}}, False),
+        (InvestigationStartValidator, {"title": "No source"}, False),
         (
             InvestigationOrchestrationCommandValidator,
             {

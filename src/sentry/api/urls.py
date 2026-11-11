@@ -317,6 +317,9 @@ from sentry.investigations.endpoints.organization_investigation_orchestration im
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_start import (
+    OrganizationInvestigationStartEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -2432,6 +2435,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/inbox/(?P<item_id>\d+)/events/$",
         OrganizationInboxItemEventsEndpoint.as_view(),
         name="sentry-api-0-organization-inbox-item-events",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/$",
+        OrganizationInvestigationStartEndpoint.as_view(),
+        name="sentry-api-0-organization-investigations",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/candidates/$",

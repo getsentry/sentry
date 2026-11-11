@@ -3,12 +3,14 @@ __all__ = (
     "InvestigationCandidatesValidator",
     "InvestigationOrchestrationCommandValidator",
     "InvestigationOrchestrationEventValidator",
+    "InvestigationStartValidator",
 )
 
 
 from .investigation import (
     InvestigationCandidatesValidator,
     InvestigationCreateValidator,
+    InvestigationStartValidator,
 )
 from .orchestration import (
     InvestigationOrchestrationCommandValidator,

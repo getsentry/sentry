@@ -11,6 +11,7 @@ from sentry.investigations.endpoints.validators import (
     InvestigationCreateValidator,
     InvestigationOrchestrationCommandValidator,
     InvestigationOrchestrationEventValidator,
+    InvestigationStartValidator,
 )
 
 
@@ -171,6 +172,32 @@ class TestInvestigationCreateValidator:
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
         assert "project_ids" not in validator.errors
+
+
+class TestInvestigationStartValidator:
+    def test_requires_a_source(self) -> None:
+        validator = InvestigationStartValidator(data={"title": "Latency spike"})
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_accepts_a_source_without_a_title(self) -> None:
+        data = assert_valid(
+            InvestigationStartValidator(
+                data={"source": {"type": "manual", "prompt": "Investigate latency"}}
+            )
+        )
+
+        assert data["source"]["prompt"] == "Investigate latency"
+        assert "title" not in data
+
+    def test_rejects_a_malformed_source(self) -> None:
+        validator = InvestigationStartValidator(
+            data={"source": {"type": "metric_open_period", "ref": {}}}
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
 
 
 class TestInvestigationOrchestrationCommandValidator:
