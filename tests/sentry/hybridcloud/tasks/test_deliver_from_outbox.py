@@ -27,6 +27,14 @@ class ProcessOutboxBatchTest(TestCase):
         assert mock_drain.call_count == 2
 
     @patch.object(CellOutbox, "drain_shard")
+    def test_propagates_bare_processing_deadline(self, mock_drain: Mock, _: Mock) -> None:
+        mock_drain.side_effect = ProcessingDeadlineExceeded("execution deadline exceeded")
+
+        with pytest.raises(ProcessingDeadlineExceeded):
+            process_outbox_batch(ALL_IDS, 0, CellOutbox)
+        assert mock_drain.call_count == 1
+
+    @patch.object(CellOutbox, "drain_shard")
     def test_reraises_errors_caused_by_processing_deadline(self, mock_drain: Mock, _: Mock) -> None:
         def drain(*args: object, **kwargs: object) -> None:
             try:
