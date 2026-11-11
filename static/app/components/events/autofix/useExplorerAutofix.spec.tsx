@@ -712,7 +712,7 @@ describe('getOrderedAutofixSections', () => {
           makeBlock({
             artifacts: [
               {
-                key: 'single_run_stop',
+                key: 'stop',
                 reason: 'stop',
                 data: {reason: 'R', next_step: 'N'},
               },
@@ -731,7 +731,7 @@ describe('getOrderedAutofixSections', () => {
           makeBlock({
             artifacts: [
               {
-                key: 'single_run_stop',
+                key: 'stop',
                 reason: 'stop',
                 data: {reason: 'R', next_step: 'N'},
               },

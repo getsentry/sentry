@@ -421,7 +421,7 @@ describe('ArtifactCard', () => {
 
     it('shows why a single run stopped instead of the failure text', () => {
       const stop = {
-        key: 'single_run_stop',
+        key: 'stop',
         reason: 'stop',
         data: {reason: 'R', next_step: 'N'},
       };
