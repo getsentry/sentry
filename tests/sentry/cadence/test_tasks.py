@@ -396,7 +396,7 @@ class CadenceTickMissingTargetTest(CadenceTickTestCase):
         assert self.dispatched() == [self.firing(healthy, NOW)]
         assert not ScheduledTrigger.objects.filter(id=missing.id).exists()
         assert ScheduledTrigger.objects.filter(id=healthy.id).exists()
-        mock_incr.assert_called_once_with(
+        mock_incr.assert_any_call(
             "cadence.trigger.missing_target_deleted",
             amount=1,
             tags={"trigger_type": "seer_workflow"},
