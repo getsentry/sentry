@@ -6,7 +6,7 @@ Like the event sections, these describe what to render and let the formatter dec
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any
 
 from sentry.issues.formatting.formatter import (
     Code,
@@ -14,7 +14,6 @@ from sentry.issues.formatting.formatter import (
     Field,
     Format,
     Group,
-    MarkdownFormatter,
     Section,
     Text,
     get_formatter,
@@ -24,14 +23,6 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.single_run import SINGLE_RUN_ROOT_CAUSE_KEY
 
 _MAX_CODE_CHANGES_CHARS = 20_000
-
-AutofixResultType = Literal["root_cause", "solution", "code_changes", "pull_requests"]
-
-
-class AutofixResult(TypedDict):
-    type: AutofixResultType
-    title: str
-    markdown: str
 
 
 def _root_cause(data: Any) -> Section | None:
@@ -94,26 +85,15 @@ def _pull_requests(state: SeerRunState) -> Section | None:
     return Section(title="Pull Requests", groups=(Group(items=lines),)) if lines else None
 
 
-def _result_sections(state: SeerRunState) -> list[tuple[AutofixResultType, Section]]:
+def _sections(state: SeerRunState) -> list[Section]:
     artifacts = {key: artifact.data for key, artifact in state.get_artifacts().items()}
-    sections: list[tuple[AutofixResultType, Section | None]] = [
-        (
-            "root_cause",
-            _root_cause(artifacts.get("root_cause") or artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
-        ),
-        ("solution", _solution(artifacts.get("solution"))),
-        ("code_changes", _code_changes(state)),
-        ("pull_requests", _pull_requests(state)),
+    sections = [
+        _root_cause(artifacts.get("root_cause") or artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)),
+        _solution(artifacts.get("solution")),
+        _code_changes(state),
+        _pull_requests(state),
     ]
-    return [(kind, section) for kind, section in sections if section is not None]
-
-
-def autofix_results(state: SeerRunState) -> list[AutofixResult]:
-    markdown = MarkdownFormatter()
-    return [
-        AutofixResult(type=kind, title=section.title, markdown=markdown.render_body(section))
-        for kind, section in _result_sections(state)
-    ]
+    return [section for section in sections if section is not None]
 
 
 def format_autofix(
@@ -130,5 +110,5 @@ def format_autofix(
         # empty still has to parse: "" for the text formats, "{}" for json
         return fmt.join([])
     state = SeerRunState.parse_obj(autofix)
-    rendered = [fmt.render_section(section) for _, section in _result_sections(state)]
+    rendered = [fmt.render_section(section) for section in _sections(state)]
     return fmt.join([part for part in rendered if part])

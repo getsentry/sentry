@@ -195,17 +195,15 @@ class TextFormatter(Formatter):
         return "\n\n".join(sections)
 
     def render_section(self, section: Section) -> str:
-        body = self.render_body(section)
-        return self.block(section.title, body) if body else ""
-
-    def render_body(self, section: Section) -> str:
         groups = [self.render_group(group) for group in section.groups]
         groups = [g for g in groups if g]
         if not groups:
             return ""
         if section.max_group_chars is not None:
-            return truncate_items(groups, "\n\n", section.max_group_chars)
-        return truncate("\n\n".join(groups), section.max_chars)
+            body = truncate_items(groups, "\n\n", section.max_group_chars)
+        else:
+            body = truncate("\n\n".join(groups), section.max_chars)
+        return self.block(section.title, body)
 
     def render_group(self, group: Group) -> str:
         lines = [self.render_item(item) for item in group.items]

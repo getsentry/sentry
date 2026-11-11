@@ -1,7 +1,6 @@
 from typing import Any
 
-from sentry.issues.formatting.autofix import autofix_results, format_autofix
-from sentry.seer.agent.client_models import SeerRunState
+from sentry.issues.formatting.autofix import format_autofix
 
 
 def _block(**fields: Any) -> dict[str, Any]:
@@ -180,16 +179,6 @@ def test_markdown_caps_a_single_huge_diff() -> None:
         ]
     )
     assert len(format_autofix(data)) < 25_000
-
-
-def test_results_list_each_section_with_a_title_and_markdown() -> None:
-    state = SeerRunState.parse_obj(_single_run_response()["autofix"])
-
-    results = autofix_results(state)
-
-    assert [r["type"] for r in results] == ["root_cause", "code_changes", "pull_requests"]
-    assert results[0]["title"] == "Root Cause"
-    assert results[0]["markdown"] == "Regex rejects ids\nThe regex is too strict."
 
 
 def test_markdown_renders_a_root_cause_returned_under_root_cause() -> None:

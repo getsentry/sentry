@@ -57,18 +57,6 @@ AUTOFIX_GET_RESPONSE = [
                 },
                 "updated_at": "2025-09-23T21:02:18.160885",
                 "status": "COMPLETED",
-                "results": [
-                    {
-                        "type": "root_cause",
-                        "title": "Root Cause",
-                        "markdown": "The device id regex rejects ids with dashes.",
-                    },
-                    {
-                        "type": "pull_requests",
-                        "title": "Pull Requests",
-                        "markdown": "- getsentry/seer: https://github.com/getsentry/seer/pull/1",
-                    },
-                ],
                 "codebases": {
                     "439438299": {
                         "repo_external_id": "439438299",
