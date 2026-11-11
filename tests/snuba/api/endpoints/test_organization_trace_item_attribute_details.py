@@ -271,14 +271,10 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             query={"attributeName": "release", "attributeType": "string", "dataset": "logs"}
         )
 
-        changelog = ATTRIBUTE_METADATA["sentry.release"].changelog
-        assert changelog is not None
         assert response.status_code == 200, response.content
         assert response.data["context"]["isDeprecated"] is False
         assert "replacementAttribute" not in response.data["context"]
-        assert [entry["version"] for entry in response.data["changelog"]] == [
-            entry.version for entry in changelog
-        ]
+        assert "changelog" not in response.data
 
     def test_returns_changelog_of_the_convention_its_context_describes_when_stored_under_two_names(
         self,
@@ -540,15 +536,29 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
             uuid4().hex,
             organization_id=self.organization.id,
             timestamp=before_now(minutes=10).replace(microsecond=0),
-            op="http.client",
+            profile_id=uuid4().hex,
         )
 
         response = self.do_request(
-            query={"attributeName": "span.op", "attributeType": "string", "dataset": "spans"}
+            query={"attributeName": "profile.id", "attributeType": "string", "dataset": "spans"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["sentry.profile_id"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
+
+    def test_omits_changelog_when_it_only_has_the_initial_version(self) -> None:
+        self._store_log({"sentry.sdk.version": {"string_value": "1.0.0"}})
+
+        response = self.do_request(
+            query={"attributeName": "sdk.version", "attributeType": "string", "dataset": "logs"}
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["changelog"][-1:] == [{"version": "0.0.0"}]
+        assert "changelog" not in response.data
 
     def test_omits_changelog_when_the_attribute_type_differs_from_the_convention(self) -> None:
         self._store_span(measurements={"http.route": 1})
