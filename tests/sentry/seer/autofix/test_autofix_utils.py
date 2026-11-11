@@ -36,6 +36,7 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_project_repos,
     get_valid_automated_run_stopping_points,
     has_project_connected_repos,
+    is_free_cohort_org,
     is_seer_seat_based_tier_enabled,
     is_seer_seat_or_token_billed,
     read_preference_from_sentry_db,
@@ -305,6 +306,28 @@ class TestIsSeerSeatOrTokenBilled(TestCase):
         assert get_valid_automated_run_stopping_points(self.organization) == (
             USAGE_BASED_STOPPING_POINTS
         )
+
+
+class TestIsFreeCohortOrg(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(name="test-org")
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        cache.delete(f"seer:seat-based-tier:{self.organization.id}")
+
+    def test_legacy(self) -> None:
+        assert is_free_cohort_org(self.organization) is True
+
+    @with_feature("organizations:seat-based-seer-enabled")
+    def test_seat_based(self) -> None:
+        assert is_free_cohort_org(self.organization) is False
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    def test_token_billed(self) -> None:
+        assert is_free_cohort_org(self.organization) is False
 
 
 class HasProjectConnectedReposBaseTest(TestCase):

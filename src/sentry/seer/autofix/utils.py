@@ -1039,17 +1039,17 @@ def is_free_cohort_org(organization: Organization) -> bool:
     orgs that receive agentic triage and autofix without a Seer subscription.
 
     Returns True when the kill switch is NOT engaged (flag disabled = cohort
-    active), the org is NOT on a paid seat-based Seer plan, and the org
-    option is set to True.
+    active), the org is NOT on a paid seat-based or token-billed Seer plan, and
+    the org option is set to True.
     """
     try:
         if features.has("organizations:agentic-triage-free-cohort-killswitch", organization):
             return False
     except Exception:
         return False
-    return not is_seer_seat_based_tier_enabled(organization) and bool(
+    return bool(
         OrganizationOption.objects.get_value(organization, "agentic-triage-free-cohort", False)
-    )
+    ) and not is_seer_seat_or_token_billed(organization)
 
 
 def is_issue_category_eligible(group: Group) -> bool:
