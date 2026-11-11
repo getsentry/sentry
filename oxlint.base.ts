@@ -514,8 +514,7 @@ const base = defineConfig({
     yoda: 'error',
     'e18e/prefer-includes': 'error',
     'e18e/prefer-array-to-reversed': 'error',
-    // The ESLint plugin does not report the existing copy-then-mutate forms.
-    'e18e/prefer-array-to-sorted': 'off',
+    'e18e/prefer-array-to-sorted': 'error',
     'e18e/prefer-array-to-spliced': 'error',
     'e18e/prefer-nullish-coalescing': 'error',
     'e18e/prefer-url-canparse': 'error',

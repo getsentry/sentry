@@ -41,7 +41,7 @@ function useMonitorAlertTargets(monitorIds: string[]) {
 
   return useQuery({
     ...automationsApiOptions(organization, {
-      detector: [...monitorIds].sort(),
+      detector: monitorIds.toSorted(),
       limit: 100,
     }),
     enabled: monitorIds.length > 0,
