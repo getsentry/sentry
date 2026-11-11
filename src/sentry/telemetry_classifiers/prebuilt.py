@@ -6,7 +6,7 @@ from sentry.telemetry_classifiers.types import (
     TelemetryClassifierOutputType,
 )
 
-# Only classifiers with a Seer one-shot belong here. The final list is decided in AGT-3252.
+# Only classifiers backed by a Seer model belong here. The final list is decided in AGT-3252.
 ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
     PrebuiltClassifier(
         key="conversation_user_frustration",

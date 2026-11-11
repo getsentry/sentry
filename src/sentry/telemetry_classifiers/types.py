@@ -26,7 +26,7 @@ class TelemetryClassifierStatus(models.TextChoices):
 
 @dataclass(frozen=True)
 class PrebuiltClassifier:
-    key: str  # The exact Seer one-shot ID. Prompts live in Seer.
+    key: str  # The exact Seer classifier model ID. Prompts live in Seer.
     dataset: Dataset
     output_type: TelemetryClassifierOutputType
     name: str
@@ -39,7 +39,7 @@ class PrebuiltClassifier:
 class ResolvedDefinition:
     """An executable classifier definition, resolved from its persisted configuration."""
 
-    # Seer one-shot ID.
+    # Seer classifier model ID.
     key: str
     dataset: Dataset
     output_type: TelemetryClassifierOutputType
