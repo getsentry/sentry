@@ -323,6 +323,76 @@ describe('projectGeneralSettings', () => {
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
 
     expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
+    expect(
+      screen.getByText('You do not have permission to view this token.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Security Token'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('security-token')).not.toBeInTheDocument();
+  });
+
+  it('shows a protected token when the API omits its value', async () => {
+    render(
+      <ProjectGeneralSettings
+        project={{...project, securityToken: undefined}}
+        onChangeSlug={mockOnChangeSlug}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    expect(
+      await screen.findByText('You do not have permission to view this token.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Security Token'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('allows writers to set an explicitly empty security token', async () => {
+    const emptyTokenProject = {...project, securityToken: ''};
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, securityToken: 'replacement-token'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: {...project, securityToken: 'replacement-token'},
+    });
+    const {rerender} = render(
+      <ProjectGeneralSettings
+        project={emptyTokenProject}
+        onChangeSlug={mockOnChangeSlug}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    const input = await screen.findByRole('textbox', {name: 'Security Token'});
+    expect(input).toBeEnabled();
+    expect(input).toHaveValue('');
+    await userEvent.type(input, 'replacement-token');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {securityToken: 'replacement-token'}})
+      )
+    );
+    rerender(
+      <ProjectGeneralSettings
+        project={{...project, securityToken: 'replacement-token'}}
+        onChangeSlug={mockOnChangeSlug}
+      />
+    );
+    expect(screen.getByRole('textbox', {name: 'Security Token'})).toHaveValue(
+      'replacement-token'
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument()
+    );
   });
 
   it('changing project platform updates ProjectsStore', async () => {
