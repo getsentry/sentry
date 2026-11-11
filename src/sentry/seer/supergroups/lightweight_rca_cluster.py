@@ -53,9 +53,9 @@ def trigger_lightweight_rca_cluster(group: Group, event_id: str | None = None) -
         # get_event_by_id also queries Snuba for event types other than "error", and a
         # slow query can run past the task's processing deadline.
         #
-        # Accepted tradeoff: without Snuba we cannot check that the event still belongs
-        # to this group. An event that an unmerge moved to another group after the task
-        # was queued is sent to Seer under the group the task was queued with.
+        # Without Snuba we cannot check that the event still belongs to this group. An
+        # event that an unmerge moved to another group after the task was queued is sent
+        # to Seer under the group the task was queued with.
         ready_event = None
         normalized_event_id = normalize_event_id(event_id)
         if normalized_event_id:
