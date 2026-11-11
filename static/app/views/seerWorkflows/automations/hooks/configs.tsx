@@ -1,6 +1,7 @@
 import {
   keepPreviousData,
   skipToken,
+  useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
@@ -77,6 +78,17 @@ export function useCreateConfig() {
   });
 }
 
+function getUpdateConfigMutationKey(configId: string) {
+  return ['seer-workflow-config-update', configId];
+}
+
+/**
+ * Whether any update to the automation's config is in flight.
+ */
+export function useIsUpdatingConfig({configId}: {configId: string}) {
+  return useIsMutating({mutationKey: getUpdateConfigMutationKey(configId)}) > 0;
+}
+
 /**
  * Updates an automation's config and refetches the organization's configs.
  */
@@ -85,6 +97,7 @@ export function useUpdateConfig({configId}: {configId: string}) {
   const {configsUrl, configUrl} = useConfigUrls(configId);
 
   return useMutation({
+    mutationKey: getUpdateConfigMutationKey(configId),
     mutationFn: (data: SeerWorkflowConfigUpdateRequest) =>
       fetchMutation<SeerWorkflowConfigResponse>({url: configUrl, method: 'PUT', data}),
     onSuccess: () => queryClient.invalidateQueries({queryKey: [configsUrl]}),
