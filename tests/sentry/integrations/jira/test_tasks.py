@@ -157,8 +157,8 @@ class ApplyForgeIssueEventTest(TestCase):
 
         apply_forge_issue_event(self.integration.id, EVENT)
 
-        # The other handlers look the issue up by key, so a move is applied first.
-        assert [c[0] for c in order.mock_calls] == ["moved", "assignee", "status"]
+        # The move rekeys the issue first; assignee, the only Jira call, goes last.
+        assert [c[0] for c in order.mock_calls] == ["moved", "status", "assignee"]
         assert moved.call_args.args[0].id == self.integration.id
         assert moved.call_args.args[1] == EVENT
 
@@ -176,21 +176,26 @@ class ApplyForgeIssueEventTest(TestCase):
     def test_reports_other_failures_and_applies_the_rest(
         self, capture: MagicMock, moved: MagicMock, assignee: MagicMock, status: MagicMock
     ) -> None:
+        # A failure retrying can't fix: a deleted Jira account, or an unexpected payload.
+        status.__name__ = "handle_status_change"
+        status.side_effect = KeyError("unexpected payload")
         assignee.__name__ = "handle_assignee_change"
-        assignee.side_effect = KeyError("unexpected payload")
+        assignee.side_effect = ApiError("Not found", code=404)
 
         apply_forge_issue_event(self.integration.id, EVENT)
 
-        assert capture.call_count == 1
-        assert status.call_count == 1
+        assert capture.call_count == 2
+        assert moved.call_count == 1
 
-    def test_raises_jira_api_errors_for_retry(
+    def test_raises_temporary_errors_for_retry(
         self, moved: MagicMock, assignee: MagicMock, status: MagicMock
     ) -> None:
-        assignee.side_effect = ApiError("Jira is down")
+        assignee.side_effect = ApiError("Jira is down", code=503)
 
         with pytest.raises(ApiError):
             apply_forge_issue_event(self.integration.id, EVENT)
+        # The status change is already applied before the retry.
+        assert status.call_count == 1
 
 
 @cell_silo_test

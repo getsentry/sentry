@@ -10,6 +10,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.integrations.jira.forge.client import ForgeInstallationClient
 from sentry.integrations.jira.utils import (
     handle_assignee_change,
@@ -19,7 +20,13 @@ from sentry.integrations.jira.utils import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiRateLimitedError,
+    ApiTimeoutError,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
@@ -117,9 +124,11 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
 @instrumented_task(
     name="sentry.integrations.jira.tasks.apply_forge_issue_event",
     namespace=integrations_tasks,
-    # Jira API errors, such as a failed assignee email lookup, are usually temporary. The
-    # handlers are idempotent, so the whole event is safe to apply again.
-    retry=Retry(times=5, delay=60, on=(ApiError,)),
+    # Only temporary failures reach the retry (see _is_temporary). The handlers are
+    # idempotent, so the whole event is safe to apply again.
+    retry=Retry(times=5, delay=60, on=(ApiError, RpcRemoteException)),
+    # Longer than the Jira client's 30s timeout, so a slow call can still fail and retry.
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def apply_forge_issue_event(integration_id: int, event: dict[str, Any]) -> None:
@@ -131,13 +140,20 @@ def apply_forge_issue_event(integration_id: int, event: dict[str, Any]) -> None:
         return
     bind_org_context_from_integration(integration.id, {"webhook": "forge_issue_updated"})
 
-    # Same order as the Connect webhook: rekey first, since the other handlers look the
-    # issue up by its new key.
+    # Rekey first, since the other handlers look the issue up by its new key. Assignee goes
+    # last because its email lookup is the only call to Jira, so a failure there can't
+    # hold up the status change.
     _apply_forge_change(handle_issue_moved, integration, event)
+    _apply_forge_change(handle_status_change, integration, event)
     _apply_forge_change(
         handle_assignee_change, integration, event, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE
     )
-    _apply_forge_change(handle_status_change, integration, event)
+
+
+def _is_temporary(error: Exception) -> bool:
+    if isinstance(error, (ApiHostError, ApiTimeoutError, ApiRateLimitedError, RpcRemoteException)):
+        return True
+    return isinstance(error, ApiError) and (error.code or 0) >= 500
 
 
 def _apply_forge_change(
@@ -148,11 +164,11 @@ def _apply_forge_change(
 ) -> None:
     try:
         handler(integration, event, **kwargs)
-    except ApiError:
-        raise
     except Exception as e:
-        # Retrying won't fix anything else, so only this change is dropped and the rest
-        # of the event still applies.
+        if _is_temporary(e):
+            raise
+        # Retrying wouldn't help, such as a 404 for a deleted Jira account, so only this
+        # change is dropped and the rest of the event still applies.
         logger.warning(
             "jira.forge.issue_updated.failed",
             extra={"integration_id": integration.id, "handler": handler.__name__},
