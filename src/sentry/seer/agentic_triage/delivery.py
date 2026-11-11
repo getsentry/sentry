@@ -27,7 +27,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed,
 )
 from sentry.seer.models.agentic_triage import (
     SeerAgenticTriageRunErrorType,
@@ -313,8 +313,8 @@ def _process_verdicts(
 
         referrer = referrer_map[SeerAutomationSource.AGENTIC_TRIAGE]
 
-        # Rate limit only applies to legacy org plans
-        check_rate_limit = not is_seer_seat_based_tier_enabled(organization)
+        # Rate limit only applies to legacy usage-based orgs
+        check_rate_limit = not is_seer_seat_or_token_billed(organization)
 
         for group in fixable_groups:
             if check_rate_limit and is_seer_autotriggered_autofix_rate_limited_and_increment(

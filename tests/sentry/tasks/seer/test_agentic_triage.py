@@ -738,7 +738,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
                 return_value=True,
             ),
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed",
                 return_value=True,
             ),
         ):
@@ -754,11 +754,30 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         )
 
         with patch(
-            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+            "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed",
             return_value=True,
         ):
             result = _get_eligible_projects(org, "manual")
 
+        assert result[0].automation_tuning is None
+
+    def test_token_billed_orgs_are_not_legacy(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org))
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW
+        )
+
+        with (
+            patch(
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_autotriggered_autofix_rate_limited",
+                return_value=True,
+            ),
+            self.feature("organizations:token-billed-seer-enabled"),
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [project]
         assert result[0].automation_tuning is None
 
 
@@ -1229,7 +1248,7 @@ class TestRunAgenticTriageFeatureDelivery(AgenticTriageFixtures, TestCase, Snuba
 
         with (
             patch(
-                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_based_tier_enabled",
+                "sentry.tasks.seer.agentic_triage.cron.is_seer_seat_or_token_billed",
                 return_value=True,
             ),
         ):

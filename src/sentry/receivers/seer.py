@@ -12,7 +12,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
-from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
+from sentry.seer.autofix.utils import is_seer_seat_or_token_billed
 from sentry.signals import integration_added, issue_assigned
 from sentry.tasks.seer.autofix import summarize_issue
 from sentry.tasks.seer.investigation import mark_investigation_telemetry_connected
@@ -32,7 +32,7 @@ def dispatch_first_assignment_summary(
     ):
         return
 
-    if is_seer_seat_based_tier_enabled(project.organization):
+    if is_seer_seat_or_token_billed(project.organization):
         logger.info(
             "seer.issue_summary.first_assignment.skipped_seat_based_seer",
             extra={

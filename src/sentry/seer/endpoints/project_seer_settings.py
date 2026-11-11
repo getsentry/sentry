@@ -42,7 +42,7 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_project_repos,
     get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed,
     is_seer_token_based_billing_onboarding_enabled,
     update_seer_project_settings,
 )
@@ -410,7 +410,7 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer[dict[str, Any]])
 
 
 class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
-    """Seat-based (new) Seer: restricted tuning choices, stopping point sync."""
+    """Seat-based and token-billed (new) Seer: restricted tuning choices, stopping point sync."""
 
     automation_tuning = serializers.ChoiceField(
         choices=[AutofixAutomationTuningSettings.OFF, AutofixAutomationTuningSettings.MEDIUM],
@@ -451,7 +451,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     def put(self, request: Request, project: Project) -> Response:
         serializer_cls = (
             ProjectSettingsUpdateSerializer
-            if is_seer_seat_based_tier_enabled(project.organization)
+            if is_seer_seat_or_token_billed(project.organization)
             else LegacyProjectSettingsUpdateSerializer
         )
         serializer = serializer_cls(
@@ -521,7 +521,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization) -> Response:
         serializer_cls = (
             BulkProjectSettingsUpdateSerializer
-            if is_seer_seat_based_tier_enabled(organization)
+            if is_seer_seat_or_token_billed(organization)
             else LegacyBulkProjectSettingsUpdateSerializer
         )
         serializer = serializer_cls(data=request.data, context={"organization": organization})

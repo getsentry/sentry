@@ -1643,7 +1643,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         get_issue_summary_lock_key,
     )
     from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
-    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
+    from sentry.seer.autofix.utils import is_seer_seat_or_token_billed
     from sentry.tasks.seer.autofix import (
         generate_issue_summary_only,
         generate_summary_and_run_automation,
@@ -1652,7 +1652,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     event = job["event"]
     group = event.group
 
-    if is_seer_seat_based_tier_enabled(group.organization):
+    if is_seer_seat_or_token_billed(group.organization):
         if group.seer_fixability_score is not None:
             return
         # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
@@ -1660,7 +1660,7 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         if (timezone.now() - group.first_seen).total_seconds() > 300:
             return
         # Generate issue summary and fixability score if not cached.
-        # Agentic Triage handles automations for seat-based orgs but still needs these.
+        # Agentic Triage handles automations for seat-based and token-billed orgs but still needs these.
         cache_key = get_issue_summary_cache_key(group.id)
         if cache.get(cache_key) is None:
             lock_key, lock_name = get_issue_summary_lock_key(group.id)
