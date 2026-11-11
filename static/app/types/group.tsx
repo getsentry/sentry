@@ -1180,7 +1180,7 @@ interface LinkedInvestigation {
   title: string;
 }
 
-export interface GroupActivityInvestigationLinked extends GroupActivityBase {
+interface GroupActivityInvestigationLinked extends GroupActivityBase {
   data: {
     hypothesisId: string;
     hypothesisStatement: string;
