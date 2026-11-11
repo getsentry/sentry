@@ -2,7 +2,13 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
-import {createLoader, parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
+import {
+  createLoader,
+  parseAsBoolean,
+  parseAsString,
+  useQueryState,
+  useQueryStates,
+} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -39,8 +45,9 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {OurlogsDrawer} from './ourlogsDrawer';
 import {useEventLogsUrl} from './useEventLogsUrl';
 
+const logsDrawerParser = parseAsBoolean.withDefault(false);
 const logsDrawerParsers = {
-  [LOGS_DRAWER_QUERY_PARAM]: parseAsBoolean.withDefault(false),
+  [LOGS_DRAWER_QUERY_PARAM]: logsDrawerParser,
   expandedLogId: parseAsString,
 };
 const loadLogsDrawerParams = createLoader(logsDrawerParsers);
@@ -48,6 +55,7 @@ const loadLogsDrawerParams = createLoader(logsDrawerParsers);
 export function OurlogsSection({event, group}: {event: Event; group: Group}) {
   const location = useLocation();
   const organization = useOrganization();
+  const [isDrawerInUrl] = useQueryState(LOGS_DRAWER_QUERY_PARAM, logsDrawerParser);
   const traceId = event.contexts?.trace?.trace_id;
 
   // Replay-generated issues (eg. rage clicks) may not carry a usable trace context,
@@ -97,10 +105,7 @@ export function OurlogsSection({event, group}: {event: Event; group: Group}) {
 
   return (
     <LazyRender
-      disabled={
-        loadLogsDrawerParams(location.search)[LOGS_DRAWER_QUERY_PARAM] ||
-        location.hash === `#${SectionKey.LOGS}`
-      }
+      disabled={isDrawerInUrl || location.hash === `#${SectionKey.LOGS}`}
       observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
       withoutContainer
     >
@@ -125,12 +130,9 @@ function OurlogsSectionContent({
   freeze: LogsFrozenContextProviderProps;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
-  // GlobalDrawer closes from the router location, which nuqs values can lag behind.
-  const drawerQuery = loadLogsDrawerParams(location.search);
+  const [drawerQuery, setDrawerQuery] = useQueryStates(logsDrawerParsers);
   const isDrawerInUrl = drawerQuery[LOGS_DRAWER_QUERY_PARAM];
   const {expandedLogId} = drawerQuery;
-  const [, setDrawerQuery] = useQueryStates(logsDrawerParsers);
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
   const logsSearch = useQueryParamsSearch();

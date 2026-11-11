@@ -34,6 +34,7 @@ const loadMetricsDrawerParam = createLoader({
 export function MetricsSection({event}: {event: Event}) {
   const organization = useOrganization();
   const location = useLocation();
+  const [isDrawerInUrl] = useQueryState(METRICS_DRAWER_QUERY_PARAM, metricsDrawerParser);
   const traceId = event.contexts?.trace?.trace_id;
 
   if (!traceId) {
@@ -46,10 +47,7 @@ export function MetricsSection({event}: {event: Event}) {
 
   return (
     <LazyRender
-      disabled={
-        loadMetricsDrawerParam(location.search)[METRICS_DRAWER_QUERY_PARAM] ||
-        location.hash === `#${SectionKey.METRICS}`
-      }
+      disabled={isDrawerInUrl || location.hash === `#${SectionKey.METRICS}`}
       observerOptions={ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS}
       withoutContainer
     >
@@ -62,12 +60,7 @@ export function MetricsSection({event}: {event: Event}) {
 
 function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}) {
   const organization = useOrganization();
-  const location = useLocation();
-  // GlobalDrawer closes from the router location, which nuqs values can lag behind.
-  const isDrawerInUrl = loadMetricsDrawerParam(location.search)[
-    METRICS_DRAWER_QUERY_PARAM
-  ];
-  const [, setIsDrawerInUrl] = useQueryState(
+  const [isDrawerInUrl, setIsDrawerInUrl] = useQueryState(
     METRICS_DRAWER_QUERY_PARAM,
     metricsDrawerParser
   );

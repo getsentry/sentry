@@ -5,10 +5,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
+  waitForDrawerToHide,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -304,9 +306,39 @@ describe('OurlogsSection', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => expect(router.location.query).toEqual({project: project.id}));
+    await act(tick);
     expect(
       screen.queryByRole('complementary', {name: 'logs drawer'})
     ).not.toBeInTheDocument();
+  });
+
+  it('closes the drawer on back and reopens it on forward when logsDrawer is pushed', async () => {
+    const pathname = `/organizations/${organization.slug}/issues/${group.id}/`;
+
+    const {router} = render(<OurlogsSection event={event} group={group} />, {
+      organization,
+      initialRouterConfig: {location: {pathname, query: {project: project.id}}},
+    });
+    await screen.findByText(/i am a log/);
+
+    router.navigate(`${pathname}?project=${project.id}&logsDrawer=true`);
+    expect(
+      await screen.findByRole('complementary', {name: 'logs drawer'})
+    ).toBeInTheDocument();
+
+    router.navigate(-1);
+    await waitForDrawerToHide('logs drawer');
+    await act(tick);
+    expect(
+      screen.queryByRole('complementary', {name: 'logs drawer'})
+    ).not.toBeInTheDocument();
+    expect(router.location.query).toEqual({project: project.id});
+
+    router.navigate(1);
+    expect(
+      await screen.findByRole('complementary', {name: 'logs drawer'})
+    ).toBeInTheDocument();
+    expect(router.location.query).toEqual({project: project.id, logsDrawer: 'true'});
   });
 
   const rageClickGroup = GroupFixture({issueType: IssueType.REPLAY_RAGE_CLICK});

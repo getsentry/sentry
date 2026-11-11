@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -366,6 +367,7 @@ describe('MetricsSection', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => expect(router.location.query).toEqual({project: project.id}));
+    await act(tick);
     expect(
       screen.queryByRole('complementary', {name: 'metrics drawer'})
     ).not.toBeInTheDocument();
@@ -395,6 +397,38 @@ describe('MetricsSection', () => {
 
     router.navigate(`${pathname}?project=${project.id}`);
     await waitForDrawerToHide('metrics drawer');
+  });
+
+  it('closes the drawer on back and reopens it on forward when metricsDrawer is pushed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [], meta: {fields: {}, units: {}}},
+    });
+    const pathname = `/organizations/${organization.slug}/issues/${group.id}/`;
+
+    const {router} = render(<MetricsSection event={event} />, {
+      organization,
+      initialRouterConfig: {location: {pathname, query: {project: project.id}}},
+    });
+
+    router.navigate(`${pathname}?project=${project.id}&metricsDrawer=true`);
+    expect(
+      await screen.findByRole('complementary', {name: 'metrics drawer'})
+    ).toBeInTheDocument();
+
+    router.navigate(-1);
+    await waitForDrawerToHide('metrics drawer');
+    await act(tick);
+    expect(
+      screen.queryByRole('complementary', {name: 'metrics drawer'})
+    ).not.toBeInTheDocument();
+    expect(router.location.query).toEqual({project: project.id});
+
+    router.navigate(1);
+    expect(
+      await screen.findByRole('complementary', {name: 'metrics drawer'})
+    ).toBeInTheDocument();
+    expect(router.location.query).toEqual({project: project.id, metricsDrawer: 'true'});
   });
 
   it('does not show view more button when there are 5 or fewer metrics', async () => {
