@@ -80,14 +80,14 @@ class ConnectTelemetryKind(ActionKind[ConnectTelemetryAppliedDetails]):
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         can_install = access.has_scope(_INSTALL_SCOPE)
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
-            if not features.has(TELEMETRY_FEATURE, investigations[item.notebook_id].organization):
+            if not features.has(TELEMETRY_FEATURE, notebooks[item.notebook_id].organization):
                 reasons[item.id] = CannotApplyReason.UNSUPPORTED_ACTION
             elif not can_install:
                 reasons[item.id] = CannotApplyReason.PERMISSION_DENIED

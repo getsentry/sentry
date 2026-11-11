@@ -29,10 +29,10 @@ from sentry.investigations.services.orchestration import (
     update_investigation_with_orchestration,
 )
 from sentry.notebooks.endpoints.serializers.action_request import (
-    InvestigationActionRequestFollowUpResponse,
+    NotebookActionRequestFollowUpResponse,
 )
-from sentry.notebooks.endpoints.serializers.investigation import (
-    InvestigationOrchestrationSerializerResponse,
+from sentry.notebooks.endpoints.serializers.notebook import (
+    NotebookOrchestrationSerializerResponse,
 )
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.notebooks.services.action_kinds.base import (
@@ -239,7 +239,7 @@ class OrchestrationProducer(NotebookProducer):
 
     def follow_ups(
         self, item_list: Sequence[NotebookActionRequest]
-    ) -> dict[tuple[int, UUID], InvestigationActionRequestFollowUpResponse]:
+    ) -> dict[tuple[int, UUID], NotebookActionRequestFollowUpResponse]:
         request_ids = {
             item.followup_request_id for item in item_list if item.followup_request_id is not None
         }
@@ -272,29 +272,29 @@ class OrchestrationProducer(NotebookProducer):
 
     def orchestration_summaries(
         self, notebooks: Sequence[Notebook]
-    ) -> dict[int, InvestigationOrchestrationSerializerResponse]:
+    ) -> dict[int, NotebookOrchestrationSerializerResponse]:
         return orchestration_summaries_by_investigation(notebooks)
 
     def has_run_status(self, statuses: Collection[str]) -> Q:
         return Q(orchestration_run__status__in=statuses)
 
     def archive_notebook(
-        self, *, investigation: Notebook, expected_version: int, actor_id: int | None
+        self, *, notebook: Notebook, expected_version: int, actor_id: int | None
     ) -> Notebook:
         return archive_investigation_with_orchestration(
-            investigation=investigation, expected_version=expected_version, actor_id=actor_id
+            investigation=notebook, expected_version=expected_version, actor_id=actor_id
         )
 
     def update_notebook(
         self,
         *,
-        investigation: Notebook,
+        notebook: Notebook,
         expected_version: int,
         fields: dict[str, Any],
         project_ids: list[int] | None,
     ) -> Notebook:
         return update_investigation_with_orchestration(
-            investigation=investigation,
+            investigation=notebook,
             expected_version=expected_version,
             fields=fields,
             project_ids=project_ids,

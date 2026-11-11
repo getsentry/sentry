@@ -16,22 +16,22 @@ from sentry.investigations.endpoints.validators import InvestigationStartValidat
 from sentry.investigations.services import start_investigation
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
-    OrganizationInvestigationsBaseEndpoint,
+    OrganizationNotebooksBaseEndpoint,
     organization_project_ids,
     request_creator_actor,
     require_authenticated_user,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
+    NotebookDetailsSerializer,
+    NotebookDetailsSerializerResponse,
 )
-from sentry.notebooks.telemetry import record_investigation_started
+from sentry.notebooks.telemetry import record_notebook_started
 
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationStartEndpoint(OrganizationInvestigationsBaseEndpoint):
+class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
@@ -41,10 +41,10 @@ class OrganizationInvestigationStartEndpoint(OrganizationInvestigationsBaseEndpo
         request=InvestigationStartValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
+                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
             ),
             201: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
+                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
@@ -88,12 +88,12 @@ class OrganizationInvestigationStartEndpoint(OrganizationInvestigationsBaseEndpo
                 return response
             raise
         if created:
-            record_investigation_started(investigation)
+            record_notebook_started(investigation)
         return Response(
             serialize(
                 investigation,
                 request.user,
-                InvestigationDetailsSerializer(access=request.access),
+                NotebookDetailsSerializer(access=request.access),
             ),
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )

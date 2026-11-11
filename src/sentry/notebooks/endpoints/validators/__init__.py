@@ -9,9 +9,9 @@ __all__ = (
     "BlockOrderValidator",
     "BlockUpdateValidator",
     "FavoriteUpdateValidator",
-    "InvestigationCreateValidator",
-    "InvestigationDeleteValidator",
-    "InvestigationUpdateValidator",
+    "NotebookCreateValidator",
+    "NotebookDeleteValidator",
+    "NotebookUpdateValidator",
     "StrictCamelSnakeValidator",
     "VisualizationSuggestionValidator",
     "validate_display",
@@ -35,8 +35,8 @@ from .block import (
     validate_display,
 )
 from .favorite import FavoriteUpdateValidator
-from .investigation import (
-    InvestigationCreateValidator,
-    InvestigationDeleteValidator,
-    InvestigationUpdateValidator,
+from .notebook import (
+    NotebookCreateValidator,
+    NotebookDeleteValidator,
+    NotebookUpdateValidator,
 )
