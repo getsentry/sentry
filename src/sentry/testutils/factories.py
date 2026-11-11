@@ -230,11 +230,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
-    TelemetryClassifierOutputType,
-)
+from sentry.telemetry_classifiers import types as telemetry_classifier_types
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -2743,12 +2740,12 @@ class Factories:
             project = Factories.create_project()
         defaults: dict[str, Any] = {
             "name": petname.generate(2, " ", letters=10).title(),
-            "result_attribute": "sentry.classifier.result",
-            "dataset": TelemetryClassifierDataset.CONVERSATION,
+            "result_attribute": "result",
+            "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
             "natural_language_prompt": "Is the user frustrated?",
             "compiled_prompt": "Return yes when the user is frustrated.",
-            "output_type": TelemetryClassifierOutputType.BINARY,
+            "output_type": telemetry_classifier_types.TelemetryClassifierOutputType.BINARY,
         }
         return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 
@@ -3114,7 +3111,9 @@ class Factories:
         import uuid
 
         return ActionInvocation(
-            event_data=WorkflowEventData(event=event, group=group),
+            event_data=WorkflowEventData(
+                event=event, group=group, organization=event.project.organization
+            ),
             action=action,
             detector=detector,
             notification_uuid=notification_uuid or str(uuid.uuid4()),

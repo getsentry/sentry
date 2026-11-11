@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
@@ -14,6 +14,7 @@ from sentry.api.serializers.models.activity import (
 )
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.apidocs.descriptions import ApiDescription
+from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.read_metrics import (
     ActivityReadFallbackReason,
@@ -39,7 +40,10 @@ from sentry.issues.impact.types import get_impact_level
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
+from sentry.notebooks.access import can_view_issue_links
+from sentry.notebooks.models import Notebook
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
@@ -136,6 +140,8 @@ def get_serialized_activity_items(
     user: RequestPrincipal | None,
     *,
     endpoint: str,
+    # Without it, investigation links are left out. Slack and Discord actions have none.
+    access: Access | None = None,
     limit: int = 99,
     action_filter: Q | None = None,
     include_first_seen: bool = True,
@@ -155,11 +161,16 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
+    # Investigation links are only shown to viewers who can open the investigation.
+    hidden_types: list[GroupActionType] = []
+    if access is None or not can_view_issue_links(group.project.organization, user, access):
+        hidden_types.append(GroupActionType.INVESTIGATION_LINKED)
     oldest_entry = (
         GroupActionLogEntry.objects.filter(
             group_id=group.id,
             type__in=[*GroupAction.get_user_visible_types(), *COMMENT_ACTION_TYPES],
         )
+        .exclude(type__in=hidden_types)
         .order_by("date_added", "id")
         .first()
     )
@@ -178,7 +189,7 @@ def get_serialized_activity_items(
         .filter(group_id=group.id)
         .filter(action_filter if action_filter is not None else Q())
         # Appended separately below, regardless of the limit.
-        .exclude(type=GroupActionType.FIRST_SEEN)
+        .exclude(type__in=[GroupActionType.FIRST_SEEN, *hidden_types])
         .order_by("-date_added", "-id")[:limit]
     )
     notes = list(
@@ -229,6 +240,41 @@ def get_serialized_activity_items(
         )
 
     return serialized_page + [dict(serialize_first_seen_entry(group, first_seen_entry))]
+
+
+class LinkedInvestigationResponse(TypedDict):
+    id: str
+    title: str
+    status: str
+
+
+def _investigation_summary(
+    notebook: Notebook | None, organization_id: int | None
+) -> LinkedInvestigationResponse | None:
+    if notebook is None or notebook.organization_id != organization_id:
+        return None
+    return {"id": str(notebook.id), "title": notebook.title, "status": notebook.status}
+
+
+def _linked_investigations(
+    item_list: Sequence[GroupActionLogEntry],
+) -> dict[GroupActionLogEntry, LinkedInvestigationResponse | None]:
+    """The investigation each link entry names, or None once it's deleted."""
+    links = [item for item in item_list if item.type == GroupActionType.INVESTIGATION_LINKED.value]
+    if not links:
+        return {}
+    organization_ids = dict(
+        Project.objects.filter(id__in={item.project_id for item in links}).values_list(
+            "id", "organization_id"
+        )
+    )
+    notebooks = Notebook.objects.in_bulk({item.data["notebook_id"] for item in links})
+    return {
+        item: _investigation_summary(
+            notebooks.get(item.data["notebook_id"]), organization_ids.get(item.project_id)
+        )
+        for item in links
+    }
 
 
 @register(GroupActionLogEntry)
@@ -318,6 +364,8 @@ class GroupActionLogEntrySerializer(Serializer):
         else:
             pull_requests = {}
 
+        investigations = _linked_investigations(item_list)
+
         from sentry.api.serializers.models.group import GroupSerializer
         from sentry.models.group import Group
 
@@ -337,6 +385,7 @@ class GroupActionLogEntrySerializer(Serializer):
 
         return {
             item: {
+                "investigation": investigations.get(item),
                 "user": (
                     users.get(str(item.actor_id))
                     if item.actor_type == GroupActorType.USER
@@ -378,6 +427,13 @@ class GroupActionLogEntrySerializer(Serializer):
                 "description": action.description,
                 "citations": [citation.dict() for citation in action.citations],
                 "sourceEventId": action.source_event_id,
+            }
+        elif obj.type == GroupActionType.INVESTIGATION_LINKED.value:
+            data = {
+                "investigation": attrs["investigation"],
+                "hypothesisId": obj.data["hypothesis_id"],
+                "hypothesisStatement": obj.data["hypothesis_statement"],
+                "reason": obj.data.get("reason"),
             }
         elif (
             obj.type == GroupActionType.SET_RESOLVED_IN_RELEASE.value

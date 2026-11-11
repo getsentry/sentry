@@ -4,23 +4,21 @@ import {useMutation} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
-import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import type {SetupIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
-export function SetupIntentForm(props: IntentFormProps) {
+export function SetupIntentForm(props: SetupIntentFormProps) {
   const {
     organization,
     location: ftcConsentLocation,
     onSuccess,
     onSuccessWithSubscription,
   } = props;
-  const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
   const {mutateAsync: savePaymentMethod, isPending} = useMutation({
     mutationFn: async ({
       stripe,
@@ -38,7 +36,9 @@ export function SetupIntentForm(props: IntentFormProps) {
       let intentData: PaymentSetupCreateResponse;
       try {
         intentData = await fetchMutation<PaymentSetupCreateResponse>({
-          url: setupIntentUrl,
+          url: getApiUrl('/organizations/$organizationIdOrSlug/payments/setup/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           method: 'POST',
         });
       } catch (error) {

@@ -33,7 +33,9 @@ export type ConversationsEventParameters = {
     tab?: 'agent' | 'human';
     value?: string;
   };
-  'conversations.onboarding.page-view': Record<string, unknown>;
+  'conversations.onboarding.page-view': {
+    empty_state: 'no_agent_spans' | 'no_conversations';
+  };
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
     save_type: 'alert' | 'dashboard';

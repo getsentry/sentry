@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useAutofixCreditsDisabled} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {
@@ -25,7 +26,6 @@ import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 import {ArtifactCard} from './artifactCard';
@@ -64,21 +64,11 @@ function getFinalExplanation(section: AutofixSection): string | null {
 }
 
 export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProps) {
-  const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  // Reporting on an iteration applies to both flows; only the form is manual.
-  const hasPrIterationFeature =
-    organization.features.includes('autofix-pr-iteration') ||
-    organization.features.includes('autofix-pr-iteration-manual');
-  const hasManualPrIterationFeature = organization.features.includes(
-    'autofix-pr-iteration-manual'
-  );
 
   const isIterating =
-    hasPrIterationFeature &&
-    section.status === 'processing' &&
-    section.blocks.some(isPrIterationBlock);
+    section.status === 'processing' && section.blocks.some(isPrIterationBlock);
 
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
@@ -92,11 +82,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const isLatestStepPrIteration =
     defined(latestStepBlock) && isPrIterationBlock(latestStepBlock);
 
-  const {feedback, latestIterationIndex} = usePrIterationFeedback(
-    section,
-    autofix,
-    hasPrIterationFeature
-  );
+  const {feedback, latestIterationIndex} = usePrIterationFeedback(section, autofix);
 
   const loadingBlocks = useMemo(() => {
     if (section.status !== 'processing') {
@@ -127,13 +113,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  // Reset-after-PR is only reachable where reset opens the manual form.
+  // Once a PR exists, reset opens the PR iteration form, so it stays available
+  // while an iteration is processing.
   const isResetEligible =
     !isPaused &&
     !hasFailedOnlyPRs &&
-    (hasManualPrIterationFeature
-      ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
-      : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing');
+    noCodingAgents &&
+    (hasPRs || autofix.runState?.status !== 'processing');
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -198,7 +184,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
+  const showPrIterationForm = hasPRs;
+  // The form starts another PR iteration, the same billable step as the one at
+  // the bottom of the drawer, so it is held on the same check.
+  const prIterationCreditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    enabled: shouldShowReset && showPrIterationForm,
+  });
 
   const rethinkInChat = useRethinkInChat({
     prompt: t('How can this code change be improved?'),
@@ -213,6 +204,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       runId={getAutofixRunId(autofix.runState)}
       referrer="code_changes_card_reset"
       onClose={() => setShouldShowReset(false)}
+      disabled={prIterationCreditsDisabled}
     />
   );
 

@@ -15,6 +15,7 @@ import {
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trialPromptIsDismissed} from 'getsentry/utils/billing';
+import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import {seerWalletAutoTopUpOptions} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
 function getEscalation(
@@ -34,7 +35,7 @@ function getEscalation(
 
 const TOP_UP_REQUESTED_PROMPT = 'seer_top_up_requested';
 
-export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps) {
+export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCtaProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const subscription = useSubscription();
@@ -88,12 +89,11 @@ export function SeerOutOfCreditsCta({reason, variant}: SeerOutOfCreditsCtaProps)
   return (
     <SeerOutOfCreditsNotice
       reason={reason}
+      size={size}
       variant={variant}
       escalation={escalation}
       autoReloadEnabled={autoTopUp?.enabled}
-      // The Seer wallet card on the billing overview is where auto-reload is
-      // configured until there is an in-place modal.
-      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+      onConfigureAutoReload={() => openSeerAutoTopUpModal({organization})}
       onRequestCredits={handleRequestCredits}
       isRequestingCredits={isRequestingCredits}
       hasRequestedCredits={isPromptDismissed[TOP_UP_REQUESTED_PROMPT]}

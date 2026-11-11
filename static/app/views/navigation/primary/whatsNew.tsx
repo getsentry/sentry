@@ -13,8 +13,6 @@ import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -28,6 +26,13 @@ const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> =
   video: t('Video'),
   sdk_update: t('SDK Update'),
 };
+
+const broadcastsApiOptions = (orgSlug: string) =>
+  apiOptions.as<Broadcast[]>()('/organizations/$organizationIdOrSlug/broadcasts/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {show: 'latest', limit: '3'},
+    staleTime: 1000 * 60 * 5,
+  });
 
 function BroadcastImage({src, alt}: {alt: string; src: string}) {
   const [loaded, setLoaded] = useState(false);
@@ -70,15 +75,14 @@ function WhatsNewBroadcastList({
       });
     },
     onSuccess: () => {
-      setApiQueryData<Broadcast[]>(
-        queryClient,
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/broadcasts/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {show: 'latest', limit: '3'}},
-        ],
-        data => (Array.isArray(data) ? data.map(item => ({...item, hasSeen: true})) : [])
+      queryClient.setQueryData(
+        broadcastsApiOptions(organization.slug).queryKey,
+        previous => ({
+          json: Array.isArray(previous?.json)
+            ? previous.json.map(item => ({...item, hasSeen: true}))
+            : [],
+          headers: previous?.headers ?? {},
+        })
       );
     },
   });
@@ -193,11 +197,7 @@ function WhatsNewBroadcastList({
 export function useWhatsNewBroadcasts() {
   const organization = useOrganization();
   const {isPending, data: broadcasts} = useQuery({
-    ...apiOptions.as<Broadcast[]>()('/organizations/$organizationIdOrSlug/broadcasts/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {show: 'latest', limit: '3'},
-      staleTime: 1000 * 60 * 5,
-    }),
+    ...broadcastsApiOptions(organization.slug),
     refetchInterval: 1000 * 60 * 10,
     refetchOnWindowFocus: true,
   });

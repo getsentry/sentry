@@ -1,10 +1,7 @@
 from typing import Any
 
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
-    TelemetryClassifierStatus,
-)
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -26,13 +23,13 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
     def test_lists_classifiers_newest_first(self) -> None:
         custom = self.create_telemetry_classifier(
             name="Frustration",
-            result_attribute="sentry.classifier.frustration",
+            result_attribute="frustration",
             filter_query="gen_ai.agent.name:support",
             created_by_id=self.user.id,
         )
         prebuilt = self.create_telemetry_classifier(
             name="Refusals",
-            dataset=TelemetryClassifierDataset.TRACE_SPANS,
+            dataset=Dataset.TRACE_SPANS,
             status=TelemetryClassifierStatus.DISABLED,
             prebuilt_classifier_key="refusal",
             natural_language_prompt=None,
@@ -50,7 +47,7 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
             "id": str(custom.id),
             "projectId": str(self.project.id),
             "name": "Frustration",
-            "resultAttribute": "sentry.classifier.frustration",
+            "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
@@ -135,7 +132,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         return {
             "project": self.project.id,
             "name": "Frustration",
-            "resultAttribute": "sentry.classifier.frustration",
+            "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "prebuiltClassifierKey": "user_frustration",
@@ -161,7 +158,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "id": str(classifier.id),
             "projectId": str(self.project.id),
             "name": "Frustration",
-            "resultAttribute": "sentry.classifier.frustration",
+            "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
@@ -228,9 +225,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         assert not TelemetryClassifier.objects.exists()
 
     def test_rejects_duplicate_result_attribute_in_project(self) -> None:
-        self.create_telemetry_classifier(
-            project=self.project, result_attribute="sentry.classifier.frustration"
-        )
+        self.create_telemetry_classifier(project=self.project, result_attribute="frustration")
         other_project = self.create_project(organization=self.organization, teams=[self.team])
 
         with self.feature(self.features):
@@ -242,6 +237,30 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             self.get_success_response(
                 self.organization.slug, **self.payload(project=other_project.id), status_code=201
             )
+
+    def test_rejects_invalid_result_attribute(self) -> None:
+        invalid = ["", "Frustration", "user frustration", ".frustration", "a..b", "a.", "é"]
+
+        with self.feature(self.features):
+            for result_attribute in invalid:
+                response = self.get_error_response(
+                    self.organization.slug,
+                    **self.payload(resultAttribute=result_attribute),
+                    status_code=400,
+                )
+                assert "resultAttribute" in response.data, result_attribute
+
+        assert not TelemetryClassifier.objects.exists()
+
+    def test_accepts_dotted_result_attribute(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.payload(resultAttribute="agent.user_frustration_2"),
+                status_code=201,
+            )
+
+        assert response.data["resultAttribute"] == "agent.user_frustration_2"
 
     def test_rejects_project_in_other_organization(self) -> None:
         other_project = self.create_project(organization=self.create_organization())

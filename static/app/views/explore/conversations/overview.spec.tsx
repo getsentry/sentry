@@ -8,10 +8,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 import {Referrer} from './utils/referrers';
 import ConversationsOverviewPage from './overview';
+
+jest.mock('sentry/utils/analytics');
 
 const organization = OrganizationFixture({
   features: ['gen-ai-conversations'],
@@ -416,11 +419,20 @@ describe('ConversationsOverviewPage', () => {
       'true'
     );
 
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.anything()
+    );
+
     await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
 
     expect(
       await screen.findByRole('tab', {name: 'Conversations', selected: true})
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.objectContaining({empty_state: 'no_conversations'})
+    );
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
@@ -484,6 +496,10 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
     expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.onboarding.page-view',
+      expect.objectContaining({empty_state: 'no_agent_spans'})
+    );
   });
 
   it('shows agent data without the project flag or conversation IDs', async () => {
