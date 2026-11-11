@@ -12,10 +12,10 @@ import type {
 } from 'sentry/views/seerWorkflows/types';
 
 const STATUS_VARIANT = {
-  succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
-  failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
-  skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
-  partial: {Icon: IconWarning, label: 'Incomplete', text: 'warning'},
+  succeeded: {Icon: IconCheckmark, label: t('Succeeded'), text: 'success'},
+  failed: {Icon: IconClose, label: t('Failed'), text: 'danger'},
+  skipped: {Icon: IconWarning, label: t('Skipped'), text: 'muted'},
+  partial: {Icon: IconWarning, label: t('Incomplete'), text: 'warning'},
 } as const satisfies Record<
   Exclude<WorkflowDisplayStatus, 'running'>,
   {
@@ -50,10 +50,16 @@ export function getStatusLabel(status: WorkflowDisplayStatus): string {
   return status === 'running' ? t('Running') : STATUS_VARIANT[status].label;
 }
 
-export function StatusIcon({status}: {status: WorkflowDisplayStatus}) {
+export function StatusIcon({
+  status,
+  hideTooltip,
+}: {
+  status: WorkflowDisplayStatus;
+  hideTooltip?: boolean;
+}) {
   if (status === 'running') {
     return (
-      <Tooltip title={t('Running')} skipWrapper>
+      <Tooltip title={t('Running')} disabled={hideTooltip} skipWrapper>
         <Spinner role="status" aria-label={t('Running')} />
       </Tooltip>
     );
@@ -61,7 +67,7 @@ export function StatusIcon({status}: {status: WorkflowDisplayStatus}) {
 
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
-    <Tooltip title={label} skipWrapper>
+    <Tooltip title={label} disabled={hideTooltip} skipWrapper>
       <Icon aria-label={label} variant={text} size="sm" />
     </Tooltip>
   );

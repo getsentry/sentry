@@ -79,7 +79,10 @@ export function RunsTable({
   });
 
   const configIds = [...new Set(runs.map(run => run.configId))].sort();
-  const configs = useFetchConfigs({ids: showStrategy ? configIds : []});
+  const configs = useFetchConfigs({
+    ids: configIds,
+    enabled: showStrategy && configIds.length > 0,
+  });
   const configsById = new Map(configs.data?.map(config => [config.id, config]));
 
   const monitorIds = [
@@ -198,7 +201,7 @@ function RunRow({
           <Flex gap="sm" align="center">
             {status ? (
               <Fragment>
-                <StatusIcon status={status} />
+                <StatusIcon status={status} hideTooltip />
                 <Text
                   variant={
                     status === 'running' || status === 'skipped' ? 'muted' : undefined
