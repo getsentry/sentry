@@ -634,6 +634,29 @@ class WebhookTest(GitLabWebhookTestCase):
         ]
         assert error_metrics == []
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_merge_event_missing_author_email_is_not_a_failure(
+        self, mock_record: MagicMock
+    ) -> None:
+        # GitLab can send a last_commit whose author has no email. The webhook
+        # should skip syncing the PR and exit cleanly rather than raising Http404,
+        # which the integration lifecycle would record as a failure.
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del payload["object_attributes"]["last_commit"]["author"]["email"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+        assert 0 == PullRequest.objects.count()
+
+        assert_success_metric(mock_record)
+
     def test_merge_event_invokes_code_review_handler(self) -> None:
         # The code-review handler is wired into the endpoint via the processor
         # tuple. Confirm both that it is registered and that an inbound
