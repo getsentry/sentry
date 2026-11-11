@@ -25,10 +25,20 @@ interface FreeformSelectorOption extends SelectOption<string> {
   tooltip?: string;
 }
 
+export type FreeformDataType = 'string' | 'number' | 'boolean';
+
+interface FreeformDataTypeSelectorOption extends SelectOption<string> {
+  dataType: FreeformDataType;
+  kind: 'freeformDataType';
+  textValue: string;
+  tooltip?: string;
+}
+
 export type MetricSelectorItem =
   | MetricSelectorOption
   | FieldSelectorOption
-  | FreeformSelectorOption;
+  | FreeformSelectorOption
+  | FreeformDataTypeSelectorOption;
 
 export function isMetricSelectorOption(
   option: MetricSelectorItem

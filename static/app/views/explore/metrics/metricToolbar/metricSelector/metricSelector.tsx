@@ -55,6 +55,7 @@ import {MetricDetailPanel} from './metricDetailPanel';
 import {MetricListBoxOption} from './metricListBoxOption';
 import {
   isMetricSelectorOption,
+  type FreeformDataType,
   type MetricSelectorItem,
   type MetricSelectorOption,
 } from './types';
@@ -64,9 +65,30 @@ const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
 const FIELD_OPTION_VALUE = '__field__';
 const FREEFORM_OPTION_VALUE = '__freeform__';
-// Freeform metrics haven't been emitted yet, so their real type is unknown.
-// Distribution supports the widest set of aggregates.
-const FREEFORM_METRIC_TYPE: TraceMetricTypeValue = 'distribution';
+const FREEFORM_DATA_TYPE_OPTION_PREFIX = '__freeform_data_type__:';
+
+// Prototype mapping: metrics are always numeric, so a freeform data type has to
+// resolve to a real metric type for the widget query to be valid.
+const FREEFORM_DATA_TYPES: Array<{
+  dataType: FreeformDataType;
+  example: string;
+  label: string;
+  metricType: TraceMetricTypeValue;
+}> = [
+  {dataType: 'string', label: t('String'), example: '"checkout"', metricType: 'counter'},
+  {
+    dataType: 'number',
+    label: t('Number'),
+    example: '42, 3.5',
+    metricType: 'distribution',
+  },
+  {
+    dataType: 'boolean',
+    label: t('Boolean'),
+    example: 'true, false',
+    metricType: 'counter',
+  },
+];
 
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
@@ -375,7 +397,26 @@ export function MetricSelector({
   // doesn't flash empty during debounced re-fetches.
   const previousOptions = usePrevious(metricOptions);
   const freeformMetricName = searchInputValue.trim();
+  // Set after "Add freeform metric" is picked; the list then asks for a data type.
+  const [pendingFreeformName, setPendingFreeformName] = useState<string | null>(null);
   const displayedOptions = useMemo((): MetricSelectorItem[] => {
+    if (pendingFreeformName) {
+      const dataTypeSearch = freeformMetricName.toLowerCase();
+      return FREEFORM_DATA_TYPES.filter(({label}) =>
+        label.toLowerCase().includes(dataTypeSearch)
+      ).map(({dataType, label, example}) => ({
+        kind: 'freeformDataType',
+        dataType,
+        label,
+        textValue: label,
+        value: `${FREEFORM_DATA_TYPE_OPTION_PREFIX}${dataType}`,
+        trailingItems: () => (
+          <Text size="sm" variant="muted" monospace>
+            {example}
+          </Text>
+        ),
+      }));
+    }
     const options = isFetching ? previousOptions : metricOptions;
     const hasExactMatch = options.some(
       option => isMetricSelectorOption(option) && option.metricName === freeformMetricName
@@ -407,6 +448,7 @@ export function MetricSelector({
     allowFreeformMetric,
     freeformMetricName,
     isFetching,
+    pendingFreeformName,
     previousOptions,
     metricOptions,
   ]);
@@ -477,6 +519,7 @@ export function MetricSelector({
     }
 
     setSearchInputValue('');
+    setPendingFreeformName(null);
     comboBoxState.selectionManager.setFocused(false);
     comboBoxState.selectionManager.setFocusedKey(null);
     nextFrameCallback(() => {
@@ -524,11 +567,19 @@ export function MetricSelector({
         return;
       }
       if (String(key) === FREEFORM_OPTION_VALUE && freeformMetricName) {
-        onChange({
-          name: freeformMetricName,
-          type: FREEFORM_METRIC_TYPE,
-          unit: NONE_UNIT,
-        });
+        setPendingFreeformName(freeformMetricName);
+        setSearchInputValue('');
+        return;
+      }
+      if (
+        String(key).startsWith(FREEFORM_DATA_TYPE_OPTION_PREFIX) &&
+        pendingFreeformName
+      ) {
+        const dataType = String(key).slice(FREEFORM_DATA_TYPE_OPTION_PREFIX.length);
+        const metricType =
+          FREEFORM_DATA_TYPES.find(option => option.dataType === dataType)?.metricType ??
+          'distribution';
+        onChange({name: pendingFreeformName, type: metricType, unit: NONE_UNIT});
         comboBoxState.toggle();
         return;
       }
@@ -737,8 +788,12 @@ export function MetricSelector({
                     width="100%"
                   >
                     <Flex align="center" justify="between" padding="sm lg">
-                      <Text size="sm" bold wrap="nowrap">
-                        {t('Application Metrics')}
+                      <Text size="sm" bold ellipsis>
+                        {pendingFreeformName
+                          ? tct('Choose a data type for [name]', {
+                              name: <Text monospace>{pendingFreeformName}</Text>,
+                            })
+                          : t('Application Metrics')}
                       </Text>
                       {isFetching ? (
                         <LoadingIndicator size={12} style={{margin: 0}} />
@@ -760,7 +815,11 @@ export function MetricSelector({
                         </InputGroup.LeadingItems>
                         <InputGroup.Input
                           {...comboBoxInputProps}
-                          placeholder={t('Search application metrics\u2026')}
+                          placeholder={
+                            pendingFreeformName
+                              ? t('Search data types\u2026')
+                              : t('Search application metrics\u2026')
+                          }
                           size="xs"
                           ref={searchRef}
                         />
