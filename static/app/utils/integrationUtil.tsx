@@ -9,7 +9,6 @@ import {IconPerforce} from '@sentry/icons/perforce';
 import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {IconVsts} from '@sentry/icons/vsts';
-import {createLoader, parseAsString} from 'nuqs';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
@@ -178,9 +177,6 @@ export const convertIntegrationTypeToSnakeCase = (
       return type;
   }
 };
-
-export const safeGetQsParam = (param: string) =>
-  createLoader({[param]: parseAsString})(window.location.search)[param];
 
 export const getIntegrationIcon = (
   integrationType?: string,

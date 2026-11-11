@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
+import {useQueryStates} from 'nuqs';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -32,12 +33,7 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  applyQueryParamsUpdates,
-  loadQueryParamsFromLocation,
-  parseAsScalar,
-} from 'sentry/views/explore/queryParams/parsers';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -88,10 +84,13 @@ export function ProjectCharts({
   const api = useApi();
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const navigate = useNavigate();
   const [totalValues, setTotalValues] = useState<number | null>(null);
-  const chartParsers = Object.fromEntries(visibleCharts.map(key => [key, parseAsScalar]));
-  const chartParams = loadQueryParamsFromLocation(chartParsers, location);
+  const chartParsers = useMemo(
+    () => Object.fromEntries(visibleCharts.map(key => [key, parseAsScalar])),
+    [visibleCharts]
+  );
+  const [chartParams, setChartParams] = useQueryStates(chartParsers);
+  const [{start, end, statsPeriod}] = useQueryStates(periodParsers);
 
   const defaultDisplayModes = (() => {
     if (!hasSessions && !hasTransactions) {
@@ -261,10 +260,6 @@ export function ProjectCharts({
   })();
 
   const barChartInterval = (() => {
-    const {start, end, statsPeriod} = loadQueryParamsFromLocation(
-      periodParsers,
-      location
-    );
     const diffInMinutes = getDiffInMinutes({start, end, period: statsPeriod});
 
     if (diffInMinutes >= TWO_WEEKS) {
@@ -297,10 +292,7 @@ export function ProjectCharts({
       chart_index: chartIndex,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: applyQueryParamsUpdates(chartParsers, location, {[chartId]: value}).query,
-    });
+    setChartParams({[chartId]: value}, {history: 'push'});
   };
 
   // Keep this handler referentially stable. It is passed as `onTotalValuesChange`

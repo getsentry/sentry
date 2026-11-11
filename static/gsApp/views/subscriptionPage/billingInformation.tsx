@@ -7,7 +7,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -28,7 +27,6 @@ type Props = {
  */
 function BillingInformation({subscription}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
   const hasBillingPerms = organization.access?.includes('org:billing');
   const theme = useTheme();
   const maxPanelWidth = theme.breakpoints.lg;
@@ -66,7 +64,6 @@ function BillingInformation({subscription}: Props) {
             <CreditCardPanel
               organization={organization}
               subscription={subscription}
-              location={location}
               ftcLocation={FTCConsentLocation.BILLING_DETAILS}
               budgetTerm={subscription.planDetails.budgetTerm}
               shouldExpandInitially

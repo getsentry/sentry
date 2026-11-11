@@ -1,18 +1,14 @@
-import {
-  loadQueryParamsFromLocation,
-  parseAsScalar,
-} from 'sentry/views/explore/queryParams/parsers';
+import {useQueryState} from 'nuqs';
+
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {OrganizationStatsInner} from 'sentry/views/organizationStats/index';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types';
 
 import EnhancedUsageStatsOrganization from './enhancedUsageStatsOrganization';
 
 export function EnhancedOrganizationStats(props: OrganizationStatsProps) {
-  const {organization, location} = props;
-  const {spikeCursor} = loadQueryParamsFromLocation(
-    {spikeCursor: parseAsScalar},
-    location
-  );
+  const {organization} = props;
+  const [spikeCursor] = useQueryState('spikeCursor', parseAsScalar);
 
   return (
     <OrganizationStatsInner

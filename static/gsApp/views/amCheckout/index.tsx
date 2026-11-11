@@ -6,7 +6,7 @@ import {loadStripe} from '@stripe/stripe-js';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
-import {parseAsString} from 'nuqs';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -26,7 +26,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {
@@ -105,12 +104,8 @@ function AMCheckout(props: Props) {
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [previewData, setPreviewData] = useState<PreviewData | undefined>(undefined);
 
-  const referrer = useMemo(
-    () =>
-      loadQueryParamsFromLocation({referrer: parseAsString}, location).referrer ??
-      undefined,
-    [location]
-  );
+  const [referrerParam] = useQueryState('referrer', parseAsString);
+  const referrer = referrerParam ?? undefined;
 
   const checkoutSteps = useMemo(() => {
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners

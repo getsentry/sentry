@@ -11,7 +11,7 @@ import type {
 } from 'echarts';
 import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
-import {parseAsString} from 'nuqs';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import type {Client} from 'sentry/api';
 import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
@@ -37,7 +37,6 @@ import {
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList} from 'sentry/utils/queryString';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 
 import type {AreaChartProps} from './areaChart';
 import {AreaChart} from './areaChart';
@@ -503,10 +502,7 @@ export function EventsChart(props: EventsChartProps) {
   // Include previous only on relative dates (defaults to relative if no start and end)
   const includePrevious = !disablePrevious && !start && !end;
 
-  const {forceChartType} = loadQueryParamsFromLocation(
-    {forceChartType: parseAsString.withDefault('')},
-    location
-  );
+  const [forceChartType] = useQueryState('forceChartType', parseAsString.withDefault(''));
   const yAxisArray = decodeList(yAxis);
   const yAxisSeriesNames = yAxisArray.map(name => {
     const yAxisLabel = name && isEquation(name) ? getEquation(name) : name;

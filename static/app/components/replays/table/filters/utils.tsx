@@ -1,42 +1,24 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
-import {parseAsString} from 'nuqs';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  applyQueryParamsUpdates,
-  loadQueryParamsFromLocation,
-} from 'sentry/views/explore/queryParams/parsers';
 
-const replayFilterParsers = {query: parseAsString.withDefault('')};
+export function useGenerateAction() {
+  const [, setQuery] = useQueryState('query', parseAsString.withDefault(''));
 
-export function generateAction({
-  key,
-  value,
-  location,
-  navigate,
-}: {
-  key: string;
-  location: Location;
-  navigate: ReturnType<typeof useNavigate>;
-  value: string;
-}) {
-  const {query} = loadQueryParamsFromLocation(replayFilterParsers, location);
-  const search = new MutableSearch(query);
-
-  const onAction = () => {
-    navigate({
-      pathname: location.pathname,
-      query: applyQueryParamsUpdates(replayFilterParsers, location, {
-        query: search.setFilterValues(key, [value]).formatString(),
-      }).query,
-    });
-  };
-
-  return onAction;
+  return useCallback(
+    ({key, value}: {key: string; value: string}) =>
+      () => {
+        setQuery(
+          query => new MutableSearch(query).setFilterValues(key, [value]).formatString(),
+          {history: 'push'}
+        );
+      },
+    [setQuery]
+  );
 }
 
 export const ActionMenuTrigger = styled(OverlayTrigger.IconButton)`

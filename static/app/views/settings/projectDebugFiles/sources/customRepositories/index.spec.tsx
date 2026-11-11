@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GlobalModal} from '@sentry/scraps/modal';
@@ -36,11 +35,7 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
     router: props?.router,
   });
 
-  return {
-    organization,
-    project,
-    location: LocationFixture(props?.router?.location),
-  };
+  return {organization, project};
 }
 
 describe('Custom Repositories', () => {
@@ -107,5 +102,35 @@ describe('Custom Repositories', () => {
     expect(screen.getByText(httpRepository.name)).toBeInTheDocument();
     expect(screen.getByText(DEBUG_SOURCE_TYPES.http)).toBeInTheDocument();
     expect(actions[0]).toBeEnabled();
+  });
+
+  it('opens the repository in the URL and removes it from the URL when the modal closes', async () => {
+    const props = getProps();
+    const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
+
+    const {router} = render(
+      <TestComponent
+        {...props}
+        organization={newOrganization}
+        customRepositories={[httpRepository]}
+      />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/org-slug/projects/project-slug/debug-symbols/',
+            query: {customRepository: httpRepository.id, query: 'abc'},
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(`Update ${DEBUG_SOURCE_TYPES.http} Repository`)
+      )
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Close Modal'));
+
+    await waitFor(() => expect(router.location.query).toEqual({query: 'abc'}));
   });
 });

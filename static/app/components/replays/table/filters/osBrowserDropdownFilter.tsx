@@ -3,10 +3,8 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 import {t, tct} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {ActionMenuTrigger, generateAction} from './utils';
+import {ActionMenuTrigger, useGenerateAction} from './utils';
 
 export function OSBrowserDropdownFilter({
   type,
@@ -17,8 +15,7 @@ export function OSBrowserDropdownFilter({
   type: 'browser' | 'os';
   version: string | null;
 }) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const generateAction = useGenerateAction();
 
   return (
     <DropdownMenu
@@ -36,8 +33,6 @@ export function OSBrowserDropdownFilter({
               onAction: generateAction({
                 key: `${type}.name`,
                 value: name ?? '',
-                location,
-                navigate,
               }),
             },
             {
@@ -46,8 +41,6 @@ export function OSBrowserDropdownFilter({
               onAction: generateAction({
                 key: `!${type}.name`,
                 value: name ?? '',
-                location,
-                navigate,
               }),
             },
           ],
@@ -66,8 +59,6 @@ export function OSBrowserDropdownFilter({
               onAction: generateAction({
                 key: `${type}.version`,
                 value: version ?? '',
-                location,
-                navigate,
               }),
             },
             {
@@ -76,8 +67,6 @@ export function OSBrowserDropdownFilter({
               onAction: generateAction({
                 key: `!${type}.version`,
                 value: version ?? '',
-                location,
-                navigate,
               }),
             },
           ],

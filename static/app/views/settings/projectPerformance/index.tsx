@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -38,6 +39,7 @@ export {retentionPrioritiesLabels} from './samplingPriorities/retentionPriorityS
 export function ProjectPerformance() {
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const [issueType] = useQueryState('issueType', parseAsString);
   const {
     detectorResetVersion,
     isResettingDetectorSettings,
@@ -119,6 +121,7 @@ export function ProjectPerformance() {
     hasAIIssueDetection,
     hasWebVitalsSeerSuggestions,
     isResetting: isResettingDetectorSettings,
+    issueType,
     performanceIssueSettings,
     projectSlug,
     resetVersion: detectorResetVersion,

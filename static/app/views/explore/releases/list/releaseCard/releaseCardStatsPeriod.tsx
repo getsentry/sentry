@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {useQueryState} from 'nuqs';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -8,7 +9,6 @@ import {t} from 'sentry/locale';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {
   applyQueryParamsUpdates,
-  loadQueryParamsFromLocation,
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
 
@@ -22,9 +22,9 @@ type Props = {
 
 export function ReleaseCardStatsPeriod({location}: Props) {
   const {selection} = usePageFilters();
-  const {healthStatsPeriod: activePeriod} = loadQueryParamsFromLocation(
-    healthStatsPeriodParsers,
-    location
+  const [activePeriod] = useQueryState(
+    'healthStatsPeriod',
+    healthStatsPeriodParsers.healthStatsPeriod
   );
   const getPeriodTarget = (healthStatsPeriod: HealthStatsPeriodOption) => ({
     pathname: location.pathname,

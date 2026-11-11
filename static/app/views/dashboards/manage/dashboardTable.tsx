@@ -8,6 +8,7 @@ import {IconStar} from '@sentry/icons/star';
 import {useMutation} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -51,7 +52,6 @@ import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {
   applyQueryParamsUpdates,
-  loadQueryParamsFromLocation,
   parseAsScalar,
 } from 'sentry/views/explore/queryParams/parsers';
 
@@ -227,6 +227,7 @@ export function DashboardTable({
   isLoading,
   isOnlyPrebuilt,
 }: Props) {
+  const [sort] = useQueryState('sort', parseAsScalar);
   const {mutate: updateEditAccess} = useMutation({
     mutationFn: (dashboard: DashboardListItem) =>
       fetchMutation({
@@ -303,9 +304,7 @@ export function DashboardTable({
     }
 
     const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-    const urlSort =
-      loadQueryParamsFromLocation(dashboardTableParsers, location).sort ??
-      (hasUserLastVisited ? 'recentlyViewed' : 'mydashboards');
+    const urlSort = sort ?? (hasUserLastVisited ? 'recentlyViewed' : 'mydashboards');
     const currentDirection =
       urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
     const isCurrentSort = currentDirection !== undefined;

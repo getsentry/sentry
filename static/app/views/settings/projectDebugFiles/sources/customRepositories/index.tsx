@@ -1,5 +1,5 @@
 import {useCallback, useEffect} from 'react';
-import type {Location} from 'history';
+import {useQueryState} from 'nuqs';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,23 +18,15 @@ import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  applyQueryParamsUpdates,
-  loadQueryParamsFromLocation,
-  parseAsScalar,
-} from 'sentry/views/explore/queryParams/parsers';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import {Repository} from './repository';
 import type {RepositoryConfig} from './updateCustomRepositoriesMutation';
 import {useUpdateCustomRepositoriesMutation} from './updateCustomRepositoriesMutation';
 import {dropDownItems} from './utils';
 
-const customRepositoryParsers = {customRepository: parseAsScalar};
-
 type Props = {
   customRepositories: CustomRepo[];
-  location: Location;
   organization: Organization;
   project: Project;
 };
@@ -43,12 +35,10 @@ export function CustomRepositories({
   organization,
   customRepositories: repositories,
   project,
-  location,
 }: Props) {
-  const navigate = useNavigate();
-  const {customRepository} = loadQueryParamsFromLocation(
-    customRepositoryParsers,
-    location
+  const [customRepository, setCustomRepository] = useQueryState(
+    'customRepository',
+    parseAsScalar
   );
   const {mutateAsync: updateCustomRepositories} = useUpdateCustomRepositoriesMutation(
     project,
@@ -78,10 +68,8 @@ export function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    navigate(
-      applyQueryParamsUpdates(customRepositoryParsers, location, {customRepository: null})
-    );
-  }, [location, navigate]);
+    setCustomRepository(null, {history: 'push'});
+  }, [setCustomRepository]);
 
   const openDebugFileSourceDialog = useCallback(() => {
     if (!customRepository) {
@@ -109,8 +97,7 @@ export function CustomRepositories({
 
   useEffect(() => {
     openDebugFileSourceDialog();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [location.query, openDebugFileSourceDialog]);
+  }, [openDebugFileSourceDialog]);
 
   function handleAddRepository(repoType: CustomRepoType) {
     openDebugFileSourceModal({
@@ -128,11 +115,7 @@ export function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    navigate(
-      applyQueryParamsUpdates(customRepositoryParsers, location, {
-        customRepository: repoId,
-      })
-    );
+    setCustomRepository(repoId, {history: 'push'});
   }
 
   return (

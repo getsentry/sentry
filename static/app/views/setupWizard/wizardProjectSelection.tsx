@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {createLoader, parseAsString} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
@@ -34,10 +34,7 @@ import {WaitingForWizardToConnect} from './waitingForWizardToConnect';
 
 const CREATE_PROJECT_VALUE = 'create-new-project';
 
-const {project_platform: platformParam, org_slug: orgSlugParam} = createLoader({
-  project_platform: parseAsString,
-  org_slug: parseAsString,
-})(window.location.search);
+const wizardParsers = {project_platform: parseAsString, org_slug: parseAsString};
 
 type WizardFormValues = {
   newProjectName: string;
@@ -65,7 +62,10 @@ function getOrgDisplayName(organization: OrganizationSummary) {
   return organization.name || organization.slug;
 }
 
-function getInitialOrgId(organizations: OrganizationSummary[]) {
+function getInitialOrgId(
+  organizations: OrganizationSummary[],
+  orgSlugParam: string | null
+) {
   if (organizations.length === 1) {
     return organizations[0]!.id;
   }
@@ -93,6 +93,8 @@ export function WizardProjectSelection({
   hash: string;
   organizations: OrganizationSummaryWithLocality[];
 }) {
+  const [{project_platform: platformParam, org_slug: orgSlugParam}] =
+    useQueryStates(wizardParsers);
   const [search, setSearch] = useState('');
 
   const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
@@ -101,7 +103,7 @@ export function WizardProjectSelection({
   const createProjectMutation = useCreateProjectFromWizard();
 
   const defaultValues: WizardFormValues = {
-    organizationId: getInitialOrgId(organizations),
+    organizationId: getInitialOrgId(organizations, orgSlugParam),
     projectId: null,
     newProjectName: platformParam || '',
     newProjectPlatform: platformParam || null,

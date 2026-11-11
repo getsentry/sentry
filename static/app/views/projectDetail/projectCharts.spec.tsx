@@ -15,20 +15,23 @@ function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
     projects: [{platform}],
   });
 
+  const locationConfig = {
+    pathname: '/organizations/org-slug/projects/project-slug/',
+    query: {chart1: chartDisplay ?? 'crash_free'},
+  };
+
   return render(
     <ProjectCharts
       chartId="chart1"
       chartIndex={0}
       hasSessions
       hasTransactions
-      location={LocationFixture({
-        pathname: '/organizations/org-slug/projects/project-slug/',
-        query: {chart1: chartDisplay ?? 'crash_free'},
-      })}
+      location={LocationFixture(locationConfig)}
       organization={organization}
       visibleCharts={['chart1', 'chart2']}
       project={project}
-    />
+    />,
+    {initialRouterConfig: {location: locationConfig}}
   );
 }
 
@@ -104,6 +107,17 @@ describe('ProjectDetail > ProjectCharts', () => {
 
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+  });
+
+  it('writes the selected display mode to the URL', async () => {
+    const {router} = renderProjectCharts('python');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Number of Sessions'}));
+
+    await waitFor(() => expect(router.location.query).toEqual({chart1: 'sessions'}));
   });
 
   it('does not refetch sessions when the summary total updates', async () => {
