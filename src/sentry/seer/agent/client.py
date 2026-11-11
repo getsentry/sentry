@@ -578,6 +578,7 @@ class SeerAgentClient:
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
         proxy_headers: dict[str, str] | None = None,
+        billing_feature: int | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -622,6 +623,8 @@ class SeerAgentClient:
             agent_run_options=resolved_agent_run_options,
             referrer=referrer,
         )
+        if billing_feature is not None:
+            body["billing_feature"] = billing_feature
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
         if proxy_headers is not None:

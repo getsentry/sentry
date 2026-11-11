@@ -152,6 +152,7 @@ class AgentRunOptions(TypedDict):
 
 class SeerFeatureRunRequest(TypedDict):
     feature_id: str
+    billing_feature: NotRequired[int]
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]

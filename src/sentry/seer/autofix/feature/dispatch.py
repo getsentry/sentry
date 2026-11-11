@@ -6,6 +6,7 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry import features, quotas
 from sentry.constants import (
@@ -51,6 +52,14 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+# Used for server-owned referrers. Public callers supply a billing feature
+# resolved from the request source and actor before reaching dispatch.
+_BILLING_FEATURE_BY_REFERRER = {
+    AutofixReferrer.AGENTIC_TRIAGE: billing.SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+    AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY: billing.SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+    AutofixReferrer.SLACK: billing.SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+}
+
 
 @dataclass(frozen=True)
 class AutofixFeatureArgs:
@@ -65,6 +74,7 @@ class AutofixFeatureArgs:
     user: User | RpcUser | AnonymousUser | None = None
     flush: bool = True
     single_run: bool = False
+    billing_feature: int | None = None
 
 
 def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
@@ -372,6 +382,10 @@ def trigger_autofix_feature(
     if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
+            billing_feature=args.billing_feature
+            or _BILLING_FEATURE_BY_REFERRER.get(
+                args.referrer, billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
+            ),
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,
