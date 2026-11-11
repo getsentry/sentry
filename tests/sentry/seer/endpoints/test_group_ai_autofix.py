@@ -185,6 +185,37 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert content == "Analyze issue ABC-1 ..."
 
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_get_returns_a_single_run_root_cause_as_root_cause(
+        self, mock_get_run: MagicMock
+    ) -> None:
+        group = self.create_group()
+        self._create_run(group, state_id=2, source=SINGLE_RUN_FEATURE_ID, minutes_ago=1)
+        state = self._state(2, single_run=True)
+        state.blocks = [
+            MemoryBlock(
+                id="b1",
+                message=Message(role="assistant", content="Found it."),
+                timestamp="2023-07-18T12:00:00Z",
+                artifacts=[
+                    Artifact(
+                        key="single_run_root_cause",
+                        data={"headline": "Regex rejects ids", "cause": "Too strict."},
+                        reason="",
+                    )
+                ],
+            )
+        ]
+        mock_get_run.return_value = state
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        (artifact,) = response.data["autofix"]["blocks"][0]["artifacts"]
+        assert artifact["key"] == "root_cause"
+        assert artifact["data"] == {"headline": "Regex rejects ids", "cause": "Too strict."}
+
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
     def test_get_returns_newer_step_run_with_autofix_feature_id(
         self, mock_get_run: MagicMock
     ) -> None:

@@ -5,12 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.cadence.models import ScheduledTriggerType
-from sentry.cadence.registry import (
-    MAX_SPREAD_WINDOW,
-    TriggerTypeRegistration,
-    register_trigger_action,
-    trigger_type_registry,
-)
+from sentry.cadence.registry import TriggerHandler, trigger_type_registry
 from sentry.cadence.spread import fire_offset, spread_window_for
 from sentry.utils.registry import NoRegistrationExistsError
 
@@ -25,8 +20,8 @@ def empty_registry() -> Generator[None]:
 
 
 def register(spread_window: timedelta) -> None:
-    trigger_type_registry.registrations[SEER_WORKFLOW] = TriggerTypeRegistration(
-        action=MagicMock(), spread_window=spread_window
+    trigger_type_registry.registrations[SEER_WORKFLOW] = MagicMock(
+        spec=TriggerHandler, spread_window=spread_window
     )
 
 
@@ -37,42 +32,6 @@ def offsets(min_gap: timedelta, count: int = 200) -> list[timedelta]:
         )
         for target_id in range(count)
     ]
-
-
-def test_registers_spread_window() -> None:
-    action = MagicMock()
-
-    assert (
-        register_trigger_action(SEER_WORKFLOW, spread_window=timedelta(hours=1))(action) is action
-    )
-    assert trigger_type_registry.get(SEER_WORKFLOW) == TriggerTypeRegistration(
-        action=action, spread_window=timedelta(hours=1)
-    )
-
-
-def test_spread_window_defaults_to_zero() -> None:
-    register_trigger_action(SEER_WORKFLOW)(MagicMock())
-
-    assert trigger_type_registry.get(SEER_WORKFLOW).spread_window == timedelta(0)
-
-
-def test_accepts_max_spread_window() -> None:
-    register_trigger_action(SEER_WORKFLOW, spread_window=MAX_SPREAD_WINDOW)(MagicMock())
-
-    assert trigger_type_registry.get(SEER_WORKFLOW).spread_window == MAX_SPREAD_WINDOW
-
-
-@pytest.mark.parametrize(
-    "spread_window",
-    [
-        timedelta(seconds=-1),
-        MAX_SPREAD_WINDOW + timedelta(seconds=1),
-        timedelta(minutes=1, microseconds=1),
-    ],
-)
-def test_rejects_invalid_spread_window(spread_window: timedelta) -> None:
-    with pytest.raises(ValueError):
-        register_trigger_action(SEER_WORKFLOW, spread_window=spread_window)
 
 
 def test_spread_window_is_at_most_half_the_gap() -> None:
