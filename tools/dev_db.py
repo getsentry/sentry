@@ -48,22 +48,13 @@ def migrate() -> None:
 def reset() -> None:
     drop()
     migrate()
-    print("--> Creating a superuser account", flush=True)
     if "GITHUB_ACTIONS" in os.environ:
+        print("--> Creating a superuser account", flush=True)
         _sentry(
             "createuser", "--superuser", "--email", "foo@tbd.com", "--no-password", "--no-input"
         )
     else:
-        _sentry(
-            "createuser",
-            "--superuser",
-            "--email",
-            "admin@sentry.io",
-            "--password",
-            "admin",
-            "--no-input",
-        )
-        print("Password is admin.")
+        print("Log in as admin@sentry.io with password admin.")
     print("Finished resetting database. To load mock data, run `./bin/load-mocks`")
 
 
