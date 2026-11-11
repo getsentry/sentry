@@ -113,6 +113,7 @@ class TestProcessWorkflowActivity(TestCase):
         event_data = WorkflowEventData(
             event=self.activity,
             group=self.group,
+            organization=self.organization,
         )
 
         mock_evaluate.assert_called_once_with({self.workflow}, event_data, mock.ANY)
@@ -150,6 +151,7 @@ class TestProcessWorkflowActivity(TestCase):
         expected_event_data = WorkflowEventData(
             event=self.activity,
             group=self.group,
+            organization=self.organization,
         )
 
         process_workflow_activity(
@@ -191,7 +193,9 @@ class TestProcessWorkflowActivity(TestCase):
 
         mock_filter_actions.assert_called_once_with(
             {action_group},
-            WorkflowEventData(event=self.activity, group=self.group),
+            WorkflowEventData(
+                event=self.activity, group=self.group, organization=self.organization
+            ),
         )
 
     @mock.patch(

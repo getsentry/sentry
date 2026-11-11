@@ -6,7 +6,7 @@ from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_typ
 from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
+from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
 from sentry.notebooks.models import Notebook
 
 
@@ -81,14 +81,14 @@ def record_notebook_completed(*, notebook: Notebook, seer_run_id: int) -> None:
     organization = notebook.organization
     if not features.has(
         "organizations:universal-inbox-recording", organization
-    ) or not has_investigations_access(organization):
+    ) or not has_notebooks_access(organization):
         return
     member = OrganizationMember.objects.filter(
         organization_id=notebook.organization_id,
         user_id=user_id,
         user_is_active=True,
     ).first()
-    if member is None or not member.get_scopes() & INVESTIGATION_SCOPES:
+    if member is None or not member.get_scopes() & NOTEBOOK_SCOPES:
         return
     NOTEBOOK_COMPLETED.record(
         subject=notebook,

@@ -22,11 +22,17 @@ describe('openSeerAutoTopUpModal', () => {
   const url = `/customers/${organization.slug}/seer-wallet/auto-top-up/`;
   const walletUrl = `/customers/${organization.slug}/seer-wallet/`;
 
-  function mockWallet({purchasedExpiresAt = null}: {purchasedExpiresAt?: string | null}) {
+  function mockWallet({
+    balance,
+    purchasedExpiresAt,
+  }: {
+    balance: number;
+    purchasedExpiresAt: string | null;
+  }) {
     MockApiClient.addMockResponse({
       url: walletUrl,
       body: {
-        balance: 0,
+        balance,
         creditPriceCents: 1,
         percentUsed: 1,
         included: {total: 500, remaining: 0, resetsAt: null},
@@ -37,12 +43,14 @@ describe('openSeerAutoTopUpModal', () => {
 
   function openAutoTopUpModal({
     autoTopUp = AutoTopUpFixture(),
+    balance = 0,
     purchasedExpiresAt = null,
   }: {
     autoTopUp?: SeerWalletAutoTopUp;
+    balance?: number;
     purchasedExpiresAt?: string | null;
   } = {}) {
-    mockWallet({purchasedExpiresAt});
+    mockWallet({balance, purchasedExpiresAt});
     MockApiClient.addMockResponse({url, body: autoTopUp});
     renderGlobalModal({organization});
     act(() => openSeerAutoTopUpModal({organization}));
@@ -85,6 +93,24 @@ describe('openSeerAutoTopUpModal', () => {
           dailySpendCapCents: 7500,
         },
       })
+    );
+  });
+
+  it('turns on without a charge when the balance is above the threshold', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true}),
+    });
+    openAutoTopUpModal({balance: 500});
+
+    const turnOn = await screen.findByRole('button', {name: 'Turn on'});
+    expect(screen.queryByText('Due now')).not.toBeInTheDocument();
+
+    await userEvent.click(turnOn);
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({data: AutoTopUpFixture({enabled: true})})
     );
   });
 
