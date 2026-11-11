@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconIssues} from '@sentry/icons/issues';
@@ -214,7 +215,7 @@ function RunRow({
   const automationName = config?.name ?? getStrategyLabel(run.strategy);
 
   return (
-    <SimpleTable.Row>
+    <RunTableRow>
       <SimpleTable.RowCell>
         <Stack gap="xs">
           <Flex gap="sm" align="center">
@@ -256,9 +257,11 @@ function RunRow({
             <Placeholder height="20px" width="120px" />
           ) : (
             <InfoText title={automationName} mode="overflowOnly">
-              <Link to={getAutomationDetailPath(organization.slug, run.configId)}>
+              <UnderlineLink
+                to={getAutomationDetailPath(organization.slug, run.configId)}
+              >
                 {automationName}
-              </Link>
+              </UnderlineLink>
             </InfoText>
           )}
         </SimpleTable.RowCell>
@@ -284,9 +287,21 @@ function RunRow({
       <SimpleTable.RowCell>
         <RunTiming run={run} />
       </SimpleTable.RowCell>
-    </SimpleTable.Row>
+    </RunTableRow>
   );
 }
+
+const RunTableRow = styled(SimpleTable.Row)`
+  > [role='cell']:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;
+
+const UnderlineLink = styled(Link)`
+  &:hover {
+    text-decoration: underline;
+  }
+`;
 
 function OutputLink({output}: {output: RunOutput}) {
   const organization = useOrganization();
@@ -296,9 +311,9 @@ function OutputLink({output}: {output: RunOutput}) {
   return (
     <Text>
       <Text bold>
-        <Link to={getInvestigationPath(organization.slug, output.id)}>
+        <UnderlineLink to={getInvestigationPath(organization.slug, output.id)}>
           {output.title}
-        </Link>
+        </UnderlineLink>
       </Text>{' '}
       <Text variant="muted" wrap="nowrap">
         {`INV-${output.id}`}
@@ -355,9 +370,11 @@ function MonitorTriggerCell({
         ) : (
           <InfoText title={monitor?.name} mode="overflowOnly">
             {monitor ? (
-              <Link to={makeMonitorDetailsPathname(organization.slug, monitor.id)}>
+              <UnderlineLink
+                to={makeMonitorDetailsPathname(organization.slug, monitor.id)}
+              >
                 {monitor.name}
-              </Link>
+              </UnderlineLink>
             ) : (
               t('Metric monitor breach')
             )}
@@ -371,9 +388,11 @@ function MonitorTriggerCell({
         <Flex gap="xs" align="center">
           <IconIssues size="xs" variant="muted" />
           <Text>
-            <Link to={`/organizations/${organization.slug}/issues/${trigger.groupId}/`}>
+            <UnderlineLink
+              to={`/organizations/${organization.slug}/issues/${trigger.groupId}/`}
+            >
               {trigger.groupShortId ?? `issue:${trigger.groupId}`}
-            </Link>
+            </UnderlineLink>
           </Text>
         </Flex>
         {trigger.environment && <Tag variant="muted">{trigger.environment}</Tag>}
