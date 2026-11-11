@@ -38,8 +38,11 @@ def _root_cause(data: Any) -> Section | None:
     if not data:
         return None
     groups: list[Group] = []
-    if data.get("one_line_description"):
-        groups.append(Group(items=(Text(data["one_line_description"]),)))
+    summary = tuple(
+        Text(data[key]) for key in ("headline", "one_line_description") if data.get(key)
+    )
+    if summary:
+        groups.append(Group(items=summary))
     whys = data.get("five_whys") or []
     if whys:
         groups.append(
