@@ -96,6 +96,8 @@ export type AutomationDetailOutletContext = {
   formId: string;
   formRef: RefObject<MetricAutomationFormHandle | null>;
   isConfiguring: boolean;
+  name: string;
+  onChangedChange: (hasChanges: boolean) => void;
   onSaved: () => void;
 };
 
@@ -111,6 +113,8 @@ export default function AutomationConfiguration() {
         formRef={context.formRef}
         onSaved={context.onSaved}
         readOnly={!context.isConfiguring}
+        name={context.name}
+        onChangedChange={context.onChangedChange}
       />
     );
   }

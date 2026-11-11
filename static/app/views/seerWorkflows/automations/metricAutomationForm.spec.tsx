@@ -52,6 +52,8 @@ describe('MetricAutomationForm', () => {
           formRef={{current: null}}
           onSaved={jest.fn()}
           readOnly={false}
+          name={editConfig.name ?? ''}
+          onChangedChange={jest.fn()}
         />
         <button type="submit" form="automation-form">
           Save changes
@@ -198,6 +200,7 @@ describe('MetricAutomationForm', () => {
           data: {
             monitorIds: [1],
             enabled: false,
+            name: 'Checkout errors',
             serviceAccount: allProjectsServiceAccount,
           },
         })
@@ -223,6 +226,7 @@ describe('MetricAutomationForm', () => {
           data: {
             monitorIds: [1],
             enabled: false,
+            name: 'Checkout errors',
             serviceAccount: {
               scopes: serviceAccount.scopes,
               projectIds: [1],
@@ -264,7 +268,9 @@ describe('MetricAutomationForm', () => {
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
-        expect.objectContaining({data: {monitorIds: [2], enabled: true, serviceAccount}})
+        expect.objectContaining({
+          data: {monitorIds: [2], enabled: true, name: 'Checkout errors', serviceAccount},
+        })
       )
     );
     expectNoServiceAccountRequests();

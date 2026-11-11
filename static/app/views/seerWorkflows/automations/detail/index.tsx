@@ -13,6 +13,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {EditableText} from 'sentry/components/editableText';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -71,6 +72,8 @@ export default function AutomationDetail() {
   const deleteConfig = useDeleteConfig({configId: automationId});
   const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
   const [isConfiguring, setIsConfiguring] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [formHasChanges, setFormHasChanges] = useState(false);
   const formRef = useRef<MetricAutomationFormHandle>(null);
   const formId = `automation-config-${automationId}`;
   // Leaving the configuration tab unmounts the form, discarding any unsaved changes
@@ -189,6 +192,7 @@ export default function AutomationDetail() {
         type="submit"
         form={formId}
         busy={isUpdatingConfig}
+        disabled={!formHasChanges && draftName === title}
       >
         {t('Save')}
       </Button>
@@ -242,6 +246,7 @@ export default function AutomationDetail() {
         icon={<IconEdit />}
         disabled={isUpdatingConfig}
         onClick={() => {
+          setDraftName(title);
           setIsConfiguring(true);
           // The form lives on the configuration tab
           if (activeTab !== 'configuration') {
@@ -295,9 +300,23 @@ export default function AutomationDetail() {
           <Flex justify="between" align="start" gap="xl">
             <Stack gap="xs">
               <Flex gap="md" align="center">
-                <Heading as="h1" size="xl">
-                  {title}
-                </Heading>
+                {isConfiguring ? (
+                  <Heading as="h1" size="xl">
+                    <EditableText
+                      variant="compact"
+                      value={draftName}
+                      onChange={setDraftName}
+                      // Clearing the name reverts the edit
+                      allowEmpty
+                      maxLength={64}
+                      aria-label={t('Automation Name')}
+                    />
+                  </Heading>
+                ) : (
+                  <Heading as="h1" size="xl">
+                    {title}
+                  </Heading>
+                )}
                 {config.enabled ? (
                   <Tag variant="success">{t('Active')}</Tag>
                 ) : (
@@ -339,6 +358,8 @@ export default function AutomationDetail() {
                 formId,
                 formRef,
                 isConfiguring,
+                name: draftName,
+                onChangedChange: setFormHasChanges,
                 onSaved: () => setIsConfiguring(false),
               } satisfies AutomationDetailOutletContext
             }

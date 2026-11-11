@@ -1,4 +1,4 @@
-import {useImperativeHandle, type RefObject} from 'react';
+import {useEffect, useImperativeHandle, type RefObject} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -80,6 +80,14 @@ type Props =
        */
       formRef: RefObject<MetricAutomationFormHandle | null>;
       mode: 'edit';
+      /**
+       * Name edited outside the form, in the page header
+       */
+      name: string;
+      /**
+       * Reports whether any field differs from its saved value
+       */
+      onChangedChange: (hasChanges: boolean) => void;
       onSaved: () => void;
       /**
        * Prevents editing until the user starts configuring
@@ -131,7 +139,7 @@ export function MetricAutomationForm(props: Props) {
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
-    const config = await updateConfig.mutateAsync(fields);
+    const config = await updateConfig.mutateAsync({...fields, name: props.name});
     toast.success(t('Automation saved.'));
     props.onSaved();
     return config;
@@ -176,6 +184,9 @@ export function MetricAutomationForm(props: Props) {
   });
   const formRef = props.mode === 'edit' ? props.formRef : undefined;
   useImperativeHandle(formRef, () => ({reset: () => form.reset()}), [form]);
+  const hasChanges = useStore(form.store, state => !state.isDefaultValue);
+  const onChangedChange = props.mode === 'edit' ? props.onChangedChange : undefined;
+  useEffect(() => onChangedChange?.(hasChanges), [onChangedChange, hasChanges]);
   // Fetch connected monitors by ID so they resolve regardless of the picker's filters
   const queryClient = useQueryClient();
   const monitorIds = useStore(form.store, state => state.values.monitorIds);
