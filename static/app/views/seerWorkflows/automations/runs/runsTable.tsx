@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconIssues} from '@sentry/icons/issues';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
@@ -81,7 +81,10 @@ export function RunsTable({
   });
 
   const configIds = [...new Set(runs.map(run => run.configId))].sort();
-  const configs = useFetchConfigs({ids: showStrategy ? configIds : []});
+  const configs = useFetchConfigs({
+    ids: showStrategy ? configIds : [],
+    keepPrevious: true,
+  });
   const configsById = new Map(configs.data?.map(config => [config.id, config]));
 
   const monitorIds = [
@@ -93,6 +96,7 @@ export function RunsTable({
     ...detectorListApiOptions(organization, {ids: monitorIds, limit: 100}),
     enabled: monitorIds.length > 0,
     select: ({json}) => new Map(json.map(monitor => [monitor.id, monitor])),
+    placeholderData: keepPreviousData,
   });
 
   if (isLoadingError) {
@@ -131,21 +135,30 @@ export function RunsTable({
             </Stack>
           </SimpleTable.Empty>
         ) : (
-          runs.map(run => (
-            <RunRow
-              key={run.id}
-              run={run}
-              showAutomation={showStrategy}
-              isConfigPending={configs.isPending}
-              isMonitorPending={monitors.isPending}
-              config={configsById.get(run.configId)}
-              monitor={
-                run.trigger?.type === 'monitor'
-                  ? monitors.data?.get(run.trigger.detectorId)
-                  : undefined
-              }
-            />
-          ))
+          runs.map(run => {
+            const config = configsById.get(run.configId);
+            const monitor =
+              run.trigger?.type === 'monitor'
+                ? monitors.data?.get(run.trigger.detectorId)
+                : undefined;
+            // Names from the previous page or poll stay on screen while the next set
+            // loads, so only rows that set doesn't cover yet are pending.
+            return (
+              <RunRow
+                key={run.id}
+                run={run}
+                showAutomation={showStrategy}
+                isConfigPending={
+                  configs.isLoading || (configs.isPlaceholderData && !config)
+                }
+                isMonitorPending={
+                  monitors.isLoading || (monitors.isPlaceholderData && !monitor)
+                }
+                config={config}
+                monitor={monitor}
+              />
+            );
+          })
         )}
       </SimpleTable>
       <Pagination pageLinks={pageLinks} />

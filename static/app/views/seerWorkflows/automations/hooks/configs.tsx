@@ -1,4 +1,10 @@
-import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  skipToken,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {apiOptions, selectJson} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -30,9 +36,13 @@ function useConfigUrls(configId = '') {
 
 /**
  * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
- * an empty list fetches nothing.
+ * an empty list fetches nothing. Pass `keepPrevious` to keep returning the last configs
+ * while a different set of `ids` loads.
  */
-export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
+export function useFetchConfigs({
+  ids,
+  keepPrevious,
+}: {ids?: string[]; keepPrevious?: boolean} = {}) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -49,6 +59,7 @@ export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
       }
     ),
     select: data => selectJson(data).configs,
+    placeholderData: keepPrevious ? keepPreviousData : undefined,
   });
 }
 
