@@ -1424,6 +1424,11 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('radio', {name: 'Equation'})).toBeChecked();
       expect(screen.queryByRole('button', {name: 'count'})).not.toBeInTheDocument();
 
+      const trailingTerm = screen.getAllByRole('combobox', {name: 'Add a term'}).at(-1)!;
+      await userEvent.click(trailingTerm);
+      await userEvent.type(trailingTerm, '* 2 ');
+      await userEvent.keyboard('{Escape}');
+
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'High threshold'}),
         '100'
@@ -1437,11 +1442,54 @@ describe('DetectorEdit', () => {
             data: expect.objectContaining({
               dataSources: [
                 expect.objectContaining({
-                  aggregate: 'equation|count(span.duration)',
+                  aggregate: 'equation|count(span.duration) * 2',
                   dataset: 'events_analytics_platform',
                   eventTypes: ['trace_item_span'],
                 }),
               ],
+            }),
+          })
+        );
+      });
+    });
+
+    it('saves a function after switching a span equation back to Function', async () => {
+      const organizationWithEquations = OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'spans-monitor-equations'],
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithEquations,
+        initialRouterConfig: metricRouterConfig,
+      });
+      await screen.findByText('New Monitor');
+
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+      await userEvent.click(screen.getByRole('radio', {name: 'Function'}));
+      expect(screen.getByRole('radio', {name: 'Function'})).toBeChecked();
+      expect(screen.getByRole('button', {name: 'count'})).toBeInTheDocument();
+
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              dataSources: [expect.objectContaining({aggregate: 'count(span.duration)'})],
             }),
           })
         );
