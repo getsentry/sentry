@@ -10,12 +10,15 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   SeerExplorerContext,
   type SeerExplorerContextValue,
 } from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {TopBar} from './topBar';
+
+jest.mock('sentry/utils/analytics');
 
 const theme = ThemeFixture();
 
@@ -308,6 +311,31 @@ describe('TopBar', () => {
         expect.objectContaining({
           tags: expect.objectContaining({'feedback.source': 'seer_explorer'}),
         })
+      );
+    });
+
+    it('tracks clicks with the feedback source', async () => {
+      renderFeedbackSlot(
+        <TopBar.Slot
+          name="feedback"
+          feedbackOptions={{tags: {'feedback.source': 'page'}}}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'navigation.feedback_button_clicked',
+        expect.objectContaining({seer_explorer_open: false, source: 'page'})
+      );
+    });
+
+    it('tracks the Seer Explorer source while the explorer is open', async () => {
+      renderFeedbackSlot(null, {seerExplorer: seerExplorerOpen});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'navigation.feedback_button_clicked',
+        expect.objectContaining({seer_explorer_open: true, source: 'seer_explorer'})
       );
     });
   });
