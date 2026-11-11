@@ -88,7 +88,7 @@ dependencies = [
   "python-u2flib-server>=5.0.0",
   "python3-saml>=1.15.0",
   "redis>=3.4.1",
-  "redis-py-cluster>=2.1.0",
+  "redis-py-cluster>=2.1.3",
   "requests>=2.33.0",
   "requests-oauthlib>=1.2.0",
   # [start] jsonschema format validators
