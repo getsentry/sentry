@@ -54,6 +54,7 @@ from sentry.notifications.platform.types import (
     CodeSection,
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTargetResourceType,
@@ -152,6 +153,32 @@ class SlackRendererTest(TestCase):
         assert code["text"]["text"].endswith("...```")
         assert len(quote["text"]["text"]) == 3000
         assert quote["text"]["text"].startswith(">")
+
+    def test_default_renderer_caps_block_count(self) -> None:
+        data = MockNotification(message="test")
+        rendered_template = NotificationRenderedTemplate(
+            subject=[PlainTextBlock(text="Subject")],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=f"line {i}")]) for i in range(60)],
+            actions=[NotificationRenderedAction(label="Visit", link="https://sentry.io")],
+            footer=[PlainTextBlock(text="Footer")],
+        )
+
+        renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
+        blocks = renderable["blocks"]
+
+        assert len(blocks) == 50
+        assert isinstance(blocks[0], HeaderBlock)
+        # 47 body slots: 46 kept lines plus the omitted-count line for the other 14.
+        assert blocks[46].to_dict()["text"]["text"] == "line 45"
+        assert blocks[47].to_dict()["elements"][0]["text"] == "_…and 14 more_"
+        assert isinstance(blocks[-2], ActionsBlock)
+        assert blocks[-1].to_dict()["elements"][0]["text"] == "Footer"
 
 
 class SlackNotificationProviderTest(TestCase):
