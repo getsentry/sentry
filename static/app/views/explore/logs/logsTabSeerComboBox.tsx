@@ -51,7 +51,7 @@ import {
 
 import {
   defaultVisualizes,
-  getLogsQueryParamsUpdates,
+  getTargetWithReadableQueryParams,
   LOGS_AGGREGATE_FIELD_KEY,
   LOGS_QUERY_PARSERS,
 } from './logsQueryParams';
@@ -108,14 +108,13 @@ export function getLogsSeerLocationQuery({
 
   const targetLocation = applyQueryParamsUpdates(
     LOGS_SEER_QUERY_PARSERS,
-    currentLocation,
+    getTargetWithReadableQueryParams(currentLocation, {
+      query: cleanedQuery,
+      mode: seerQuery.mode,
+      cursor: null,
+      aggregateCursor: null,
+    }),
     {
-      ...getLogsQueryParamsUpdates({
-        query: cleanedQuery,
-        mode: seerQuery.mode,
-        cursor: null,
-        aggregateCursor: null,
-      }),
       project: projectIds?.length ? projectIds.map(String) : undefined,
       start: seerQuery.datetime.start?.toString() ?? null,
       end: seerQuery.datetime.end?.toString() ?? null,

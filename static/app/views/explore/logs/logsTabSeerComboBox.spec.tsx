@@ -5,7 +5,9 @@ import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askS
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
+  LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -186,6 +188,37 @@ describe('getLogsSeerLocationQuery', () => {
 
     expect(aggregateQuery[LOGS_CURSOR_KEY]).toBeUndefined();
     expect(aggregateQuery[LOGS_AGGREGATE_CURSOR_KEY]).toBeUndefined();
+  });
+
+  it('drops the log anchor when the Seer query changes', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+        [LOGS_QUERY_KEY]: 'severity:error',
+        mode: Mode.SAMPLES,
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({query: 'severity:info', mode: 'logs'}),
+    });
+
+    expect(query[LOGS_QUERY_KEY]).toBe('severity:info');
+    expect(query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBeUndefined();
+  });
+
+  it('keeps the log anchor when the Seer query matches the current one', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000',
+        [LOGS_QUERY_KEY]: 'severity:error',
+        mode: Mode.SAMPLES,
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      result: seerResult({query: 'severity:error', mode: 'logs'}),
+    });
+
+    expect(query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBe('5000');
   });
 
   it('clears stale aggregate params when switching to samples mode', () => {
