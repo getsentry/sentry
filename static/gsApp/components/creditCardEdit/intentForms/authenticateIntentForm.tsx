@@ -15,11 +15,12 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import type {PaymentIntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
+import {paymentIntentOptions} from 'getsentry/hooks/useIntentData';
 import type {PaymentCreateResponse} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-interface Props extends IntentFormProps {
+interface Props extends PaymentIntentFormProps {
   intentData: PaymentCreateResponse;
   onError: (message: string) => void;
   errorMessage?: string;
@@ -46,7 +47,6 @@ export function AuthenticateIntentForm({
   invoiceGuid,
   onCancel,
   onSuccess,
-  intentDataQueryKey,
   onError,
   errorMessage,
 }: Props) {
@@ -94,11 +94,13 @@ export function AuthenticateIntentForm({
         t('That verification did not go through. Please try again or use another card.')
     );
     setIsSubmitting(false);
-    await queryClient.invalidateQueries({queryKey: intentDataQueryKey});
+    await queryClient.invalidateQueries({
+      queryKey: paymentIntentOptions(organization.slug, invoiceGuid).queryKey,
+    });
   };
 
   const handleAuthenticate = async () => {
-    if (!stripe || !invoiceGuid) {
+    if (!stripe) {
       onError(t('Cannot complete your payment at this time, please try again later.'));
       return;
     }
