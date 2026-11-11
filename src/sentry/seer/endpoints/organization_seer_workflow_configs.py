@@ -742,21 +742,10 @@ def serialize_workflow_configs(
         )
         for account in accounts
     }
-    monitor_configs = [
-        config
-        for config in configs
-        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-    ]
-    project_configs = [
-        config
-        for config in configs
-        if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-    ]
+    connected_monitors = get_config_monitors_bulk(configs, project_filter=accessible_project_ids)
     selected_projects = get_config_projects_bulk(
-        project_configs, accessible_project_ids=accessible_project_ids
-    )
-    connected_monitors = get_config_monitors_bulk(
-        monitor_configs, project_filter=accessible_project_ids
+        [config for config in configs if config.id not in connected_monitors],
+        accessible_project_ids=accessible_project_ids,
     )
     last_runs = get_config_last_runs(
         configs,
@@ -769,16 +758,8 @@ def serialize_workflow_configs(
         "configs": [
             serialize_workflow_config(
                 config,
-                selected_project_ids=(
-                    []
-                    if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-                    else selected_projects[config.id]
-                ),
-                connected_monitors=(
-                    connected_monitors.get(config.id, [])
-                    if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-                    else []
-                ),
+                selected_project_ids=selected_projects.get(config.id, []),
+                connected_monitors=connected_monitors.get(config.id, []),
                 last_run=last_runs_by_config_id.get(config.id),
                 service_account=(
                     service_accounts.get(config.service_account_id)
