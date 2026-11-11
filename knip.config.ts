@@ -22,6 +22,8 @@ const productionEntryPoints = [
   'utils/seer/useSeerCreditCheck.tsx',
   // TODO: Remove when the Seer credit gates render it (#129563, #129565)
   'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
+  // TODO: Remove when onboarding consumes the agent handoff hook
+  'components/agentHandoff/useAgentHandoff.tsx',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
