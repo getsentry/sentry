@@ -26,8 +26,20 @@ class TelemetryClassifierStatus(models.TextChoices):
 
 @dataclass(frozen=True)
 class PrebuiltClassifier:
-    key: str  # Prebuilt classifier key used to identify it in Seer.
+    key: str  # The exact Seer classifier model ID. Prompts live in Seer.
     dataset: Dataset
+    output_type: TelemetryClassifierOutputType
     name: str
     description: str
-    result_attribute: str  # Attribute where classifier output materializes.
+    # Suggested result attribute name, without RESULT_ATTRIBUTE_PREFIX. Customers can change it.
+    result_attribute: str
+
+
+@dataclass(frozen=True)
+class ResolvedDefinition:
+    """An executable classifier definition, resolved from its persisted configuration."""
+
+    # Seer classifier model ID.
+    key: str
+    dataset: Dataset
+    output_type: TelemetryClassifierOutputType
