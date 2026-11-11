@@ -205,8 +205,8 @@ importers:
         specifier: 2.0.2
         version: 2.0.2(@rspack/core@2.3.2(@swc/helpers@0.5.24))(react-refresh@0.19.0)
       '@sentry/conventions':
-        specifier: ^0.32.0
-        version: 0.32.0
+        specifier: ^0.33.0
+        version: 0.33.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.3.0)
@@ -538,8 +538,8 @@ importers:
         specifier: 11.7.0
         version: 11.7.0
       '@sentry/conventions':
-        specifier: ^0.32.0
-        version: 0.32.0
+        specifier: ^0.33.0
+        version: 0.33.0
       '@sentry/core':
         specifier: 11.7.0
         version: 11.7.0
@@ -4099,8 +4099,8 @@ packages:
     resolution: {integrity: sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==}
     engines: {node: '>=14'}
 
-  '@sentry/conventions@0.32.0':
-    resolution: {integrity: sha512-WkSQcDhUUsz1SwxR23LpmyPKba+dgxxiH0DWV4VSM9yaAvhhl87ppW2Ts3g4piIKCVflc31aJeWy+biUbYfsMQ==}
+  '@sentry/conventions@0.33.0':
+    resolution: {integrity: sha512-5aa3g/VOnMoL8yHbfkYIWBYC3BLgMudgRNBTKNMrcMEj1mE9aKIt/CYCG7sasijhiSU4nTcSEzyM2voIVzLCng==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.76.0':
@@ -11800,7 +11800,7 @@ snapshots:
 
   '@sentry/conventions@0.27.0': {}
 
-  '@sentry/conventions@0.32.0': {}
+  '@sentry/conventions@0.33.0': {}
 
   '@sentry/core@10.76.0':
     dependencies:

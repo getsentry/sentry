@@ -73,7 +73,10 @@ function setUpTests() {
     'past-due-3',
     'past-due-4',
   ].forEach(slug => {
-    SubscriptionStore.set(slug, {});
+    SubscriptionStore.set(
+      slug,
+      SubscriptionFixture({organization: OrganizationFixture({slug})})
+    );
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${slug}/prompts-activity/`,
@@ -89,7 +92,7 @@ describe('GSBanner', () => {
 
   it('renders empty', async () => {
     const organization = OrganizationFixture();
-    SubscriptionStore.set(organization.slug, {});
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
 
     const {container} = render(<GSBanner organization={organization} />, {
       organization,

@@ -3,6 +3,8 @@ from typing import Annotated, Literal, NotRequired, TypedDict
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.eap.types import ColumnType
 
+TraceItemAttributeUnit = Literal["byte", "currency", "millisecond", "percentage", "second"]
+
 
 class TraceItemAttributeSource(TypedDict):
     source_type: Annotated[
@@ -64,6 +66,25 @@ class TraceItemAttributeContext(TypedDict):
     # The attribute that replaces this one, when deprecated.
     replacementAttribute: NotRequired[
         Annotated[str, ApiDescription("Attribute that replaces this one, when it is deprecated")]
+    ]
+    isInOtel: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether this Sentry convention is part of the OpenTelemetry semantic "
+                "conventions. Present (and true) only for such conventions; OpenTelemetry "
+                "attributes that aren't Sentry conventions are never marked"
+            ),
+        ]
+    ]
+    unit: NotRequired[
+        Annotated[
+            TraceItemAttributeUnit,
+            ApiDescription(
+                "Unit of a number attribute, from the dataset's Sentry-defined attributes or "
+                "from Sentry conventions, which apply in every dataset"
+            ),
+        ]
     ]
 
 

@@ -19,7 +19,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type OrganizationChoice = Pick<OrganizationSummary, 'id' | 'name' | 'slug'>;
-type OrganizationSearchResult = OrganizationChoice & Pick<OrganizationSummary, 'links'>;
 type MonitorChoice = Pick<MetricDetector, 'id' | 'name' | 'projectId'>;
 type BreachResponse = {eventId: string; issueId: string; issueUrl: string};
 type BreachRequest = {locality: string; monitorId: number; organizationId: number};
@@ -47,6 +46,16 @@ function monitorLabel(monitor: MonitorChoice) {
 
 export function SyntheticMetricBreachForm() {
   const localities = getLocalities();
+  const defaultLocality = localities[0]?.url ?? '';
+  const defaultCell = getCells().find(cell => cell.locality_url === defaultLocality);
+  const defaultOrganizations = useQuery(
+    apiOptions.as<OrganizationChoice[]>()('/_admin/cells/$region/customers/', {
+      path: defaultCell ? {region: defaultCell.name} : skipToken,
+      query: {query: 'slug:sentry', per_page: 1},
+      host: defaultLocality,
+      staleTime: 30_000,
+    })
+  );
   const [organizationSearch, setOrganizationSearch] = useState('');
   const [monitorSearch, setMonitorSearch] = useState('');
   const [debouncedOrganizationSearch] = useDebouncedValue(organizationSearch, {
@@ -64,8 +73,8 @@ export function SyntheticMetricBreachForm() {
       }),
   });
   const defaultValues: z.input<typeof breachSchema> = {
-    locality: localities[0]?.url ?? '',
-    organization: null,
+    locality: defaultLocality,
+    organization: defaultOrganizations.data?.find(org => org.slug === 'sentry') ?? null,
     monitor: null,
   };
   const form = useScrapsForm({
@@ -90,8 +99,10 @@ export function SyntheticMetricBreachForm() {
   const values = useStore(form.store, state => state.values);
   const cell = getCells().find(candidate => candidate.locality_url === values.locality);
   const organizations = useInfiniteQuery({
-    ...apiOptions.asInfinite<OrganizationSearchResult[]>()('/_admin/customers/search/', {
-      query: {query: debouncedOrganizationSearch, per_page: 50},
+    ...apiOptions.asInfinite<OrganizationChoice[]>()('/_admin/cells/$region/customers/', {
+      path: cell ? {region: cell.name} : skipToken,
+      query: {query: debouncedOrganizationSearch, per_page: 50, sortBy: 'members'},
+      host: values.locality,
       staleTime: 30_000,
     }),
     enabled: Boolean(cell && debouncedOrganizationSearch),
@@ -107,11 +118,12 @@ export function SyntheticMetricBreachForm() {
       staleTime: 30_000,
     })
   );
+  const normalizedOrganizationSearch = debouncedOrganizationSearch.trim().toLowerCase();
   const organizationOptions = (organizations.data ?? [])
-    .filter(
-      organization =>
-        // Local monolith responses use a simulated region URL for the same database.
-        cell?.name === '--monolith--' || organization.links.regionUrl === values.locality
+    .toSorted(
+      (a, b) =>
+        Number(b.slug.toLowerCase() === normalizedOrganizationSearch) -
+        Number(a.slug.toLowerCase() === normalizedOrganizationSearch)
     )
     .map(({id, name, slug}) => ({
       value: {id, name, slug},
@@ -192,9 +204,7 @@ export function SyntheticMetricBreachForm() {
                   }
                   noOptionsMessage={() =>
                     organizationSearch
-                      ? organizations.hasNextPage
-                        ? 'Load more results to search this region'
-                        : 'No organizations found'
+                      ? 'No organizations found'
                       : 'Type to search organizations'
                   }
                   menuFooter={

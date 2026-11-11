@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -33,7 +32,7 @@ from sentry.service_accounts.models import (
     ServiceAccountProject,
     ServiceAccountReplica,
 )
-from sentry.service_accounts.outbox import create_owned_service_account
+from sentry.service_accounts.outbox import ServiceAccountCreatePayload, create_owned_service_account
 from sentry.service_accounts.services.service_account import service_account_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -239,7 +238,7 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
     def pending_outbox(self) -> CellOutbox:
         return CellOutbox.objects.get(category=OutboxCategory.SERVICE_ACCOUNT_CREATE)
 
-    def pending_payload(self) -> dict[str, Any]:
+    def pending_payload(self) -> ServiceAccountCreatePayload:
         payload = self.pending_outbox().payload
         assert payload is not None
         return payload
