@@ -28,7 +28,8 @@ class NotebookBlockSerializerResponse(TypedDict):
     Notebook block. version is the block concurrency token; dependencies are block IDs and
     parameterKeys reference notebook parameters. output is the latest successful result and may
     remain available during a rerun; currentExecution describes the latest attempt. Poll
-    execution details for transcript and pending input.
+    execution details for transcript and pending input. producerKey and producerRevision are
+    set on blocks a producer wrote.
     """
 
     id: str
@@ -49,6 +50,8 @@ class NotebookBlockSerializerResponse(TypedDict):
     staleAt: datetime | None
     createdBy: str | None
     lastEditedBy: str | None
+    producerKey: str | None
+    producerRevision: int | None
 
 
 class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
@@ -123,4 +126,6 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
             "lastEditedBy": (
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
             ),
+            "producerKey": obj.producer_key,
+            "producerRevision": obj.producer_revision,
         }

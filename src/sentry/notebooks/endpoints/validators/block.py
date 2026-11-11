@@ -6,9 +6,13 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.notebooks.contracts import VisualizationSerializer, validate_query_result
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.notebooks.models import NotebookBlockKind
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
+from sentry.notebooks.services.notebooks import create_block
+from sentry.notebooks.services.producer_sources import get_producer_source_type
+from sentry.notebooks.services.producer_writes import UNSET, write_api_producer_block
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
 CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
@@ -127,20 +131,45 @@ def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any
         raise serializers.ValidationError({"display": error.detail})
 
 
-class BlockCreateValidator(StrictCamelSnakeValidator):
+class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]):
+    """Append a user's block, or write a producer's block by key and revision.
+
+    Needs notebook and user_id in its context.
+    """
+
     investigation_version = serializers.IntegerField(
         min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+        required=False,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409. Send this, or key and revision.",
+    )
+    key = serializers.CharField(
+        max_length=128,
+        required=False,
+        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion.",
+    )
+    revision = serializers.IntegerField(
+        min_value=1,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        required=False,
+        help_text="The producer's revision for the block. A block with a newer revision returns 409.",
+    )
+    position = serializers.IntegerField(
+        min_value=0,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        required=False,
+        help_text="Where a producer's block goes. A new block goes last when omitted, and an existing block stays put.",
     )
     kind = serializers.ChoiceField(
         choices=NotebookBlockKind.choices,
-        help_text="Block kind: text for Markdown or query for an agent-generated data query.",
+        help_text="Block kind: text for Markdown or query for an agent-generated data query. A producer's block must be text.",
     )
     title = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Block title. May be empty."
     )
     content = serializers.CharField(
-        required=False, allow_blank=True, help_text="User-authored content. May be empty."
+        required=False,
+        allow_blank=True,
+        help_text="Markdown content. May be empty, except in a producer's block.",
     )
     generation_prompt = serializers.CharField(
         required=False,
@@ -156,6 +185,25 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        producer_fields = {"key", "revision", "position"}.intersection(attrs)
+        if "investigation_version" in attrs:
+            if producer_fields:
+                raise serializers.ValidationError(
+                    {"detail": "Send investigationVersion, or key and revision, not both."}
+                )
+        elif not {"key", "revision"}.issubset(attrs):
+            raise serializers.ValidationError(
+                {"investigation_version": "Send investigationVersion, or key and revision."}
+            )
+        elif attrs["kind"] != NotebookBlockKind.TEXT:
+            raise serializers.ValidationError({"kind": "A producer's block must be text."})
+        elif not attrs.get("content"):
+            raise serializers.ValidationError({"content": "A producer's block needs content."})
+        elif get_producer_source_type(self.context["notebook"].source_type) is None:
+            raise serializers.ValidationError(
+                {"detail": "Only a notebook made for a producer source takes key and revision."},
+                code="not_producer_notebook",
+            )
         kind = attrs["kind"]
         display = attrs.get(
             "display",
@@ -171,6 +219,32 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
         if not isinstance(attrs.get("config", {}), dict):
             raise serializers.ValidationError({"config": "Must be an object."})
         return attrs
+
+    def create(self, validated_data: dict[str, Any]) -> tuple[NotebookBlock, bool]:
+        notebook: Notebook = self.context["notebook"]
+        values = dict(validated_data)
+        if "investigation_version" not in values:
+            return write_api_producer_block(
+                notebook,
+                key=values["key"],
+                revision=values["revision"],
+                kind=values["kind"],
+                position=values.get("position"),
+                title=values.get("title", UNSET),
+                content=values.get("content", UNSET),
+                prompt=values.get("generation_prompt", UNSET),
+                config=values.get("config", UNSET),
+                display=values["display"],
+            )
+        notebook_version = values.pop("investigation_version")
+        values["prompt"] = values.pop("generation_prompt", "")
+        block = create_block(
+            notebook=notebook,
+            expected_notebook_version=notebook_version,
+            user_id=self.context["user_id"],
+            values=values,
+        )
+        return block, True
 
 
 class BlockUpdateValidator(StrictCamelSnakeValidator):

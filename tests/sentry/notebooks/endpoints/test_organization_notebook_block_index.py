@@ -1,10 +1,22 @@
 from __future__ import annotations
 
-from django.urls import reverse
+from typing import Any
+from uuid import uuid5
 
-from sentry.notebooks.models import NotebookBlock
+from django.urls import reverse
+from rest_framework.response import Response
+
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookStatus,
+)
+from sentry.notebooks.services.producer_writes import _API_EXECUTION_NAMESPACE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.notebook_producer_sources import register_example_source_type
 
 FEATURE = "organizations:investigations"
 
@@ -173,3 +185,199 @@ class NotebookBlockIndexEndpointTest(APITestCase):
         )
         assert response.status_code == 201, response.data
         assert response.data["display"]["promptCollapsed"] is True
+
+
+@with_feature(FEATURE)
+class NotebookProducerBlockTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        register_example_source_type(self)
+        self.notebook = self.create_notebook(
+            organization=self.organization,
+            created_by=self.user,
+            title="Producer blocks",
+            source_type="example_issue",
+            source_key="example_issue:7",
+            source={"type": "example_issue", "ref": {"issueId": 7}},
+            source_revision=1,
+        )
+        self.create_notebook_project(self.notebook, self.project)
+        self.url = self.blocks_url(self.notebook)
+
+    def blocks_url(self, notebook: Notebook) -> str:
+        return reverse(
+            "sentry-api-0-organization-notebook-blocks",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "notebook_id": notebook.id,
+            },
+        )
+
+    def write(self, **data: Any) -> Response:
+        return self.client.post(
+            self.url,
+            data={"key": "summary", "revision": 1, "kind": "text", "content": "Text", **data},
+            format="json",
+        )
+
+    def test_creates_then_updates_by_key(self) -> None:
+        user_block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+
+        created = self.write(title="Summary", content="First draft")
+
+        assert created.status_code == 201, created.data
+        assert created.data["producerKey"] == "summary"
+        assert created.data["producerRevision"] == 1
+        assert created.data["position"] == user_block.position + 1
+        assert created.data["outputStatus"] == "available"
+        assert created.data["output"]["markdown"] == "First draft"
+        assert created.data["createdBy"] is None
+        execution = NotebookBlockExecution.objects.get(block_id=created.data["id"])
+        assert execution.request_id == uuid5(
+            _API_EXECUTION_NAMESPACE, f"{self.notebook.id}:1:summary:text"
+        )
+        assert execution.status == NotebookBlockExecutionStatus.COMPLETED
+
+        updated = self.write(content="Second draft")
+
+        assert updated.status_code == 200, updated.data
+        assert updated.data["id"] == created.data["id"]
+        assert updated.data["content"] == "Second draft"
+        assert updated.data["title"] == "Summary"
+        assert updated.data["position"] == created.data["position"]
+        assert NotebookBlockExecution.objects.filter(block_id=created.data["id"]).count() == 1
+        self.notebook.refresh_from_db()
+        assert self.notebook.version == 3
+
+    def test_takes_a_position(self) -> None:
+        response = self.write(position=4)
+
+        assert response.status_code == 201, response.data
+        assert response.data["position"] == 4
+
+    def test_overwrites_a_user_edit(self) -> None:
+        created = self.write(content="Generated")
+        block = NotebookBlock.objects.get(id=created.data["id"])
+        self.notebook.refresh_from_db()
+        edited = self.client.put(
+            reverse(
+                "sentry-api-0-organization-notebook-block-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "notebook_id": self.notebook.id,
+                    "block_id": block.id,
+                },
+            ),
+            data={
+                "investigationVersion": self.notebook.version,
+                "version": block.version,
+                "content": "Edited by a person",
+            },
+            format="json",
+        )
+        assert edited.status_code == 200, edited.data
+
+        rewritten = self.write(content="Generated again")
+
+        assert rewritten.status_code == 200, rewritten.data
+        assert rewritten.data["content"] == "Generated again"
+
+    def test_brings_back_a_deleted_block(self) -> None:
+        created = self.write(content="Generated")
+        block = NotebookBlock.objects.get(id=created.data["id"])
+        self.notebook.refresh_from_db()
+        deleted = self.client.delete(
+            reverse(
+                "sentry-api-0-organization-notebook-block-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "notebook_id": self.notebook.id,
+                    "block_id": block.id,
+                },
+            ),
+            data={"investigationVersion": self.notebook.version, "version": block.version},
+            format="json",
+        )
+        assert deleted.status_code == 204
+
+        restored = self.write(content="Generated again")
+
+        assert restored.status_code == 201, restored.data
+        assert restored.data["id"] == created.data["id"]
+        block.refresh_from_db()
+        assert block.deleted_at is None
+        assert block.content == "Generated again"
+
+    def test_a_newer_revision_conflicts(self) -> None:
+        assert self.write(revision=2, content="Newer").status_code == 201
+
+        response = self.write(revision=1, content="Older")
+
+        assert response.status_code == 409, response.data
+        assert NotebookBlock.objects.get(notebook=self.notebook).content == "Newer"
+
+    def test_a_new_revision_updates_the_block(self) -> None:
+        created = self.write(content="First")
+
+        revised = self.write(revision=2, content="Second")
+
+        assert revised.status_code == 200, revised.data
+        assert revised.data["id"] == created.data["id"]
+        assert revised.data["producerRevision"] == 2
+
+    def test_archived_notebook_is_read_only(self) -> None:
+        self.notebook.update(status=NotebookStatus.ARCHIVED)
+
+        response = self.write(content="Late")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Archived investigations are read-only."}
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
+    def test_needs_one_way_to_write(self) -> None:
+        for data in (
+            {"kind": "text"},
+            {"kind": "text", "key": "summary"},
+            {"kind": "text", "revision": 1},
+            {"kind": "text", "investigationVersion": 1, "key": "summary", "revision": 1},
+            {"kind": "text", "investigationVersion": 1, "position": 0},
+            {"kind": "query", "key": "summary", "revision": 1, "content": "Text"},
+            {"kind": "text", "key": "summary", "revision": 1},
+            {"kind": "text", "key": "summary", "revision": 1, "content": ""},
+        ):
+            response = self.client.post(self.url, data=data, format="json")
+
+            assert response.status_code == 400, data
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
+    def test_user_blocks_have_no_producer_fields(self) -> None:
+        response = self.client.post(
+            self.url, data={"investigationVersion": 1, "kind": "text"}, format="json"
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["producerKey"] is None
+        assert response.data["producerRevision"] is None
+
+    def test_refuses_notebooks_without_a_producer_source(self) -> None:
+        manual = self.create_notebook(organization=self.organization, title="Manual")
+        engine = self.create_notebook(
+            organization=self.organization,
+            title="Engine",
+            source_type="metric_open_period",
+            source_key="metric_open_period:1:1",
+            source={"type": "metric_open_period", "ref": {}},
+            source_revision=1,
+        )
+        for notebook in (manual, engine):
+            self.create_notebook_project(notebook, self.project)
+            response = self.client.post(
+                self.blocks_url(notebook),
+                data={"key": "summary", "revision": 1, "kind": "text", "content": "Text"},
+                format="json",
+            )
+
+            assert response.status_code == 400, response.data
+            assert response.data["detail"][0].code == "not_producer_notebook"
+            assert not NotebookBlock.objects.filter(notebook=notebook).exists()
