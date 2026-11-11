@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, TypeVar
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -13,6 +13,13 @@ ERR_BAD_SIGNATURE = _("The link you followed is invalid or expired.")
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunc = Callable[..., HttpResponse]
+_View = TypeVar("_View", bound=Callable[..., Any])
+
+
+def ai_machine_readable(view: _View) -> _View:
+    """Serve this view's response to clients requesting Markdown."""
+    setattr(view, "ai_machine_readable", True)
+    return view
 
 
 def login_required(func: EndpointFunc) -> EndpointFunc:
