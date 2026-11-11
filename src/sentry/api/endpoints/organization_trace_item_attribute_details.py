@@ -6,6 +6,7 @@ from typing import Annotated, Any, NotRequired, TypedDict
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_conventions.attributes import ChangelogEntry
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -69,7 +70,7 @@ class TraceItemAttributeConventionDetails(TypedDict):
             list[TraceItemAttributeChangelogEntry],
             ApiDescription(
                 "Changes to the attribute's Sentry convention, newest first. Present only for "
-                "attributes that match a Sentry convention"
+                "attributes that match a Sentry convention changed since its initial definition"
             ),
         ]
     ]
@@ -100,7 +101,7 @@ def build_convention_details(
         for internal_name in internal_names
     )
     metadata = next((candidate for candidate in candidates if candidate is not None), None)
-    if metadata is None or not metadata.changelog:
+    if metadata is None or not metadata.changelog or _is_initial_changelog(metadata.changelog):
         return {}
 
     changelog: list[TraceItemAttributeChangelogEntry] = []
@@ -112,6 +113,16 @@ def build_convention_details(
             serialized["description"] = entry.description
         changelog.append(serialized)
     return {"changelog": changelog}
+
+
+# A lone `0.0.0` entry only marks the convention's initial definition, so it says nothing.
+def _is_initial_changelog(changelog: Sequence[ChangelogEntry]) -> bool:
+    return (
+        len(changelog) == 1
+        and changelog[0].version == "0.0.0"
+        and not changelog[0].prs
+        and not changelog[0].description
+    )
 
 
 def _matching_attributes(
