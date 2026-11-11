@@ -40,6 +40,14 @@ class TestInvestigationStartValidator:
         assert "template_key" not in data
         assert data["source"]["seed"] == {"release": "example-release"}
 
+    def test_rejects_duplicate_project_ids(self) -> None:
+        validator = InvestigationStartValidator(
+            data={"source": {"type": "manual", "prompt": "P"}, "projectIds": [1, 1]}
+        )
+
+        assert not validator.is_valid()
+        assert "projectIds" in validator.errors
+
     def test_rejects_a_malformed_agentic_source(self) -> None:
         validator = InvestigationStartValidator(
             data={"title": "T", "source": {"type": "metric_open_period", "ref": {}}}
