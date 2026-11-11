@@ -42,6 +42,41 @@ function teardownConfigStore() {
   ConfigStore.loadInitialData(window.__initialData);
 }
 
+function mockVercelInstall(organization: Organization) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/config/integrations/`,
+    match: [MockApiClient.matchQuery({provider_key: 'vercel'})],
+    body: {providers: [VercelProviderFixture()]},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/`,
+    match: [MockApiClient.matchQuery({include_feature_flags: 1})],
+    body: organization,
+  });
+
+  // Drive the API pipeline: initialize hands back the auto-advancing Vercel
+  // step, and advancing completes the install with the new integration.
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/pipeline/integration_pipeline/`,
+    method: 'POST',
+    match: [MockApiClient.matchData({action: 'initialize', provider: 'vercel'})],
+    body: {
+      step: 'oauth_login',
+      stepIndex: 0,
+      totalSteps: 1,
+      provider: 'vercel',
+      data: {state: 'pipeline-sig'},
+    },
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/pipeline/integration_pipeline/`,
+    method: 'POST',
+    match: [MockApiClient.matchData({state: 'pipeline-sig'})],
+    body: {status: 'complete', data: {id: '123', provider: {key: 'vercel'}}},
+  });
+}
+
 describe('IntegrationOrganizationLink', () => {
   const org1 = OrganizationFixture({
     slug: 'org1',
@@ -132,39 +167,7 @@ describe('IntegrationOrganizationLink', () => {
 
   it('forwards the next param to the integration settings page after install', async () => {
     setupConfigStore(org2);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/config/integrations/`,
-      match: [MockApiClient.matchQuery({provider_key: 'vercel'})],
-      body: {providers: [VercelProviderFixture()]},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/`,
-      match: [MockApiClient.matchQuery({include_feature_flags: 1})],
-      body: org2,
-    });
-
-    // Drive the API pipeline: initialize hands back the auto-advancing Vercel
-    // step, and advancing completes the install with the new integration.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
-      method: 'POST',
-      match: [MockApiClient.matchData({action: 'initialize', provider: 'vercel'})],
-      body: {
-        step: 'oauth_login',
-        stepIndex: 0,
-        totalSteps: 1,
-        provider: 'vercel',
-        data: {state: 'pipeline-sig'},
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org2.slug}/pipeline/integration_pipeline/`,
-      method: 'POST',
-      match: [MockApiClient.matchData({state: 'pipeline-sig'})],
-      body: {status: 'complete', data: {id: '123', provider: {key: 'vercel'}}},
-    });
+    mockVercelInstall(org2);
 
     render(<IntegrationOrganizationLink />, {
       organization: org2,
@@ -188,6 +191,38 @@ describe('IntegrationOrganizationLink', () => {
     });
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       expect.stringContaining('/settings/integrations/vercel/123/')
+    );
+  });
+
+  it('drops the next param when it is repeated', async () => {
+    setupConfigStore(org2);
+    mockVercelInstall(org2);
+
+    render(<IntegrationOrganizationLink />, {
+      organization: org2,
+      initialRouterConfig: {
+        location: {
+          pathname: '/extensions/vercel/link/',
+          query: {
+            code: 'oauth-code',
+            next: ['https://vercel.com/dashboard', 'https://example.com'],
+          },
+        },
+        route: '/extensions/:integrationSlug/link/',
+      },
+    });
+    renderGlobalModal({organization: org2});
+
+    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
+
+    await waitFor(() => {
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        expect.stringContaining('/settings/integrations/vercel/123/')
+      );
+    });
+    expect(testableWindowLocation.assign).not.toHaveBeenCalledWith(
+      expect.stringContaining('next=')
     );
   });
 

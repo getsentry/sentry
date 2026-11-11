@@ -332,6 +332,7 @@ export function MetricQueryRows({
         </Button>
         {canTransform && (
           <AddTransformationButton
+            variant="link"
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             analyticsSource="dashboards"
             transformations={plottedTransformations}

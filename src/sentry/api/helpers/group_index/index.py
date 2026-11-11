@@ -67,12 +67,16 @@ def parse_and_convert_issue_search_query(
     return search_filters
 
 
+def is_api_request(request: Request) -> bool:
+    return not isinstance(request.successful_authenticator, SessionAuthentication)
+
+
 def get_search_referrer(request: Request) -> Referrer:
     # Split UI (browser session) traffic from API/integration traffic so the two can be
     # measured separately in Snuba.
-    if isinstance(request.successful_authenticator, SessionAuthentication):
-        return Referrer.SEARCH_GROUP_INDEX
-    return Referrer.SEARCH_GROUP_INDEX_API
+    if is_api_request(request):
+        return Referrer.SEARCH_GROUP_INDEX_API
+    return Referrer.SEARCH_GROUP_INDEX
 
 
 def build_query_params_from_request(

@@ -1,5 +1,6 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
@@ -12,8 +13,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
@@ -73,35 +73,29 @@ export function ProjectFiltersChart({project}: Props) {
   const organization = useOrganization();
   const theme = useTheme();
 
-  const {data, isError, isPending, refetch} = useApiQuery<UsageSeries>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: project.id,
-          // A custom inbound filter drops logs and trace metrics as well, so those
-          // categories count towards what the filters below dropped.
-          category: [
-            'transaction',
-            'default',
-            'security',
-            'error',
-            'log_item',
-            'trace_metric',
-          ],
-          outcome: 'filtered',
-          field: 'sum(quantity)',
-          groupBy: 'reason',
-          interval: '1d',
-          statsPeriod: '30d',
-        },
+  const {data, isError, isPending, refetch} = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: project.id,
+        // A custom inbound filter drops logs and trace metrics as well, so those
+        // categories count towards what the filters below dropped.
+        category: [
+          'transaction',
+          'default',
+          'security',
+          'error',
+          'log_item',
+          'trace_metric',
+        ],
+        outcome: 'filtered',
+        field: 'sum(quantity)',
+        groupBy: 'reason',
+        interval: '1d',
+        statsPeriod: '30d',
       },
-    ],
-    {
       staleTime: Infinity,
-    }
+    })
   );
 
   const formattedData = formatData(data, theme);

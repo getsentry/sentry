@@ -10,7 +10,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {LinkTabs} from '@sentry/scraps/tabs';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -235,14 +234,7 @@ export function ReleaseHeader({
           },
         ]}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={releaseFeedbackOptions}
-          aria-label={t('Give Feedback')}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={releaseFeedbackOptions} />
       <Stack column="1 / -1">
         {tabsRootProps => (
           <LinkTabs value={getActiveTabTo()} {...tabsRootProps}>
