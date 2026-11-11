@@ -5,11 +5,10 @@ import {
   type CursorHandler,
 } from '@sentry/scraps/pagination';
 
-/** Keep URL navigation out of the portable pagination component. */
 export function SentryPaginationProvider({children}: {children: React.ReactNode}) {
   const [, setCursor] = useQueryState(
     'cursor',
-    parseAsString.withOptions({history: 'push', shallow: false})
+    parseAsString.withOptions({history: 'push'})
   );
   const onCursor: CursorHandler = cursor => {
     void setCursor(cursor ?? null);
