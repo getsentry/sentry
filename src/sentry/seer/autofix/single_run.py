@@ -47,12 +47,12 @@ def rename_single_run_root_cause(artifacts: list[dict[str, Any]]) -> list[dict[s
 
 class SingleRunStop(TypedDict):
     reason: str
-    next_step: str
+    suggestion: str
 
 
 def single_run_stop_payload(state: SeerRunState) -> SingleRunStop | None:
     artifact = state.get_artifacts().get(SINGLE_RUN_STOP_KEY)
     data = artifact.data if artifact else None
-    if not data or not data.get("reason") or not data.get("next_step"):
+    if not data or not data.get("reason") or not data.get("suggestion"):
         return None
-    return {"reason": data["reason"], "next_step": data["next_step"]}
+    return {"reason": data["reason"], "suggestion": data["suggestion"]}

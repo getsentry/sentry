@@ -326,7 +326,7 @@ class SlackAutofixEntrypointTest(TestCase):
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
         return_value={"ok": True, "ts": "1234567890.000100"},
     )
-    def test_stopped_run_posts_the_reason_and_next_step(
+    def test_stopped_run_posts_the_reason_and_suggestion(
         self, mock_send_threaded_message: MagicMock, _mock_has_access: MagicMock
     ) -> None:
         SeerOperatorAutofixCache.populate_post_autofix_cache(
@@ -334,7 +334,7 @@ class SlackAutofixEntrypointTest(TestCase):
             run_id=MOCK_RUN_ID,
             cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
         )
-        stop = {"reason": "The API key expired.", "next_step": "Rotate the key."}
+        stop = {"reason": "The API key expired.", "suggestion": "Rotate the key."}
 
         with self.tasks():
             process_autofix_updates(

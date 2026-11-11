@@ -472,7 +472,7 @@ class SlackAutofixEntrypoint(
                     message = SeerAutofixStopped(
                         organization_id=cache_payload["organization_id"],
                         reason=escape_slack_text(stop["reason"]),
-                        next_step=escape_slack_text(stop["next_step"]),
+                        suggestion=escape_slack_text(stop["suggestion"]),
                     )
                 else:
                     message = SeerAutofixError(

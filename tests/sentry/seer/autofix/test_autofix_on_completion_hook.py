@@ -3013,7 +3013,7 @@ class TestSingleRunCompletion(TestCase):
         mocks["updates"].assert_not_called()
 
     def test_stop_is_sent_to_entrypoints_once_without_a_webhook(self) -> None:
-        stop = {"reason": "The API key expired.", "next_step": "Rotate the key."}
+        stop = {"reason": "The API key expired.", "suggestion": "Rotate the key."}
         state = self._state(single_run_memory_block(stop=stop))
 
         mocks = self._execute(state)
@@ -3026,7 +3026,7 @@ class TestSingleRunCompletion(TestCase):
         again["updates"].assert_not_called()
 
     def test_stop_is_not_sent_once_the_run_has_code_changes(self) -> None:
-        stop = {"reason": "R", "next_step": "N"}
+        stop = {"reason": "R", "suggestion": "N"}
         state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True, stop=stop))
 
         mocks = self._execute(state)

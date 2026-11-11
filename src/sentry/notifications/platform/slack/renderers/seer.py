@@ -136,7 +136,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 blocks=[
                     SectionBlock(text="Seer stopped early"),
                     SectionBlock(text=MarkdownTextObject(text=f">{data.reason}")),
-                    SectionBlock(text=MarkdownTextObject(text=f"*Next step:* {data.next_step}")),
+                    SectionBlock(text=MarkdownTextObject(text=f"*Suggestion:* {data.suggestion}")),
                 ],
                 text="Seer stopped early",
             )
