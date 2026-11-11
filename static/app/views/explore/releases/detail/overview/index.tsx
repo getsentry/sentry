@@ -406,7 +406,6 @@ function ReleaseOverview() {
           />
           <Feature features="performance-view">
             <TransactionsList
-              location={location}
               organization={organization}
               eventView={releaseEventView}
               trendView={releaseTrendView}

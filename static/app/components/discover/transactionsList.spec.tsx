@@ -151,7 +151,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -205,7 +204,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={spansEventView}
           selected={{sort: {kind: 'desc', field: 'failure_count'}, value: 'count'}}
@@ -244,7 +242,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           trendView={eventView}
           selected={options[2]}
@@ -301,7 +298,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -320,7 +316,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -340,7 +335,6 @@ describe('TransactionsList', () => {
       const {rerender} = render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -375,7 +369,6 @@ describe('TransactionsList', () => {
         <WrapperComponent
           selected={newSelected}
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           options={options}
@@ -395,7 +388,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -419,11 +411,68 @@ describe('TransactionsList', () => {
       );
     });
 
+    it('requests the page from the transactionCursor URL param when one is set', async () => {
+      const cursorRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          meta: {fields: {transaction: 'string', 'count()': 'number'}},
+          data: [{transaction: '/c', 'count()': 10}],
+        },
+        match: [MockApiClient.matchQuery({cursor: '0:5:0'})],
+      });
+
+      render(
+        <WrapperComponent
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />,
+        {
+          initialRouterConfig: {
+            location: {pathname: '/', query: {transactionCursor: '0:5:0'}},
+          },
+        }
+      );
+
+      expect(await screen.findByText('/c')).toBeInTheDocument();
+      expect(cursorRequest).toHaveBeenCalled();
+    });
+
+    it('pushes the next cursor into the URL while keeping other params when paginating', async () => {
+      const onNuqsUrlUpdate = jest.fn();
+
+      const {router} = render(
+        <WrapperComponent
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />,
+        {
+          onNuqsUrlUpdate,
+          initialRouterConfig: {
+            location: {pathname: '/', query: {project: '1'}},
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+      await waitFor(() =>
+        expect(router.location.query).toEqual({project: '1', transactionCursor: '0:20:0'})
+      );
+      expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+        expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+      );
+    });
+
     it('handles forceLoading correctly', async () => {
       const component = render(
         <WrapperComponent
           api={null}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -438,7 +487,6 @@ describe('TransactionsList', () => {
       component.rerender(
         <WrapperComponent
           api={null}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}

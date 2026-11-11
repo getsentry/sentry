@@ -21,6 +21,7 @@ import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
@@ -32,7 +33,6 @@ type Props = {
   columnOrder: Array<TableColumn<string | number>>;
   eventView: EventView;
   isLoading: boolean;
-  location: Location;
   organization: Organization;
   tableData: TableData | TrendsDataEvents | null;
   useAggregateAlias: boolean;
@@ -58,7 +58,6 @@ type TransactionsTableResultsProps = Pick<
   | 'generateLink'
   | 'handleCellAction'
   | 'isLoading'
-  | 'location'
   | 'organization'
   | 'referrer'
   | 'tableData'
@@ -71,7 +70,6 @@ function TransactionsTableResults({
   tableData,
   columnOrder,
   organization,
-  location,
   generateLink,
   handleCellAction,
   useAggregateAlias,
@@ -79,6 +77,7 @@ function TransactionsTableResults({
   referrer,
   titles,
 }: TransactionsTableResultsProps) {
+  const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -181,7 +180,6 @@ export function TransactionsTable(props: Props) {
     tableData,
     columnOrder,
     organization,
-    location,
     generateLink,
     handleCellAction,
     useAggregateAlias,
@@ -271,7 +269,6 @@ export function TransactionsTable(props: Props) {
           generateLink={generateLink}
           handleCellAction={handleCellAction}
           isLoading={isLoading}
-          location={location}
           organization={organization}
           referrer={referrer}
           tableData={tableData}
