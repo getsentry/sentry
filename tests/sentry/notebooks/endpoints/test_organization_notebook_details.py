@@ -88,7 +88,7 @@ class OrganizationNotebookDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["status"] == "active"
 
-    def test_org_token_can_archive_a_legacy_notebook(self) -> None:
+    def test_org_token_cannot_update_or_archive(self) -> None:
         notebook = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Legacy investigation"
         )
@@ -109,27 +109,17 @@ class OrganizationNotebookDetailsTest(APITestCase):
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert response.status_code == 200, response.data
-        notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
-
-        restored = self.client.put(
-            self.details_url(notebook),
-            data={"investigationVersion": notebook.version, "status": "active"},
-            format="json",
-            HTTP_AUTHORIZATION=f"Bearer {token}",
-        )
-        assert restored.status_code == 200, restored.data
-        notebook.refresh_from_db()
+        assert response.status_code == 403, response.data
         deleted = self.client.delete(
             self.details_url(notebook),
             data={"investigationVersion": notebook.version},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token}",
         )
-        assert deleted.status_code == 204, deleted.data
+        assert deleted.status_code == 403, deleted.data
         notebook.refresh_from_db()
-        assert notebook.status == NotebookStatus.ARCHIVED
+        assert notebook.status == NotebookStatus.ACTIVE
+        assert notebook.version == 1
 
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(

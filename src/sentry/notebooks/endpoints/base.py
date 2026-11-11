@@ -23,6 +23,7 @@ from sentry.notebooks.services import (
     NotebookSourceNotFound,
     NotebookValidationError,
 )
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.viewer_context import ActorId, actor_id_from_references
 
 
@@ -64,6 +65,16 @@ def require_authenticated_user(request: Request) -> int:
     if not can_request_actor_create_notebook(request):
         raise PermissionDenied
     return user_id(request)
+
+
+def require_notebook_writer(request: Request) -> int | None:
+    """The user behind a notebook write, or None for a service account.
+
+    Users and agents acting for one can write; sentry apps and org auth tokens can't.
+    """
+    if is_service_account_auth(request.auth):
+        return None
+    return require_authenticated_user(request)
 
 
 def request_creator_actor(request: Request) -> ActorId:

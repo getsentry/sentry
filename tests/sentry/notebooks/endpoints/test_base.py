@@ -1,0 +1,223 @@
+from __future__ import annotations
+
+from typing import Any
+
+from django.test import override_settings
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookStatus
+from sentry.seer import agent_token
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
+
+SECRET = "notebook-writer-test-secret-thirty-two-bytes"
+
+
+@override_settings(SEER_API_SHARED_SECRET=SECRET)
+@with_feature(
+    {
+        "organizations:investigations": True,
+        "organizations:service-accounts": True,
+        agent_token.FEATURE_FLAG: True,
+    }
+)
+class NotebookWriterTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.notebook = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Writers"
+        )
+
+    def url(self, name: str, **kwargs: Any) -> str:
+        return reverse(name, kwargs={"organization_id_or_slug": self.organization.slug, **kwargs})
+
+    def agent_client(self) -> APIClient:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="notebook-writer",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
+    def service_account_client(self) -> tuple[APIClient, int]:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key=SECRET,
+        )
+        client = APIClient()
+        client.credentials(HTTP_X_VIEWER_CONTEXT=viewer_context)
+        return client, service_account.id
+
+    def org_token_client(self) -> APIClient:
+        token = generate_token(self.organization.slug, "")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="notebook token",
+                token_hashed=hash_token(token),
+                token_last_characters=token[-4:],
+                scope_list=["org:read"],
+            )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
+    def sentry_app_client(self) -> APIClient:
+        integration = self.create_internal_integration(
+            organization=self.organization, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=integration
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        return client
+
+    def write_everything(self, client: APIClient) -> list[int]:
+        """Run each notebook and block mutation and return the status codes."""
+        created = client.post(
+            self.url("sentry-api-0-organization-notebooks"), {"title": "New"}, format="json"
+        )
+        block = client.post(
+            self.url("sentry-api-0-organization-notebook-blocks", notebook_id=self.notebook.id),
+            {"investigationVersion": self.notebook.version, "kind": "text", "content": "a"},
+            format="json",
+        )
+        if block.status_code != 201:
+            return [created.status_code, block.status_code]
+        block_url = self.url(
+            "sentry-api-0-organization-notebook-block-details",
+            notebook_id=self.notebook.id,
+            block_id=block.data["id"],
+        )
+        updated = client.put(
+            block_url,
+            {"investigationVersion": 2, "version": 1, "content": "b"},
+            format="json",
+        )
+        ordered = client.put(
+            self.url(
+                "sentry-api-0-organization-notebook-block-order", notebook_id=self.notebook.id
+            ),
+            {"investigationVersion": 3, "blockIds": [int(block.data["id"])]},
+            format="json",
+        )
+        deleted = client.delete(block_url, {"investigationVersion": 4, "version": 2}, format="json")
+        return [
+            created.status_code,
+            block.status_code,
+            updated.status_code,
+            ordered.status_code,
+            deleted.status_code,
+        ]
+
+    def test_user_writes(self) -> None:
+        self.login_as(self.user)
+        assert self.write_everything(self.client) == [201, 201, 200, 200, 204]
+        block = NotebookBlock.objects.get(notebook=self.notebook)
+        assert block.created_by_id == self.user.id
+        assert block.last_edited_by_id == self.user.id
+
+    def test_agent_token_writes_as_its_user(self) -> None:
+        assert self.write_everything(self.agent_client()) == [201, 201, 200, 200, 204]
+        assert Notebook.objects.get(title="New").created_by_id == self.user.id
+        block = NotebookBlock.objects.get(notebook=self.notebook)
+        assert block.created_by_id == self.user.id
+        assert block.last_edited_by_id == self.user.id
+
+    def test_service_account_writes_without_a_user(self) -> None:
+        client, service_account_id = self.service_account_client()
+        assert self.write_everything(client) == [201, 201, 200, 200, 204]
+        notebook = Notebook.objects.get(title="New")
+        assert notebook.created_by_id is None
+        assert notebook.created_by_service_account_id == service_account_id
+        block = NotebookBlock.objects.get(notebook=self.notebook)
+        assert block.created_by_id is None
+        assert block.last_edited_by_id is None
+        assert block.content == "b"
+
+    def test_org_auth_token_cannot_write(self) -> None:
+        assert self.write_everything(self.org_token_client()) == [403, 403]
+        assert not Notebook.objects.filter(title="New").exists()
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
+    def test_sentry_app_cannot_write(self) -> None:
+        assert self.write_everything(self.sentry_app_client()) == [403, 403]
+        assert not Notebook.objects.filter(title="New").exists()
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
+    def test_rejected_principals_cannot_change_existing_blocks(self) -> None:
+        block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+        block_url = self.url(
+            "sentry-api-0-organization-notebook-block-details",
+            notebook_id=self.notebook.id,
+            block_id=block.id,
+        )
+        order_url = self.url(
+            "sentry-api-0-organization-notebook-block-order", notebook_id=self.notebook.id
+        )
+        for client in (self.org_token_client(), self.sentry_app_client()):
+            assert (
+                client.put(
+                    block_url,
+                    {"investigationVersion": 1, "version": 1, "content": "no"},
+                    format="json",
+                ).status_code
+                == 403
+            )
+            assert (
+                client.put(
+                    order_url, {"investigationVersion": 1, "blockIds": [block.id]}, format="json"
+                ).status_code
+                == 403
+            )
+            assert (
+                client.delete(
+                    block_url, {"investigationVersion": 1, "version": 1}, format="json"
+                ).status_code
+                == 403
+            )
+        block.refresh_from_db()
+        assert block.content == ""
+        assert block.deleted_at is None
+
+    def change_notebook(self, client: APIClient) -> list[int]:
+        """Rename then archive the notebook and return the status codes."""
+        url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
+        renamed = client.put(url, {"investigationVersion": 1, "title": "Renamed"}, format="json")
+        archived = client.delete(url, {"investigationVersion": 2}, format="json")
+        return [renamed.status_code, archived.status_code]
+
+    def test_users_agents_and_service_accounts_change_notebooks(self) -> None:
+        self.login_as(self.user)
+        clients = [self.client, self.agent_client(), self.service_account_client()[0]]
+        for client in clients:
+            self.notebook = self.create_notebook(
+                organization=self.organization, created_by=self.user, title="Writers"
+            )
+            assert self.change_notebook(client) == [200, 204]
+            self.notebook.refresh_from_db()
+            assert self.notebook.title == "Renamed"
+            assert self.notebook.status == NotebookStatus.ARCHIVED
+
+    def test_rejected_principals_cannot_change_notebooks(self) -> None:
+        for client in (self.org_token_client(), self.sentry_app_client()):
+            assert self.change_notebook(client) == [403, 403]
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Writers"
+        assert self.notebook.status == NotebookStatus.ACTIVE

@@ -20,7 +20,7 @@ from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
     organization_project_ids,
-    require_authenticated_user,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -201,10 +201,10 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a blank notebook. Returns notebook details, blocks, parameters, and orchestration
-        summary. Requires an authenticated user. Requires the organizations:investigations
+        summary. Requires a user or service account. Requires the organizations:investigations
         feature and open organization membership.
         """
-        require_authenticated_user(request)
+        require_notebook_writer(request)
         validator = NotebookCreateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

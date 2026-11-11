@@ -12,11 +12,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
     organization_project_ids,
+    require_notebook_writer,
     service_error,
 )
 from sentry.notebooks.endpoints.serializers import (
@@ -97,9 +97,11 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         Update title, filters, project selection, or status using investigationVersion. Archived
         notebooks allow only a standalone restore to active; source-backed investigations cannot
         be restored. Archive as a standalone status change. Stale versions or incompatible
-        execution state return 409. Returns the updated notebook. Requires the
-        organizations:investigations feature and open organization membership.
+        execution state return 409. Returns the updated notebook. Requires a user or service
+        account. Requires the organizations:investigations feature and open organization
+        membership.
         """
+        actor_id = require_notebook_writer(request)
         validator = NotebookUpdateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -132,7 +134,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
                 archived = archive_notebook(
                     notebook=notebook,
                     expected_version=expected_version,
-                    actor_id=acting_user_id(request.user),
+                    actor_id=actor_id,
                 )
             except Exception as error:
                 response = service_error(error)
@@ -186,9 +188,10 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         """
         Archive rather than permanently delete the notebook. Send investigationVersion in the
         JSON body. Archiving an agentic investigation cancels its workflow; active manual block
-        executions must first be stopped. Returns no body. Requires the
-        organizations:investigations feature and open organization membership.
+        executions must first be stopped. Returns no body. Requires a user or service account.
+        Requires the organizations:investigations feature and open organization membership.
         """
+        actor_id = require_notebook_writer(request)
         validator = NotebookDeleteValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -196,7 +199,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             archive_notebook(
                 notebook=notebook,
                 expected_version=validator.validated_data["investigation_version"],
-                actor_id=acting_user_id(request.user),
+                actor_id=actor_id,
             )
         except Exception as error:
             response = service_error(error)
