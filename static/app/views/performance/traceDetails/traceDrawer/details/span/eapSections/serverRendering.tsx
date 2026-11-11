@@ -212,8 +212,12 @@ function OpenTraceLink({
 }
 
 function GoToSpanButton({node, onTabScrollToNode}: RenderActionProps) {
-  // The trace view shows a server span of this trace below the pageload.
-  const serverNode = node.findChild(child => child.op === 'http.server');
+  // The tree moves the server request of the page below its pageload and marks it.
+  // Other server spans below the pageload, such as API requests, have no mark.
+  const serverNode = node.findChild(
+    child =>
+      child.op === 'http.server' && child.reparent_reason === 'pageload server handler'
+  );
   if (!serverNode) {
     return null;
   }

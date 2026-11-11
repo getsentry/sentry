@@ -121,19 +121,26 @@ describe('ServerRenderingSection', () => {
     expect(screen.queryByRole('link', {name: 'Open trace'})).not.toBeInTheDocument();
   });
 
-  function makePageloadWithServerRequest() {
-    const pageload = makeNode();
-    const serverRequest = new EapSpanNode(
-      pageload,
+  function makeServerSpan(parent: EapSpanNode, eventId: string, startTimestamp: number) {
+    const serverSpan = new EapSpanNode(
+      parent,
       makeEAPSpan({
-        event_id: 'server-span-id',
+        event_id: eventId,
         op: 'http.server',
-        start_timestamp: 1,
-        end_timestamp: 1.24,
+        start_timestamp: startTimestamp,
+        end_timestamp: startTimestamp + 0.24,
       }),
       {organization}
     );
-    pageload.children.push(serverRequest);
+    parent.children.push(serverSpan);
+    return serverSpan;
+  }
+
+  /** Like the tree after it moves the server request of the page below the pageload. */
+  function makePageloadWithServerRequest() {
+    const pageload = makeNode();
+    const serverRequest = makeServerSpan(pageload, 'server-span-id', 1);
+    serverRequest.reparent_reason = 'pageload server handler';
     return {pageload, serverRequest};
   }
 
@@ -162,6 +169,22 @@ describe('ServerRenderingSection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Go to span'}));
 
     expect(onTabScrollToNode).toHaveBeenCalledTimes(1);
+    expect(onTabScrollToNode).toHaveBeenCalledWith(serverRequest);
+  });
+
+  it('selects the server request of the page, not an API request of the page', async () => {
+    const onTabScrollToNode = jest.fn();
+    const {pageload, serverRequest} = makePageloadWithServerRequest();
+    makeServerSpan(pageload, 'api-span-id', 2);
+    renderSection({
+      node: pageload,
+      attributes: typeAttribute('partially_static'),
+      links: [makeLink('cache_origin')],
+      onTabScrollToNode,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Go to span'}));
+
     expect(onTabScrollToNode).toHaveBeenCalledWith(serverRequest);
   });
 
