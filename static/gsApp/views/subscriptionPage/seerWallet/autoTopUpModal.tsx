@@ -118,8 +118,8 @@ function AutoTopUpForm({
 }: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
   const isTurningOn = !autoTopUp.enabled;
-  // The backend only bills a reload once the balance is below the threshold.
-  const isChargedNow = isTurningOn && balanceCredits < autoTopUp.thresholdCredits;
+  // The backend bills a reload once the balance is at or below the threshold.
+  const isChargedNow = isTurningOn && balanceCredits <= autoTopUp.thresholdCredits;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
   const [reloadCents, setReloadCents] = useState(
     toWholeDollarCents(autoTopUp.topUpCredits * creditPriceCents)

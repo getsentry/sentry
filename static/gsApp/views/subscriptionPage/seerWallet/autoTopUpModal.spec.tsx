@@ -102,7 +102,7 @@ describe('openSeerAutoTopUpModal', () => {
       method: 'PUT',
       body: AutoTopUpFixture({enabled: true}),
     });
-    openAutoTopUpModal({balance: 500});
+    openAutoTopUpModal({balance: 501});
 
     const turnOn = await screen.findByRole('button', {name: 'Turn on'});
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
@@ -112,6 +112,14 @@ describe('openSeerAutoTopUpModal', () => {
       url,
       expect.objectContaining({data: AutoTopUpFixture({enabled: true})})
     );
+  });
+
+  it('charges when the balance is at the threshold', async () => {
+    openAutoTopUpModal({balance: 500});
+
+    expect(
+      await screen.findByRole('button', {name: 'Turn on and pay $10.00 + tax'})
+    ).toBeInTheDocument();
   });
 
   it('raises the daily limit to cover a larger preset', async () => {
