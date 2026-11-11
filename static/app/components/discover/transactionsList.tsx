@@ -24,6 +24,7 @@ import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -130,7 +131,6 @@ type Props = {
    * The callback for when the dropdown option changes.
    */
   handleDropdownChange: (k: string) => void;
-  location: Location;
   /**
    * The available options for the dropdown.
    */
@@ -204,7 +204,6 @@ function TableRender({
   eventView,
   organization,
   isLoading,
-  location,
   columnOrder,
   tableData,
   titles,
@@ -277,7 +276,6 @@ function TableRender({
             <TransactionsTable
               eventView={eventView}
               organization={organization}
-              location={location}
               isLoading={isLoading}
               tableData={tableData}
               columnOrder={columnOrder}
@@ -292,6 +290,20 @@ function TableRender({
       </DemoTourElement>
     </Fragment>
   );
+}
+
+function LocationDiscoverQuery(
+  props: Omit<React.ComponentProps<typeof DiscoverQuery>, 'location'>
+) {
+  const location = useLocation();
+  return <DiscoverQuery {...props} location={location} />;
+}
+
+function LocationTrendsEventsDiscoverQuery(
+  props: Omit<React.ComponentProps<typeof TrendsEventsDiscoverQuery>, 'location'>
+) {
+  const location = useLocation();
+  return <TrendsEventsDiscoverQuery {...props} location={location} />;
 }
 
 function getSortedEventView({eventView, selected}: Props): EventView {
@@ -382,7 +394,6 @@ export function TransactionsList(props: Props) {
   const {
     selected,
     organization,
-    location,
     handleCellAction,
     titles,
     generateLink,
@@ -412,10 +423,9 @@ export function TransactionsList(props: Props) {
     }
 
     return (
-      <TrendsEventsDiscoverQuery
+      <LocationTrendsEventsDiscoverQuery
         eventView={sortedEventView}
         orgSlug={organization.slug}
-        location={location}
         cursor={cursor ?? undefined}
         limit={5}
       >
@@ -423,7 +433,6 @@ export function TransactionsList(props: Props) {
           <TableRender
             organization={organization}
             eventView={sortedEventView}
-            location={location}
             isLoading={isLoading}
             tableData={trendsData}
             pageLinks={pageLinks}
@@ -440,7 +449,7 @@ export function TransactionsList(props: Props) {
             useAggregateAlias
           />
         )}
-      </TrendsEventsDiscoverQuery>
+      </LocationTrendsEventsDiscoverQuery>
     );
   }
 
@@ -453,7 +462,6 @@ export function TransactionsList(props: Props) {
     referrer,
     eventView,
     organization,
-    location,
     columnOrder: eventView.getColumns(),
     titles,
     generateLink,
@@ -475,8 +483,7 @@ export function TransactionsList(props: Props) {
   }
 
   return (
-    <DiscoverQuery
-      location={location}
+    <LocationDiscoverQuery
       eventView={eventView}
       orgSlug={organization.slug}
       limit={DEFAULT_TRANSACTION_LIMIT}
@@ -492,6 +499,6 @@ export function TransactionsList(props: Props) {
           header={header}
         />
       )}
-    </DiscoverQuery>
+    </LocationDiscoverQuery>
   );
 }

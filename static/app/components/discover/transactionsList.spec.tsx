@@ -150,7 +150,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -204,7 +203,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={spansEventView}
           selected={{sort: {kind: 'desc', field: 'failure_count'}, value: 'count'}}
@@ -243,7 +241,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           trendView={eventView}
           selected={options[2]}
@@ -300,7 +297,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -319,7 +315,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -339,7 +334,6 @@ describe('TransactionsList', () => {
       const {rerender} = render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -374,7 +368,6 @@ describe('TransactionsList', () => {
         <WrapperComponent
           selected={newSelected}
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           options={options}
@@ -394,7 +387,6 @@ describe('TransactionsList', () => {
       render(
         <WrapperComponent
           api={api}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -430,7 +422,6 @@ describe('TransactionsList', () => {
 
       render(
         <WrapperComponent
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -453,7 +444,6 @@ describe('TransactionsList', () => {
 
       const {router} = render(
         <WrapperComponent
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -482,7 +472,6 @@ describe('TransactionsList', () => {
       const component = render(
         <WrapperComponent
           api={null}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
@@ -497,7 +486,6 @@ describe('TransactionsList', () => {
       component.rerender(
         <WrapperComponent
           api={null}
-          location={location}
           organization={organization}
           eventView={eventView}
           selected={options[0]}
