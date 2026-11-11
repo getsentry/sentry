@@ -8,8 +8,6 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
-  // TODO: Remove when setup flows consume the agent handoff prompt
-  'components/agentHandoff/agentHandoffPrompt.tsx',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
