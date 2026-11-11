@@ -23,6 +23,7 @@ from sentry.exceptions import (
 )
 from sentry.explore.utils import is_logs_enabled, is_trace_metrics_enabled
 from sentry.incidents.logic import (
+    EAP_FUNCTIONS,
     check_aggregate_column_support,
     get_column_from_aggregate,
     query_datasets_to_type,
@@ -55,9 +56,6 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.workflow_engine.endpoints.validators.base import BaseDataSourceValidator
-from sentry.workflow_engine.endpoints.validators.metric_data_source_schema import (
-    EAP_MONITOR_FUNCTIONS,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +336,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         for function in functions:
             match = is_function(function)
-            if match is None or match.group("function") not in EAP_MONITOR_FUNCTIONS["spans"]:
+            if match is None or match.group("function") not in EAP_FUNCTIONS:
                 raise serializers.ValidationError(
                     {"aggregate": _(f"Invalid Metric: {function} is not supported in monitors.")}
                 )
