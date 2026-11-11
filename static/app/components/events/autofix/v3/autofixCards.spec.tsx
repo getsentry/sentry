@@ -423,7 +423,7 @@ describe('ArtifactCard', () => {
       const stop = {
         key: 'stop',
         reason: 'stop',
-        data: {reason: 'R', next_step: 'N'},
+        data: {reason: 'R', suggestion: 'N'},
       };
 
       render(

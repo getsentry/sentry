@@ -714,14 +714,14 @@ describe('getOrderedAutofixSections', () => {
               {
                 key: 'stop',
                 reason: 'stop',
-                data: {reason: 'R', next_step: 'N'},
+                data: {reason: 'R', suggestion: 'N'},
               },
             ],
           }),
         ])
       );
 
-      expect(getSingleRunStop(sections[0]!)).toEqual({reason: 'R', next_step: 'N'});
+      expect(getSingleRunStop(sections[0]!)).toEqual({reason: 'R', suggestion: 'N'});
     });
 
     it('drops the stop once the run has code changes', () => {
@@ -733,7 +733,7 @@ describe('getOrderedAutofixSections', () => {
               {
                 key: 'stop',
                 reason: 'stop',
-                data: {reason: 'R', next_step: 'N'},
+                data: {reason: 'R', suggestion: 'N'},
               },
             ],
             merged_file_patches: [makePatch('org/repo', 'a.py')],

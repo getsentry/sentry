@@ -80,8 +80,8 @@ export function isRootCauseArtifact(
 }
 
 export interface SingleRunStop {
-  next_step: string;
   reason: string;
+  suggestion: string;
 }
 
 function isSingleRunStopArtifact(value: unknown): value is Artifact<SingleRunStop> {
@@ -89,7 +89,7 @@ function isSingleRunStopArtifact(value: unknown): value is Artifact<SingleRunSto
     isArtifact(value) &&
     value.key === SINGLE_RUN_STOP_KEY &&
     isString(value.data?.reason) &&
-    isString(value.data?.next_step)
+    isString(value.data?.suggestion)
   );
 }
 

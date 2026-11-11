@@ -46,8 +46,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
     <ArtifactDetails>
       <Text bold>{t('Why Seer stopped')}</Text>
       <SeerMarkdown raw={stop.reason} />
-      <Text bold>{t('Next step')}</Text>
-      <SeerMarkdown raw={stop.next_step} />
+      <Text bold>{t('Suggestion')}</Text>
+      <SeerMarkdown raw={stop.suggestion} />
     </ArtifactDetails>
   ) : null;
 
