@@ -621,7 +621,7 @@ def process_workflows(
         },
     )
 
-    evaluation = evaluate_workflows(
+    evaluation = _evaluate_workflows(
         workflows, event_data, event_start_time, detector=associated_detector
     )
     if not evaluation.should_process_actions:
@@ -691,7 +691,7 @@ class EvaluatedWorkflows:
 
 
 @isolated_workflow_event_context()
-def evaluate_workflows(
+def _evaluate_workflows(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     event_start_time: datetime,

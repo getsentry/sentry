@@ -38,9 +38,9 @@ from sentry.workflow_engine.processors.evaluations.eap import EAPEmitter
 from sentry.workflow_engine.processors.evaluations.logging import LoggingEmitter
 from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
+    _evaluate_workflows,
     enqueue_workflows,
     evaluate_workflow_triggers,
-    evaluate_workflows,
     evaluate_workflows_action_filters,
     get_environment_by_event,
     process_workflows,
@@ -1456,7 +1456,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
                 "sentry.workflow_engine.processors.workflow._get_environment_by_group"
             ) as environment,
         ):
-            evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+            evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
         lookup.assert_not_called()
         environment.assert_not_called()
         assert WorkflowEventContext.get() is previous_context
@@ -1491,7 +1491,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         environment_workflow = self.create_workflow(environment=self.create_environment())
         disabled = self.create_workflow(enabled=False)
         with self.options({"workflow_engine.filter_cross_org_workflows": False}):
-            evaluation = evaluate_workflows(
+            evaluation = _evaluate_workflows(
                 {self.workflow, foreign, environment_workflow, disabled},
                 self.event_data,
                 FROZEN_TIME,
@@ -1519,12 +1519,12 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
                 condition_result=True,
             )
             self.workflow.update(when_condition_group=trigger_group)
-            matching = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+            matching = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
             assert matching.action_groups == {self.action_group}
             assert matching.result.evaluations[self.workflow.id].error is None
 
             condition.update(comparison=uuid4().hex)
-            nonmatching = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+            nonmatching = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
             assert nonmatching.action_groups == set()
             assert not nonmatching.result.evaluations[self.workflow.id].triggered
             assert nonmatching.result.evaluations[self.workflow.id].error is None
@@ -1538,7 +1538,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             condition_result=True,
         )
         self.workflow.update(when_condition_group=condition_group)
-        evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
         assert evaluation.action_groups == set()
         assert (
             evaluation.result.evaluations[self.workflow.id].outcome
@@ -1554,7 +1554,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             condition_result=True,
         )
         self.workflow.update(when_condition_group=condition_group)
-        evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
         assert evaluation.action_groups == set()
         assert evaluation.delayed_items == {}
         assert (
@@ -1570,7 +1570,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             comparison=PriorityLevel.HIGH,
             condition_result=True,
         )
-        evaluation = evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+        evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
         assert evaluation.action_groups == set()
         assert (
             evaluation.result.evaluations[self.workflow.id].outcome
@@ -1580,11 +1580,11 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
     def test_requires_matching_explicit_organization(self) -> None:
         previous_context = WorkflowEventContext.get()
         with pytest.raises(ValueError, match="explicit organization"):
-            evaluate_workflows(
+            _evaluate_workflows(
                 {self.workflow}, replace(self.event_data, organization=None), FROZEN_TIME
             )
         with pytest.raises(ValueError, match="same organization"):
-            evaluate_workflows(
+            _evaluate_workflows(
                 {self.workflow},
                 replace(self.event_data, organization=self.create_organization()),
                 FROZEN_TIME,
