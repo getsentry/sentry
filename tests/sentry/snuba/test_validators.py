@@ -252,7 +252,60 @@ class SnubaQueryValidatorTest(TestCase):
             context=self.context,
         )
         assert not validator.is_valid()
-        assert "aggregate" in validator.errors
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: An equation must combine aggregate functions, such as "
+                "sum(a) / sum(b).",
+                code="invalid",
+            )
+        ]
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_mixing_functions_and_fields(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|sum(span.duration) / span.self_time"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: Cannot mix functions and fields in arithmetic",
+                code="invalid",
+            )
+        ]
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_unparseable(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|sum(span.duration) /"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: Unable to parse your equation, make sure it is well "
+                "formed arithmetic",
+                code="invalid",
+            )
+        ]
+
+    @with_feature(["organizations:ourlogs-enabled", "organizations:spans-monitor-equations"])
+    def test_eap_logs_equation_aggregate(self) -> None:
+        validator = SnubaQueryValidator(
+            data={
+                **self._spans_equation_data("equation|count() / count(message)"),
+                "query": "",
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_LOG.name.lower()],
+            },
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: equation|count() / count(message) is not a valid function",
+                code="invalid",
+            )
+        ]
 
     @with_feature("organizations:spans-monitor-equations")
     def test_eap_spans_equation_unresolvable_function(self) -> None:
