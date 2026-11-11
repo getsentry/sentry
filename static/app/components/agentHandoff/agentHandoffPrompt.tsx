@@ -163,6 +163,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
             position="bottom-end"
             shouldApplyMinWidth={false}
             size="xs"
+            strategy="fixed"
             usePortal
             trigger={triggerProps => (
               <OverlayTrigger.Button
