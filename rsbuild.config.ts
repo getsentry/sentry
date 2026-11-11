@@ -1027,6 +1027,16 @@ if (env.WEBPACK_CACHE_PATH) {
       type: 'filesystem',
       directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
     },
+    // Older snapshots did not track the resolver inputs listed below.
+    version: '1',
+    // Component moves change which Scraps alias root resolves an import. Restored
+    // caches must re-resolve those imports when the package boundary changes.
+    buildDependencies: [
+      import.meta.filename,
+      path.join(import.meta.dirname, 'tsconfig.json'),
+      path.join(import.meta.dirname, 'tsconfig.base.json'),
+      path.join(import.meta.dirname, 'static/packages/scraps/package.json'),
+    ],
     // Read entries from disk instead of holding the whole cache in memory
     maxMemoryGenerations: 0,
     // Only master deploys write the cache, preview deploys restore it from

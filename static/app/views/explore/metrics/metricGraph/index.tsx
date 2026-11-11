@@ -45,6 +45,7 @@ import {
 } from 'sentry/views/explore/metrics/settings';
 import {
   createTraceMetricEventsFilter,
+  getAggregatesMetricsTotalFilter,
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
 import {
@@ -177,7 +178,8 @@ function Graph({
       (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
     query: isVisualizeEquation(visualize)
       ? getEquationMetricsTotalFilter(visualize.expression.text)
-      : createTraceMetricEventsFilter([traceMetric]),
+      : getAggregatesMetricsTotalFilter([aggregate]) ||
+        createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
   const [interval] = useChartInterval();

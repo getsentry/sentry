@@ -132,12 +132,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             project_id=self.project.id,
             type=DetectorType.METRIC_ISSUE,
             owner_user_id=self.metric_alert.user_id,
-            config={
-                "comparison_delta": self.metric_alert.comparison_delta,
-                "detection_type": self.metric_alert.detection_type,
-                "sensitivity": self.metric_alert.sensitivity,
-                "seasonality": self.metric_alert.seasonality,
-            },
+            config={"detection_type": self.metric_alert.detection_type},
         )
 
     def test_empty_config(self) -> None:
@@ -185,9 +180,40 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
                 project_id=self.project.id,
                 type=DetectorType.METRIC_ISSUE,
                 owner_user_id=self.metric_alert.user_id,
-                config={
-                    "comparison_delta": self.metric_alert.comparison_delta,
-                    "sensitivity": self.metric_alert.sensitivity,
-                    "seasonality": self.metric_alert.seasonality,
-                },
+                # Required `detection_type` is missing here
+                config={"comparison_delta": self.metric_alert.comparison_delta},
             )
+
+    def test_unknown_key(self) -> None:
+        with pytest.raises(ValidationError):
+            self.create_detector(
+                project_id=self.project.id,
+                type=DetectorType.METRIC_ISSUE,
+                config={"detection_type": "static", "dogs": "are great"},
+            )
+
+    def test_valid_detection_type_and_comparison_delta_pairs(self) -> None:
+        for config in [
+            {"detection_type": "static"},
+            {"detection_type": "dynamic"},
+            {"detection_type": "percent", "comparison_delta": 3600},
+        ]:
+            with self.subTest(config=config):
+                self.create_detector(
+                    project_id=self.project.id, type=DetectorType.METRIC_ISSUE, config=config
+                )
+
+    def test_invalid_detection_type_and_comparison_delta_pairs(self) -> None:
+        for config in [
+            {"detection_type": "percent"},
+            {"detection_type": "static", "comparison_delta": 3600},
+            {"detection_type": "dynamic", "comparison_delta": 3600},
+            {"detection_type": "percent", "comparison_delta": None},
+            {"detection_type": "static", "comparison_delta": None},
+            {"detection_type": "dynamic", "comparison_delta": None},
+        ]:
+            with self.subTest(config=config):
+                with pytest.raises(ValidationError):
+                    self.create_detector(
+                        project_id=self.project.id, type=DetectorType.METRIC_ISSUE, config=config
+                    )

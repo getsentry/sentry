@@ -707,7 +707,7 @@ function IssueListOverviewInner({
     transitionTo({sort: newSort});
   };
 
-  const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+  const onCursorChange: CursorHandler = (nextCursor, delta) => {
     const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 

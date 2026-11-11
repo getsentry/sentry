@@ -24,26 +24,25 @@ const markerSchema = z.object({infinite: z.boolean()});
 
 const queryKeySchema = z
   .tuple([apiUrlSchema, optionsSchema, markerSchema])
+  .rest(z.unknown())
   .transform(([url, options, marker]) => ({
     url,
     options,
     isInfinite: marker.infinite,
   }));
 
-export type CanonicalApiQueryKey = readonly [
+export type ApiQueryKey = readonly [
   ApiUrl,
   QueryKeyEndpointOptions,
   {infinite: false},
+  ...unknown[],
 ];
 
-// Legacy input forms accepted by query-key parsing and normalized to three slots.
-type LooseApiQueryKey = readonly [ApiUrl] | readonly [ApiUrl, QueryKeyEndpointOptions];
-
-export type ApiQueryKey = LooseApiQueryKey | CanonicalApiQueryKey;
 export type InfiniteApiQueryKey = readonly [
   ApiUrl,
   QueryKeyEndpointOptions,
   {infinite: true},
+  ...unknown[],
 ];
 
 type ParsedQueryKey = z.infer<typeof queryKeySchema>;
@@ -51,8 +50,7 @@ type ParsedQueryKey = z.infer<typeof queryKeySchema>;
 export function parseQueryKey(
   queryKey: ApiQueryKey | InfiniteApiQueryKey
 ): ParsedQueryKey {
-  const normalized = queryKey.length === 3 ? queryKey : normalizeQueryKey(queryKey);
-  return queryKeySchema.parse(normalized);
+  return queryKeySchema.parse(queryKey);
 }
 
 const safeParseCache = new WeakMap<readonly unknown[], ParsedQueryKey | undefined>();
@@ -67,12 +65,4 @@ export function safeParseQueryKey(
   const result = queryKeySchema.safeParse(queryKey).data;
   safeParseCache.set(queryKey, result);
   return result;
-}
-
-export function normalizeQueryKey(key: ApiQueryKey): CanonicalApiQueryKey {
-  if (key.length === 3) {
-    return key;
-  }
-  const [url, options] = key;
-  return [url, options ?? {}, {infinite: false}] as const;
 }
