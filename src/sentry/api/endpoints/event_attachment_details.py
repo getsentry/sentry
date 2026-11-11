@@ -85,16 +85,17 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         if not request.user.is_authenticated:
             return False
 
+        role = request.access.role
+        if role is None:
+            # A service account has no role, so it needs the attachment scope instead.
+            return is_service_account_auth(request.auth) and request.access.has_scope(
+                "event_attachment:read"
+            )
+
         organization = project.organization
         required_role = (
             organization.get_option("sentry:attachments_role") or ATTACHMENTS_ROLE_DEFAULT
         )
-
-        role = request.access.role
-        if role is None:
-            # A service account has no role: it can read attachments only where any member can.
-            return is_service_account_auth(request.auth) and required_role == roles.get_default().id
-
         required_role = roles.get(required_role)
         om_role = roles.get(role)
         return om_role.priority >= required_role.priority

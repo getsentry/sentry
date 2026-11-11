@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
+from django.http.response import HttpResponseBase
 from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
@@ -258,12 +259,9 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         close_streaming_response(self.assert_member_can_access(self.path))
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
-    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
-    @with_feature(["organizations:event-attachments", "organizations:service-accounts"])
-    def test_service_account_cannot_access_for_owner_role(self) -> None:
-        self.organization.update_option("sentry:attachments_role", "owner")
+    def _get_as_service_account(self, scope_list: list[str]) -> HttpResponseBase:
         service_account = self.create_service_account(
-            organization=self.organization, scope_list=["event:read"], all_projects=True
+            organization=self.organization, scope_list=scope_list, all_projects=True
         )
         viewer_context = encode_viewer_context(
             ViewerContext(
@@ -272,8 +270,21 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
             ),
             key="service-account-secret",
         )
-        response = self.client.get(self.path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        return self.client.get(self.path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(["organizations:event-attachments", "organizations:service-accounts"])
+    def test_service_account_needs_attachment_scope(self) -> None:
+        response = self._get_as_service_account(["event:read"])
         assert response.status_code == 403, response.content
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature(["organizations:event-attachments", "organizations:service-accounts"])
+    def test_service_account_with_attachment_scope_ignores_role(self) -> None:
+        self.organization.update_option("sentry:attachments_role", "owner")
+        response = self._get_as_service_account(["event:read", "event_attachment:read"])
+        assert response.status_code == 200, response.content
+        close_streaming_response(response)
 
     @with_feature("organizations:event-attachments")
     def test_member_cannot_access_for_owner_role(self) -> None:
