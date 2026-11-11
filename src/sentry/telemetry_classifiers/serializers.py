@@ -12,12 +12,13 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    PrebuiltClassifier,
     TelemetryClassifierStatus,
 )
-from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS, PrebuiltClassifier
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -134,7 +135,7 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
             "invalid": "Use lowercase letters, numbers, and underscores, separated by dots."
         },
     )
-    dataset = serializers.ChoiceField(choices=TelemetryClassifierDataset.choices)
+    dataset = serializers.ChoiceField(choices=Dataset.choices)
     filter_query = serializers.CharField(
         required=False,
         allow_blank=True,

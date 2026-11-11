@@ -1,10 +1,7 @@
 from typing import Any
 
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
-    TelemetryClassifierStatus,
-)
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -32,7 +29,7 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         )
         prebuilt = self.create_telemetry_classifier(
             name="Refusals",
-            dataset=TelemetryClassifierDataset.TRACE_SPANS,
+            dataset=Dataset.TRACE_SPANS,
             status=TelemetryClassifierStatus.DISABLED,
             prebuilt_classifier_key="refusal",
             natural_language_prompt=None,
