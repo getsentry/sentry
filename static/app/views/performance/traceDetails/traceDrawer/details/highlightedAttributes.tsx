@@ -160,7 +160,7 @@ function ToolResultSize({
           project: [projectId],
           statsPeriod: '24h',
           query: search.formatString(),
-          referrer: 'api.explore.spans-aggregates-table',
+          referrer: Referrer.TRACE_DRAWER,
         },
         staleTime: 60_000,
       }
