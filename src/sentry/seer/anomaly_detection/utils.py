@@ -227,8 +227,7 @@ def get_dataset_name_from_label_and_event_types(
         else:
             dataset_label = "spans"
     elif dataset_label in ["generic_metrics", "transactions"]:
-        # XXX: performance alerts dataset differs locally vs in prod
-        dataset_label = "metricsEnhanced"
+        dataset_label = "transactions"
 
     return dataset_label
 

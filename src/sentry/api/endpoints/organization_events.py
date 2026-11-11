@@ -54,7 +54,6 @@ from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
-    metrics_enhanced_performance,
     transactions,
     uptime_results,
 )
@@ -69,6 +68,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import (
     DATASET_LABELS,
+    LEGACY_METRICS_DATASET_LABELS,
     RPC_DATASETS,
     dataset_split_decision_inferred_from_query,
     get_dataset,
@@ -285,10 +285,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         save_discover_dataset_decision = True
 
         dataset = self.get_dataset(request, organization)
-        metrics_enhanced = dataset is metrics_enhanced_performance
-
-        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
-        sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
+        # Older dashboard clients use these labels to request dataset splitting.
+        legacy_metrics_request = request.GET.get("dataset") in LEGACY_METRICS_DATASET_LABELS
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
@@ -315,7 +313,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         # request. Logging allowlisted (unblocked) orgs too lets us see who
         # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
-        is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
+        is_legacy_dataset = dataset in {transactions, discover}
         is_blocked = batch_features.get(
             "organizations:events-endpoint-transactions-discover-blocked", False
         )
@@ -772,7 +770,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         scoped_dataset.query, offset, limit, scoped_query, discover_saved_query_id
                     )
 
-                if not (metrics_enhanced and dashboard_widget_id):
+                if not (legacy_metrics_request and dashboard_widget_id):
                     return _data_fn(scoped_dataset.query, offset, limit, scoped_query)
 
                 return _dashboards_data_fn(

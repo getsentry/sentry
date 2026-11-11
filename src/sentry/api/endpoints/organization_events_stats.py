@@ -34,7 +34,6 @@ from sentry.snuba import (
     discover,
     errors,
     functions,
-    metrics_enhanced_performance,
     transactions,
 )
 from sentry.snuba.ourlogs import OurLogs
@@ -45,7 +44,7 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
-from sentry.snuba.utils import RPC_DATASETS
+from sentry.snuba.utils import LEGACY_METRICS_DATASET_LABELS, RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
 SENTRY_BACKEND_REFERRERS = [
@@ -168,7 +167,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     in [
                         discover,
                         functions,
-                        metrics_enhanced_performance,
                         Spans,
                         OurLogs,
                         ProfileFunctions,
@@ -181,11 +179,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                     else discover
                 )
 
-            metrics_enhanced = dataset is metrics_enhanced_performance
+            # Older dashboard clients use these labels to request dataset splitting.
+            legacy_metrics_request = request.GET.get("dataset") in LEGACY_METRICS_DATASET_LABELS
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
-            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
-            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
 
         use_rpc = dataset in RPC_DATASETS
         transform_alias_to_input_format = (
@@ -355,7 +352,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
                 zerofill_results: bool,
                 comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
-                if not (metrics_enhanced and dashboard_widget_id):
+                if not (legacy_metrics_request and dashboard_widget_id):
                     return _get_event_stats(
                         scoped_dataset,
                         query_columns,

@@ -30,7 +30,7 @@ from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.service_accounts.principal import ServiceAccountPrincipal
-from sentry.snuba import metrics_enhanced_performance
+from sentry.snuba import transactions
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
@@ -698,7 +698,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, SpanTestCase, TestCase):
         serializer = ProjectSummarySerializer(
             stats_period="24h",
             expand=["transaction_stats"],
-            dataset=metrics_enhanced_performance,
+            dataset=transactions,
         )
         results = serialize([self.project], self.user, serializer)
 

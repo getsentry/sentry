@@ -34,6 +34,7 @@ from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     NormalizedArg,
+    ParamsType,
     QueryBuilderConfig,
     QueryFramework,
     SelectType,
@@ -56,7 +57,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def __init__(
         self,
-        *args: Any,
+        params: ParamsType,
+        *,
         dataset: Dataset = Dataset.Metrics,
         granularity: int | None = None,
         time_range_window: int | None = None,
@@ -77,7 +79,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         self._has_nullable = False
         if granularity is not None:
             self._granularity = granularity
-        super().__init__(dataset, *args, config=config, **kwargs)
+        super().__init__(dataset, params, config=config, **kwargs)
         if self.organization_id is None:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 

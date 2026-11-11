@@ -1,9 +1,12 @@
-from sentry.snuba import metrics_enhanced_performance
+import pytest
+
+from sentry.snuba import transactions
 from sentry.snuba.utils import get_dataset
 
 
-def test_metrics_resolves_to_indexed_events() -> None:
-    assert get_dataset("metrics") is metrics_enhanced_performance
+@pytest.mark.parametrize("dataset", ["metrics", "metricsEnhanced", "transactions"])
+def test_metrics_resolves_to_indexed_events(dataset: str) -> None:
+    assert get_dataset(dataset) is transactions
 
 
 def test_span_metrics_are_not_supported() -> None:

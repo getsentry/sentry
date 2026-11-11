@@ -54,7 +54,6 @@ from sentry.snuba import (
     discover,
     errors,
     functions,
-    metrics_enhanced_performance,
     transactions,
 )
 from sentry.snuba.ourlogs import OurLogs
@@ -73,7 +72,6 @@ from sentry.utils.snuba import SnubaTSResult
 TOP_EVENTS_DATASETS = {
     discover,
     functions,
-    metrics_enhanced_performance,
     Spans,
     OurLogs,
     PreprodSize,
@@ -324,11 +322,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if dataset not in TOP_EVENTS_DATASETS:
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
-            metrics_enhanced = dataset is metrics_enhanced_performance
             use_rpc = dataset in RPC_DATASETS
 
-            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
-            sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
             try:
                 snuba_params = self.get_snuba_params(
                     request,
@@ -500,7 +495,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         # request. Logging allowlisted (unblocked) orgs too lets us see who
         # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
-        is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
+        is_legacy_dataset = dataset in {transactions, discover}
         is_blocked = features.has(
             "organizations:events-endpoint-transactions-discover-blocked",
             organization,
