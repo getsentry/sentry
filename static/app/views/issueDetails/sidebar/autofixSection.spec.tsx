@@ -74,7 +74,6 @@ describe('AutofixSection', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       },
     });
@@ -630,7 +629,6 @@ describe('AutofixSection', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -720,7 +718,6 @@ describe('AutofixSection', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
