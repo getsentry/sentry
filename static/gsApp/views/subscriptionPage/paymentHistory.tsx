@@ -104,6 +104,7 @@ function UsageCsvDownloads({
         {iconOnly ? undefined : t('Usage CSV')}
       </LinkButton>
       <CompactSelect
+        strategy="fixed"
         trigger={triggerProps =>
           iconOnly ? (
             <OverlayTrigger.IconButton

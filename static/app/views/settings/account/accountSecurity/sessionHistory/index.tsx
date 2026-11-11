@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -7,9 +8,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {InternetProtocol} from 'sentry/types/user';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -30,13 +30,13 @@ export default function SessionHistory() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<IpListType>(
-    [getApiUrl('/users/$userId/ips/', {path: {userId: 'me'}})],
-    {
+  } = useQuery({
+    ...apiOptions.as<IpListType>()('/users/$userId/ips/', {
+      path: {userId: 'me'},
       staleTime: 0,
-      enabled: !isDemoModeActive(),
-    }
-  );
+    }),
+    enabled: !isDemoModeActive(),
+  });
 
   const maybeTab = location.pathname.split('/').at(-2);
   const activeTab =

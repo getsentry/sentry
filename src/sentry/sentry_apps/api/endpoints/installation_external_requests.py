@@ -67,6 +67,8 @@ class SentryAppExternalRequestOptionsResponse(TypedDict):
 @control_silo_endpoint
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
+    # The app's request names the acting user.
+    requires_user = True
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }

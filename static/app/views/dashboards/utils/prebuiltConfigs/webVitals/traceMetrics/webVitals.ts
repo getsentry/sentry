@@ -148,8 +148,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
               dashboardId: '-1',
               field: SpanFields.TRANSACTION,
               staticDashboardId: 7,
-              // The page details dashboard still has spans widgets, so filter those too
-              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE, WidgetType.SPANS],
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
             },
           ],
         },

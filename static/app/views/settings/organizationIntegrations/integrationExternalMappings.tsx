@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconDelete} from '@sentry/icons/delete';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
@@ -21,9 +22,8 @@ import type {
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -154,14 +154,15 @@ export function IntegrationExternalMappings(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<CodeOwnersAssociationMappings>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/codeowners-associations/', {
+  } = useQuery(
+    apiOptions.as<CodeOwnersAssociationMappings>()(
+      '/organizations/$organizationIdOrSlug/codeowners-associations/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {provider: integration.provider.key}},
-    ],
-    {staleTime: 0}
+        query: {provider: integration.provider.key},
+        staleTime: 0,
+      }
+    )
   );
 
   if (isPending) {

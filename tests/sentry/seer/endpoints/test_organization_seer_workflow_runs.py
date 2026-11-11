@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
 
@@ -87,6 +88,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                     "id": str(run.id),
                     "configId": str(self.config.id),
                     "strategy": "breached_metric_investigation",
+                    "trigger": None,
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
@@ -479,8 +481,69 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert response.data["runs"][0]["executions"][0]["outputs"] == []
         assert investigation.title not in response.content.decode()
 
+    def test_returns_the_triggering_monitor(self) -> None:
+        detector = self.create_detector(project=self.project)
+        run = self.create_run(
+            inputs={
+                "event_id": "a" * 32,
+                "occurrence_id": "abc",
+                "detector_id": detector.id,
+                "evidence": {},
+                "observed_at": "2025-01-01T10:00:00Z",
+                "environment": "production",
+                "group_id": 1,
+                "group_short_id": "BACKEND-1A",
+                "project_id": self.project.id,
+                "binding_id": 1,
+                "workflow_id": 1,
+                "action_id": 1,
+            }
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        (serialized_run,) = response.data["runs"]
+        assert serialized_run["id"] == str(run.id)
+        assert serialized_run["trigger"] == {
+            "type": "monitor",
+            "detectorId": str(detector.id),
+            "environment": "production",
+            "eventId": "a" * 32,
+            "groupId": "1",
+            "groupShortId": "BACKEND-1A",
+            "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
+            "occurrenceId": "abc",
+            "projectId": str(self.project.id),
+        }
+
+    def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        self.create_run(trigger_key="2026-11-09T03:00")
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] == {"type": "cron"}
+
+    def test_trigger_is_null_without_a_snapshot(self) -> None:
+        self.create_run(extras={})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
+    def test_trigger_is_null_for_invalid_inputs(self) -> None:
+        self.create_run(inputs={"detector_id": "not-an-id"})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
     def create_run(
-        self, *, project_ids: Sequence[int] | None = None, **kwargs: object
+        self,
+        *,
+        project_ids: Sequence[int] | None = None,
+        inputs: dict[str, object] | None = None,
+        **kwargs: object,
     ) -> SeerWorkflowRun:
         kwargs.setdefault("status", SeerWorkflowRunStatus.QUEUED)
         kwargs.setdefault(
@@ -494,7 +557,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                     if project_ids is not None
                     else [self.project.id],
                     "output_policy": self.config.output_policy,
-                    "inputs": {},
+                    "inputs": inputs or {},
                 },
                 "error": None,
             },

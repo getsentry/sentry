@@ -20,6 +20,7 @@ describe('AddTransformationButton', () => {
           Add Equation
         </Button>
         <AddTransformationButton
+          variant="link"
           traceItemDataset={TraceItemDataset.TRACEMETRICS}
           analyticsSource="dashboards"
           transformations={disabled ? ['fill(zero)', 'smooth(sma,3)'] : []}

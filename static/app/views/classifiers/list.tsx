@@ -25,8 +25,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-import type {ClassifierDataset, TelemetryClassifier} from './types';
-import {getClassifierDetailPath, getNewClassifierPath} from './utils';
+import type {TelemetryClassifier} from './types';
+import {
+  getClassifierDetailPath,
+  getDatasetLabel,
+  getEnrichmentAttributeName,
+  getNewClassifierPath,
+} from './utils';
 
 const CLASSIFIERS_PER_PAGE = 25;
 
@@ -35,10 +40,6 @@ const CLASSIFIER_COLUMNS: TableColumnConfig[] = [
   {key: 'attribute', visible: {md: true}, width: '300px'},
   {key: 'data-type', visible: {sm: true}, width: '130px'},
 ];
-
-function getDatasetLabel(dataset: ClassifierDataset) {
-  return dataset === 'conversation' ? t('Conversations') : t('Spans');
-}
 
 function CreateClassifierMenu() {
   const organization = useOrganization();
@@ -111,9 +112,9 @@ function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
           size="sm"
           density="compressed"
           ellipsis
-          title={classifier.resultAttribute}
+          title={getEnrichmentAttributeName(classifier.resultAttribute)}
         >
-          {classifier.resultAttribute}
+          {getEnrichmentAttributeName(classifier.resultAttribute)}
         </Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>

@@ -7,7 +7,7 @@ import {CategorizedStoryTree} from './storyTree';
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
     'app/components/core/avatar/avatar.mdx',
-    'app/components/core/tabs/tabs.mdx',
+    'packages/scraps/src/tabs/tabs.mdx',
     'packages/scraps/src/drawer/drawer.mdx',
     'packages/scraps/src/link/link.mdx',
     'gsApp/components/upsellModal/upsellModal.stories.tsx',
@@ -17,7 +17,7 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
       category: 'display',
       title: 'Avatar',
     },
-    'app/components/core/tabs/tabs.mdx': {
+    'packages/scraps/src/tabs/tabs.mdx': {
       category: 'navigation',
       title: 'Tabs',
     },
