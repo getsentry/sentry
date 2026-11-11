@@ -4,6 +4,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.new_migrations.monkey.special import SafeRunSQL
 
 # Only US-1 has these two checks; the model declares neither, so every other region is a no-op.
+# Post-deployment so a lock timeout fails a manual run instead of a deploy.
 DROP_CHECKS_SQL = """
 DO $$
 BEGIN
