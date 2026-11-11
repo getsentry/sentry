@@ -34,6 +34,10 @@ def investigation_attributes(investigation: Notebook) -> dict[str, str]:
     }
 
 
+def record_investigation_started(investigation: Notebook) -> None:
+    record_count("investigations.started", investigation_attributes(investigation))
+
+
 def execution_attributes(execution: NotebookBlockExecution) -> dict[str, str]:
     return {
         **investigation_attributes(execution.block.notebook),

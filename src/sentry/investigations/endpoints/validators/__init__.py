@@ -1,5 +1,4 @@
 __all__ = (
-    "InvestigationCreateValidator",
     "InvestigationCandidatesValidator",
     "InvestigationOrchestrationCommandValidator",
     "InvestigationOrchestrationEventValidator",
@@ -7,11 +6,7 @@ __all__ = (
 )
 
 
-from .investigation import (
-    InvestigationCandidatesValidator,
-    InvestigationCreateValidator,
-    InvestigationStartValidator,
-)
+from .investigation import InvestigationCandidatesValidator, InvestigationStartValidator
 from .orchestration import (
     InvestigationOrchestrationCommandValidator,
     InvestigationOrchestrationEventValidator,

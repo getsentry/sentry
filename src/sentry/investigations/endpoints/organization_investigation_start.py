@@ -14,7 +14,6 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.validators import InvestigationStartValidator
 from sentry.investigations.services import start_investigation
-from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
@@ -27,6 +26,7 @@ from sentry.notebooks.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
 )
+from sentry.notebooks.telemetry import record_investigation_started
 
 
 @extend_schema(tags=["Investigations"])

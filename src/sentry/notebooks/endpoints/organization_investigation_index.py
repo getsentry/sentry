@@ -16,15 +16,10 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.investigations.endpoints.validators import InvestigationCreateValidator
-from sentry.investigations.models import InvestigationOrchestrationStatus
-from sentry.investigations.services import start_investigation
-from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationsBaseEndpoint,
     organization_project_ids,
-    request_creator_actor,
     require_authenticated_user,
     service_error,
 )
@@ -34,8 +29,11 @@ from sentry.notebooks.endpoints.serializers import (
     InvestigationSerializer,
     InvestigationSerializerResponse,
 )
+from sentry.notebooks.endpoints.validators import InvestigationCreateValidator
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services import create_manual_investigation
+from sentry.notebooks.services.producer import filter_by_run_status, known_run_statuses
+from sentry.notebooks.telemetry import record_investigation_started
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 
@@ -142,7 +140,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                 {"detail": "trigger=me requires a user."}, status=status.HTTP_400_BAD_REQUEST
             )
         run_statuses = request.GET.getlist("runStatus")
-        if not set(run_statuses).issubset(InvestigationOrchestrationStatus.values):
+        if not set(run_statuses).issubset(known_run_statuses()):
             return Response({"detail": "Unknown run status."}, status=status.HTTP_400_BAD_REQUEST)
         sort = request.GET.get("sort") or "dateUpdated"
         if sort not in SORT_ORDER:
@@ -168,7 +166,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
             investigations, organization, trigger, strategy, viewer_id
         )
         if run_statuses:
-            investigations = investigations.filter(orchestration_run__status__in=run_statuses)
+            investigations = filter_by_run_status(investigations, run_statuses)
         return self.paginate(
             request=request,
             queryset=investigations,
@@ -186,9 +184,6 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=InvestigationCreateValidator,
         responses={
-            200: inline_sentry_response_serializer(
-                "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
-            ),
             201: inline_sentry_response_serializer(
                 "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
             ),
@@ -207,57 +202,40 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create a blank notebook with title, or supply source to start an agentic investigation.
-        A manual source without a non-blank prompt waits for input. Metric sources resolve their
-        context server-side and may reuse an existing active investigation (200); new
-        investigations return 201. Returns notebook details, blocks, parameters, and
-        orchestration summary. Requires an authenticated user. Requires the
-        organizations:investigations feature and open organization membership.
+        Create a blank notebook. Returns notebook details, blocks, parameters, and orchestration
+        summary. Requires an authenticated user. Requires the organizations:investigations
+        feature and open organization membership.
         """
         require_authenticated_user(request)
         validator = InvestigationCreateValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
-        project_ids = organization_project_ids(organization)
+        requested_project_ids = values.get("project_ids", [])
+        if not set(requested_project_ids).issubset(organization_project_ids(organization)):
+            return Response(
+                {"detail": "One or more projects are inaccessible."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
-            if "source" in values:
-                investigation, created = start_investigation(
-                    organization=organization,
-                    creator=lambda: request_creator_actor(request),
-                    title=values.get("title"),
-                    source=values["source"],
-                    project_ids=values.get("project_ids", []),
-                    accessible_project_ids=project_ids,
-                    filters=values.get("filters", {}),
-                )
-            else:
-                created = True
-                requested_project_ids = values.get("project_ids", [])
-                if not set(requested_project_ids).issubset(project_ids):
-                    return Response(
-                        {"detail": "One or more projects are inaccessible."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                investigation = create_manual_investigation(
-                    organization=organization,
-                    creator=get_creator_reference(request),
-                    title=values["title"],
-                    project_ids=requested_project_ids,
-                    filters=values.get("filters", {}),
-                )
+            investigation = create_manual_investigation(
+                organization=organization,
+                creator=get_creator_reference(request),
+                title=values["title"],
+                project_ids=requested_project_ids,
+                filters=values.get("filters", {}),
+            )
         except Exception as error:
             response = service_error(error)
             if response is not None:
                 return response
             raise
-        if created:
-            record_investigation_started(investigation)
+        record_investigation_started(investigation)
         return Response(
             serialize(
                 investigation,
                 request.user,
                 InvestigationDetailsSerializer(access=request.access),
             ),
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+            status=status.HTTP_201_CREATED,
         )

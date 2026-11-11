@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from typing import Any
 from uuid import UUID, uuid4, uuid5
+
+from django.db.models import Q
 
 from sentry.investigations.endpoints.serializers.orchestration import (
     orchestration_summaries_by_investigation,
@@ -13,6 +15,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
+    InvestigationOrchestrationStatus,
 )
 from sentry.investigations.seer_client import CommandRejectionCode
 from sentry.investigations.services.orchestration import (
@@ -226,6 +229,7 @@ class OrchestrationProducer(NotebookProducer):
     follow_up_status_hint = InvestigationOrchestrationCommandStatus
     follow_up_reason_hint = CommandRejectionCode | None
     follow_up_rerun_hint = InvestigationOrchestrationRerun | None
+    run_statuses = InvestigationOrchestrationStatus.values
 
     def lock_run(self, notebook: Notebook, *, lock: bool) -> OrchestrationProducerRun:
         runs = InvestigationOrchestrationRun.objects.all()
@@ -270,6 +274,9 @@ class OrchestrationProducer(NotebookProducer):
         self, notebooks: Sequence[Notebook]
     ) -> dict[int, InvestigationOrchestrationSerializerResponse]:
         return orchestration_summaries_by_investigation(notebooks)
+
+    def has_run_status(self, statuses: Collection[str]) -> Q:
+        return Q(orchestration_run__status__in=statuses)
 
     def archive_notebook(
         self, *, investigation: Notebook, expected_version: int, actor_id: int | None
