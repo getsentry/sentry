@@ -41,7 +41,7 @@ seer: 0046_add_workflow_config_backing_workflow
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1254_grouprelease_drop_new_release_id
+sentry: 1255_grouprelease_drop_stale_checks
 
 service_accounts: 0007_add_service_account_token_replica
 
