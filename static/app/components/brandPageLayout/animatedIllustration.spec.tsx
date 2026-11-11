@@ -203,6 +203,17 @@ describe('AnimatedIllustration', () => {
     );
   });
 
+  it('renders the artwork when IntersectionObserver is unavailable', async () => {
+    delete (window as Partial<Window & typeof globalThis>).IntersectionObserver;
+
+    render(<AnimatedIllustration />);
+
+    expect(getCharacter('bird')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(getCharacter('bird')).toHaveStyle({animationPlayState: 'running'})
+    );
+  });
+
   it('defers the nebula image until the background is visible', () => {
     render(<BrandPageBackground />);
     const background = screen.getByTestId('brand-art-background');
