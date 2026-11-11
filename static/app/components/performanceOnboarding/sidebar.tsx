@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -29,6 +31,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -43,8 +46,7 @@ import {filterProjects} from './utils';
 
 export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
 
@@ -218,7 +220,10 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,

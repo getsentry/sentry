@@ -1,10 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from django.utils import timezone
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
@@ -28,6 +29,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
@@ -191,6 +193,37 @@ class SeerOperatorTest(TestCase):
             actor=GroupActionActor.user(self.user.id),
             referrer=AutofixReferrer.SLACK.value,
         )
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_slack_ignores_a_newer_single_run_when_a_step_run_finished(
+        self, mock_get_run: MagicMock, mock_trigger_autofix: MagicMock
+    ) -> None:
+        for state_id, source, minutes_ago in ((1, "autofix", 10), (2, SINGLE_RUN_FEATURE_ID, 1)):
+            run = self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=state_id,
+                last_triggered_at=timezone.now() - timedelta(minutes=minutes_ago),
+            )
+            self.create_seer_agent_run(run=run, source=source, group=self.group)
+        step_block = MemoryBlock(
+            id="1",
+            message=Message(role="assistant", metadata={"step": "root_cause"}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        mock_get_run.side_effect = lambda run_id, **_: SeerRunState(
+            run_id=run_id,
+            blocks=[step_block] if run_id == 1 else [],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+        )
+
+        assert self.entrypoint.autofix_already_exists_states == [(1, True)]
+        mock_trigger_autofix.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
     @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")

@@ -260,21 +260,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 if change.get("diff"):
                     change_mrkdwn.append(f"```{change['diff']}```")
                 blocks.append(SectionBlock(text=MarkdownTextObject(text="\n".join(change_mrkdwn))))
-        if data.pull_requests:
-            action_id = encode_action_id(
-                action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
-                organization_id=data.organization_id,
-                project_id=data.project_id,
-            )
-            for pr in data.pull_requests[:MAX_PRS]:
-                action_elements.append(
-                    LinkButtonElement(
-                        text=f"View PR (#{pr['pr_number']})",
-                        style="primary",
-                        url=link_decorator.decorate_url(pr["pr_url"]),
-                        action_id=f"{action_id}::{pr['pr_number']}",
-                    )
+        for pr in data.pull_requests[:MAX_PRS]:
+            action_elements.append(
+                LinkButtonElement(
+                    text=f"View PR (#{pr['pr_number']})",
+                    style="primary",
+                    url=link_decorator.decorate_url(pr["pr_url"]),
+                    action_id=encode_action_id(
+                        action=SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+                        organization_id=data.organization_id,
+                        project_id=data.project_id,
+                        suffix=str(pr["pr_number"]),
+                    ),
                 )
+            )
 
         if action_elements:
             blocks.append(ActionsBlock(elements=action_elements))

@@ -6,7 +6,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -45,14 +44,6 @@ export default function SavedFormulasView() {
               name="breadcrumbs"
               title={{type: 'page-title', label: t('Saved Formulas')}}
             />
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
 
             <Layout.Body>
               <Layout.Main width="full">

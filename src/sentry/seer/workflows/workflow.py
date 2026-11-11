@@ -11,6 +11,7 @@ from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
 from pydantic import BaseModel
 
+from sentry.cadence.api import ScheduledTriggerType, clear_schedule
 from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.organization import Organization
@@ -30,6 +31,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.seer.workflows.schedule import sync_schedule
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
     InvalidScopeError,
@@ -232,6 +234,7 @@ class SeerWorkflow:
         ) as config:
             config.schedule = schedule
             config.save(using=database, update_fields=["schedule"])
+            sync_schedule(config)
             if project_set:
                 SeerWorkflowConfigProject.objects.using(database).bulk_create(
                     [
@@ -353,6 +356,11 @@ class SeerWorkflow:
         self._delete_service_account()
         with self._lock_config() as config:
             config.delete()
+            clear_schedule(
+                organization_id=self.organization_id,
+                trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+                target_id=self.config_id,
+            )
 
     def _delete_service_account(self) -> None:
         service_account_id = self.get_config().service_account_id
@@ -392,7 +400,8 @@ class SeerWorkflow:
     def update_config(self) -> Iterator[ConfigUpdate]:
         """Lock the config row for a group of changes that commit or roll back together.
 
-        On a normal exit, any marked changes are saved atomically with a single version bump.
+        On a normal exit, any marked changes are saved atomically with a single version bump,
+        and the config's schedule is synced to match.
         Do not early return on error cases - propagate an exception so the transaction can roll back.
         """
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
@@ -403,6 +412,8 @@ class SeerWorkflow:
                 update.config.save(
                     update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
                 )
+            # Even when unchanged, so a schedule that drifted from the config is repaired.
+            sync_schedule(update.config)
 
     @classmethod
     def _new_config_update(cls, config: SeerWorkflowConfig) -> ConfigUpdate:

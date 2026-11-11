@@ -1,40 +1,25 @@
-import Reflux from 'reflux';
+import {useStore} from 'zustand';
+import {createStore} from 'zustand/vanilla';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
+interface TrialRequestedState {
+  /**
+   * A trial was requested and the sidebar confirmation hasn't been dismissed
+   */
+  readonly requested: boolean;
+}
 
-type State = {
-  requested: boolean;
-};
+const store = createStore<TrialRequestedState>()(() => ({requested: false}));
 
-type TrialRequestedStoreInterface = {
-  getTrialRequstedState: () => State['requested'];
-  state: State;
-};
-
-const storeConfig: Reflux.StoreDefinition & TrialRequestedStoreInterface = {
-  state: {
-    requested: false,
+export const TrialRequestedStore = {
+  markRequested(): void {
+    store.setState({requested: true});
   },
 
-  init() {
-    this.listenTo(TrialRequestedActions.requested, this.onRequested);
-    this.listenTo(TrialRequestedActions.clearNotification, this.onClearNotification);
-  },
-
-  onRequested() {
-    this.state = {...this.state, requested: true};
-    this.trigger(this.state);
-  },
-
-  onClearNotification() {
-    this.state = {...this.state, requested: false};
-    this.trigger(this.state);
-  },
-
-  getTrialRequstedState() {
-    return this.state.requested;
+  clearNotification(): void {
+    store.setState({requested: false});
   },
 };
 
-export const TrialRequestedStore = Reflux.createStore(storeConfig) as Reflux.Store &
-  TrialRequestedStoreInterface;
+export function useTrialRequested(): boolean {
+  return useStore(store, state => state.requested);
+}

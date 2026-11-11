@@ -129,7 +129,7 @@ class PushRequest(BaseModel):
     repo_name: str
     # typing the following fields as strings makes it easy to add more values later
     action: str
-    source: str = "api"
+    source: str | None = None
     idempotency_key: str | None = None
     # Set for an update: the PR the push lands on.
     target_pr_number: int | None = None

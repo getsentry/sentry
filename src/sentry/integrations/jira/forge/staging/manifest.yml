@@ -1,0 +1,40 @@
+# Forge-native staging app for testing the Forge migration against production
+# sentry.io. Register it with `forge register` (which fills in app.id), add that ID
+# to both the `jira.forge.app-ids` and `jira.forge.native-app-ids` options (it has
+# no Connect predecessor), then `forge deploy` and `forge install` it on a test site
+# that doesn't also have the production Connect app.
+app:
+  id: ari:cloud:ecosystem::app/00000000-0000-0000-0000-000000000000
+  runtime:
+    name: nodejs22.x
+remotes:
+  - key: sentry
+    baseUrl: https://sentry.io
+modules:
+  trigger:
+    - key: installation
+      endpoint: installation
+      events:
+        - avi:forge:installed:app
+        - avi:forge:upgraded:app
+  scheduledTrigger:
+    # Forge only sends tokens when it calls us, and each one is valid for at least
+    # 2 hours, so this keeps a usable token stored for background API calls.
+    - key: token-refresh
+      endpoint: installation
+      interval: hour
+  endpoint:
+    - key: installation
+      remote: sentry
+      route:
+        path: /extensions/jira/forge/installation/
+      auth:
+        appSystemToken:
+          enabled: true
+permissions:
+  scopes:
+    - read:app-system-token
+    - read:jira-work
+    - write:jira-work
+    - read:jira-user
+    - read:email-address:jira

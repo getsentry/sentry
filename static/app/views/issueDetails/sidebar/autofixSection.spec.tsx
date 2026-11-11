@@ -7,6 +7,8 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -17,6 +19,12 @@ import {
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 import {AutofixSection} from './autofixSection';
+
+const mockOpenSeerExplorer = jest.fn();
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
+  useSeerExplorerContext: () => ({openSeerExplorer: mockOpenSeerExplorer}),
+}));
 
 jest.mock('sentry/utils/cells');
 jest.mock('react-router', () => ({
@@ -262,6 +270,88 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Open Autofix'})).not.toBeInTheDocument();
+  });
+
+  describe('single runs', () => {
+    const singleRunBody = {
+      autofix: {
+        run_id: 776,
+        feature_id: 'autofix_single_run',
+        status: 'completed',
+        updated_at: new Date().toISOString(),
+        blocks: [
+          {
+            id: 'block-1',
+            message: {content: 'done', role: 'assistant', metadata: {step: 'single_run'}},
+            timestamp: new Date().toISOString(),
+            artifacts: [
+              {
+                key: 'single_run_root_cause',
+                reason: 'found',
+                data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    beforeEach(() => {
+      mockOpenSeerExplorer.mockClear();
+    });
+
+    it('opens the Explorer panel on Open Autofix', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+      expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+    });
+
+    it('opens the Explorer panel when Start Analysis starts a single run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        method: 'POST',
+        body: {run_id: 776, sentry_run_id: 'abc', feature_id: 'autofix_single_run'},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
+
+      await waitFor(() =>
+        expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 'abc'})
+      );
+    });
+
+    it('does not open the Explorer panel when the start is a step run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      const post = MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        method: 'POST',
+        body: {run_id: 5, sentry_run_id: 'abc', feature_id: null},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
+
+      await waitFor(() => expect(post).toHaveBeenCalled());
+      expect(mockOpenSeerExplorer).not.toHaveBeenCalled();
+    });
   });
 
   it('renders solution artifact', async () => {
@@ -782,5 +872,137 @@ describe('AutofixSection', () => {
       .data as Record<string, string>;
     expect(data.rootCause).toContain('Null pointer in user handler');
     expect(data.codeChanges).toBe('org/repo: src/handler.py');
+  });
+
+  describe('out of Seer credits', () => {
+    const creditCheckOrganization = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    });
+    const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
+
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
+    it('swaps the explainer for the muted notice above a disabled Start Analysis', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      const cta = await screen.findByTestId('seer-out-of-credits-cta');
+      expect(cta).toHaveTextContent('muted autofix-start');
+      const startButton = screen.getByRole('button', {name: 'Start Analysis'});
+      expect(startButton).toBeDisabled();
+      expect(
+        cta.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('holds Start Analysis disabled while the check is in flight', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByRole('button', {name: 'Start Analysis'})).toBeDisabled();
+      expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('enables Start Analysis when the org can afford a run', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeEnabled()
+      );
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('does not check credits once a run exists', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: {
+          autofix: {
+            run_id: 1,
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            blocks: [
+              {
+                id: 'block-1',
+                message: {
+                  content: 'Found root cause',
+                  role: 'assistant',
+                  metadata: {step: 'root_cause'},
+                },
+                timestamp: new Date().toISOString(),
+                artifacts: [
+                  {
+                    key: 'root_cause',
+                    reason: 'Identified the issue',
+                    data: {
+                      one_line_description: 'Null pointer in user handler',
+                      five_whys: ['why1'],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {
+        organization: creditCheckOrganization,
+      });
+
+      expect(await screen.findByRole('button', {name: 'Open Autofix'})).toBeEnabled();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
   });
 });
