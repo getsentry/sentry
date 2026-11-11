@@ -184,10 +184,12 @@ class NotificationLinkDecorator:
             return url
 
         try:
+            # A redirect, not a provider callback, so PR clicks count the same in every provider.
             if is_trackable_pull_request_url(url):
                 decorated = self._build_pull_request_redirect_url(url)
                 self.links.add(NotificationLink.PULL_REQUEST)
                 return decorated
+            # Already wrapped by an earlier pass; leave it as is so decorating stays idempotent.
             if is_pull_request_redirect_url(url):
                 self.links.add(NotificationLink.PULL_REQUEST)
                 return url

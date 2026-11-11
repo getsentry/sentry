@@ -208,6 +208,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
             """
             if not url:
                 return False
+            # The redirect's uuid is inside its signed token, so the query check below can't see it.
             if is_pull_request_redirect_url(url):
                 return True
             query = parse_qs(urlsplit(url).query)
