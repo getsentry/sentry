@@ -1,4 +1,5 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from functools import partial
 from typing import Annotated, Any, NotRequired, TypedDict
 
 from rest_framework import serializers
@@ -17,6 +18,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     OrganizationTraceItemAttributesEndpoint,
     StoredRef,
+    get_column_definitions,
     get_sentry_convention_metadata,
 )
 from sentry.api.endpoints.organization_trace_item_attributes_merged import (
@@ -29,7 +31,7 @@ from sentry.api.endpoints.organization_trace_item_attributes_merged import (
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.response_types import as_validation_errors
 from sentry.models.organization import Organization
-from sentry.search.eap.types import AttributeSourceType
+from sentry.search.eap.types import AttributeSourceType, SupportedTraceItemType
 
 
 class OrganizationTraceItemAttributeDetailsEndpointSerializer(serializers.Serializer):
@@ -107,6 +109,26 @@ def build_convention_details(
     return {"changelog": changelog}
 
 
+def _matching_attributes(
+    attributes: Iterable[MergedTraceItemAttribute], name: str, source: str | None
+) -> list[MergedTraceItemAttribute]:
+    return [
+        attribute
+        for attribute in attributes
+        if attribute["name"] == name
+        and (source is None or attribute["attributeSource"]["source_type"] == source)
+    ]
+
+
+def _is_sentry_column(name: str, source: str | None, datasets: Iterable[str]) -> bool:
+    if source == AttributeSourceType.USER.value:
+        return False
+    return any(
+        name in get_column_definitions(SupportedTraceItemType(dataset)).columns
+        for dataset in datasets
+    )
+
+
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttributesEndpoint):
     publish_status = {
@@ -131,25 +153,39 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
         serialized: dict[str, Any] = serializer.validated_data
         attribute_name = serialized["attribute_name"]
         attribute_source = serialized.get("attribute_source")
-        attributes_by_dataset, stored_refs_by_dataset = list_attributes_by_dataset(
+        list_attributes = partial(
+            list_attributes_by_dataset,
             self,
             request,
             organization,
             snuba_params,
             datasets=serialized.get("dataset"),
             attribute_types=[serialized["attribute_type"]],
-            substring_match="",
             include_context=True,
         )
-        matches = [
+        attributes_by_dataset, stored_refs_by_dataset = list_attributes(substring_match="")
+        merged = merge_attributes_across_datasets(attributes_by_dataset)
+        matches = _matching_attributes(merged, attribute_name, attribute_source) or [
             attribute
-            for attribute in merge_attributes_across_datasets(attributes_by_dataset)
-            if attribute["name"] == attribute_name
-            and (
-                attribute_source is None
-                or attribute["attributeSource"]["source_type"] == attribute_source
+            # Span details drop `sentry.` from stored span attributes without a public alias.
+            for attribute in _matching_attributes(
+                merged, f"sentry.{attribute_name}", attribute_source
             )
+            if SupportedTraceItemType.SPANS.value in attribute["datasets"]
         ]
+        is_unlisted_column = not matches and _is_sentry_column(
+            attribute_name, attribute_source, attributes_by_dataset
+        )
+        if is_unlisted_column:
+            # Columns such as `trace` are only listed when searched for by name.
+            attributes_by_dataset, stored_refs_by_dataset = list_attributes(
+                substring_match=attribute_name
+            )
+            matches = _matching_attributes(
+                merge_attributes_across_datasets(attributes_by_dataset),
+                attribute_name,
+                attribute_source,
+            )
         if not matches:
             return Response({"detail": "Attribute not found."}, status=404)
 
@@ -171,8 +207,18 @@ class OrganizationTraceItemAttributeDetailsEndpoint(OrganizationTraceItemAttribu
             for dataset in match["datasets"]
         }
         stats, last_seen = query_attribute_stats(
-            match["attributeType"], refs_by_dataset, snuba_params
+            match["attributeType"],
+            refs_by_dataset,
+            snuba_params,
+            last_seen_from_table=is_unlisted_column,
         )
+        if is_unlisted_column:
+            datasets = [dataset for dataset in match["datasets"] if stats[dataset]["lastSeen"]]
+            if not datasets:
+                return Response({"detail": "Attribute not found."}, status=404)
+            match = {**match, "datasets": datasets}
+            stats = {dataset: stats[dataset] for dataset in datasets}
+            refs_by_dataset = {dataset: refs_by_dataset[dataset] for dataset in datasets}
         details: TraceItemAttributeDetails = {
             **match,
             "stats": stats,
