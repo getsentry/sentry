@@ -32,7 +32,6 @@ from sentry.notebooks.endpoints.serializers import (
 )
 from sentry.notebooks.endpoints.validators import NotebookCreateValidator
 from sentry.notebooks.models import Notebook, NotebookStatus
-from sentry.notebooks.services import create_manual_notebook
 from sentry.notebooks.services.producer import filter_by_run_status, known_run_statuses
 from sentry.notebooks.telemetry import record_notebook_started
 from sentry.seer.models.workflow import SeerWorkflowStrategy
@@ -183,6 +182,9 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=NotebookCreateValidator,
         responses={
+            200: inline_sentry_response_serializer(
+                "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
+            ),
             201: inline_sentry_response_serializer(
                 "InvestigationDetailsResponse", NotebookDetailsSerializerResponse
             ),
@@ -201,16 +203,19 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create a blank notebook. Returns notebook details, blocks, parameters, and orchestration
-        summary. Requires a user or service account. Requires the organizations:investigations
-        feature and open organization membership.
+        Create a blank notebook, or a notebook for a producer's source. Returns 201 with
+        notebook details, blocks, parameters, and orchestration summary, or 200 when an active
+        notebook for the same source already exists. Requires a user or service account.
+        Requires the organizations:investigations feature and open organization membership.
         """
         require_notebook_writer(request)
-        validator = NotebookCreateValidator(data=request.data)
+        validator = NotebookCreateValidator(
+            data=request.data,
+            context={"organization": organization, "creator": get_creator_reference(request)},
+        )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-        values = validator.validated_data
-        requested_project_ids = values.get("project_ids", [])
+        requested_project_ids = validator.validated_data.get("project_ids", [])
         if not set(requested_project_ids).issubset(organization_project_ids(organization)):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
@@ -218,24 +223,19 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             )
         require_project_access(request, requested_project_ids)
         try:
-            notebook = create_manual_notebook(
-                organization=organization,
-                creator=get_creator_reference(request),
-                title=values["title"],
-                project_ids=requested_project_ids,
-                filters=values.get("filters", {}),
-            )
+            notebook, created = validator.save()
         except Exception as error:
             response = service_error(error)
             if response is not None:
                 return response
             raise
-        record_notebook_started(notebook)
+        if created:
+            record_notebook_started(notebook)
         return Response(
             serialize(
                 notebook,
                 request.user,
                 NotebookDetailsSerializer(access=request.access),
             ),
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
