@@ -11,11 +11,11 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function ReplayBadge({group, project}: {group: Group; project: Project}) {
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
   const issueTypeConfig = getConfigForIssueType(group, project);
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
@@ -37,9 +37,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
         type="button"
         variant="link"
         icon={<IconPlay size="xs" />}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-        }}
+        to={links.tab(Tab.REPLAYS)}
         replace
         aria-label={t("View this issue's replays")}
       >

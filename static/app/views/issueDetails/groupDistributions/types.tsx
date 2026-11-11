@@ -3,8 +3,3 @@ export enum DrawerTab {
   TAGS = 'tags',
   FEATURE_FLAGS = 'featureFlags',
 }
-
-/**
- * Whether the distributions drawer shows tags or feature flags.
- */
-export const DISTRIBUTIONS_TYPE_QUERY_KEY = 'type';

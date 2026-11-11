@@ -88,7 +88,7 @@ describe('GroupOpenPeriods', () => {
       })
     ).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/${groupId}/events/${statusChangeEventId}/`
+      `/organizations/${organization.slug}/issues/${groupId}/?eventId=${statusChangeEventId}`
     );
 
     expect(within(openedRow).getByText('#open-period-1')).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('GroupOpenPeriods', () => {
       })
     ).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/${groupId}/events/${openedEventId}/`
+      `/organizations/${organization.slug}/issues/${groupId}/?eventId=${openedEventId}`
     );
 
     expect(screen.queryByText('Resolved')).not.toBeInTheDocument();

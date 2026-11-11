@@ -11,10 +11,11 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  useIssueDetailsLinks,
+  useIssueDetailsParams,
+} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
@@ -30,8 +31,8 @@ export function IssueDetailsEventNavigation({
   isSmallNav,
 }: IssueDetailsEventNavigationProps) {
   const organization = useOrganization();
-  const location = useLocation();
   const {eventId: currentEventId} = useIssueDetailsParams();
+  const links = useIssueDetailsLinks({groupId: group.id});
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
@@ -95,8 +96,6 @@ export function IssueDetailsEventNavigation({
     });
   };
 
-  const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
-
   const grayText = css`
     color: ${theme.tokens.content.secondary};
     font-weight: ${theme.font.weight.sans.regular};
@@ -114,10 +113,9 @@ export function IssueDetailsEventNavigation({
           disabled={!defined(event?.previousEventID)}
           analyticsEventKey="issue_details.previous_event_clicked"
           analyticsEventName="Issue Details: Previous Event Clicked"
-          to={{
-            pathname: `${baseEventsPath}${event?.previousEventID}/`,
-            query: {...location.query, referrer: 'previous-event'},
-          }}
+          to={links.event(event?.previousEventID ?? null, {
+            query: {referrer: 'previous-event'},
+          })}
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination(
@@ -138,10 +136,7 @@ export function IssueDetailsEventNavigation({
           disabled={!defined(event?.nextEventID)}
           analyticsEventKey="issue_details.next_event_clicked"
           analyticsEventName="Issue Details: Next Event Clicked"
-          to={{
-            pathname: `${baseEventsPath}${event?.nextEventID}/`,
-            query: {...location.query, referrer: 'next-event'},
-          }}
+          to={links.event(event?.nextEventID ?? null, {query: {referrer: 'next-event'}})}
           preventScrollReset
           css={grayText}
           onMouseEnter={handleHoverPagination('next', defined(event?.nextEventID))}
@@ -158,10 +153,7 @@ export function IssueDetailsEventNavigation({
               const eventPath =
                 key === currentEventKey
                   ? undefined
-                  : {
-                      pathname: normalizeUrl(baseEventsPath + key + '/'),
-                      query: {...location.query, referrer: `${key}-event`},
-                    };
+                  : links.event(key, {query: {referrer: `${key}-event`}});
               return (
                 <TabList.Item
                   to={eventPath}

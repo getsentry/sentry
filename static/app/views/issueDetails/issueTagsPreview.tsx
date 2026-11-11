@@ -25,15 +25,14 @@ import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 import type {GroupTag} from './groupTags/useGroupTags';
 import {useGroupTags} from './groupTags/useGroupTags';
 import {useEventQuery} from './hooks/useEventQuery';
-import {Tab, TabPaths} from './types';
-import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {IssueDetailsDrawer} from './issueDetailsQueryParams';
+import {useIssueDetailsLinks} from './useGroupDetailsRoute';
 import {usePrefetchTagValues} from './utils';
 
 const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
@@ -81,8 +80,7 @@ function SegmentedBar({segments}: {segments: Segment[]}) {
 
 function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag}) {
   const theme = useTheme();
-  const {baseUrl} = useGroupDetailsRoute();
-  const location = useLocation();
+  const links = useIssueDetailsLinks();
 
   const [isHovered, setIsHovered] = useState(false);
   const [prefetchTagValue, setPrefetchTagValue] = useState('');
@@ -147,10 +145,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
         replace
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
-          query: location.query,
-        }}
+        to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {tagKey: tag.key})}
         onMouseEnter={() => {
           setIsHovered(true);
           setPrefetchTagValue(tag.key);
@@ -178,8 +173,7 @@ function DistributionsDrawerButton({
   tags: GroupTag[];
   searchQuery?: string;
 }) {
-  const {baseUrl} = useGroupDetailsRoute();
-  const location = useLocation();
+  const links = useIssueDetailsLinks();
   const organization = useOrganization();
 
   if (tags.length === 0 || searchQuery) {
@@ -187,10 +181,7 @@ function DistributionsDrawerButton({
       <VerticalDistributionsDrawerButton
         aria-label={t('View issue tag distributions')}
         size="xs"
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-          query: location.query,
-        }}
+        to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {tagKey: null})}
         replace
         disabled={tags.length === 0}
       >
@@ -208,10 +199,7 @@ function DistributionsDrawerButton({
   return (
     <DistributionsDrawerLink
       replace
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-        query: location.query,
-      }}
+      to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {tagKey: null})}
       onClick={() => {
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}

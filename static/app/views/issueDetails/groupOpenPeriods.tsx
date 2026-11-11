@@ -26,7 +26,7 @@ import {
 
 import {EventListTable} from './eventListTable';
 import {useGroupId} from './groupIdContext';
-import {useIssueDetailsTabParams} from './issueDetailsQueryParams';
+import {makeIssueDetailsPath, useIssueDetailsTabParams} from './issueDetailsQueryParams';
 import {Tab} from './types';
 
 interface OpenPeriodDisplayData {
@@ -102,7 +102,11 @@ function IssueOpenPeriodsList() {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
           <EventIdLink
-            to={`/organizations/${organization.slug}/issues/${groupId}/events/${activity.eventId}/`}
+            to={makeIssueDetailsPath({
+              organization,
+              groupId,
+              eventId: activity.eventId,
+            })}
           >
             {getShortEventId(activity.eventId)}
           </EventIdLink>

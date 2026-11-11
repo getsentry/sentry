@@ -13,12 +13,12 @@ import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {modalCss, ScreenshotModal} from './modal';
 
@@ -34,7 +34,7 @@ export function ScreenshotDataSection({
 }: ScreenshotDataSectionProps) {
   const {openModal} = useModal();
 
-  const location = useLocation();
+  const links = useIssueDetailsLinks({groupId: event.groupID});
   const organization = useOrganization();
   const {data: attachments} = useFetchEventAttachments(
     {
@@ -100,10 +100,9 @@ export function ScreenshotDataSection({
     );
   }
 
-  const linkPath = {
-    pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
-    query: {...location.query, attachmentFilter: EventAttachmentFilter.SCREENSHOT},
-  };
+  const linkPath = links.tab(Tab.ATTACHMENTS, {
+    attachmentFilter: EventAttachmentFilter.SCREENSHOT,
+  });
   const title = tn('Screenshot', 'Screenshots', screenshots.length);
 
   return showScreenshot ? (

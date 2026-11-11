@@ -326,14 +326,15 @@ describe('groupDetails', () => {
     );
 
     await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/${group.id}/autofix/`
-      );
+      expect(router.location.query).toEqual({
+        project: group.project.id,
+        seerDrawerAction: 'retry_code_changes',
+        tab: 'autofix',
+      });
     });
-    expect(router.location.query).toEqual({
-      project: group.project.id,
-      seerDrawerAction: 'retry_code_changes',
-    });
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
     expect(router.historyAction).toBe('REPLACE');
   });
 

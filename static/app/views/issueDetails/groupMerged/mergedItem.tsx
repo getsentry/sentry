@@ -13,6 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {type FingerprintWithLatestEvent, type GroupMergedState} from './useGroupMerged';
 
@@ -101,13 +102,15 @@ export function MergedItem({
                   <Fragment>
                     <Text as="span" size="sm" variant="muted">
                       <Link
-                        to={{
-                          pathname: `/organizations/${organization.slug}/issues/${latestEvent.groupID!}/events/${latestEvent.id}/`,
+                        to={makeIssueDetailsLocation({
+                          organization,
+                          groupId: latestEvent.groupID!,
+                          eventId: latestEvent.id,
                           query: {
                             project: latestEvent.projectID,
                             referrer: 'merged-item',
                           },
-                        }}
+                        })}
                       >
                         {t('Latest event')}
                       </Link>

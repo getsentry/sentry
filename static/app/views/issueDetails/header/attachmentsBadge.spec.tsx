@@ -76,6 +76,6 @@ describe('AttachmentsBadge', () => {
       name: "View this issue's attachments",
     });
     expect(button).toBeInTheDocument();
-    expect(button).toHaveAttribute('href', expect.stringContaining('/attachments/'));
+    expect(button).toHaveAttribute('href', expect.stringContaining('tab=attachments'));
   });
 });

@@ -1,8 +1,6 @@
 import {useMemo} from 'react';
 import {useMatches, type UIMatch} from 'react-router';
 
-import type {Organization} from 'sentry/types/organization';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -14,6 +12,9 @@ import {
   IssueDetailsDrawer,
   loadIssueDetailsDrawerParams,
   loadIssueDetailsQueryParams,
+  makeIssueDetailsLocation,
+  type IssueDetailsDrawerParams,
+  type IssueDetailsTabParams,
   type IssueDetailsPageTab,
 } from './issueDetailsQueryParams';
 import {Tab, TabPaths} from './types';
@@ -106,9 +107,8 @@ function resolveIssueDetailsParams({
 
 /**
  * The page tab, drawer, event and tag key of the current issue details
- * location. Unlike `useGroupDetailsRoute()` this needs no `GroupIdProvider`,
- * so it also works in drawers, the sidebar and other places mounted beside the
- * group route.
+ * location. This needs no `GroupIdProvider`, so it also works in drawers, the
+ * sidebar and other places mounted beside the group route.
  */
 export function useIssueDetailsParams(): IssueDetailsParams {
   const params = useParams<RouteParams>();
@@ -130,6 +130,79 @@ export function useCurrentTab(): IssueDetailsPageTab {
   return useIssueDetailsParams().currentTab;
 }
 
+interface IssueDetailsLinkOptions {
+  /** Shared params to set on top of the current query, e.g. `referrer`. */
+  query?: Record<string, unknown>;
+}
+
+/**
+ * Builds links within the current issue. Each link starts from the current
+ * page tab, event, drawer and query, and changes one of them:
+ *
+ * - `event` selects an event and keeps the page tab and drawer.
+ * - `tab` switches the page tab and keeps the event and drawer.
+ * - `drawer` opens a drawer over the current page tab and event.
+ * - `closeDrawer` drops the drawer and its params.
+ *
+ * Params owned by a page tab or drawer carry over while it stays open, and
+ * `params` are set on top.
+ *
+ * Pass `groupId` when rendering outside a `GroupIdProvider`.
+ */
+export function useIssueDetailsLinks({groupId: groupIdProp}: {groupId?: string} = {}) {
+  const organization = useOrganization();
+  const contextGroupId = useGroupId({allowNull: true});
+  const groupId = groupIdProp ?? contextGroupId;
+  if (!groupId) {
+    throw new Error('useIssueDetailsLinks needs a groupId or a GroupIdProvider');
+  }
+  const {query} = useLocation();
+  const {currentTab, drawer, eventId, tagKey} = useIssueDetailsParams();
+
+  return useMemo(() => {
+    const current = {organization, groupId, tab: currentTab, eventId, drawer};
+    // A path-based route has its tag key in the path rather than the query.
+    const currentDrawerParams = tagKey ? {tagKey} : undefined;
+    const withQuery = (options?: IssueDetailsLinkOptions) =>
+      options?.query ? {...query, ...options.query} : query;
+
+    return {
+      event: (nextEventId: string | null, options?: IssueDetailsLinkOptions) =>
+        makeIssueDetailsLocation({
+          ...current,
+          eventId: nextEventId,
+          drawerParams: currentDrawerParams,
+          query: withQuery(options),
+        }),
+      tab: <T extends IssueDetailsPageTab>(
+        tab: T,
+        params?: IssueDetailsTabParams<T>,
+        options?: IssueDetailsLinkOptions
+      ) =>
+        makeIssueDetailsLocation({
+          ...current,
+          tab,
+          tabParams: params,
+          drawerParams: currentDrawerParams,
+          query: withQuery(options),
+        }),
+      drawer: <D extends IssueDetailsDrawer>(
+        nextDrawer: D,
+        params?: IssueDetailsDrawerParams<D>,
+        options?: IssueDetailsLinkOptions
+      ) =>
+        makeIssueDetailsLocation({
+          ...current,
+          drawer: nextDrawer,
+          drawerParams: params,
+          query: withQuery(options),
+        }),
+      closeDrawer: (options?: IssueDetailsLinkOptions) =>
+        makeIssueDetailsLocation({...current, drawer: null, query: withQuery(options)}),
+    };
+  }, [organization, groupId, query, currentTab, eventId, drawer, tagKey]);
+}
+
 const LEGACY_DRAWER_PATH =
   /\/issues\/[^/]+\/(?:events\/[^/]+\/)?(activity|distributions|similar|merged)\//;
 
@@ -147,35 +220,4 @@ export function getIssueDetailsDrawer(location: {
   }
   const legacyDrawer = location.pathname.match(LEGACY_DRAWER_PATH)?.[1];
   return legacyDrawer ? (legacyDrawer as IssueDetailsDrawer) : null;
-}
-
-function getBaseUrl({
-  eventId,
-  groupId,
-  organization,
-}: {
-  eventId: string | undefined;
-  groupId: string;
-  organization: Organization;
-}) {
-  return normalizeUrl(
-    `/organizations/${organization.slug}/issues/${groupId}/${
-      eventId ? `events/${eventId}/` : ''
-    }`
-  );
-}
-
-export function useGroupDetailsRoute(): IssueDetailsParams & {baseUrl: string} {
-  const organization = useOrganization();
-  const groupId = useGroupId();
-  const issueDetailsParams = useIssueDetailsParams();
-  // Path-based links are built on this until they move to
-  // `makeIssueDetailsLocation`, so only a path-based event belongs in it. An
-  // event from the query carries over with the query.
-  const {eventId: routeEventId} = useParams<RouteParams>();
-
-  return {
-    ...issueDetailsParams,
-    baseUrl: getBaseUrl({eventId: routeEventId, groupId, organization}),
-  };
 }

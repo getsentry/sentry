@@ -24,7 +24,7 @@ import {IssueEventNavigation} from './eventNavigation';
 import {IssueDetailsTour, IssueDetailsTourContext} from './issueDetailsTour';
 import {SampleEventAlert} from './sampleEventAlert';
 import {Tab} from './types';
-import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {useIssueDetailsParams} from './useGroupDetailsRoute';
 import {useIsSampleEvent, getGroupReprocessingStatus, ReprocessingStatus} from './utils';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
@@ -201,7 +201,7 @@ export function GroupDetailsLayout({
   const theme = useTheme();
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
-  const {currentTab} = useGroupDetailsRoute();
+  const {currentTab} = useIssueDetailsParams();
   const isAutofixTab = currentTab === Tab.AUTOFIX;
 
   return (

@@ -15,6 +15,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {relatedIssuesApiOptions} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
+import {
+  IssueDetailsDrawer,
+  makeIssueDetailsLocation,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {List} from './list';
 import {processSimilarItem, toSimilarTuple} from './types';
@@ -112,7 +116,11 @@ export function SimilarStackTrace({project}: Props) {
     onSuccess: data => {
       if (data?.merge?.parent && data.merge.parent !== groupId) {
         navigate(
-          `/organizations/${organization.slug}/issues/${data.merge.parent}/similar/`
+          makeIssueDetailsLocation({
+            organization,
+            groupId: data.merge.parent,
+            drawer: IssueDetailsDrawer.SIMILAR_ISSUES,
+          })
         );
       }
       setCheckedIds(new Set());

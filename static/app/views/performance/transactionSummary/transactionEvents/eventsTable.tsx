@@ -41,6 +41,7 @@ import {
   useEventViewTable,
   type RenderCellOptions,
 } from 'sentry/views/discover/table/useEventViewTable';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {
@@ -213,9 +214,11 @@ export function EventsTable({
       const isIssue = !!issueId;
       let target: LocationDescriptor | null = null;
       if (isIssue && field === 'id') {
-        target = {
-          pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
-        };
+        target = makeIssueDetailsLocation({
+          organization,
+          groupId: issueId,
+          eventId: dataRow.id,
+        });
       } else if (field === 'id') {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString()!,

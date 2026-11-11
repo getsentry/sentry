@@ -2,14 +2,10 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {
-  DISTRIBUTIONS_TYPE_QUERY_KEY,
-  DrawerTab,
-} from 'sentry/views/issueDetails/groupDistributions/types';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface Props {
   children: React.ReactNode;
@@ -17,18 +13,14 @@ interface Props {
 }
 
 export function FlagDetailsLink({flag, children}: Props) {
-  const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
 
   return (
     <StyledLink
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${flag.key}/`,
-        query: {
-          ...location.query,
-          [DISTRIBUTIONS_TYPE_QUERY_KEY]: DrawerTab.FEATURE_FLAGS,
-        },
-      }}
+      to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {
+        tagKey: flag.key,
+        type: DrawerTab.FEATURE_FLAGS,
+      })}
     >
       {children}
     </StyledLink>

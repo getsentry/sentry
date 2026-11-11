@@ -42,8 +42,10 @@ import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDet
 import {
   ISSUE_DETAILS_DRAWER_PARAMS,
   IssueDetailsDrawer,
+  makeIssueDetailsLocation,
   useIssueDetailsDrawerParams,
 } from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
@@ -172,13 +174,15 @@ function TagDetailsRow({
             `${escapeIssueTagKey(key)}:"${escapeDoubleQuotes(tagValue.value)}"`,
         };
 
-  const allEventsLocation = {
-    pathname: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+  const allEventsLocation = makeIssueDetailsLocation({
+    organization,
+    groupId: group.id,
+    eventId: 'recommended',
     query: {
       ...location.query,
       ...query,
     },
-  };
+  });
   const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
   // Ensure no item shows 100% when there are multiple tag values
   const hasMultipleItems = (tag.uniqueValues ?? 0) > 1;
@@ -352,10 +356,12 @@ function TagValueActionsMenu({
           {
             key: 'view-events',
             label: t('View other events with this tag value'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            to: makeIssueDetailsLocation({
+              organization,
+              groupId: group.id,
+              tab: Tab.EVENTS,
               query: {...globalSelectionParams, ...query},
-            },
+            }),
           },
           {
             key: 'view-issues',

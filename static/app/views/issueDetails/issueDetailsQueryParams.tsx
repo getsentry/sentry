@@ -145,14 +145,14 @@ type ParamValues<Parsers> = Parsers extends ParserMap
 /**
  * The params a page tab owns. Set one to `null` to remove it.
  */
-type IssueDetailsTabParams<T extends IssueDetailsPageTab> = ParamValues<
+export type IssueDetailsTabParams<T extends IssueDetailsPageTab> = ParamValues<
   (typeof ISSUE_DETAILS_TAB_PARAMS)[T]
 >;
 
 /**
  * The params a drawer owns. Set one to `null` to remove it.
  */
-type IssueDetailsDrawerParams<D extends IssueDetailsDrawer> = ParamValues<
+export type IssueDetailsDrawerParams<D extends IssueDetailsDrawer> = ParamValues<
   (typeof ISSUE_DETAILS_DRAWER_PARAMS)[D]
 >;
 
@@ -229,7 +229,7 @@ interface IssueDetailsLocationOptions<
   tabParams?: IssueDetailsTabParams<T>;
 }
 
-interface IssueDetailsLocation extends LocationDescriptorObject {
+export interface IssueDetailsLocation extends LocationDescriptorObject {
   pathname: string;
   query: Location['query'];
 }
@@ -290,4 +290,17 @@ export function makeIssueDetailsLocation<
     pathname: normalizeUrl(`/organizations/${organization.slug}/issues/${groupId}/`),
     query: nextQuery as Location['query'],
   };
+}
+
+/**
+ * `makeIssueDetailsLocation` as a path with its query string, for links that
+ * need a string.
+ */
+export function makeIssueDetailsPath<
+  T extends IssueDetailsPageTab = never,
+  D extends IssueDetailsDrawer = never,
+>(options: IssueDetailsLocationOptions<T, D>): string {
+  const {pathname, query} = makeIssueDetailsLocation(options);
+  const search = qs.stringify(query);
+  return search ? `${pathname}?${search}` : pathname;
 }

@@ -5,6 +5,7 @@ import {
   IssueDetailsDrawer,
   loadIssueDetailsQueryParams,
   makeIssueDetailsLocation,
+  makeIssueDetailsPath,
 } from './issueDetailsQueryParams';
 import {Tab} from './types';
 
@@ -140,5 +141,26 @@ describe('makeIssueDetailsLocation', () => {
       attachmentFilter: 'screenshot',
       mergedCursor: '0:50:0',
     });
+  });
+});
+
+describe('makeIssueDetailsPath', () => {
+  const organization = OrganizationFixture();
+
+  it('returns the pathname without a query', () => {
+    expect(makeIssueDetailsPath({organization, groupId: '101'})).toBe(
+      '/organizations/org-slug/issues/101/'
+    );
+  });
+
+  it('appends the query string', () => {
+    expect(
+      makeIssueDetailsPath({
+        organization,
+        groupId: '101',
+        eventId: 'abc123',
+        query: {referrer: 'slack'},
+      })
+    ).toBe('/organizations/org-slug/issues/101/?eventId=abc123&referrer=slack');
   });
 });

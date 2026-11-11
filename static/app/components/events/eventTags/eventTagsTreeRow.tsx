@@ -28,7 +28,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {
+  IssueDetailsDrawer,
+  makeIssueDetailsLocation,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,
@@ -115,6 +120,7 @@ function EventTagsTreeRowDropdown({
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
   const {copy} = useCopyToClipboard();
   const {mutate: saveTag} = useUpdateProject(project);
+  const {currentTab, eventId} = useIssueDetailsParams();
   const originalTag = content.original;
 
   if (!originalTag) {
@@ -149,19 +155,26 @@ function EventTagsTreeRowDropdown({
       key: 'tag-details',
       label: t('Tag breakdown'),
       hidden: !isIssueDetailsRoute,
-      to: {
-        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(originalTag.key)}/`,
+      to: makeIssueDetailsLocation({
+        organization,
+        groupId: event.groupID ?? '',
+        tab: currentTab,
+        eventId,
+        drawer: IssueDetailsDrawer.DISTRIBUTIONS,
+        drawerParams: {tagKey: originalTag.key},
         query: location.query,
-      },
+      }),
     },
     {
       key: 'view-events',
       label: t('View other events with this tag value'),
       hidden: !event.groupID || isFeedback,
-      to: {
-        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
+      to: makeIssueDetailsLocation({
+        organization,
+        groupId: event.groupID ?? '',
+        tab: Tab.EVENTS,
         query: {...globalSelectionParams, ...query},
-      },
+      }),
     },
     {
       key: 'view-issues',

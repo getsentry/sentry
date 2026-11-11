@@ -27,7 +27,7 @@ describe('EventMissingBanner', () => {
     expect(screen.getByText(/Change up your filters./)).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Clear event filters'})).toHaveAttribute(
       'href',
-      expect.stringContaining(`/issues/${groupId}/events/recommended/`)
+      expect.stringContaining(`/issues/${groupId}/?eventId=recommended`)
     );
     // Image
     expect(screen.getByAltText('Compass illustration')).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('EventMissingBanner', () => {
     expect(screen.getByText(/Double check the event ID./)).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View recommended event'})).toHaveAttribute(
       'href',
-      expect.stringContaining(`/issues/${groupId}/events/recommended/`)
+      expect.stringContaining(`/issues/${groupId}/?eventId=recommended`)
     );
     // Image
     expect(screen.getByAltText('Compass illustration')).toBeInTheDocument();

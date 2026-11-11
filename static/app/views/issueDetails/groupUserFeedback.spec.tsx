@@ -89,7 +89,7 @@ describe('GroupUserFeedback', () => {
     expect(await screen.findByText('custom comment')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View event'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/${group.id}/events/abc/?referrer=user-feedback`
+      `/organizations/${organization.slug}/issues/${group.id}/?eventId=abc&referrer=user-feedback`
     );
   });
 });

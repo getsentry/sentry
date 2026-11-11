@@ -23,7 +23,7 @@ import {
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
@@ -1021,6 +1021,7 @@ export function useExplorerAutofix(
           organization.features.includes('autofix-browser-notifications') &&
           serviceWorker.isServiceWorkerSupported
         ) {
+          const seerLocation = makeSeerLocation({organization, groupId});
           serviceWorker.controller
             .postMessage({
               type: 'event',
@@ -1029,8 +1030,9 @@ export function useExplorerAutofix(
                 issueId: groupId,
                 notification: {
                   navigateTo: {
-                    pathname: makeSeerPathname(organization, groupId),
-                    query: makeSeerQuery(organization),
+                    pathname: seerLocation.pathname,
+                    // Only the seer params, which are all strings.
+                    query: seerLocation.query as Record<string, string>,
                   },
                   project: {
                     avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes

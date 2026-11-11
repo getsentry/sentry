@@ -30,12 +30,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {GroupHeaderAssigneeSelector} from './assigneeSelector';
@@ -52,7 +53,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
 
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
@@ -139,10 +140,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 density="compressed"
               >
                 {issueTypeConfig.eventAndUserCounts.enabled && (
-                  <StatLink
-                    to={`${baseUrl}events/${location.search}`}
-                    aria-label={t('View events')}
-                  >
+                  <StatLink to={links.tab(Tab.EVENTS)} aria-label={t('View events')}>
                     {t('Events (total)')}
                   </StatLink>
                 )}
@@ -164,7 +162,9 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                     t('Users %s', userCountPeriod)
                   ) : (
                     <StatLink
-                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
+                      to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {
+                        tagKey: 'user',
+                      })}
                       aria-label={t('View affected users')}
                     >
                       {t('Users %s', userCountPeriod)}

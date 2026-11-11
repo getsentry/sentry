@@ -141,7 +141,7 @@ describe('ImpactSection', () => {
       const link = await screen.findByText('TypeError: Cannot read property');
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/issues/group456/events/abc123/`
+        `/organizations/${organization.slug}/issues/group456/?eventId=abc123`
       );
     });
 

@@ -32,7 +32,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
@@ -50,8 +49,11 @@ import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {
+  useIssueDetailsLinks,
+  useIssueDetailsParams,
+} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
@@ -82,8 +84,8 @@ const LIST_VIEW_TABS = new Set([
 
 export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
   const organization = useOrganization();
-  const {baseUrl, currentTab} = useGroupDetailsRoute();
-  const location = useLocation();
+  const {currentTab} = useIssueDetailsParams();
+  const links = useIssueDetailsLinks();
   const [sort] = useQueryState('sort', parseAsRawList);
   const eventView = useIssueDetailsEventView({group});
   const {eventCount} = useIssueDetails();
@@ -207,11 +209,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     });
   };
 
-  const contentLocation = (key: Tab) => ({
-    ...location,
-    pathname: `${baseUrl}${TabPaths[key]}`,
-    hash: undefined,
-  });
+  const contentLocation = (key: IssueDetailsPageTab) => links.tab(key);
 
   const isListView = LIST_VIEW_TABS.has(currentTab);
 
@@ -380,10 +378,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                     {issueTypeConfig.pages.events.enabled && (
                       <Feature features="discover-basic" organization={organization}>
                         <LinkButton
-                          to={{
-                            pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                            query: location.query,
-                          }}
+                          to={links.tab(Tab.EVENTS)}
                           size="xs"
                           analyticsEventKey="issue_details.all_events_clicked"
                           analyticsEventName="Issue Details: All Events Clicked"
@@ -406,10 +401,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                     />
                     {issueTypeConfig.pages.openPeriods.enabled && (
                       <LinkButton
-                        to={{
-                          pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
-                          query: location.query,
-                        }}
+                        to={links.tab(Tab.OPEN_PERIODS)}
                         size="xs"
                         analyticsEventKey="issue_details.all_open_periods_clicked"
                         analyticsEventName="Issue Details: All Open Periods Clicked"
@@ -421,10 +413,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                     )}
                     {issueTypeConfig.pages.checkIns.enabled && (
                       <LinkButton
-                        to={{
-                          pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
-                          query: location.query,
-                        }}
+                        to={links.tab(Tab.CHECK_INS)}
                         size="xs"
                         analyticsEventKey="issue_details.all_checks_ins_clicked"
                         analyticsEventName="Issue Details: All Checks-Ins Clicked"
@@ -434,10 +423,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                     )}
                     {issueTypeConfig.pages.uptimeChecks.enabled && (
                       <LinkButton
-                        to={{
-                          pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
-                          query: location.query,
-                        }}
+                        to={links.tab(Tab.UPTIME_CHECKS)}
                         size="xs"
                         analyticsEventKey="issue_details.all_uptime_checks_clicked"
                         analyticsEventName="Issue Details: All Uptime Checks Clicked"
@@ -471,10 +457,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                     </LinkButton>
                   )}
                   <LinkButton
-                    to={{
-                      pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-                      query: {...location.query, cursor: undefined},
-                    }}
+                    to={links.tab(Tab.DETAILS)}
                     aria-label={t('Return to event details')}
                     size="xs"
                   >

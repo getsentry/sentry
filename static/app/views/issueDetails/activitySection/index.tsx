@@ -12,12 +12,11 @@ import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {
   buildActivityFeedItems,
@@ -62,8 +61,7 @@ export function ActivitySection({
   placeholder = t('Add a comment\u2026'),
 }: ActivitySectionProps) {
   const organization = useOrganization();
-  const {baseUrl} = useGroupDetailsRoute();
-  const location = useLocation();
+  const links = useIssueDetailsLinks({groupId: group.id});
   const activities = providedActivities ?? group.activity;
   const {createComment, deleteComment, updateComment} = useMutateActivity({
     organization,
@@ -120,20 +118,8 @@ export function ActivitySection({
   }
 
   const isStandalone = variant === 'standalone';
-  const activityLink = {
-    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-    },
-  };
-  const commentsLink = {
-    pathname: activityLink.pathname,
-    query: {
-      ...activityLink.query,
-      filter: 'comments',
-    },
-  };
+  const activityLink = links.drawer(IssueDetailsDrawer.ACTIVITY);
+  const commentsLink = links.drawer(IssueDetailsDrawer.ACTIVITY, {filter: 'comments'});
 
   const displayedActivities =
     items ??

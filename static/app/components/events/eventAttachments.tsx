@@ -15,13 +15,12 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {EventAttachmentActions} from './eventAttachmentActions';
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
@@ -53,17 +52,10 @@ const attachmentPreviewIsOpen = (
 };
 
 function ViewAllGroupAttachmentsButton() {
-  const {baseUrl} = useGroupDetailsRoute();
-  const location = useLocation();
+  const links = useIssueDetailsLinks();
 
   return (
-    <LinkButton
-      size="xs"
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
-        query: location.query,
-      }}
-    >
+    <LinkButton size="xs" to={links.tab(Tab.ATTACHMENTS)}>
       {t('View All Attachments')}
     </LinkButton>
   );

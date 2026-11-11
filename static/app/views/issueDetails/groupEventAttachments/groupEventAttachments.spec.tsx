@@ -205,7 +205,7 @@ describe('GroupEventAttachments', () => {
     });
     expect(await screen.findByRole('link', {name: '12345678'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/group-id/events/12345678901234567890123456789012/'
+      '/organizations/org-slug/issues/group-id/?eventId=12345678901234567890123456789012'
     );
   });
 

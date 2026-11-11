@@ -50,7 +50,7 @@ import {useReleaseMarkLineSeries} from './hooks/useReleaseMarkLineSeries';
 import {EVENT_GRAPH_WIDGET_ID} from './constants';
 import {useIssueDetails} from './context';
 import {Tab} from './types';
-import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {useIssueDetailsParams} from './useGroupDetailsRoute';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -108,7 +108,7 @@ export function EventGraph({
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState(EventGraphSeries.EVENT);
   const {dispatch} = useIssueDetails();
-  const {currentTab} = useGroupDetailsRoute();
+  const {currentTab} = useIssueDetailsParams();
   const [isSmallContainer, setIsSmallContainer] = useState(false);
 
   const onResize = useCallback(() => {

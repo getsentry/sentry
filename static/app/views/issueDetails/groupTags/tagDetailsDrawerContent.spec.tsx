@@ -217,7 +217,7 @@ describe('TagDetailsDrawerContent', () => {
       })
     ).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/1/events/?query=user.username%3Adavid'
+      '/organizations/org-slug/issues/1/?query=user.username%3Adavid&tab=events'
     );
   });
 
@@ -246,9 +246,8 @@ describe('TagDetailsDrawerContent', () => {
 
     await userEvent.click(await screen.findByRole('link', {name: 'custom-project'}));
 
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/issues/1/events/recommended/'
-    );
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/1/');
+    expect(router.location.query.eventId).toBe('recommended');
     expect(router.location.query.query).toBe('tags[project_id]:"custom-project"');
   });
 
@@ -597,7 +596,8 @@ describe('TagDetailsDrawerContent', () => {
       viewEventsMenuItem.getAttribute('href') ?? '',
       'http://localhost'
     );
-    expect(viewEventsUrl.pathname).toBe('/organizations/org-slug/issues/1/events/');
+    expect(viewEventsUrl.pathname).toBe('/organizations/org-slug/issues/1/');
+    expect(viewEventsUrl.searchParams.get('tab')).toBe('events');
     expect(viewEventsUrl.searchParams.get('query')).toBe('!has:device');
     expect(viewEventsUrl.searchParams.get('referrer')).toBe('tag-details-drawer');
     expect(

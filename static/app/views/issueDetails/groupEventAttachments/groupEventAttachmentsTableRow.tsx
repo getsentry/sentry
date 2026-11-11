@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {InlineEventAttachment} from './inlineEventAttachment';
 
@@ -52,7 +53,11 @@ export function GroupEventAttachmentsTableRow({
             <div>
               <DateTime date={attachment.dateCreated} /> &middot;{' '}
               <Link
-                to={`/organizations/${organization.slug}/issues/${groupId}/events/${attachment.event_id}/`}
+                to={makeIssueDetailsLocation({
+                  organization,
+                  groupId,
+                  eventId: attachment.event_id,
+                })}
               >
                 <Tooltip skipWrapper title={t('View Event')}>
                   {getShortEventId(attachment.event_id)}

@@ -43,7 +43,7 @@ describe('GroupMergedView', () => {
     expect(links).toHaveLength(mergedFingerprints.length);
     expect(links[0]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/268/events/904/?project=1&referrer=merged-item'
+      '/organizations/org-slug/issues/268/?eventId=904&project=1&referrer=merged-item'
     );
     const showFingerprint = screen.getByRole('button', {
       name: `Show ${mergedFingerprints[0]!.id} fingerprints`,

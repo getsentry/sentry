@@ -87,11 +87,7 @@ import {
 import {Tab} from './types';
 import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
-import {
-  useGroupDetailsRoute,
-  useIssueDetailsParams,
-  type IssueDetailsParams,
-} from './useGroupDetailsRoute';
+import {useIssueDetailsParams, type IssueDetailsParams} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -287,7 +283,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const [allProjectChanged, setAllProjectChanged] = useState(false);
   const [, setAllProjectsQuery] = useQueryStates(allProjectsQueryParsers);
 
-  const {currentTab, drawer, eventId} = useGroupDetailsRoute();
+  const {currentTab, drawer, eventId} = useIssueDetailsParams();
   const environments = useEnvironmentsFromUrl();
 
   const {
@@ -670,7 +666,7 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab, drawer, eventId, tagKey} = useGroupDetailsRoute();
+  const {currentTab, drawer, eventId, tagKey} = useIssueDetailsParams();
   const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so

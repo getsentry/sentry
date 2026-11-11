@@ -17,6 +17,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {ImpactChip} from './chips/impactChip';
 import {ActivityLineHeadline} from './layout';
@@ -78,7 +79,11 @@ function ImpactActivityDetails({
 }) {
   const organization = useOrganization();
   const {description, citations, sourceEventId} = activity.data;
-  const eventUrl = `/organizations/${organization.slug}/issues/${group.id}/events/${sourceEventId}/`;
+  const eventUrl = makeIssueDetailsLocation({
+    organization,
+    groupId: group.id,
+    eventId: sourceEventId,
+  });
   return (
     <Stack gap="md" data-test-id="impact-activity-details">
       <Text as="p" density="comfortable">

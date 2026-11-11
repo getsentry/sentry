@@ -46,7 +46,7 @@ describe('EventNavigation', () => {
   };
 
   /**
-   * `useGroupDetailsRoute` reads the current tab off the deepest route's `handle`,
+   * Path-based tabs are read off the deepest route's `handle`,
    * so every tab gets a child route carrying that handle, which also lets tests
    * navigate between tabs. The nav under test renders on the parent route, so the
    * children render nothing of their own.
@@ -255,11 +255,7 @@ describe('EventNavigation', () => {
       const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
       expect(autofixTab).toHaveAttribute(
         'href',
-        expect.stringContaining(
-          `/organizations/${seerOrganization.slug}/issues/${group.id}/${
-            TabPaths[Tab.AUTOFIX]
-          }`
-        )
+        `/organizations/${seerOrganization.slug}/issues/${group.id}/?tab=autofix`
       );
     });
 
@@ -367,8 +363,9 @@ describe('EventNavigation', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'View More Events'}));
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.EVENTS]}`
+        `/organizations/${organization.slug}/issues/${group.id}/`
       );
+      expect(router.location.query).toEqual({tab: 'events'});
       expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
         'aria-selected',
         'true'

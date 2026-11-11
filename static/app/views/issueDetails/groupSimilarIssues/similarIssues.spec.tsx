@@ -164,10 +164,9 @@ describe('Issues Similar View', () => {
     });
 
     await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/issues/321/similar/'
-      );
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/321/');
     });
+    expect(router.location.query).toEqual({drawer: 'similar'});
   });
 
   it('toggles selection when item is clicked', async () => {
@@ -310,10 +309,9 @@ describe('Issues Similar Embeddings View', () => {
     });
 
     await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/issues/321/similar/'
-      );
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/321/');
     });
+    expect(router.location.query).toEqual({drawer: 'similar'});
   });
 
   it('toggles selection when item is clicked', async () => {

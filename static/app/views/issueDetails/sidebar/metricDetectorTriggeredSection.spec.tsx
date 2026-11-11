@@ -1362,10 +1362,11 @@ describe('MetricDetectorTriggeredSection', () => {
       await screen.findByRole('region', {name: 'Triggered Condition'});
 
       await waitFor(() => {
-        expect(router.location.pathname).toMatch(
-          `/organizations/org-slug/issues/${defaultGroup.id}/events/${defaultEvent.id}/`
-        );
+        expect(router.location.query.eventId).toBe(defaultEvent.id);
       });
+      expect(router.location.pathname).toBe(
+        `/organizations/org-slug/issues/${defaultGroup.id}/`
+      );
       expect(router.location.query.statsPeriod).toBeDefined();
     });
 

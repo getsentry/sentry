@@ -17,8 +17,8 @@ import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountFo
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {REPLAY_LOADING_HEIGHT} from './constants';
 
@@ -38,7 +38,7 @@ const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
 
   const startTimestampMS =
     'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
@@ -48,9 +48,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   const allReplaysButton = (
     <LinkButton
       size="xs"
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-      }}
+      to={links.tab(Tab.REPLAYS)}
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >

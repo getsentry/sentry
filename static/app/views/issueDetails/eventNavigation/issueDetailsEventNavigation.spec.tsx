@@ -34,6 +34,7 @@ describe('IssueDetailsEventNavigation', () => {
   };
   const routerConfigBase: Pick<RouterConfig, 'routes'> = {
     routes: [
+      '/organizations/:orgId/issues/:groupId/',
       '/organizations/:orgId/issues/:groupId/events/',
       '/organizations/:orgId/issues/:groupId/events/:eventId/',
     ],
@@ -71,11 +72,12 @@ describe('IssueDetailsEventNavigation', () => {
       await userEvent.click(await screen.findByRole('tab', {name: 'First'}));
 
       await waitFor(() =>
-        expect(router.location.pathname).toBe(
-          '/organizations/org-slug/issues/group-id/events/oldest/'
-        )
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/group-id/')
       );
-      expect(router.location.query).toEqual({referrer: 'oldest-event'});
+      expect(router.location.query).toEqual({
+        eventId: 'oldest',
+        referrer: 'oldest-event',
+      });
     });
 
     it('can navigate to the latest event', async () => {
@@ -89,11 +91,12 @@ describe('IssueDetailsEventNavigation', () => {
       await userEvent.click(await screen.findByRole('tab', {name: 'Latest'}));
 
       await waitFor(() =>
-        expect(router.location.pathname).toBe(
-          '/organizations/org-slug/issues/group-id/events/latest/'
-        )
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/group-id/')
       );
-      expect(router.location.query).toEqual({referrer: 'latest-event'});
+      expect(router.location.query).toEqual({
+        eventId: 'latest',
+        referrer: 'latest-event',
+      });
     });
 
     it('can navigate to the recommended event', async () => {
@@ -107,11 +110,12 @@ describe('IssueDetailsEventNavigation', () => {
       await userEvent.click(await screen.findByRole('tab', {name: 'Rec.'}));
 
       await waitFor(() =>
-        expect(router.location.pathname).toBe(
-          '/organizations/org-slug/issues/group-id/events/recommended/'
-        )
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/group-id/')
       );
-      expect(router.location.query).toEqual({referrer: 'recommended-event'});
+      expect(router.location.query).toEqual({
+        eventId: 'recommended',
+        referrer: 'recommended-event',
+      });
     });
   });
 
@@ -122,11 +126,11 @@ describe('IssueDetailsEventNavigation', () => {
 
     expect(await screen.findByRole('button', {name: 'Previous Event'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/group-id/events/prev-event-id/?referrer=previous-event'
+      '/organizations/org-slug/issues/group-id/?eventId=prev-event-id&referrer=previous-event'
     );
     expect(screen.getByRole('button', {name: 'Next Event'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/group-id/events/next-event-id/?referrer=next-event'
+      '/organizations/org-slug/issues/group-id/?eventId=next-event-id&referrer=next-event'
     );
   });
 

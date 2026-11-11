@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {makeSeerLocation, makeSeerQuery} from './utils';
+import {makeSeerLocation} from './utils';
 
 describe('makeSeerLocation', () => {
   const withPage = OrganizationFixture({features: ['autofix-page']});
@@ -15,8 +15,8 @@ describe('makeSeerLocation', () => {
 
   it('points at the standalone page with the feature', () => {
     expect(makeSeerLocation({organization: withPage, groupId: '101'})).toEqual({
-      pathname: '/organizations/org-slug/issues/101/autofix/',
-      query: {},
+      pathname: '/organizations/org-slug/issues/101/',
+      query: {tab: 'autofix'},
     });
   });
 
@@ -35,7 +35,7 @@ describe('makeSeerLocation', () => {
         groupId: '101',
         action: 'retry_code_changes',
       }).query
-    ).toEqual({seerDrawerAction: 'retry_code_changes'});
+    ).toEqual({tab: 'autofix', seerDrawerAction: 'retry_code_changes'});
   });
 
   it('preserves caller query params alongside the seer params', () => {
@@ -61,8 +61,8 @@ describe('makeSeerLocation', () => {
         },
       })
     ).toEqual({
-      pathname: '/organizations/org-slug/issues/101/autofix/',
-      query: {project: '1', environment: 'prod', statsPeriod: '7d'},
+      pathname: '/organizations/org-slug/issues/101/',
+      query: {project: '1', environment: 'prod', statsPeriod: '7d', tab: 'autofix'},
     });
   });
 
@@ -74,14 +74,6 @@ describe('makeSeerLocation', () => {
         action: 'retry_code_changes',
         query: {seerDrawerAction: 'something_else'},
       }).query
-    ).toEqual({seerDrawerAction: 'retry_code_changes'});
-  });
-});
-
-describe('makeSeerQuery', () => {
-  const withPage = OrganizationFixture({features: ['autofix-page']});
-
-  it('omits the action param when no action is given', () => {
-    expect(makeSeerQuery(withPage)).not.toHaveProperty('seerDrawerAction');
+    ).toEqual({tab: 'autofix', seerDrawerAction: 'retry_code_changes'});
   });
 });

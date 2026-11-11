@@ -11,13 +11,9 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {
-  DISTRIBUTIONS_TYPE_QUERY_KEY,
-  DrawerTab,
-} from 'sentry/views/issueDetails/groupDistributions/types';
-import {Tab} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {makeFeatureFlagSearchKey} from './utils';
 
@@ -37,8 +33,7 @@ export function FlagActionDropdown({
   result: string;
 }) {
   const {copy} = useCopyToClipboard();
-  const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
   const [isVisible, setIsVisible] = useState(false);
 
   return (
@@ -69,13 +64,10 @@ export function FlagActionDropdown({
           {
             key: 'open-flag-details',
             label: t('See flag details'),
-            to: {
-              pathname: `${baseUrl}${Tab.DISTRIBUTIONS}/${flag}`,
-              query: {
-                ...location.query,
-                [DISTRIBUTIONS_TYPE_QUERY_KEY]: DrawerTab.FEATURE_FLAGS,
-              },
-            },
+            to: links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {
+              tagKey: flag,
+              type: DrawerTab.FEATURE_FLAGS,
+            }),
           },
           {
             key: 'view-issues',

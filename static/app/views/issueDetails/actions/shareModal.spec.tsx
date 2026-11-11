@@ -82,7 +82,7 @@ describe('ShareIssueModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Copy Link'}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      'http://localhost/organizations/org-slug/issues/1/events/1/'
+      'http://localhost/organizations/org-slug/issues/1/?eventId=1'
     );
   });
 

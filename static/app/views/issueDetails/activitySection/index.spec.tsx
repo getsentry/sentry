@@ -2725,7 +2725,7 @@ describe('ActivitySection', () => {
     expect(await screen.findByText('Source Event')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '7f4b9a95'})).toHaveAttribute(
       'href',
-      `/organizations/org-slug/issues/${impactGroup.id}/events/7f4b9a95abc449a8a5afc3d1d2683a8b/`
+      `/organizations/org-slug/issues/${impactGroup.id}/?eventId=7f4b9a95abc449a8a5afc3d1d2683a8b`
     );
     expect(
       await screen.findByText('The request failed before order creation.')

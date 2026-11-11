@@ -6,15 +6,14 @@ import {DrawerBreadcrumbs} from 'sentry/components/events/eventDrawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {
-  useGroupDetailsRoute,
+  useIssueDetailsLinks,
   useIssueDetailsParams,
 } from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-import {DISTRIBUTIONS_TYPE_QUERY_KEY, DrawerTab} from './types';
+import {DrawerTab} from './types';
 import {useTagExportMenuItems} from './useTagExportMenuItems';
 
 interface Props {
@@ -24,10 +23,9 @@ interface Props {
 }
 
 export function GroupDistributionCrumbs({group, project, tab}: Props) {
-  const location = useLocation();
   const organization = useOrganization();
   const {tagKey} = useIssueDetailsParams();
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
   const exportItems = useTagExportMenuItems({
     group,
     organization,
@@ -45,10 +43,7 @@ export function GroupDistributionCrumbs({group, project, tab}: Props) {
     {
       type: 'link',
       label: listLabel,
-      to: {
-        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-        query: {...location.query, [DISTRIBUTIONS_TYPE_QUERY_KEY]: tab},
-      },
+      to: links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {tagKey: null, type: tab}),
     },
   ];
 

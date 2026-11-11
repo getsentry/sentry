@@ -27,6 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 type Props = {
   attachments: IssueAttachment[];
@@ -96,7 +97,11 @@ export function ScreenshotCard({
           <div>
             <DateTime date={eventAttachment.dateCreated} /> &middot;{' '}
             <Link
-              to={`/organizations/${organization.slug}/issues/${groupId}/events/${eventAttachment.event_id}/`}
+              to={makeIssueDetailsLocation({
+                organization,
+                groupId,
+                eventId: eventAttachment.event_id,
+              })}
             >
               <Tooltip skipWrapper title={t('View Event')}>
                 {getShortEventId(eventAttachment.event_id)}

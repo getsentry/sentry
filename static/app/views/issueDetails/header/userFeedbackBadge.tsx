@@ -9,11 +9,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function UserFeedbackBadge({group, project}: {group: Group; project: Project}) {
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -28,9 +28,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
         type="button"
         variant="link"
         icon={<IconMegaphone size="xs" />}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
-        }}
+        to={links.tab(Tab.USER_FEEDBACK)}
         replace
         aria-label={t("View this issue's feedback")}
       >

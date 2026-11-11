@@ -233,7 +233,7 @@ describe('FlagDetailsDrawerContent', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'See all flags'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/1/distributions/?type=featureFlags'
+      '/organizations/org-slug/issues/1/?drawer=distributions&type=featureFlags'
     );
     expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
   });

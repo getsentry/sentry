@@ -25,6 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {makeIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 interface ShareIssueModalProps extends ModalRenderProps {
@@ -72,13 +73,12 @@ export function ShareIssueModal({
   const hasPublicShare = organization.features.includes('shared-issues') && hasIssueShare;
 
   const issueUrl =
-    includeEventId && event
-      ? window.location.origin +
-        normalizeUrl(
-          `/organizations/${organization.slug}/issues/${group?.id}/events/${event.id}/`
-        )
-      : window.location.origin +
-        normalizeUrl(`/organizations/${organization.slug}/issues/${group?.id}/`);
+    window.location.origin +
+    makeIssueDetailsPath({
+      organization,
+      groupId: group?.id ?? groupId,
+      eventId: includeEventId ? event?.id : undefined,
+    });
 
   const markdownLink = `[${group?.shortId}](${issueUrl})`;
 

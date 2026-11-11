@@ -8,15 +8,13 @@ import {LinkButton} from '@sentry/scraps/button';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useLocation} from 'sentry/utils/useLocation';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function AttachmentsBadge({group}: {group: Group}) {
-  const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
   const attachments = useGroupEventAttachments({
     group,
     activeAttachmentsTab: 'all',
@@ -40,10 +38,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
         type="button"
         variant="link"
         icon={<IconAttachment size="xs" />}
-        to={{
-          pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
-          query: location.query,
-        }}
+        to={links.tab(Tab.ATTACHMENTS)}
         replace
         aria-label={t("View this issue's attachments")}
       >

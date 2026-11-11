@@ -33,7 +33,7 @@ describe('IssueSeerBadge', () => {
 
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/101/autofix/'
+      '/organizations/org-slug/issues/101/?tab=autofix'
     );
   });
 });

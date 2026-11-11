@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {usePrefetchTagValues} from 'sentry/views/issueDetails/utils';
 
 import type {GroupTag} from './useGroupTags';
@@ -19,10 +18,9 @@ export function TagDetailsLink({
   groupId: string;
   tag: GroupTag;
 }) {
-  const location = useLocation();
   const [prefetchEnabled, setPrefetchEnabled] = useState(false);
   const hoverTimeoutRef = useRef<number | undefined>(undefined);
-  const {baseUrl} = useGroupDetailsRoute();
+  const links = useIssueDetailsLinks();
 
   usePrefetchTagValues(tag.key, groupId, prefetchEnabled);
 
@@ -51,10 +49,7 @@ export function TagDetailsLink({
 
   return (
     <StyledLink
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
-        query: location.query,
-      }}
+      to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {tagKey: tag.key})}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

@@ -18,7 +18,8 @@ import type {Project} from 'sentry/types/project';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {makeIssueDetailsPath} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {useAutofixPanel} from './context';
 import {hasAutofixPage} from './utils';
@@ -31,12 +32,14 @@ const AiSetupDataConsent = OverrideOrDefault({
 export default function GroupAutofix() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
-  const {baseUrl} = useGroupDetailsRoute();
+  const {eventId} = useIssueDetailsParams();
 
   // The same three conditions the Seer drawer refuses to open under. Sending
   // people back to the issue keeps a shared or bookmarked URL from dead-ending.
   if (!hasAutofixPage(organization) || !areAiFeaturesAllowed(organization)) {
-    return <Redirect to={baseUrl} />;
+    return (
+      <Redirect to={makeIssueDetailsPath({organization, groupId: group.id, eventId})} />
+    );
   }
 
   return (

@@ -17,7 +17,7 @@ import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 
 import {useGroupId} from './groupIdContext';
 import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
-import {useIssueDetailsTabParams} from './issueDetailsQueryParams';
+import {makeIssueDetailsPath, useIssueDetailsTabParams} from './issueDetailsQueryParams';
 import {Tab} from './types';
 import {useGroup} from './useGroup';
 
@@ -87,7 +87,12 @@ function GroupUserFeedback() {
               <EventUserFeedback
                 key={item.id}
                 report={item}
-                eventLink={`/organizations/${organization.slug}/issues/${groupId}/events/${item.eventID}/?referrer=user-feedback`}
+                eventLink={makeIssueDetailsPath({
+                  organization,
+                  groupId,
+                  eventId: item.eventID,
+                  query: {referrer: 'user-feedback'},
+                })}
               />
             ))}
             <Pagination {...getPaginationProps(pageLinks)} />

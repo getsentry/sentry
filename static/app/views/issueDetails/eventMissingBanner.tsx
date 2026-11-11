@@ -12,6 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useGroupId} from './groupIdContext';
+import {makeIssueDetailsLocation} from './issueDetailsQueryParams';
 import {useIssueDetailsParams} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS} from './useGroupEvent';
 import {useDefaultIssueEvent} from './utils';
@@ -29,7 +30,6 @@ export function EventMissingBanner() {
   const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const statsPeriod = maxRetentionDays ? `${maxRetentionDays}d` : '30d';
 
-  const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
 
   const specificEventTips = [
@@ -41,13 +41,15 @@ export function EventMissingBanner() {
       {
         link: (
           <Link
-            to={{
-              pathname: `${baseUrl}/recommended/`,
+            to={makeIssueDetailsLocation({
+              organization,
+              groupId,
+              eventId: 'recommended',
               query: {
                 statsPeriod: `${MAX_PICKABLE_DAYS}d`,
                 ...(location.query.project ? {project: location.query.project} : {}),
               },
-            }}
+            })}
             aria-label={t('View recommended event')}
           />
         ),
@@ -61,13 +63,15 @@ export function EventMissingBanner() {
     tct('If nothing stands out, try [link:clearing your filters] all together', {
       link: (
         <Link
-          to={{
-            pathname: `${baseUrl}/${eventId}/`,
+          to={makeIssueDetailsLocation({
+            organization,
+            groupId,
+            eventId,
             query: {
               statsPeriod,
               ...(location.query.project ? {project: location.query.project} : {}),
             },
-          }}
+          })}
           aria-label={t('Clear event filters')}
         />
       ),

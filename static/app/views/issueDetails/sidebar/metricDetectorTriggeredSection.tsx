@@ -41,7 +41,6 @@ import type {
 import {defined} from 'sentry/utils/defined';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -79,6 +78,7 @@ import type {
 import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
@@ -224,15 +224,9 @@ function useZoomTimeRangeToOpenPeriod({
 
       const query = buildDetectorZoomQuery(location.query, zoomRange);
 
-      navigate(
-        {
-          pathname: normalizeUrl(
-            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
-          ),
-          query,
-        },
-        {replace: true}
-      );
+      navigate(makeIssueDetailsLocation({organization, groupId, eventId, query}), {
+        replace: true,
+      });
     }
   });
 

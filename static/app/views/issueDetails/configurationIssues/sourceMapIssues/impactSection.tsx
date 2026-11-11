@@ -10,9 +10,9 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 import {useAffectedReleases} from './queries/useAffectedReleases';
 import {useImpactedEventsCount} from './queries/useImpactedEventsCount';
@@ -89,9 +89,11 @@ function SampleEvents({project}: {project: Project}) {
         <Flex key={event_id} align="center" gap="sm">
           {group_id ? (
             <Link
-              to={normalizeUrl(
-                `/organizations/${organization.slug}/issues/${group_id}/events/${event_id}/`
-              )}
+              to={makeIssueDetailsLocation({
+                organization,
+                groupId: group_id,
+                eventId: event_id,
+              })}
             >
               {title}
             </Link>

@@ -23,19 +23,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  DISTRIBUTIONS_TYPE_QUERY_KEY,
-  DrawerTab,
-} from 'sentry/views/issueDetails/groupDistributions/types';
+import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {
   IssueDetailsDrawer,
   useIssueDetailsDrawerParams,
 } from 'sentry/views/issueDetails/issueDetailsQueryParams';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
-  useGroupDetailsRoute,
+  useIssueDetailsLinks,
   useIssueDetailsParams,
 } from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -53,8 +48,7 @@ interface Props {
 export function FlagDetailsDrawerContent({group}: Props) {
   const organization = useOrganization();
   const {tagKey} = useIssueDetailsParams();
-  const {baseUrl} = useGroupDetailsRoute();
-  const location = useLocation();
+  const links = useIssueDetailsLinks();
   const [{flagDrawerCursor}, setDrawerParams] = useIssueDetailsDrawerParams(
     IssueDetailsDrawer.DISTRIBUTIONS
   );
@@ -129,13 +123,10 @@ export function FlagDetailsDrawerContent({group}: Props) {
                 {t('No audit logs were found for this feature flag.')}
                 <LinkButton
                   size="sm"
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
-                    query: {
-                      ...location.query,
-                      [DISTRIBUTIONS_TYPE_QUERY_KEY]: DrawerTab.FEATURE_FLAGS,
-                    },
-                  }}
+                  to={links.drawer(IssueDetailsDrawer.DISTRIBUTIONS, {
+                    tagKey: null,
+                    type: DrawerTab.FEATURE_FLAGS,
+                  })}
                 >
                   {t('See all flags')}
                 </LinkButton>
