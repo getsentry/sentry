@@ -6,7 +6,7 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
 
-export type SymbolicationCategory = 'native' | 'javascript' | 'jvm' | 'fetch';
+type SymbolicationCategory = 'native' | 'javascript' | 'jvm' | 'fetch';
 
 export type FixKey = 'debug-symbols' | 'source-maps' | 'proguard' | 'source-fetching';
 
@@ -30,7 +30,7 @@ export type GuideKey =
   | 'no-action';
 
 /** The values a guide puts into its commands. */
-export interface GuideContext {
+interface GuideContext {
   orgSlug: string;
   projectSlug: string;
 }
@@ -223,7 +223,7 @@ function jvm(
   return {category: 'jvm', label, description, docsUrl: PROGUARD_DOCS, guide, fix};
 }
 
-export const SYMBOLICATION_ERRORS: Record<string, SymbolicationErrorInfo> = {
+const SYMBOLICATION_ERRORS: Record<string, SymbolicationErrorInfo> = {
   [NativeProcessingErrors.NATIVE_MISSING_DSYM]: native(
     t('Missing debug file'),
     t('No debug information file matched the image, so its frames stay raw addresses.'),
