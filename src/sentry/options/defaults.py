@@ -1672,6 +1672,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Maximum entities each telemetry classifier selects per scan.
+register(
+    "telemetry-classifiers.select-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Conversation classifiers PoC.
 register(
     "classifiers.conversations.project-ids",
