@@ -121,11 +121,9 @@ def _query_last_seen_from_table(
 
 
 def query_last_seen(
-    dataset: str, refs: Sequence[StoredRef], snuba_params: SnubaParams, from_table: bool = False
+    dataset: str, refs: Sequence[StoredRef], snuba_params: SnubaParams
 ) -> datetime | None:
     resolver = _resolver(dataset, snuba_params)
-    if from_table:
-        return _query_last_seen_from_table(dataset, refs, resolver)
     meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_LAST_SEEN.value)
     meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
         SupportedTraceItemType(dataset), ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
@@ -254,11 +252,44 @@ def _result_or_none[T](future: Future[T], dataset: str, stat: str) -> T | None:
         return None
 
 
+# Reads the table, since the names rollup has no rows for top-level columns like `trace`.
+# Datasets without the column are left out; None marks a failed query, not a missing column.
+def query_column_last_seen(
+    refs_by_dataset: Mapping[str, Sequence[StoredRef]], snuba_params: SnubaParams
+) -> dict[str, datetime | None]:
+    last_seen_by_dataset: dict[str, datetime | None] = {}
+    with ContextPropagatingThreadPoolExecutor(
+        thread_name_prefix=__name__,
+        max_workers=max(min(len(refs_by_dataset), MAX_QUERY_WORKERS), 1),
+    ) as pool:
+        futures = {
+            dataset: pool.submit(
+                _query_last_seen_from_table, dataset, refs, _resolver(dataset, snuba_params)
+            )
+            for dataset, refs in refs_by_dataset.items()
+            if refs and not any(ref.is_proxy for ref in refs)
+        }
+        for dataset, future in futures.items():
+            try:
+                dataset_last_seen = future.result()
+            except Exception:
+                logger.exception(
+                    "trace_item_attribute_stats.failed",
+                    extra={"dataset": dataset, "stat": "column_last_seen"},
+                )
+                last_seen_by_dataset[dataset] = None
+                continue
+            if dataset_last_seen is not None:
+                last_seen_by_dataset[dataset] = dataset_last_seen
+    return last_seen_by_dataset
+
+
 def query_attribute_stats(
     attribute_type: ColumnType,
     refs_by_dataset: Mapping[str, Sequence[StoredRef]],
     snuba_params: SnubaParams,
-    last_seen_from_table: bool = False,
+    known_last_seen: Mapping[str, datetime | None] | None = None,
+    include_cardinality: bool = True,
 ) -> tuple[dict[str, TraceItemAttributeDatasetStats], datetime | None]:
     queryable = {
         dataset: refs
@@ -268,7 +299,7 @@ def query_attribute_stats(
     cardinality_refs = {
         dataset: refs[0]
         for dataset, refs in queryable.items()
-        if attribute_type in CARDINALITY_ATTRIBUTE_TYPES and len(refs) == 1
+        if include_cardinality and attribute_type in CARDINALITY_ATTRIBUTE_TYPES and len(refs) == 1
     }
 
     spans_refs = queryable.get(SupportedTraceItemType.SPANS.value)
@@ -285,10 +316,14 @@ def query_attribute_stats(
             min(len(queryable) + len(cardinality_refs) + bool(spans_refs), MAX_QUERY_WORKERS), 1
         ),
     ) as pool:
-        last_seen_futures = {
-            dataset: pool.submit(query_last_seen, dataset, refs, snuba_params, last_seen_from_table)
-            for dataset, refs in queryable.items()
-        }
+        last_seen_futures = (
+            {}
+            if known_last_seen is not None
+            else {
+                dataset: pool.submit(query_last_seen, dataset, refs, snuba_params)
+                for dataset, refs in queryable.items()
+            }
+        )
         cardinality_futures = {
             dataset: pool.submit(query_cardinality, dataset, ref, snuba_params)
             for dataset, ref in cardinality_refs.items()
@@ -296,8 +331,15 @@ def query_attribute_stats(
         modified_count_future = (
             pool.submit(query_modified_count, spans_refs, snuba_params) if spans_refs else None
         )
-        for dataset, last_seen_future in last_seen_futures.items():
-            dataset_last_seen = _result_or_none(last_seen_future, dataset, "last_seen")
+        last_seen_by_dataset = (
+            known_last_seen
+            if known_last_seen is not None
+            else {
+                dataset: _result_or_none(future, dataset, "last_seen")
+                for dataset, future in last_seen_futures.items()
+            }
+        )
+        for dataset, dataset_last_seen in last_seen_by_dataset.items():
             if dataset_last_seen is not None:
                 stats[dataset]["lastSeen"] = dataset_last_seen.isoformat()
                 if last_seen is None or dataset_last_seen > last_seen:
