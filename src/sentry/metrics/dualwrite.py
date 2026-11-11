@@ -18,6 +18,7 @@ def _initialize_backend(backend: str | None, backend_args: dict[str, Any]) -> Me
 
 
 CounterStrategy = Literal["primary", "secondary", "both"]
+DefaultBackend = Literal["primary", "secondary"]
 
 
 class DualWriteMetricsBackend(MetricsBackend):
@@ -35,7 +36,15 @@ class DualWriteMetricsBackend(MetricsBackend):
     - `distribution_prefixes`: If the metric matches any of these prefixes,
       any `distribution` or `timing` metric is routed to *both* backends,
       all other metrics are routed *only* to the primary backend.
-    - If the metric is not matched by any prefix, it is routed to *only* the primary backend.
+    - `primary_keys`: Exact metric keys that are routed *only* to the primary backend.
+      Only meaningful together with `default_backend="secondary"`.
+    - If the metric is not matched by any of the above, it is routed *only* to the
+      `default_backend`, which is `"primary"` unless configured otherwise.
+
+    `default_backend="secondary"` turns the prefix allow-lists inside out: rather than
+    opting metrics in to the secondary backend, every metric goes there unless it is
+    listed in `primary_keys`. Exact keys (not prefixes) are used so that a new metric
+    can never land on the primary backend by sharing a prefix with a legacy one.
 
     Additionally, an `experimental_backend` can be configured with `experimental_args`.
     Metrics will always be sent to the experimental backend (in addition to primary/secondary)
@@ -60,6 +69,17 @@ class DualWriteMetricsBackend(MetricsBackend):
         self._secondary_prefixes = tuple(
             kwargs.pop("secondary_prefixes", []) or kwargs.pop("allow_prefixes", [])
         )
+        self._primary_keys = frozenset(kwargs.pop("primary_keys", ()))
+        default_backend: DefaultBackend = kwargs.pop("default_backend", "primary")
+        if default_backend not in ("primary", "secondary"):
+            raise ValueError(f"Invalid default_backend: {default_backend!r}")
+        self._default_secondary = default_backend == "secondary"
+
+    def _fallback_choice(self, key: str) -> tuple[bool, bool]:
+        if self._default_secondary and key not in self._primary_keys:
+            return False, True
+
+        return True, False
 
     def _distribution_choice(self, key: str) -> tuple[bool, bool]:
         if key.startswith(self._secondary_prefixes):
@@ -67,13 +87,13 @@ class DualWriteMetricsBackend(MetricsBackend):
         if key.startswith(self._distribution_prefixes):
             return True, True
 
-        return True, False
+        return self._fallback_choice(key)
 
     def _other_choice(self, key: str) -> tuple[bool, bool]:
         if key.startswith(self._secondary_prefixes):
             return False, True
 
-        return True, False
+        return self._fallback_choice(key)
 
     def incr(
         self,
