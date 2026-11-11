@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar, Union
 from uuid import UUID
+
+from django.db.models import Q, QuerySet
 
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.notebooks.services.action_kinds.base import FollowUpCommand
@@ -60,6 +62,8 @@ class NotebookProducer(abc.ABC):
     follow_up_status_hint: ClassVar[object] = str
     follow_up_reason_hint: ClassVar[object] = str | None
     follow_up_rerun_hint: ClassVar[object] = str | None
+    # What the notebook list accepts for runStatus.
+    run_statuses: ClassVar[Sequence[str]] = ()
 
     @abc.abstractmethod
     def lock_run(self, notebook: Notebook, *, lock: bool) -> NotebookProducerRun:
@@ -76,6 +80,10 @@ class NotebookProducer(abc.ABC):
         self, notebooks: Sequence[Notebook]
     ) -> Mapping[int, InvestigationOrchestrationSerializerResponse]:
         """The producer's run state for each notebook that has one."""
+
+    @abc.abstractmethod
+    def has_run_status(self, statuses: Collection[str]) -> Q:
+        """Match notebooks whose run is in one of the statuses."""
 
     @abc.abstractmethod
     def archive_notebook(
@@ -171,6 +179,25 @@ def update_notebook(
         fields=fields,
         project_ids=project_ids,
     )
+
+
+def known_run_statuses() -> set[str]:
+    return {status for producer in PRODUCERS.values() for status in producer.run_statuses}
+
+
+def filter_by_run_status(
+    notebooks: QuerySet[Notebook], statuses: Collection[str]
+) -> QuerySet[Notebook]:
+    """Keep notebooks whose producer's run is in one of the statuses. A source type with no
+    producer has no run, so its notebooks never match.
+    """
+    source_types: dict[NotebookProducer, list[str]] = {}
+    for source_type, producer in PRODUCERS.items():
+        source_types.setdefault(producer, []).append(source_type)
+    matches = Q()
+    for producer, types in source_types.items():
+        matches |= Q(source_type__in=types) & producer.has_run_status(statuses)
+    return notebooks.filter(matches) if matches else notebooks.none()
 
 
 def _producer_hint(attr: str) -> object:

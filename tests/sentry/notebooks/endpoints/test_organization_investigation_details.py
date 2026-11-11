@@ -34,6 +34,10 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
+        self.start_url = reverse(
+            "sentry-api-0-organization-investigations",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
 
     def test_detail_is_scoped_to_organization(self) -> None:
         other_organization = self.create_organization()
@@ -163,7 +167,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
     def test_archiving_agentic_investigation_durably_queues_cancellation(self) -> None:
         created = self.client.post(
-            self.collection_url,
+            self.start_url,
             data={"source": {"type": "manual", "seed": {}}},
             format="json",
         ).data
@@ -236,7 +240,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
     def test_agentic_title_update_marks_a_manual_override(self) -> None:
         created = self.client.post(
-            self.collection_url,
+            self.start_url,
             data={"source": {"type": "manual", "seed": {}}},
             format="json",
         ).data

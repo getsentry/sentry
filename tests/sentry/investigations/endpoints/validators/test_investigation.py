@@ -8,7 +8,6 @@ from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.endpoints.validators import (
-    InvestigationCreateValidator,
     InvestigationOrchestrationCommandValidator,
     InvestigationOrchestrationEventValidator,
     InvestigationStartValidator,
@@ -20,21 +19,10 @@ def assert_valid(validator: serializers.Serializer[Any]) -> dict[str, Any]:
     return dict(validator.validated_data)
 
 
-class TestInvestigationCreateValidator:
-    def test_accepts_a_manual_investigation(self) -> None:
-        data = assert_valid(InvestigationCreateValidator(data={"title": "Latency spike"}))
-
-        assert data["title"] == "Latency spike"
-
-    def test_requires_a_title_without_a_source(self) -> None:
-        validator = InvestigationCreateValidator(data={"projectIds": [1]})
-
-        assert not validator.is_valid()
-        assert "title" in validator.errors
-
+class TestInvestigationStartValidator:
     def test_accepts_an_agentic_manual_source(self) -> None:
         data = assert_valid(
-            InvestigationCreateValidator(
+            InvestigationStartValidator(
                 data={
                     "source": {
                         "type": "manual",
@@ -53,7 +41,7 @@ class TestInvestigationCreateValidator:
         assert data["source"]["seed"] == {"release": "example-release"}
 
     def test_rejects_a_malformed_agentic_source(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"title": "T", "source": {"type": "metric_open_period", "ref": {}}}
         )
 
@@ -61,7 +49,7 @@ class TestInvestigationCreateValidator:
         assert "source" in validator.errors
 
     def test_rejects_template_parameters_for_an_agentic_source(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"source": {"type": "manual"}, "parameters": {"environment": "prod"}}
         )
 
@@ -69,7 +57,7 @@ class TestInvestigationCreateValidator:
         assert "parameters" in validator.errors
 
     def test_rejects_the_removed_mode_discriminator(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"mode": "agentic", "source": {"type": "manual"}}
         )
 
@@ -77,7 +65,7 @@ class TestInvestigationCreateValidator:
         assert "mode" in validator.errors
 
     def test_rejects_an_untrusted_breached_metric_snapshot(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"source": {"type": "breached_metric", "projectIds": [1]}}
         )
 
@@ -85,7 +73,7 @@ class TestInvestigationCreateValidator:
         assert "source" in validator.errors
 
     def test_rejects_untrusted_top_level_manual_source_fields(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={
                 "source": {
                     "type": "manual",
@@ -99,7 +87,7 @@ class TestInvestigationCreateValidator:
         assert "source" in validator.errors
 
     def test_rejects_an_unordered_manual_time_range(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={
                 "source": {
                     "type": "manual",
@@ -115,7 +103,7 @@ class TestInvestigationCreateValidator:
         assert "source" in validator.errors
 
     def test_rejects_non_object_seed_context(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"source": {"type": "manual", "seed": ["not", "an", "object"]}}
         )
 
@@ -123,7 +111,7 @@ class TestInvestigationCreateValidator:
         assert "source" in validator.errors
 
     def test_rejects_an_overlong_manual_prompt(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"source": {"type": "manual", "prompt": "x" * 20_001}}
         )
 
@@ -131,30 +119,22 @@ class TestInvestigationCreateValidator:
         assert "source" in validator.errors
 
     def test_rejects_a_null_manual_prompt(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"source": {"type": "manual", "prompt": None}}
-        )
+        validator = InvestigationStartValidator(data={"source": {"type": "manual", "prompt": None}})
 
         assert not validator.is_valid()
         assert "source" in validator.errors
 
     def test_rejects_oversized_source_context(self) -> None:
-        validator = InvestigationCreateValidator(
+        validator = InvestigationStartValidator(
             data={"source": {"type": "manual", "seed": {"context": "x" * 200_000}}}
         )
 
         assert not validator.is_valid()
         assert "source" in validator.errors
 
-    def test_rejects_duplicate_project_ids(self) -> None:
-        validator = InvestigationCreateValidator(data={"title": "T", "projectIds": [1, 1]})
-
-        assert not validator.is_valid()
-        assert "projectIds" in validator.errors
-
     def test_preserves_camel_case_keys_inside_the_source(self) -> None:
         data = assert_valid(
-            InvestigationCreateValidator(
+            InvestigationStartValidator(
                 data={
                     "source": {
                         "type": "metric_open_period",
@@ -166,15 +146,6 @@ class TestInvestigationCreateValidator:
 
         assert data["source"]["ref"] == {"groupId": "1", "openPeriodId": "2"}
 
-    def test_converts_multi_word_error_keys_to_camel_case(self) -> None:
-        validator = InvestigationCreateValidator(data={"title": "T", "projectIds": "nope"})
-
-        assert not validator.is_valid()
-        assert "projectIds" in validator.errors
-        assert "project_ids" not in validator.errors
-
-
-class TestInvestigationStartValidator:
     def test_requires_a_source(self) -> None:
         validator = InvestigationStartValidator(data={"title": "Latency spike"})
 
@@ -190,14 +161,6 @@ class TestInvestigationStartValidator:
 
         assert data["source"]["prompt"] == "Investigate latency"
         assert "title" not in data
-
-    def test_rejects_a_malformed_source(self) -> None:
-        validator = InvestigationStartValidator(
-            data={"source": {"type": "metric_open_period", "ref": {}}}
-        )
-
-        assert not validator.is_valid()
-        assert "source" in validator.errors
 
 
 class TestInvestigationOrchestrationCommandValidator:

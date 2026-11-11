@@ -483,8 +483,3 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         [item] = candidate.data["items"]
         assert item["status"] == "view"
         assert item["investigationId"] == str(investigation.id)
-
-
-@with_feature(FEATURE)
-class OrganizationInvestigationCandidatesViaNotebooksTest(OrganizationInvestigationCandidatesTest):
-    start_route = "sentry-api-0-organization-notebooks"

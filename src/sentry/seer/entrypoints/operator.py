@@ -11,7 +11,6 @@ from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
-from sentry.investigations.telemetry import record_investigation_started
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.locks import locks
@@ -20,6 +19,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_investigations_access
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.telemetry import record_investigation_started
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState

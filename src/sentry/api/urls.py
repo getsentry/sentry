@@ -310,9 +310,6 @@ from sentry.integrations.api.endpoints.organization_repository_settings import (
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_index import (
-    OrganizationInvestigationsIndexEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_orchestration import (
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
@@ -488,6 +485,9 @@ from sentry.notebooks.endpoints.organization_investigation_duplicate import (
 )
 from sentry.notebooks.endpoints.organization_investigation_favorite import (
     OrganizationInvestigationsFavoriteEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_index import (
+    OrganizationInvestigationsIndexEndpoint,
 )
 from sentry.notebooks.endpoints.organization_investigation_presence import (
     OrganizationInvestigationPresenceEndpoint,

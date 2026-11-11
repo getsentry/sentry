@@ -8,6 +8,29 @@ from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookStatus
 
 
+class InvestigationCreateValidator(StrictCamelSnakeValidator):
+    title = serializers.CharField(max_length=255, help_text="Investigation title.")
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        help_text="Unique IDs of accessible projects to include. Defaults to an empty list.",
+    )
+    filters = serializers.JSONField(
+        required=False, help_text="Investigation filter object, stored with its original keys."
+    )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        project_ids = attrs.get("project_ids", [])
+        if len(project_ids) != len(set(project_ids)):
+            raise serializers.ValidationError({"project_ids": "Project IDs must be unique."})
+        return attrs
+
+    def validate_filters(self, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
+        return value
+
+
 class InvestigationUpdateValidator(StrictCamelSnakeValidator):
     investigation_version = serializers.IntegerField(
         min_value=1,
