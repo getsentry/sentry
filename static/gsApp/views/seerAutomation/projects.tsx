@@ -9,6 +9,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -18,6 +19,14 @@ import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components
 export default function SeerAutomationProjects() {
   const location = useLocation();
   const organization = useOrganization();
+  const subtitleLinks = {
+    rca: (
+      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
+    ),
+    docs: (
+      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
+    ),
+  };
 
   return (
     <AnalyticsArea name="projects">
@@ -36,17 +45,17 @@ export default function SeerAutomationProjects() {
             {t('Defaults')}
           </LinkButton>
         }
-        subtitle={tct(
-          'Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
-          {
-            rca: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
-            ),
-            docs: (
-              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
-            ),
-          }
-        )}
+        subtitle={
+          isSeerTokenBasedBillingOnboardingEnabled(organization)
+            ? tct(
+                'Configure [rca:Autofix] for your projects. Seer reads code from the repositories linked to each project, which gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
+                subtitleLinks
+              )
+            : tct(
+                'Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
+                subtitleLinks
+              )
+        }
       />
       <Stack gap="lg" flex="1" minHeight="0" contain="size">
         <SeerSettingsPageBanners />

@@ -52,12 +52,16 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.utils.strings import truncatechars
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.message_builder.types import SlackAction
 
 logger = logging.getLogger(__name__)
+
+# chat.postMessage rejects payloads with more blocks than this with `invalid_blocks`.
+SLACK_MAX_BLOCKS = 50
 
 
 @dataclass(frozen=True)
@@ -83,8 +87,23 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         # Slack does not support rich text in the subject
-        subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))
+        subject_block = HeaderBlock(
+            text=PlainTextObject(
+                text=truncatechars(rendered_template.subject_text, HeaderBlock.text_max_length)
+            )
+        )
         body_blocks: list[Block] = cls._render_body(rendered_template.body)
+        # Trim the body, not the header or trailing blocks, so the message stays actionable.
+        trailing = (rendered_template.actions, rendered_template.chart, rendered_template.footer)
+        max_body_blocks = SLACK_MAX_BLOCKS - 1 - sum(1 for block in trailing if block)
+        if len(body_blocks) > max_body_blocks:
+            # Say how much was cut so a shortened list (e.g. deploy commits) doesn't read as complete.
+            kept = max_body_blocks - 1
+            omitted = len(body_blocks) - kept
+            body_blocks = [
+                *body_blocks[:kept],
+                ContextBlock(elements=[MarkdownTextObject(text=f"_…and {omitted} more_")]),
+            ]
 
         blocks: list[Block] = [subject_block, *body_blocks]
 
@@ -111,16 +130,21 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_body(cls, body: list[NotificationSection]) -> list[Block]:
         blocks: list[Block] = []
         for block in body:
+            text = cls._render_text_blocks(block.blocks)
             if block.type == NotificationSectionType.PARAGRAPH:
-                text = cls._render_text_blocks(block.blocks)
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=text)))
+                blocks.append(cls._render_section(text))
             elif block.type == NotificationSectionType.CODE_BLOCK:
-                text = cls._render_text_blocks(block.blocks)
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=f"```{text}```")))
+                blocks.append(cls._render_section(text, wrapper="```"))
             elif block.type == NotificationSectionType.BLOCK_QUOTE:
-                text = cls._render_text_blocks(block.blocks)
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=f">{text}")))
+                blocks.append(cls._render_section(text, prefix=">"))
         return blocks
+
+    @classmethod
+    def _render_section(cls, text: str, prefix: str = "", wrapper: str = "") -> SectionBlock:
+        # Truncate the inner text so the markdown wrapper (e.g. a code fence) stays intact.
+        max_length = SectionBlock.text_max_length - len(prefix) - 2 * len(wrapper)
+        text = truncatechars(text, max_length)
+        return SectionBlock(text=MarkdownTextObject(text=f"{prefix}{wrapper}{text}{wrapper}"))
 
     @classmethod
     def _render_text_blocks(cls, blocks: list[NotificationTextBlock]) -> str:

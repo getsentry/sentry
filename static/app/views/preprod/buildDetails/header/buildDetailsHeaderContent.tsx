@@ -6,18 +6,16 @@ import {IconMobile} from '@sentry/icons/mobile';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconTelescope} from '@sentry/icons/telescope';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,7 +35,7 @@ import {useBuildDetailsActions} from './useBuildDetailsActions';
 
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
-  buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
+  buildDetailsQuery: UseQueryResult<BuildDetailsApiResponse>;
   projectSlug: string;
   projectType: string | null;
 }
@@ -92,15 +90,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     : undefined;
 
   const feedback = (
-    <TopBar.Slot name="feedback">
-      <FeedbackButton
-        feedbackOptions={buildDetailsFeedbackOptions}
-        aria-label={t('Give Feedback')}
-        tooltipProps={{title: t('Give Feedback')}}
-      >
-        {null}
-      </FeedbackButton>
-    </TopBar.Slot>
+    <TopBar.Slot name="feedback" feedbackOptions={buildDetailsFeedbackOptions} />
   );
 
   if (isBuildDetailsPending || isBuildDetailsError || !buildDetailsData) {

@@ -43,6 +43,7 @@ import {
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   decodeInteger,
@@ -1110,8 +1111,8 @@ function ViewerTableV2({
       ) &&
         (links?.previous?.results || links?.next?.results) && (
           <Pagination
-            pageLinks={pageLinks}
-            onCursor={(nextCursor, _path, _query, delta) => {
+            {...getPaginationProps(pageLinks)}
+            onCursor={(nextCursor, delta) => {
               let nextPage = isNaN(page) ? delta : page + delta;
               let newCursor = nextCursor;
               // unset cursor and page when we navigate back to the first page

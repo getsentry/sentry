@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import threading
+from collections import defaultdict
 from collections.abc import MutableSequence, Sequence
 from pathlib import Path
 from typing import NoReturn
@@ -358,9 +359,13 @@ def devserver(
             from sentry.utils.batching_kafka_consumer import create_topics
             from sentry.utils.kafka_config import get_topic_definition
 
+            topics_by_cluster: defaultdict[str, list[str]] = defaultdict(list)
             for topic in list_topics():
                 topic_defn = get_topic_definition(topic)
-                create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+                topics_by_cluster[topic_defn["cluster"]].append(topic_defn["real_topic_name"])
+
+            for cluster, topic_names in topics_by_cluster.items():
+                create_topics(cluster, topic_names)
 
         # Set up Kafka consumers if they are configured
         if kafka_consumers:

@@ -6,6 +6,10 @@ export type NavigationItemClicked = {
 };
 
 type NavigationEventParameters = {
+  'navigation.feedback_button_clicked': {
+    seer_explorer_open: boolean;
+    source?: string;
+  };
   'navigation.help_menu_opt_in_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.help_menu_opt_out_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.primary_item_clicked': NavigationItemClicked;
@@ -17,6 +21,7 @@ type NavigationEventParameters = {
 type NavigationEventKey = keyof NavigationEventParameters;
 
 export const navigationAnalyticsEventMap: Record<NavigationEventKey, string | null> = {
+  'navigation.feedback_button_clicked': 'Navigation: Feedback Button Clicked',
   'navigation.help_menu_opt_in_stacked_navigation_clicked':
     'Navigation: Help Menu Opt In To Stacked Navigation Clicked',
   'navigation.help_menu_opt_out_stacked_navigation_clicked':

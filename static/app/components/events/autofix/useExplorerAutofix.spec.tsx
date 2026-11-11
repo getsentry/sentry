@@ -20,7 +20,6 @@ import {
   isPrIterationBlock,
   isPullRequestsArtifact,
   isRootCauseArtifact,
-  isRunValidForPrIteration,
   isSolutionArtifact,
   useExplorerAutofix,
   type ExplorerAutofixState,
@@ -682,6 +681,29 @@ describe('getOrderedAutofixSections', () => {
       );
     });
 
+    it('reads the root cause the API returns under the root_cause key', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'root_cause',
+                reason: 'found',
+                data: {headline: 'H', cause: 'C'},
+              },
+            ],
+          }),
+        ])
+      );
+
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
+    });
+
     it('has only a root cause section without patches', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun([
@@ -835,21 +857,6 @@ describe('isPrIterationBlock', () => {
     expect(isPrIterationBlock(block({step: 'pr_iteration'}))).toBe(true);
     expect(isPrIterationBlock(block({step: 'code_changes'}))).toBe(false);
     expect(isPrIterationBlock(block())).toBe(false);
-  });
-});
-
-describe('isRunValidForPrIteration', () => {
-  it('is true only when the autofix-pr-iteration-manual feature is enabled', () => {
-    expect(
-      isRunValidForPrIteration(
-        OrganizationFixture({features: ['autofix-pr-iteration-manual']})
-      )
-    ).toBe(true);
-    // Automated CI iteration does not enable the manual feedback form.
-    expect(
-      isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
-    ).toBe(false);
-    expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
   });
 });
 

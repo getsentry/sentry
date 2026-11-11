@@ -1,12 +1,11 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import type {LineSeriesOption} from 'echarts';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are used as series names for chart lookup - do not translate
@@ -35,7 +34,7 @@ interface UseMetricDetectorAnomalyThresholdsProps {
 
 interface UseMetricDetectorAnomalyThresholdsResult {
   anomalyThresholdSeries: LineSeriesOption[];
-  error: RequestError | null;
+  error: Error | null;
   isLoading: boolean;
 }
 
@@ -84,27 +83,20 @@ export function useMetricDetectorAnomalyThresholds({
     data: anomalyData,
     isLoading,
     error,
-  } = useApiQuery<AnomalyThresholdDataResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/',
-        {
-          path: {organizationIdOrSlug: organization.slug, detectorId},
-        }
-      ),
+  } = useQuery({
+    ...apiOptions.as<AnomalyThresholdDataResponse>()(
+      '/organizations/$organizationIdOrSlug/detectors/$detectorId/anomaly-data/',
       {
+        path: {organizationIdOrSlug: organization.slug, detectorId},
         query: {
           start: startTimestamp,
           end: endTimestamp,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled:
-        isAnomalyDetection && Boolean(detectorId && startTimestamp && endTimestamp),
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: isAnomalyDetection && Boolean(detectorId && startTimestamp && endTimestamp),
+  });
 
   const anomalyThresholdSeries = useMemo(() => {
     if (!anomalyData?.data || anomalyData.data.length === 0 || series.length === 0) {
