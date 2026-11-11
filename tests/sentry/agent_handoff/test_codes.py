@@ -10,7 +10,7 @@ from sentry.agent_handoff.codes import (
     HandoffFlow,
     HandoffIPMismatch,
     IssuedAgentHandoff,
-    OnboardingHandoffContext,
+    ProjectSetupContext,
     _get_redis_client,
     _handoff_key,
     _StoredAgentHandoff,
@@ -173,12 +173,30 @@ def test_onboarding_flow_preserves_typed_context() -> None:
         '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
     ).__root__
     assert handoff.flow is HandoffFlow.ONBOARDING
-    assert handoff.context == OnboardingHandoffContext(run_id="a" * 32)
+    assert handoff.context == ProjectSetupContext(run_id="a" * 32)
 
 
 def test_onboarding_flow_requires_run_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"onboarding","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"]}',
+        )
+
+
+def test_create_project_flow_preserves_typed_context() -> None:
+    handoff = _StoredAgentHandoff.parse_raw(
+        '{"flow":"create_project","user_id":1,"organization_id":2,'
+        '"application_id":3,"scope_list":["org:read"],'
+        '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
+    ).__root__
+    assert handoff.flow is HandoffFlow.CREATE_PROJECT
+    assert handoff.context == ProjectSetupContext(run_id="a" * 32)
+
+
+def test_create_project_flow_requires_run_context() -> None:
+    with pytest.raises(ValidationError, match="context"):
+        _StoredAgentHandoff.parse_raw(
+            '{"flow":"create_project","user_id":1,"organization_id":2,'
             '"application_id":3,"scope_list":["org:read"]}',
         )
