@@ -369,7 +369,6 @@ module = [
   "boto3.*",
   "botocore.client.*",
   "botocore.exceptions.*",
-  "cssselect.*",
   "django_zero_downtime_migrations.backends.postgres.schema.*",
   "emmett55.*",
   "emmett_prometheus.*",
