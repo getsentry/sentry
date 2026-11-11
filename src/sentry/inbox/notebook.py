@@ -8,6 +8,8 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.models import Notebook
+from sentry.notifications.platform.inbox import create_inbox_items
+from sentry.types.actor import Actor, ActorType
 
 
 class NotebookItemType(InboxItemType[Notebook]):
@@ -86,9 +88,10 @@ def record_notebook_completed(*, notebook: Notebook, seer_run_id: int) -> None:
     ).first()
     if member is None or not member.get_scopes() & INVESTIGATION_SCOPES:
         return
-    NOTEBOOK_COMPLETED.record(
+    create_inbox_items(
+        event_type=NOTEBOOK_COMPLETED,
         subject=notebook,
         data=NotebookCompletedData(summary="Investigation completed", seer_run_id=seer_run_id),
-        recipient_user_ids=[user_id],
+        recipients=[Actor(id=user_id, actor_type=ActorType.USER)],
         actor=SYSTEM_ACTOR,
     )

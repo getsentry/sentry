@@ -8,13 +8,15 @@ from sentry.inbox.types import (
     InboxEventData,
     InboxEventType,
     InboxItemType,
-    get_recipient_user_ids,
 )
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.team import Team
+from sentry.notifications.platform.inbox import IssueActivityInboxNotifier, create_inbox_items
 from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -64,11 +66,21 @@ ISSUE_USER_ASSIGNED = InboxEventType(
 ISSUE_TEAM_ASSIGNED = InboxEventType(
     event_type="issue.team_assigned", item_type=ISSUE, data_class=IssueAssignedData
 )
+_MENTION_NOTIFIER = IssueActivityInboxNotifier[IssueMentionedData](
+    settings_key=NotificationSettingEnum.WORKFLOW,
+    get_activity_id=lambda data: data.comment_id,
+)
 ISSUE_USER_MENTIONED = InboxEventType(
-    event_type="issue.user_mentioned", item_type=ISSUE, data_class=IssueMentionedData
+    event_type="issue.user_mentioned",
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notifier=_MENTION_NOTIFIER,
 )
 ISSUE_TEAM_MENTIONED = InboxEventType(
-    event_type="issue.team_mentioned", item_type=ISSUE, data_class=IssueMentionedData
+    event_type="issue.team_mentioned",
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notifier=_MENTION_NOTIFIER,
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     event_type="issue.pr_ready_for_review", item_type=ISSUE, data_class=IssuePRReadyForReviewData
@@ -90,22 +102,15 @@ def record_issue_assignment(
     assignment_source: ActivityIntegration | None,
     actor: InboxActor,
 ) -> None:
-    if not features.has("organizations:universal-inbox-recording", group.project.organization):
-        return
-
     is_team = isinstance(assignee, Team)
-    event_type = ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED
-    event_type.record(
+    create_inbox_items(
+        event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
         subject=group,
         data=IssueAssignedData(
             summary="Assigned to your team" if is_team else "Assigned to you",
             assignment_source=assignment_source,
         ),
-        recipient_user_ids=get_recipient_user_ids(
-            organization_id=group.project.organization_id,
-            user_ids=[] if is_team else [assignee.id],
-            team_ids=[assignee.id] if is_team else [],
-        ),
+        recipients=[Actor.from_object(assignee)],
         actor=actor,
     )
 
@@ -117,17 +122,11 @@ def record_issue_user_mention(
     mentioned_user_ids: Iterable[int],
     actor: InboxActor,
 ) -> None:
-    if not features.has("organizations:universal-inbox-recording", group.project.organization):
-        return
-
-    ISSUE_USER_MENTIONED.record(
+    create_inbox_items(
+        event_type=ISSUE_USER_MENTIONED,
         subject=group,
         data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=comment_id),
-        recipient_user_ids=get_recipient_user_ids(
-            organization_id=group.project.organization_id,
-            user_ids=mentioned_user_ids,
-            team_ids=[],
-        ),
+        recipients=[Actor(id=user_id, actor_type=ActorType.USER) for user_id in mentioned_user_ids],
         actor=actor,
     )
 
@@ -139,17 +138,11 @@ def record_issue_team_mention(
     mentioned_team_ids: Iterable[int],
     actor: InboxActor,
 ) -> None:
-    if not features.has("organizations:universal-inbox-recording", group.project.organization):
-        return
-
-    ISSUE_TEAM_MENTIONED.record(
+    create_inbox_items(
+        event_type=ISSUE_TEAM_MENTIONED,
         subject=group,
         data=IssueMentionedData(summary="Mentioned your team in a comment", comment_id=comment_id),
-        recipient_user_ids=get_recipient_user_ids(
-            organization_id=group.project.organization_id,
-            user_ids=[],
-            team_ids=mentioned_team_ids,
-        ),
+        recipients=[Actor(id=team_id, actor_type=ActorType.TEAM) for team_id in mentioned_team_ids],
         actor=actor,
     )
 
@@ -161,15 +154,17 @@ def record_issue_pr_ready_for_review(
         return
 
     user_ids, team_ids = IssueOwnersActivityAlertStrategy(group=group).get_issue_owner_ids()
-    recipients = get_recipient_user_ids(
-        organization_id=group.project.organization_id, user_ids=user_ids, team_ids=team_ids
-    )
+    recipients = [
+        *(Actor(id=user_id, actor_type=ActorType.USER) for user_id in user_ids),
+        *(Actor(id=team_id, actor_type=ActorType.TEAM) for team_id in team_ids),
+    ]
     for pr_url in pr_urls:
-        ISSUE_PR_READY_FOR_REVIEW.record(
+        create_inbox_items(
+            event_type=ISSUE_PR_READY_FOR_REVIEW,
             subject=group,
             data=IssuePRReadyForReviewData(
                 summary="Pull request ready for review", pr_url=pr_url, seer_run_id=seer_run_id
             ),
-            recipient_user_ids=recipients,
+            recipients=recipients,
             actor=actor,
         )

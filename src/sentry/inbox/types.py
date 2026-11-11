@@ -3,16 +3,15 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
+from typing import Protocol
 
 from django.db import router, transaction
-from django.db.models import Q
 from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.utils import metrics
@@ -29,30 +28,6 @@ class InboxActor:
 
 
 SYSTEM_ACTOR = InboxActor(type=InboxActorType.SYSTEM, id=None)
-
-
-def get_recipient_user_ids(
-    *, organization_id: int, user_ids: Iterable[int], team_ids: Iterable[int]
-) -> list[int]:
-    """
-    The given users plus the active members of the given teams, limited to active members of the
-    organization.
-    """
-    members = OrganizationMember.objects.filter(
-        Q(user_id__in=user_ids)
-        | Q(
-            organizationmemberteam__team_id__in=team_ids,
-            organizationmemberteam__team__organization_id=organization_id,
-            organizationmemberteam__is_active=True,
-        ),
-        organization_id=organization_id,
-        user_is_active=True,
-    )
-    return [
-        user_id
-        for user_id in members.values_list("user_id", flat=True).distinct()
-        if user_id is not None
-    ]
 
 
 class InboxItemType[SubjectT](ABC):
@@ -88,6 +63,11 @@ class InboxEventData:
     summary: str
 
 
+class InboxNotifier[SubjectT, DataT: InboxEventData](Protocol):
+    def notify(self, *, subject: SubjectT, data: DataT, user_ids: list[int]) -> None:
+        """Notifies the users who were just sent an inbox event, per their settings."""
+
+
 @dataclass(frozen=True, kw_only=True)
 class InboxEventType[SubjectT, DataT: InboxEventData]:
     """Keep event_type stable so retained events can be looked up."""
@@ -95,6 +75,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     event_type: str
     item_type: InboxItemType[SubjectT]
     data_class: type[DataT]
+    notifier: InboxNotifier[SubjectT, DataT] | None = None
 
     def record(
         self,

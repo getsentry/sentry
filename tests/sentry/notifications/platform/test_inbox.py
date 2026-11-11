@@ -11,7 +11,7 @@ from sentry.inbox.issue import (
 from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
-from sentry.notifications.platform.inbox import INBOX_NOTIFIERS, create_inbox_items
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -133,13 +133,17 @@ class CreateInboxItemsTest(TestCase):
 
 @patch("sentry.notifications.platform.strategies.actor_routing.UserRoutingStrategy")
 class MentionNotifierTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        assert ISSUE_USER_MENTIONED.notifier is not None
+        self.notifier = ISSUE_USER_MENTIONED.notifier
+
     def test_routes_to_users_with_workflow_settings(self, strategy: MagicMock) -> None:
         note = self.create_group_activity(
             self.group, type=ActivityType.NOTE.value, user_id=self.user.id
         )
-        notifier = INBOX_NOTIFIERS[ISSUE_USER_MENTIONED.event_type]
 
-        notifier.notify(
+        self.notifier.notify(
             subject=self.group,
             data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=note.id),
             user_ids=[self.user.id],
@@ -153,8 +157,6 @@ class MentionNotifierTest(TestCase):
         strategy.return_value.get_targets.assert_called_once_with()
 
     def test_skips_missing_activity(self, strategy: MagicMock) -> None:
-        notifier = INBOX_NOTIFIERS[ISSUE_USER_MENTIONED.event_type]
-
-        notifier.notify(subject=self.group, data=MENTION_DATA, user_ids=[self.user.id])
+        self.notifier.notify(subject=self.group, data=MENTION_DATA, user_ids=[self.user.id])
 
         strategy.assert_not_called()
