@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.issues.formatting.autofix import format_autofix
+from sentry.issues.formatting.autofix import autofix_results, format_autofix
 
 
 def _autofix_response(**overrides: Any) -> dict[str, Any]:
@@ -101,3 +101,62 @@ def test_no_autofix_run_still_renders_valid_json() -> None:
     # formatted content would fail on it
     assert format_autofix({}, "json") == "{}"
     assert format_autofix({}, "markdown") == ""
+
+
+def _single_run_response() -> dict[str, Any]:
+    return _autofix_response(
+        blocks=[
+            {
+                "artifacts": [
+                    {
+                        "key": "single_run_root_cause",
+                        "data": {
+                            "headline": "Regex rejects ids",
+                            "cause": "The regex is too strict.",
+                        },
+                    }
+                ],
+                "merged_file_patches": [
+                    {
+                        "repo_name": "getsentry/sentry",
+                        "patch": {"path": "src/old.py", "type": "M", "added": 9, "removed": 9},
+                        "diff": "stale diff",
+                    }
+                ],
+            },
+            {
+                "merged_file_patches": [
+                    {
+                        "repo_name": "getsentry/sentry",
+                        "patch": {"path": "src/old.py", "type": "M", "added": 1, "removed": 1},
+                        "diff": "-old\n+new",
+                    }
+                ],
+            },
+        ]
+    )
+
+
+def test_markdown_renders_a_single_run_root_cause_and_its_code_changes() -> None:
+    out = format_autofix(_single_run_response())
+    assert "## Root Cause" in out
+    assert "Regex rejects ids" in out
+    assert "The regex is too strict." in out
+    assert "## Code Changes" in out
+    assert "getsentry/sentry: src/old.py (+1 -1)" in out
+    assert "-old\n+new" in out
+    assert "stale diff" not in out
+
+
+def test_results_list_each_section_with_a_title_markdown_and_data() -> None:
+    results = autofix_results(_single_run_response()["autofix"])
+
+    assert [r["type"] for r in results] == ["root_cause", "code_changes", "pull_requests"]
+    root_cause = results[0]
+    assert root_cause["title"] == "Root Cause"
+    assert root_cause["data"] == {
+        "headline": "Regex rejects ids",
+        "cause": "The regex is too strict.",
+    }
+    assert "The regex is too strict." in root_cause["markdown"]
+    assert not root_cause["markdown"].startswith("## ")

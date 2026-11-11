@@ -39,7 +39,7 @@ from sentry.issues.action_log import (
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
-from sentry.issues.formatting.autofix import format_autofix
+from sentry.issues.formatting.autofix import autofix_results, format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -702,28 +702,24 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
-        return Response(
-            {
-                "autofix": {
-                    "run_id": state.run_id,
-                    "sentry_run_id": str(run.uuid) if run else None,
-                    "feature_id": SINGLE_RUN_FEATURE_ID
-                    if is_single_run(state)
-                    else AUTOFIX_FEATURE_ID,
-                    "status": state.status,
-                    "failure_reason": state.failure_reason,
-                    "blocks": blocks,
-                    "updated_at": state.updated_at,
-                    "pending_user_input": (
-                        state.pending_user_input.dict() if state.pending_user_input else None
-                    ),
-                    "repo_pr_states": {
-                        repo: pr_state.dict() for repo, pr_state in state.repo_pr_states.items()
-                    },
-                    "coding_agents": {
-                        agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
-                    },
-                    **get_pr_iteration_state_fields(group.organization, state, run),
-                }
-            }
-        )
+        autofix = {
+            "run_id": state.run_id,
+            "sentry_run_id": str(run.uuid) if run else None,
+            "feature_id": SINGLE_RUN_FEATURE_ID if is_single_run(state) else AUTOFIX_FEATURE_ID,
+            "status": state.status,
+            "failure_reason": state.failure_reason,
+            "blocks": blocks,
+            "updated_at": state.updated_at,
+            "pending_user_input": (
+                state.pending_user_input.dict() if state.pending_user_input else None
+            ),
+            "repo_pr_states": {
+                repo: pr_state.dict() for repo, pr_state in state.repo_pr_states.items()
+            },
+            "coding_agents": {
+                agent_id: agent.dict() for agent_id, agent in state.coding_agents.items()
+            },
+            **get_pr_iteration_state_fields(group.organization, state, run),
+        }
+        autofix["results"] = autofix_results(autofix)
+        return Response({"autofix": autofix})
