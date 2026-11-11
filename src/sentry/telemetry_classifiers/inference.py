@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
+from typing import Any
 
 from urllib3.exceptions import HTTPError
 
@@ -9,7 +10,7 @@ from sentry.models.organization import Organization
 from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.seer.oneshot import run_oneshot
 from sentry.telemetry_classifiers.constants import SEER_TIMEOUT_SECONDS
-from sentry.telemetry_classifiers.types import Message, ResolvedDefinition
+from sentry.telemetry_classifiers.types import Event, ResolvedDefinition
 from sentry.utils import metrics
 
 
@@ -24,22 +25,23 @@ class ClassifierExecutionError(Exception):
 
 def classify(
     definition: ResolvedDefinition,
-    messages: Sequence[Message],
+    events: Sequence[Event],
     organization: Organization,
-) -> float:
-    """Run the definition's Seer classifier model and return the probability of a "yes" answer.
+) -> dict[str, Any]:
+    """Run the definition's Seer classifier model on events and return its result.
 
-    Only binary classifiers exist yet. Raises ClassifierExecutionError.
+    The result's shape depends on the definition's output type; read it with the matching parser,
+    such as parse_binary_result. Raises ClassifierExecutionError.
     """
-    payload = {
-        "messages": [{"role": message.role, "content": message.content} for message in messages]
-    }
     try:
         with metrics.timer(
             "telemetry_classifiers.inference.duration", tags={"model": definition.key}
         ):
-            result = run_oneshot(
-                definition.key, payload, organization, timeout=SEER_TIMEOUT_SECONDS
+            result: object = run_oneshot(
+                definition.key,
+                {"events": list(events)},
+                organization,
+                timeout=SEER_TIMEOUT_SECONDS,
             )
     except SeerApiError as error:
         raise ClassifierExecutionError(
@@ -49,12 +51,13 @@ def classify(
         # Timeouts and connection failures.
         raise ClassifierExecutionError("seer_unavailable", retryable=True) from error
 
-    return _parse_probability(result)
-
-
-def _parse_probability(result: object) -> float:
-    if not isinstance(result, Mapping):
+    if not isinstance(result, dict):
         raise ClassifierExecutionError("invalid_response", retryable=False)
+    return result
+
+
+def parse_binary_result(result: Mapping[str, Any]) -> float:
+    """Return the probability of a "yes" answer from a binary classifier's result."""
     probability = result.get("probability")
     if (
         result.get("type") != "predicate"

@@ -8,12 +8,15 @@ from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 from sentry.models.organization import Organization
 from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.telemetry_classifiers.definitions import resolve_prebuilt_definition
-from sentry.telemetry_classifiers.inference import ClassifierExecutionError, classify
-from sentry.telemetry_classifiers.types import Message
+from sentry.telemetry_classifiers.inference import (
+    ClassifierExecutionError,
+    classify,
+    parse_binary_result,
+)
 
 DEFINITION = resolve_prebuilt_definition("conversation_user_frustration", "conversation")
 ORGANIZATION = Organization(id=1, slug="org-slug")
-MESSAGES = [Message(role="user", content="This is broken"), Message(role="user", content="Again")]
+EVENTS = [{"content": "This is broken"}, {"content": "Again"}]
 
 
 def predicate(probability: Any) -> dict[str, Any]:
@@ -26,50 +29,23 @@ def run_oneshot() -> Generator[MagicMock]:
         yield run_oneshot
 
 
-def test_sends_messages_and_returns_probability(run_oneshot: MagicMock) -> None:
+def test_sends_events_and_returns_result(run_oneshot: MagicMock) -> None:
     run_oneshot.return_value = predicate(0.91)
 
-    assert classify(DEFINITION, MESSAGES, ORGANIZATION) == 0.91
+    assert classify(DEFINITION, EVENTS, ORGANIZATION) == predicate(0.91)
     run_oneshot.assert_called_once_with(
         "conversation_user_frustration",
-        {
-            "messages": [
-                {"role": "user", "content": "This is broken"},
-                {"role": "user", "content": "Again"},
-            ]
-        },
+        {"events": EVENTS},
         ORGANIZATION,
         timeout=20,
     )
 
 
-@pytest.mark.parametrize("probability", [0, 1])
-def test_accepts_boundary_probabilities(run_oneshot: MagicMock, probability: int) -> None:
-    run_oneshot.return_value = predicate(probability)
-
-    assert classify(DEFINITION, MESSAGES, ORGANIZATION) == float(probability)
-
-
-@pytest.mark.parametrize(
-    "result",
-    [
-        [0.5],
-        {},
-        {"type": "score", "name": "match", "probability": 0.5},
-        {"type": "predicate", "name": "other", "probability": 0.5},
-        predicate(None),
-        predicate(True),
-        predicate("0.5"),
-        predicate(float("nan")),
-        predicate(-0.1),
-        predicate(1.1),
-    ],
-)
-def test_rejects_malformed_results(run_oneshot: MagicMock, result: Any) -> None:
-    run_oneshot.return_value = result
+def test_rejects_non_object_results(run_oneshot: MagicMock) -> None:
+    run_oneshot.return_value = [0.5]
 
     with pytest.raises(ClassifierExecutionError) as error:
-        classify(DEFINITION, MESSAGES, ORGANIZATION)
+        classify(DEFINITION, EVENTS, ORGANIZATION)
 
     assert (error.value.reason, error.value.retryable) == ("invalid_response", False)
 
@@ -89,6 +65,32 @@ def test_classifies_seer_failures(
     run_oneshot.side_effect = failure
 
     with pytest.raises(ClassifierExecutionError) as error:
-        classify(DEFINITION, MESSAGES, ORGANIZATION)
+        classify(DEFINITION, EVENTS, ORGANIZATION)
 
     assert (error.value.reason, error.value.retryable) == (reason, retryable)
+
+
+@pytest.mark.parametrize("probability", [0, 0.02, 1])
+def test_parse_binary_result_returns_probability(probability: float) -> None:
+    assert parse_binary_result(predicate(probability)) == float(probability)
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {},
+        {"type": "score", "name": "match", "probability": 0.5},
+        {"type": "predicate", "name": "other", "probability": 0.5},
+        predicate(None),
+        predicate(True),
+        predicate("0.5"),
+        predicate(float("nan")),
+        predicate(-0.1),
+        predicate(1.1),
+    ],
+)
+def test_parse_binary_result_rejects_malformed_results(result: dict[str, Any]) -> None:
+    with pytest.raises(ClassifierExecutionError) as error:
+        parse_binary_result(result)
+
+    assert (error.value.reason, error.value.retryable) == ("invalid_response", False)

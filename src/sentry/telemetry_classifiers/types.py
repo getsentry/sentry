@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from django.db import models
 
@@ -45,16 +46,14 @@ class ResolvedDefinition:
     output_type: TelemetryClassifierOutputType
 
 
-@dataclass(frozen=True)
-class Message:
-    role: str
-    content: str
+# A JSON-serializable telemetry item to classify. Datasets decide what it contains.
+type Event = dict[str, Any]
 
 
 @dataclass(frozen=True)
 class PreparedInput:
-    """Classifier model input, oldest message first."""
+    """Events to classify, oldest first."""
 
-    messages: tuple[Message, ...]
-    # Older content was left out to fit MAX_INPUT_CHARS.
+    events: tuple[Event, ...]
+    # Older events were left out to fit MAX_INPUT_CHARS.
     truncated: bool
