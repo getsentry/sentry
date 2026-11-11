@@ -238,17 +238,7 @@ function TraceAiConversationsContent({
                   )}
                   <Stack flex="1" minHeight="0" padding="0">
                     {layoutProps => (
-                      <TabPanels
-                        {...layoutProps}
-                        css={`
-                          > [role='tabpanel'] {
-                            flex: 1;
-                            min-height: 0;
-                            display: flex;
-                            flex-direction: column;
-                          }
-                        `}
-                      >
+                      <TabPanels {...layoutProps}>
                         <TabPanels.Item key="transcript">
                           <TraceConversationTranscript
                             nodes={traceNodes}

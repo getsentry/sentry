@@ -89,9 +89,9 @@ function IntegrationTabs({
   getTabDisplay,
 }: {
   activeTab: IntegrationTab;
+  onTabChange: (tab: IntegrationTab) => void;
   tabs: readonly IntegrationTab[];
   getTabDisplay?: (tab: IntegrationTab) => string;
-  onTabChange?: (tab: IntegrationTab) => void;
 }) {
   // If getTabDisplay is not provided, use the tab as the display text
   const renderTab = useMemo(
@@ -104,7 +104,7 @@ function IntegrationTabs({
   }
 
   return (
-    <Tabs value={activeTab} onChange={tab => onTabChange?.(tab)}>
+    <Tabs value={activeTab} onChange={onTabChange}>
       {({TabList}) => (
         <TabList>
           {tabs.map(tab => (
