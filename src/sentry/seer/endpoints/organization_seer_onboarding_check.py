@@ -13,7 +13,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.projectrepository import ProjectRepository
-from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
@@ -42,15 +41,6 @@ def has_supported_scm_integration(organization: Organization) -> bool:
     )
 
     return len(organization_integrations) > 0
-
-
-def is_code_review_enabled(organization: Organization) -> bool:
-    """Check if code review is enabled for any active repository in the organization."""
-    return RepositorySettings.objects.filter(
-        repository__organization_id=organization.id,
-        repository__status=ObjectStatus.ACTIVE,
-        enabled_code_review=True,
-    ).exists()
 
 
 def is_autofix_enabled(organization: Organization) -> bool:
@@ -93,14 +83,11 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         """Check if the organization has completed Seer onboarding/configuration."""
         autofix_enabled = is_autofix_enabled(organization)
         has_scm_integration = has_supported_scm_integration(organization)
-        code_review_enabled = is_code_review_enabled(organization)
-        is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
 
         return Response(
             {
                 "hasSupportedScmIntegration": has_scm_integration,
-                "isCodeReviewEnabled": code_review_enabled,
                 "isAutofixEnabled": autofix_enabled,
-                "isSeerConfigured": is_seer_configured,
+                "isSeerConfigured": has_scm_integration and autofix_enabled,
             }
         )
