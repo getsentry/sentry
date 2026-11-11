@@ -22,9 +22,14 @@ export function isInvestigationLinkedActivity(
 
 export function ActivityLineInvestigationLinked({
   activity,
+  variant,
   timestampUnitStyle,
 }: {
   activity: GroupActivityInvestigationLinked;
+  /**
+   * The compact sidebar feed leaves out the hypothesis and evidence.
+   */
+  variant: 'compact' | 'full';
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const {investigation, reason, hypothesisStatement} = activity.data;
@@ -48,7 +53,7 @@ export function ActivityLineInvestigationLinked({
         />
       }
     >
-      {investigation ? (
+      {investigation && variant === 'full' ? (
         <Container paddingTop="sm">
           <Container width="100%" padding="sm md" border="muted" radius="md">
             <Stack gap="sm">

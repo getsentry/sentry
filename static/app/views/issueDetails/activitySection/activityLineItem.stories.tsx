@@ -532,6 +532,7 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
             <ActivityLineInvestigationLinked
               key={key}
               activity={item.activity}
+              variant="full"
               timestampUnitStyle="short"
             />
           );

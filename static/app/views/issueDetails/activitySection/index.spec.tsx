@@ -2723,7 +2723,7 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
-        <ActivitySection group={linkedGroup} />
+        <ActivitySection group={linkedGroup} variant="standalone" />
       </GroupDataContextProvider>,
       {organization: OrganizationFixture()}
     );
@@ -2738,6 +2738,38 @@ describe('ActivitySection', () => {
       '/organizations/org-slug/seer/investigations/42/'
     );
     expect(screen.getByLabelText('Seer activity')).toBeInTheDocument();
+  });
+
+  it('leaves the hypothesis out of an investigation link in the sidebar', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: {id: '42', title: 'Checkout latency', status: 'active'},
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in Checkout latency');
+    expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
+    expect(timeline).not.toHaveTextContent('Its timeouts start with the deploy.');
   });
 
   it('renders a link from a deleted investigation without details', async () => {

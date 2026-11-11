@@ -75,6 +75,7 @@ export function ActivityFeed({
         <ActivityLineInvestigationLinked
           key={key}
           activity={activity}
+          variant={inputVariant}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
