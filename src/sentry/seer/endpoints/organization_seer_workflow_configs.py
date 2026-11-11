@@ -212,7 +212,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError("Send projectIds, monitorIds, enabled, or name.")
+            raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
