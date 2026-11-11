@@ -22,9 +22,9 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.notebook_producer_sources import register_example_source_type
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
-from sentry.testutils.helpers.notebook_producer_sources import register_example_source_type
 
 FEATURE = "organizations:investigations"
 
