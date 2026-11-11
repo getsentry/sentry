@@ -67,7 +67,9 @@ EAP_MONITOR_FUNCTIONS = {
     "spans": _alertable_eap_functions(SPAN_DEFINITIONS),
     "logs": _alertable_eap_functions(OURLOG_DEFINITIONS),
 }
-_SPANS_AGGREGATE_PATTERN = _function_call_pattern(EAP_MONITOR_FUNCTIONS["spans"])
+_SPANS_AGGREGATE_PATTERN = _function_call_pattern(
+    EAP_MONITOR_FUNCTIONS["spans"], allow_equations=True
+)
 _LOGS_AGGREGATE_PATTERN = _function_call_pattern(EAP_MONITOR_FUNCTIONS["logs"])
 _TRACE_METRICS_AGGREGATE_PATTERN = _function_call_pattern(
     sorted(_defined_functions(TRACE_METRICS_DEFINITIONS)), allow_equations=True
@@ -141,7 +143,10 @@ METRIC_DATA_SOURCE_SCHEMA: dict[str, Any] = {
             title="Spans",
             description=(
                 "Aggregates span attributes, such as `p95(span.duration)`. "
-                "To query transaction spans, add `is_transaction:true` to `query`."
+                "To query transaction spans, add `is_transaction:true` to `query`. "
+                "An `equation|` prefix combines several aggregates, such as "
+                "`equation|sum(a) / sum(b)`; equations require the "
+                "`organizations:spans-monitor-equations` feature."
             ),
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.EventsAnalyticsPlatform,

@@ -78,6 +78,14 @@ def test_errors_aggregates_pass_column_support_check(aggregate: str) -> None:
             ),
             "Spans",
         ),
+        (
+            _data_source(
+                "events_analytics_platform",
+                ["trace_item_span"],
+                "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)",
+            ),
+            "Spans",
+        ),
         (_data_source("events_analytics_platform", ["trace_item_log"], "count(message)"), "Logs"),
         (
             _data_source(
@@ -130,6 +138,9 @@ def test_accepted_aggregates(data_source: dict[str, Any], title: str) -> None:
         ),
         _data_source("events_analytics_platform", ["trace_item_log"], "p100(severity)"),
         _data_source("events_analytics_platform", ["trace_item_log"], "failure_rate()"),
+        _data_source(
+            "events_analytics_platform", ["trace_item_log"], "equation|count() / count(message)"
+        ),
         _data_source("metrics", [], "count()"),
     ],
 )

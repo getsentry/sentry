@@ -10,6 +10,12 @@ from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
+from sentry.discover.arithmetic import (
+    ArithmeticError,
+    is_equation,
+    parse_arithmetic,
+    strip_equation,
+)
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
     InvalidSearchQuery,
@@ -26,7 +32,12 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.search.eap.constants import VALID_GRANULARITIES
+from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.fields import is_function
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -44,6 +55,9 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.workflow_engine.endpoints.validators.base import BaseDataSourceValidator
+from sentry.workflow_engine.endpoints.validators.metric_data_source_schema import (
+    EAP_MONITOR_FUNCTIONS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -268,8 +282,16 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types
         )
 
+        is_spans = (
+            dataset == Dataset.EventsAnalyticsPlatform
+            and event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in event_types
+        )
+
         if is_trace_metrics:
             validate_trace_metrics_aggregate(aggregate)
+        elif is_spans and is_equation(aggregate):
+            self._validate_spans_equation(aggregate)
         else:
             try:
                 if not check_aggregate_column_support(
@@ -285,6 +307,54 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 )
             except InvalidSearchQuery as e:
                 raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
+
+    def _validate_spans_equation(self, aggregate: str) -> None:
+        if not features.has(
+            "organizations:spans-monitor-equations",
+            self.context["organization"],
+            actor=self.context.get("user", None),
+        ):
+            raise serializers.ValidationError(
+                {"aggregate": _("Invalid Metric: Span monitors do not support equations.")}
+            )
+
+        equation = strip_equation(aggregate)
+        try:
+            _operation, fields, functions = parse_arithmetic(equation, definitions=SPAN_DEFINITIONS)
+        except ArithmeticError as e:
+            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
+
+        # The subscription only sends aggregate expressions to Snuba, so an equation without
+        # functions would produce an empty request.
+        if fields or not functions:
+            raise serializers.ValidationError(
+                {
+                    "aggregate": _(
+                        "Invalid Metric: An equation must combine aggregate functions, such as "
+                        "sum(a) / sum(b)."
+                    )
+                }
+            )
+
+        for function in functions:
+            match = is_function(function)
+            if match is None or match.group("function") not in EAP_MONITOR_FUNCTIONS["spans"]:
+                raise serializers.ValidationError(
+                    {"aggregate": _(f"Invalid Metric: {function} is not supported in monitors.")}
+                )
+
+        now = timezone.now()
+        resolver = SearchResolver(
+            params=SnubaParams(
+                projects=[], organization=None, start=now - timedelta(hours=1), end=now
+            ),
+            config=SearchResolverConfig(),
+            definitions=SPAN_DEFINITIONS,
+        )
+        try:
+            resolver.resolve_equation(equation)
+        except (InvalidSearchQuery, ArithmeticError) as e:
+            raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
 
     def _validate_query(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)

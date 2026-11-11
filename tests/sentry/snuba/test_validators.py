@@ -198,6 +198,71 @@ class SnubaQueryValidatorTest(TestCase):
         assert not validator.is_valid()
         assert "aggregate" in validator.errors
 
+    def _spans_equation_data(self, aggregate: str) -> dict[str, object]:
+        return {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "span.op:gen_ai.chat",
+            "aggregate": aggregate,
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_aggregate(self) -> None:
+        aggregate = (
+            "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)"
+        )
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data(aggregate), context=self.context
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["aggregate"] == aggregate
+
+    def test_eap_spans_equation_aggregate_without_feature(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|count() / count(span.duration)"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: Span monitors do not support equations.", code="invalid"
+            )
+        ]
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_unsupported_function(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|count_sample() / count()"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: count_sample() is not supported in monitors.",
+                code="invalid",
+            )
+        ]
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_without_functions(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|span.duration / 1000"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert "aggregate" in validator.errors
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_unresolvable_function(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|sum(span.op) / count()"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert "span.op is invalid for parameter 1 in sum" in str(validator.errors["aggregate"][0])
+
     def test_eap_performance_score_aggregate(self) -> None:
         data = {
             "dataset": Dataset.EventsAnalyticsPlatform.value,
