@@ -14,4 +14,4 @@ Rubik and Roboto Mono are built from the [google/fonts](https://github.com/googl
 - **References:** `static/less/fonts.less` (`@font-face` rules and unicode ranges) and `tests/js/sentry-test/snapshots/snapshot.ts` (visual snapshot fonts) both point at these files.
 - **Verify:** no characters lost per range, and advances/kerning match the previous files (e.g. shape with HarfBuzz).
 
-`sentry-simple.woff2` is the legacy icon font, not built this way.
+`sentry-simple.woff2` is the legacy icon font, not built this way. Its `.eot`, `.svg`, `.ttf` and `.woff` versions aren't loaded and are kept for reference.
