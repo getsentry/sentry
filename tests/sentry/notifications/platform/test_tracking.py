@@ -246,7 +246,6 @@ class RecordEngagementTest(TestCase):
             "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),
-        ("https://sentry.io/tr/token/", NotificationLink.PULL_REQUEST),
     ],
 )
 def test_classify_link(url: str, expected: NotificationLink) -> None:
@@ -579,8 +578,6 @@ class DecorateRenderedTemplateTest(TestCase):
             notification_uuid=self.notification_uuid,
             organization_id=1,
         )
-        decorated_again, _ = self.decorate_rendered_template(decorated)
-        assert decorated_again == decorated
 
     def test_leaves_untrackable_pull_requests(self) -> None:
         url = "https://github.acme.example/acme/backend/pull/12"

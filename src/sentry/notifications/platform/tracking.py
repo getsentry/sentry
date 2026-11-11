@@ -189,10 +189,6 @@ class NotificationLinkDecorator:
                 decorated = self._build_pull_request_redirect_url(url)
                 self.links.add(NotificationLink.PULL_REQUEST)
                 return decorated
-            # Already wrapped by an earlier pass; leave it as is so decorating stays idempotent.
-            if is_pull_request_redirect_url(url):
-                self.links.add(NotificationLink.PULL_REQUEST)
-                return url
             parsed = urlsplit(url)
             if not _is_sentry_url(parsed):
                 return url
@@ -297,8 +293,6 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.SEER_AGENT_RUN
     if path.startswith("/seer/investigations/"):
         return NotificationLink.INVESTIGATION
-    if path.startswith("/tr/"):
-        return NotificationLink.PULL_REQUEST
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
     return NotificationLink.OTHER
 
