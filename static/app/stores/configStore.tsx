@@ -50,7 +50,6 @@ export const ConfigStore = {
   },
 };
 
-
 let formattingSnapshot: FormattingSnapshot | undefined;
 
 configureFormatting({

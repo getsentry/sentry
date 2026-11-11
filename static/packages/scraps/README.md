@@ -81,7 +81,10 @@ Without configuration, dates use UTC and a 12-hour clock. Applications call
 returns the same object until preferences change, and `subscribe` notifies
 consumers after a new snapshot is ready. Each snapshot contains `timezone`,
 `clock`, `locale`, and matching `messages` with `t`, `tn`, and `pgettext`.
-Plain formatters read the current snapshot; React consumers subscribe to it.
+The source feeds a Zustand store shared by plain formatters and React consumers.
+Plain formatters read its current snapshot; React consumers subscribe to changes.
+The cleanup returned by `configureFormatting` disconnects the source and restores
+the previous snapshot.
 
 `DateTimeProvider` accepts partial timezone and clock overrides and inherits
 unspecified values from its parent. Explicit component or function options win

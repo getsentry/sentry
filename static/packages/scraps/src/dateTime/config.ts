@@ -1,3 +1,5 @@
+import {createStore} from 'zustand/vanilla';
+
 import type {Translation} from '../translation/translate';
 
 export interface DateTimePreferences {
@@ -30,19 +32,19 @@ const defaults: FormattingSnapshot = {
   },
 };
 
-let source: FormattingSource = {
-  getSnapshot: () => defaults,
-  subscribe: () => () => {},
-};
+const store = createStore<Readonly<FormattingSnapshot>>(() => defaults);
 
-/** Configure one preference and locale source before rendering. */
-export function configureFormatting(next: FormattingSource): () => void {
-  const previous = source;
-  source = next;
+/** Connect application preferences and locale to the reactive formatting store. */
+export function configureFormatting(source: FormattingSource): () => void {
+  const previous = store.getState();
+  const update = () => store.setState(source.getSnapshot(), true);
+  const unsubscribe = source.subscribe(update);
+  update();
   return () => {
-    source = previous;
+    unsubscribe();
+    store.setState(previous, true);
   };
 }
 
-export const getSnapshot = () => source.getSnapshot();
-export const subscribe = (onChange: () => void) => source.subscribe(onChange);
+export const getSnapshot = store.getState;
+export const subscribe = store.subscribe;
