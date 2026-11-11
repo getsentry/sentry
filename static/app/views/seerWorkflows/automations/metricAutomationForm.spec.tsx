@@ -53,7 +53,7 @@ describe('MetricAutomationForm', () => {
           onSaved={jest.fn()}
           readOnly={false}
           name={editConfig.name ?? ''}
-          onChangedChange={jest.fn()}
+          setFormHasChanges={jest.fn()}
         />
         <button type="submit" form="automation-form">
           Save changes
@@ -238,11 +238,11 @@ describe('MetricAutomationForm', () => {
     );
   });
 
-  it('saves monitors and the investigation toggle without changing service account access', async () => {
+  it('saves monitors without changing service account access', async () => {
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
-      body: {...config, monitorIds: [2], enabled: true},
+      body: {...config, monitorIds: [2]},
     });
     render(<AutomationDetail />, {
       organization,
@@ -262,14 +262,18 @@ describe('MetricAutomationForm', () => {
       await screen.findByRole('button', {name: 'Connect Payment failures'})
     );
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         `${configsUrl}42/`,
         expect.objectContaining({
-          data: {monitorIds: [2], enabled: true, name: 'Checkout errors', serviceAccount},
+          data: {
+            monitorIds: [2],
+            enabled: false,
+            name: 'Checkout errors',
+            serviceAccount,
+          },
         })
       )
     );

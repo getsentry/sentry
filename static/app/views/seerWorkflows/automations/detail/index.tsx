@@ -359,7 +359,7 @@ export default function AutomationDetail() {
                 formRef,
                 isConfiguring,
                 name: draftName,
-                onChangedChange: setFormHasChanges,
+                setFormHasChanges,
                 onSaved: () => setIsConfiguring(false),
               } satisfies AutomationDetailOutletContext
             }

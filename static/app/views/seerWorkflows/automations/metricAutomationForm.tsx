@@ -17,6 +17,7 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -84,15 +85,15 @@ type Props =
        * Name edited outside the form, in the page header
        */
       name: string;
-      /**
-       * Reports whether any field differs from its saved value
-       */
-      onChangedChange: (hasChanges: boolean) => void;
       onSaved: () => void;
       /**
        * Prevents editing until the user starts configuring
        */
       readOnly: boolean;
+      /**
+       * Reports whether any field differs from its saved value
+       */
+      setFormHasChanges: (hasChanges: boolean) => void;
     };
 
 export function MetricAutomationForm(props: Props) {
@@ -183,10 +184,11 @@ export function MetricAutomationForm(props: Props) {
     },
   });
   const formRef = props.mode === 'edit' ? props.formRef : undefined;
+  // Lets the page header's Cancel button discard changes from outside the form
   useImperativeHandle(formRef, () => ({reset: () => form.reset()}), [form]);
   const hasChanges = useStore(form.store, state => !state.isDefaultValue);
-  const onChangedChange = props.mode === 'edit' ? props.onChangedChange : undefined;
-  useEffect(() => onChangedChange?.(hasChanges), [onChangedChange, hasChanges]);
+  const setFormHasChanges = props.mode === 'edit' ? props.setFormHasChanges : undefined;
+  useEffect(() => setFormHasChanges?.(hasChanges), [setFormHasChanges, hasChanges]);
   // Fetch connected monitors by ID so they resolve regardless of the picker's filters
   const queryClient = useQueryClient();
   const monitorIds = useStore(form.store, state => state.values.monitorIds);
@@ -295,22 +297,19 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Actions')}>
-            <form.AppField name="enabled">
-              {field => (
-                <field.Layout.Row
-                  label={t('Start investigations')}
-                  hintText={t(
-                    'Automatically investigate connected monitor breaches. Turn off to pause this automation.'
-                  )}
-                >
-                  <field.Switch
-                    disabled={readOnly}
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
+            {/* Not configurable yet, so these show the fixed behavior */}
+            <DisplayField.Row
+              label={t('Start investigations')}
+              hintText={t('Automatically investigate connected monitor breaches.')}
+            >
+              <Switch checked disabled aria-label={t('Start investigations')} />
+            </DisplayField.Row>
+            <DisplayField.Row
+              label={t('Send notifications')}
+              hintText={t('Post findings to alert targets of the connected monitors')}
+            >
+              <Switch checked disabled aria-label={t('Send notifications')} />
+            </DisplayField.Row>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Service account capabilities')}>
