@@ -245,9 +245,7 @@ function RunRow({
             <Text>{t('Schedule')}</Text>
           </Flex>
         ) : run.trigger ? (
-          <Text variant="muted">
-            {fallbackTriggerText((run.trigger as {type: string}).type)}
-          </Text>
+          <Text variant="muted">{fallbackTriggerText(run.trigger)}</Text>
         ) : (
           <Text variant="muted">{'—'}</Text>
         )}
@@ -284,11 +282,12 @@ function OutputLink({output}: {output: RunOutput}) {
 }
 
 function RunOutputs({outputs}: {outputs: RunOutput[]}) {
-  if (outputs.length === 0) {
+  const [first] = outputs;
+  if (!first) {
     return null;
   }
   if (outputs.length === 1) {
-    return <OutputLink output={outputs[0]!} />;
+    return <OutputLink output={first} />;
   }
   return (
     <Flex>
@@ -383,8 +382,8 @@ function RunDuration({run}: {run: SeerAutomationRun}) {
 /**
  * Turns a trigger type like `custom_trigger-type` into `Custom Trigger Type`
  */
-function fallbackTriggerText(type: string): string {
-  return type
+function fallbackTriggerText(trigger: {type: string}): string {
+  return trigger.type
     .split(/[_-]/)
     .filter(Boolean)
     .map(word => upperFirst(word))
