@@ -51,6 +51,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.utils.strings import truncatechars
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
@@ -82,7 +83,11 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         # Slack does not support rich text in the subject
-        subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))
+        subject_block = HeaderBlock(
+            text=PlainTextObject(
+                text=truncatechars(rendered_template.subject_text, HeaderBlock.text_max_length)
+            )
+        )
         body_blocks: list[Block] = cls._render_body(rendered_template.body)
 
         blocks: list[Block] = [subject_block, *body_blocks]
@@ -110,16 +115,21 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_body(cls, body: list[NotificationSection]) -> list[Block]:
         blocks: list[Block] = []
         for block in body:
+            text = cls._render_text_blocks(block.blocks)
             if block.type == NotificationSectionType.PARAGRAPH:
-                text = cls._render_text_blocks(block.blocks)
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=text)))
+                blocks.append(cls._render_section(text))
             elif block.type == NotificationSectionType.CODE_BLOCK:
-                text = cls._render_text_blocks(block.blocks)
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=f"```{text}```")))
+                blocks.append(cls._render_section(text, wrapper="```"))
             elif block.type == NotificationSectionType.BLOCK_QUOTE:
-                text = cls._render_text_blocks(block.blocks)
-                blocks.append(SectionBlock(text=MarkdownTextObject(text=f">{text}")))
+                blocks.append(cls._render_section(text, prefix=">"))
         return blocks
+
+    @classmethod
+    def _render_section(cls, text: str, prefix: str = "", wrapper: str = "") -> SectionBlock:
+        # Truncate the inner text so the markdown wrapper (e.g. a code fence) stays intact.
+        max_length = SectionBlock.text_max_length - len(prefix) - 2 * len(wrapper)
+        text = truncatechars(text, max_length)
+        return SectionBlock(text=MarkdownTextObject(text=f"{prefix}{wrapper}{text}{wrapper}"))
 
     @classmethod
     def _render_text_blocks(cls, blocks: list[NotificationTextBlock]) -> str:
