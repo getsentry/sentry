@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
 import tempfile
+import time
 import urllib.request
 import zipfile
 
@@ -14,6 +17,69 @@ from devenv.lib import brew, config, fs, proc
 from devenv import constants
 
 Proc = tuple[str, tuple[str, ...], dict[str, str]]
+
+DAY = 24 * 60 * 60
+POSTGRES_CONTAINER = "postgres-postgres-1"
+LOCKFILE_HEAD = re.compile(r"^(\w+): (\w+)$")
+
+
+def digest(*paths: str) -> str:
+    h = hashlib.sha256()
+    for path in paths:
+        try:
+            with open(path, "rb") as f:
+                h.update(f.read())
+        except FileNotFoundError:
+            pass
+        h.update(b"\0")
+    return h.hexdigest()
+
+
+def stamped(reporoot: str, step: str, inputs: str, max_age: float | None = None) -> bool:
+    """Whether `step` last succeeded on these inputs, and no more than `max_age` seconds ago."""
+    path = f"{reporoot}/.devenv/stamps/{step}"
+    try:
+        with open(path) as f:
+            if f.read() != inputs:
+                return False
+        return max_age is None or time.time() - os.path.getmtime(path) < max_age
+    except FileNotFoundError:
+        return False
+
+
+def stamp(reporoot: str, step: str, inputs: str) -> None:
+    os.makedirs(f"{reporoot}/.devenv/stamps", exist_ok=True)
+    with open(f"{reporoot}/.devenv/stamps/{step}", "w") as f:
+        f.write(inputs)
+
+
+def migrations_applied(databases: tuple[str, ...], lockfiles: tuple[str, ...]) -> bool:
+    """Whether each database has every app's latest migration from the lockfiles."""
+    heads: list[tuple[str, ...]] = []
+    for lockfile in lockfiles:
+        with open(lockfile) as f:
+            heads += [m.groups() for m in map(LOCKFILE_HEAD.match, f.read().splitlines()) if m]
+    if not heads:
+        return False
+    # LOCKFILE_HEAD only matches word characters, so the names are safe to inline.
+    values = ", ".join(f"('{app}', '{name}')" for app, name in heads)
+    query = f"select count(*) from django_migrations where (app, name) in ({values})"
+    for database in databases:
+        try:
+            p = subprocess.run(
+                (
+                    *("docker", "exec", POSTGRES_CONTAINER, "psql", "-h", "127.0.0.1"),
+                    *("-U", "postgres", "-d", database, "-tAc", query),
+                ),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        if p.returncode != 0 or p.stdout.strip() != str(len(heads)):
+            return False
+    return True
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -182,10 +248,14 @@ def main(context: dict[str, str]) -> int:
     if constants.DARWIN:
         brew.install()
 
-        proc.run(
-            (f"{constants.homebrew_bin}/brew", "bundle"),
-            cwd=reporoot,
-        )
+        # brew bundle updates and upgrades every formula, which takes a while.
+        brewfile = digest(f"{reporoot}/Brewfile")
+        if not stamped(reporoot, "brew-bundle", brewfile, max_age=DAY):
+            proc.run(
+                (f"{constants.homebrew_bin}/brew", "bundle"),
+                cwd=reporoot,
+            )
+            stamp(reporoot, "brew-bundle", brewfile)
 
     if not shutil.which("uv"):
         print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
@@ -260,8 +330,8 @@ def main(context: dict[str, str]) -> int:
     # pnpm and uv don't depend on each other, so install both at once.
     if not run_procs(reporoot, venv_dir, tuple(dependency_procs), verbose):
         return 1
-    # Left behind by tools/fast_editable.py. Removed only after uv sync, so uv still
-    # sees and uninstalls the old egg-link install.
+    # Left behind by the old fast_editable install. Removed only after uv sync, so uv
+    # still sees and uninstalls the old egg-link install.
     shutil.rmtree(f"{reporoot}/src/sentry.egg-info", ignore_errors=True)
 
     # Worktrees share the main checkout's `.git/hooks` (`.git` is a file), so installing
@@ -274,16 +344,25 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    # Agent skills are non-fatal — private skill repos may not be accessible in CI
-    if os.path.exists(f"{reporoot}/agents.toml") and shutil.which(
-        "pnpm", path=f"{reporoot}/.devenv/bin"
+    # Agent skills are non-fatal — private skill repos may not be accessible in CI.
+    # agents.toml doesn't pin skills so they stay current, which a daily install covers.
+    agents = digest(f"{reporoot}/agents.toml")
+    if (
+        os.path.exists(f"{reporoot}/agents.toml")
+        and shutil.which("pnpm", path=f"{reporoot}/.devenv/bin")
+        and not (
+            os.path.exists(f"{reporoot}/agents.lock")
+            and stamped(reporoot, "agent-skills", agents, max_age=DAY)
+        )
     ):
-        if not run_procs(
+        if run_procs(
             reporoot,
             venv_dir,
             (("agent skills", ("pnpm", "dlx", "@sentry/dotagents", "--project", "install"), {}),),
             verbose,
         ):
+            stamp(reporoot, "agent-skills", agents)
+        else:
             print("⚠️  agent skills failed to install (non-fatal)")
 
     if not IN_GIT_WORKTREE:
@@ -313,6 +392,15 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
+    # Even with nothing to apply, migrating boots Django. The lockfile only names sentry's
+    # own apps, so a new uv.lock also migrates, for Django's and other packages' migrations.
+    migrated_with = digest(f"{reporoot}/uv.lock")
+    if stamped(reporoot, "migrations", migrated_with) and migrations_applied(
+        ("sentry",), (f"{reporoot}/migrations_lockfile.txt",)
+    ):
+        print("✅ python migrations (up to date)")
+        return 0
+
     proc.run(
         (f"{venv_dir}/bin/devservices", "up", "--mode", "migrations"),
         pathprepend=f"{reporoot}/.devenv/bin",
@@ -332,5 +420,6 @@ def main(context: dict[str, str]) -> int:
         verbose,
     ):
         return 1
+    stamp(reporoot, "migrations", migrated_with)
 
     return 0
