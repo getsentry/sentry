@@ -15,6 +15,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
@@ -205,7 +210,13 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         ]
         + NotebookExamples.CREATE_NOTEBOOK,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[NotebookDetailsSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Create a blank notebook, or a notebook for a producer's source. Returns 201 with
         notebook details, blocks, parameters, and orchestration summary, or 200 when an active
@@ -218,7 +229,7 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             context={"organization": organization, "creator": get_creator_reference(request)},
         )
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
         accessible_project_ids = organization_project_ids(organization)
         source: ProducerSource | None = values.get("source")
@@ -247,11 +258,9 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
             raise
         if created:
             record_notebook_started(notebook)
-        return Response(
-            serialize(
-                notebook,
-                request.user,
-                NotebookDetailsSerializer(access=request.access),
-            ),
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        body: NotebookDetailsSerializerResponse = serialize(
+            notebook,
+            request.user,
+            NotebookDetailsSerializer(access=request.access),
         )
+        return Response(body, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)

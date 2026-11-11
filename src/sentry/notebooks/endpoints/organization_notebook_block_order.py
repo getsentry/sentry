@@ -12,6 +12,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
@@ -58,7 +63,13 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         ]
         + NotebookExamples.NOTEBOOK_DETAILS,
     )
-    def put(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
+    def put(
+        self, request: Request, organization: Organization, notebook: Notebook
+    ) -> (
+        Response[NotebookDetailsSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Set the order of all active blocks. Supply every active block ID exactly once and the
         current notebook version. Returns the updated notebook with ordered blocks. Requires a
@@ -68,7 +79,7 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         require_notebook_writer(request, notebook)
         validator = BlockOrderValidator(data=request.data)
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         try:
             updated = reorder_blocks(
                 notebook=notebook,
@@ -81,10 +92,9 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
                 return response
             raise
 
-        return Response(
-            serialize(
-                updated,
-                request.user,
-                NotebookDetailsSerializer(access=request.access),
-            )
+        body: NotebookDetailsSerializerResponse = serialize(
+            updated,
+            request.user,
+            NotebookDetailsSerializer(access=request.access),
         )
+        return Response(body)

@@ -12,6 +12,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
@@ -76,7 +81,13 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         ]
         + NotebookExamples.CREATE_BLOCK,
     )
-    def post(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
+    def post(
+        self, request: Request, organization: Organization, notebook: Notebook
+    ) -> (
+        Response[NotebookBlockSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Append a text or query block to an active investigation, using notebookVersion for
         concurrency. A producer sends key and revision instead to write its text block: the
@@ -98,7 +109,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
             },
         )
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         try:
             block, created = validator.save()
         except Exception as error:

@@ -59,20 +59,21 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         },
         examples=NotebookExamples.NOTEBOOK_DETAILS,
     )
-    def get(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
+    def get(
+        self, request: Request, organization: Organization, notebook: Notebook
+    ) -> Response[NotebookDetailsSerializerResponse]:
         """
         Return notebook metadata, source context, filters, project IDs, parameter definitions
         and saved values, and ordered active blocks. Poll this endpoint for notebook and block
         output updates. Requires the organizations:investigations feature and open organization
         membership.
         """
-        return Response(
-            serialize(
-                notebook,
-                request.user,
-                NotebookDetailsSerializer(access=request.access),
-            )
+        body: NotebookDetailsSerializerResponse = serialize(
+            notebook,
+            request.user,
+            NotebookDetailsSerializer(access=request.access),
         )
+        return Response(body)
 
     @extend_schema(
         operation_id="Update an Investigation",

@@ -13,6 +13,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
@@ -69,7 +74,11 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         organization: Organization,
         notebook: Notebook,
         block: NotebookBlock,
-    ) -> Response:
+    ) -> (
+        Response[NotebookBlockSerializerResponse]
+        | Response[ValidationErrorResponse]
+        | Response[DetailResponse]
+    ):
         """
         Update at least one of title, content, generationPrompt, config, or display. Send both
         notebook and block versions. The block kind cannot change. Returns the updated block.
@@ -82,7 +91,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
 
         validator = BlockUpdateValidator(data=request.data, context={"block": block})
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
 
         values = dict(validator.validated_data)
         expected_notebook_version = values.pop("notebook_version")
@@ -141,7 +150,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         organization: Organization,
         notebook: Notebook,
         block: NotebookBlock,
-    ) -> Response:
+    ) -> Response[None] | Response[ValidationErrorResponse] | Response[DetailResponse]:
         """
         Soft-delete an active block using notebook and block versions. Active executions and
         other state conflicts return 409. Returns no body. Requires a user or service account.
@@ -153,7 +162,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
 
         validator = BlockDeleteValidator(data=request.data)
         if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(validator), status=status.HTTP_400_BAD_REQUEST)
         try:
             delete_block(
                 block=block,
