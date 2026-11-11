@@ -1,15 +1,31 @@
+import logging
+from collections.abc import Callable, Mapping
+from typing import Any
+
 import orjson
+import sentry_sdk
+from django.conf import settings
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.forge.client import ForgeInstallationClient
+from sentry.integrations.jira.utils import (
+    handle_assignee_change,
+    handle_issue_moved,
+    handle_status_change,
+)
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.taskworker.namespaces import integrations_control_tasks, integrations_tasks
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
+
+logger = logging.getLogger(__name__)
 
 FORGE_INSTALLATION_PAYLOAD_TTL = 15 * 60
 
@@ -96,3 +112,50 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
             return
         if existing != forge:
             integration.update(metadata={**integration.metadata, "forge": forge})
+
+
+@instrumented_task(
+    name="sentry.integrations.jira.tasks.apply_forge_issue_event",
+    namespace=integrations_tasks,
+    # Jira API errors, such as a failed assignee email lookup, are usually temporary. The
+    # handlers are idempotent, so the whole event is safe to apply again.
+    retry=Retry(times=5, delay=60, on=(ApiError,)),
+    silo_mode=SiloMode.CELL,
+)
+def apply_forge_issue_event(integration_id: int, event: dict[str, Any]) -> None:
+    """Apply a verified Forge `avi:jira:updated:issue` event to the linked Sentry issues."""
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
+    if integration is None:
+        return
+    bind_org_context_from_integration(integration.id, {"webhook": "forge_issue_updated"})
+
+    # Same order as the Connect webhook: rekey first, since the other handlers look the
+    # issue up by its new key.
+    _apply_forge_change(handle_issue_moved, integration, event)
+    _apply_forge_change(
+        handle_assignee_change, integration, event, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE
+    )
+    _apply_forge_change(handle_status_change, integration, event)
+
+
+def _apply_forge_change(
+    handler: Callable[..., None],
+    integration: RpcIntegration,
+    event: Mapping[str, Any],
+    **kwargs: Any,
+) -> None:
+    try:
+        handler(integration, event, **kwargs)
+    except ApiError:
+        raise
+    except Exception as e:
+        # Retrying won't fix anything else, so only this change is dropped and the rest
+        # of the event still applies.
+        logger.warning(
+            "jira.forge.issue_updated.failed",
+            extra={"integration_id": integration.id, "handler": handler.__name__},
+            exc_info=True,
+        )
+        sentry_sdk.capture_exception(e)

@@ -1,5 +1,4 @@
-# RPC services register when their module is imported, and this package is loaded at
-# startup in every silo, so cells can serve jira_forge before control calls it.
+# Registers the RPC service in every silo at startup, ahead of its first caller.
 from sentry.integrations.services.jira_forge import jira_forge_service  # noqa: F401
 from sentry.rules import rules
 

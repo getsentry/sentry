@@ -27,9 +27,9 @@ class JiraForgeService(RpcService):
         self, *, cell_name: str, integration_id: int, event: dict[str, Any]
     ) -> None:
         """
-        Apply a Forge `avi:jira:updated:issue` event to the linked Sentry issues in
-        this cell. Control verifies the event before handing it over, so the cell
-        does no authentication of its own.
+        Queue a Forge `avi:jira:updated:issue` event to be applied to the linked Sentry
+        issues in this cell. Control verifies the event before handing it over, so the
+        cell does no authentication of its own.
         """
 
 
