@@ -17,6 +17,7 @@ from sentry.notifications.platform.tracking import (
     record_engagement,
 )
 from sentry.utils.hashlib import md5_text
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,8 @@ _AUTOMATED_USER_AGENT = re.compile(
 
 
 @control_silo_view
+# Agents that ask for Markdown would otherwise get Sentry's web UI guidance instead of the PR.
+@ai_machine_readable
 class NotificationLinkRedirectView(View):
     """
     Redirects a notification's link to a GitHub pull request, recording the click. Clicks on

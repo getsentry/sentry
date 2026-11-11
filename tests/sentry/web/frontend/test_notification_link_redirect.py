@@ -91,6 +91,14 @@ class NotificationLinkRedirectTest(TestCase):
         assert response.status_code == 302
         assert response["Location"] == "https://acme.ghe.com/acme/frontend/pull/3"
 
+    def test_redirects_clients_that_ask_for_markdown(self, mock_record: mock.MagicMock) -> None:
+        response = self.client.get(
+            self.path(), HTTP_USER_AGENT=BROWSER_USER_AGENT, HTTP_ACCEPT="text/markdown"
+        )
+
+        assert response.status_code == 302
+        assert response["Location"] == PULL_REQUEST_URL
+
     def test_rejects_tokens_that_sentry_did_not_sign(self, mock_record: mock.MagicMock) -> None:
         payload = [
             "https://evil.example/acme/backend/pull/12",
