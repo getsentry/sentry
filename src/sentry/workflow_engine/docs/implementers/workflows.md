@@ -2,24 +2,32 @@
 
 [Implementer Guide](README.md) · [Workflow Engine](../../README.md)
 
-A workflow defines **how to react to issues**, independently of how a detector finds
-them. Use it to add notification policy or automation to existing detection. Do not
-add a detector handler, call an action directly from detection, or write a new workflow
-processor just to express a different set of conditions and actions.
+A workflow defines **how to respond to events**, independently of how the related
+artifact was created. Actions can notify someone or initiate more work; they are not
+limited to notifications. Reuse an existing event source instead of adding a detector,
+and do not write a new processor just to express a different condition/action policy.
 
-This guide covers [choosing ingress](#1-choose-the-issue-input),
+This walkthrough uses the current issue-event and activity ingress, including Seer
+stage activities. The [shared model](../../README.md#the-mental-model) is artifact-agnostic;
+the [current payload contracts](../../README.md#current-implementation-and-examples)
+define which event integrations this checkout supports. An outcome handler does not
+automatically make its artifact's lifecycle events workflow inputs.
+
+This guide covers [choosing ingress](#1-choose-the-event-input),
 [conditions](#2-choose-when-and-if-conditions), [actions](#3-reuse-an-action-handler),
 [creation](#4-create-and-connect-the-workflow), [hidden automation](#5-decide-whether-you-need-a-new-workflow-type),
 and [verification](#6-verify-the-integration).
 
-## 1. Choose the Issue Input
+## 1. Choose the Event Input
 
-Identify which detector records are associated with the issues you want to handle.
-A workflow is organization-scoped and connected to detectors through `DetectorWorkflow`.
-Those connections select candidate workflows at runtime; creating a workflow alone does
-not connect it to your product.
+Identify the event your workflow should respond to and the ingress that supplies it.
+For the issue-based path below, identify the detector records associated with those
+events. A workflow is organization-scoped and connected to detectors through
+`DetectorWorkflow`. Those connections select candidate workflows at runtime; creating
+a workflow alone does not connect it to your product.
 
-You do **not** need a new detector implementation if the product already creates issues:
+For this ingress, you do **not** need a new detector implementation if the product
+already produces the relevant issue events or activities:
 
 - Existing error and issue-stream events enter through event post-processing.
   [`connect_workflows_to_issue_stream`](../../defaults/workflows.py) is an existing
@@ -28,9 +36,10 @@ You do **not** need a new detector implementation if the product already creates
   [`workflow_activity_handlers.py`](../../handlers/workflow/workflow_activity_handlers.py)
   for resolution and Seer activity examples. An arbitrary activity does not
   automatically become workflow input.
-- For a new kind of finding, implement [a detector](detectors.md) first, then connect
-  a workflow to it. Do not call `process_workflows` from its handler; Issue Platform
-  ingestion is the boundary between the two pipelines.
+- If the event requires a new evaluation of product data, implement
+  [a detector and its outcome](detectors.md), then connect the supported event input to
+  the workflow. For the Issue Platform outcome, ingestion is the boundary between the
+  two pipelines; do not call `process_workflows` from its detector handler.
 
 Choose an environment if the workflow should apply only there. A workflow without one
 is global across environments. The engine selects enabled, connected workflows for the
@@ -42,8 +51,8 @@ for that path's limits.
 
 There are two separate decisions:
 
-- **WHEN**: should this issue event or activity trigger the workflow? For example,
-  `first_seen_event` reacts to a new issue.
+- **WHEN**: should this event trigger the workflow? In the issue integration, for
+  example, `first_seen_event` reacts to a new issue.
 - **IF**: should this group of actions run for the triggering input? For example,
   a priority or event-attribute filter can restrict the recipients of one action group
   without changing the workflow's trigger.
@@ -85,6 +94,12 @@ For example, the registered
 [`EmailActionHandler`](../../../notifications/notification_action/action_handler_registry/email_handler.py)
 supports notifying issue owners. It delegates notification delivery rather than putting
 that behavior into the workflow processor.
+
+Actions also initiate work. For example,
+[`SeerWorkflowActionHandler`](../../../seer/workflows/action.py) invokes configured Seer
+automation rather than delivering a notification. It requires a `GroupEvent` and a
+configured binding, and has its own feature and admission checks; do not assume every
+action supports every event input.
 
 If a new side effect genuinely needs a new action implementation, follow the
 [`ActionHandler`](../../types.py) contract, add its `Action.Type`, and register the

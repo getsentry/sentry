@@ -1,8 +1,10 @@
 # Maintaining Workflow Engine
 
 Use this guide to navigate the configured graph, runtime boundaries, and operational
-state. For the product-level purpose and implementer entry points, start with the
-[Workflow Engine overview](../../README.md).
+state. The [Workflow Engine overview](../../README.md) defines the outcome/artifact/event
+model. The architecture tour below traces its current Issue Platform integration;
+issue-specific payloads and storage here are implementation contracts, not the
+definition of a detector or workflow.
 
 ## Reading Route
 
@@ -51,21 +53,34 @@ or association roles. Do not confuse Workflow Engine detector configuration with
 separate performance detector runtime in
 [`sentry.issue_detection`](../../../issue_detection/README.md).
 
-### Detector Runtime Produces Issue Output
+### Detector Evaluation and Outcome Dispatch
 
 `process_detectors` gets the handler from the detector's registered `DetectorSettings`.
 [`BaseDetectorHandler`](../../handlers/detector/base.py) normalizes extracted values by
-optional group key, evaluates them, and decorates requested issue occurrences. The
-condition-based handler adds trigger-group evaluation; the stateful handler adds durable
-transitions, Redis dedupe watermarks, and threshold counters. Stateful behavior is not a
-requirement for custom handlers.
+optional group key and evaluates them. The condition-based handler adds trigger-group
+evaluation; the stateful handler adds durable transitions, Redis dedupe watermarks, and
+threshold counters. Stateful behavior is not a requirement for custom handlers.
 
-A retained evaluation contains an `IssueOccurrence` or `StatusChangeMessage`. The
-handler's `on_complete` callback defaults to the
-[Issue Platform outcome dispatcher](../../handlers/detector_outcome/issue_platform.py).
-No result means no default Issue Platform publication. See the
-[detection pipeline](execution.md#detection-pipeline) for stateless/stateful differences
-and the [state inventory](data-model.md#runtime-state-and-history) for storage ownership.
+Outcome handling is a separate boundary: `process_detectors` passes retained evaluations
+to `on_complete`. The default is
+[`DetectorOutcome.ISSUE_PLATFORM.dispatch`](../../handlers/detector_outcome/supported_outcomes.py).
+`dispatch` resolves the registered
+[`DetectorOutcomeHandler`](../../handlers/detector_outcome/base.py) and calls
+`handle(detector, evaluation)`. The outcome handler owns interpreting the evaluation
+for its destination; it is not the workflow processor or an automatic event subscription.
+
+In the current Issue Platform implementation, the base detector builds issue occurrences
+and `DetectorResult` accepts `IssueOccurrence`, `StatusChangeMessage`, or `None`.
+[`IssuePlatformOutcomeHandler`](../../handlers/detector_outcome/issue_platform.py) publishes
+nonempty results; no result means no default Issue Platform publication. `DetectorOutcome`
+selects a handler, not an artifact model. A new output integration must support its actual
+result payload as well as its dispatch key; a new event integration must separately
+provide the input expected by workflow evaluation. Do not assume registering one adds
+the other.
+
+See the [detection pipeline](execution.md#detection-pipeline) for the concrete lifecycle,
+the [state inventory](data-model.md#runtime-state-and-history) for storage ownership,
+and [Produce Detector Output](execution.md#5-produce-detector-output) for registration.
 
 ### Issue Platform Is an Asynchronous Boundary
 
@@ -78,7 +93,8 @@ prove ingestion, workflow evaluation, or notification delivery completed.
 flowchart TD
     Producer[Product producer and DataPacket] --> Selection[Source lookup or direct detector selection]
     Selection --> Detector[Detector handler and optional transition state]
-    Detector --> Kafka[Issue Platform Kafka]
+    Detector --> Outcome[on_complete: outcome handler]
+    Outcome -->|Default: ISSUE_PLATFORM| Kafka[Issue Platform Kafka]
     Kafka --> Issue[Issue ingestion and status changes]
     Issue --> Ingress[Event post-processing or supported activity]
     Existing[Existing issue events and activities] --> Ingress

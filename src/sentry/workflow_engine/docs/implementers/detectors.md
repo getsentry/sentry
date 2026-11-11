@@ -3,18 +3,23 @@
 [Workflow Engine](../../README.md) · [Implementer Guide](README.md) ·
 [Condition Handlers](conditions.md) · [Maintainer Guide](../maintainers/README.md)
 
-Use this guide when a product needs to turn its own data into issues, update their
-priority, or resolve them. A detector answers **"Is there a problem?"** A workflow
-answers **"What should happen to this issue?"** Add a
-[workflow](workflows.md) instead when the issue already exists and you only need to
-choose actions.
+A detector evaluates product data and produces an outcome. Decide what artifact the
+evaluation should create or change before choosing its outcome integration. Add a
+[workflow](workflows.md) instead when the event source already exists and you only need
+to change the response policy.
+
+The walkthrough below implements the default **Issue Platform outcome**: creating
+occurrences, updating priority, and resolving issues. Those are this integration's
+contracts, not a requirement that every detector produce an issue. See the
+[shared mental model](../../README.md#the-mental-model) and
+[current implementation boundaries](../../README.md#current-implementation-and-examples).
 
 ## What You Build and What the Engine Provides
 
-Product code owns the meaning of the input, the detection rules, and the issue's
-identity and evidence. Workflow Engine supplies a shared path from that input to the
-Issue Platform, so each product does not need its own detector configuration,
-condition evaluation, source-to-detector lookup, or stateful trigger/recovery loop.
+For this outcome, product code owns the input's meaning, evaluation rules, and issue
+identity and evidence. Workflow Engine supplies shared detector configuration,
+condition evaluation, source-to-detector lookup, optional stateful trigger/recovery,
+and dispatch to the outcome handler. The Issue Platform handler owns publication.
 
 | Product Code Provides                                        | Shared Engine Provides                                    |
 | ------------------------------------------------------------ | --------------------------------------------------------- |
@@ -24,17 +29,20 @@ condition evaluation, source-to-detector lookup, or stateful trigger/recovery lo
 | Issue type, occurrence evidence, and event fields            | Standard evidence and Issue Platform publication          |
 | Detector settings, config schema, and product validation     | Registry lookup and transactional detector graph creation |
 
-Implement the handler in the product module that owns the data and Issue Platform
-issue type. Put only reusable abstractions, processors, and generic source or condition
-handling in `sentry.workflow_engine`.
+Implement the detector handler in the product module that owns its data and output.
+For the Issue Platform outcome, that module also owns the issue type. Put only reusable
+abstractions, processors, and generic source or condition handling in `sentry.workflow_engine`.
 
 The steps below follow the generic source-lookup path. If the producer already selects
 its detectors, use the [direct-dispatch guidance](#produce-packets) instead.
 
-A detector does not call a workflow directly. Start with the steps below; the
-[model](../maintainers/data-model.md) and
-[execution](../maintainers/execution.md) references are for tracing the surrounding
-system, not prerequisites for writing a handler.
+Outcome handling and workflow event ingress are separate integrations. In the default
+path, Issue Platform ingestion connects them; the detector does not call a workflow
+directly. For another output, consult the
+[outcome-dispatch contract](../maintainers/README.md#detector-evaluation-and-outcome-dispatch)
+before reusing the issue-specific hooks below. The [model](../maintainers/data-model.md)
+and [execution](../maintainers/execution.md) references are not prerequisites for this
+walkthrough.
 
 ## On This Page
 

@@ -1,7 +1,10 @@
 # Workflow Engine Execution
 
-This document traces data through the Workflow Engine processors and asynchronous
-boundaries. For persistent relationships, see [Data Model](data-model.md). For
+This document traces the current Issue Platform integration through processors and
+asynchronous boundaries. The [shared mental model](../../README.md#the-mental-model)
+separates detector evaluation, outcome handling, event ingress, and actions; the issue
+payloads below describe this concrete integration. For persistent relationships, see
+[Data Model](data-model.md). For
 implementation checklists, see the guides for [detectors](../implementers/detectors.md),
 [conditions](../implementers/conditions.md), and [workflows](../implementers/workflows.md).
 
