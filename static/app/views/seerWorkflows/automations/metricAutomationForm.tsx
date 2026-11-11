@@ -8,6 +8,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {
   defaultFormOptions,
@@ -29,7 +30,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import type {
   SeerServiceAccountResponse,
@@ -43,19 +43,25 @@ import {
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
 import {MonitorTable} from './monitorTable';
-
-const serviceAccountProjectsSchema = z.discriminatedUnion('mode', [
-  z.object({mode: z.literal('monitors')}),
-  z.object({mode: z.literal('selected'), projectIds: z.array(z.string())}),
-  z.object({mode: z.literal('all')}),
-]);
+import {
+  getServiceAccountProjectIds,
+  ServiceAccountPermissions,
+  ServiceAccountProjects,
+  ServiceAccountSummary,
+  type ServiceAccountProjectAccess,
+} from './serviceAccountAccess';
 
 const schema = z.object({
   name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
   enabled: z.boolean(),
   monitorIds: z.array(z.string()),
-  serviceAccountProjects: serviceAccountProjectsSchema,
-  scopes: z.array(z.string()).min(1, t('Select at least one permission scope.')),
+  serviceAccountProjects: z.object({
+    allProjects: z.boolean(),
+    projectIds: z.array(z.string()),
+  }),
+  scopes: z
+    .array(z.string())
+    .min(1, t('Give the service account at least one permission.')),
 });
 
 const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
@@ -103,16 +109,8 @@ type Props =
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const {projects} = useProjects();
   const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
   const grantableScopes = new Set<string>(organization.access);
-  const availableScopes = organization.access.filter(
-    scope =>
-      scope.includes(':') &&
-      !scope.startsWith('service_account:') &&
-      scope !== 'org:superuser' &&
-      scope !== 'org:billing'
-  );
   const readOnly = props.mode === 'edit' && props.readOnly;
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
@@ -125,12 +123,11 @@ export function MetricAutomationForm(props: Props) {
       monitorIds: value.monitorIds.map(Number),
       serviceAccount: {
         scopes: value.scopes,
-        projectIds: resolveServiceAccountProjects(
+        projectIds: getServiceAccountProjectIds(
           value.serviceAccountProjects,
-          value.monitorIds,
-          monitors
+          monitors.filter(monitor => value.monitorIds.includes(monitor.id))
         ).map(Number),
-        allProjects: value.serviceAccountProjects.mode === 'all',
+        allProjects: value.serviceAccountProjects.allProjects,
       },
     };
     if (props.mode === 'create') {
@@ -232,6 +229,12 @@ export function MetricAutomationForm(props: Props) {
     monitorIds.length > 0
       ? (monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [])
       : [];
+  const connectedMonitors = monitors.filter(monitor => monitorIds.includes(monitor.id));
+  const serviceAccountProjects = useStore(
+    form.store,
+    state => state.values.serviceAccountProjects
+  );
+  const scopes = useStore(form.store, state => state.values.scopes);
 
   return (
     <Container maxWidth="960px" width="100%" containerType="inline-size">
@@ -321,88 +324,75 @@ export function MetricAutomationForm(props: Props) {
             </DisplayField.Row>
           </form.FieldGroup>
 
-          <form.FieldGroup title={t('Service account capabilities')}>
+          <form.FieldGroup title={t('Service account')}>
             <Stack gap="lg">
               <Text variant="muted">
                 {t(
-                  "Choose what this automation's service account can access during an investigation."
+                  'Investigations run as a service account that belongs to this automation. It can only reach the projects and permissions it is given.'
                 )}
               </Text>
-              <form.AppField name="serviceAccountProjects">
-                {field => (
-                  <field.Layout.Stack
-                    label={t('Service account projects')}
-                    hintText={t(
-                      'Start with monitor projects, then add other projects the service account may need to investigate.'
-                    )}
-                  >
-                    <Stack gap="md">
-                      <field.Select
-                        multiple
-                        clearable
-                        searchable
-                        disabled={readOnly || field.state.value.mode === 'all'}
-                        value={resolveServiceAccountProjects(
-                          field.state.value,
-                          monitorIds,
-                          monitors
+              <Disclosure>
+                <Disclosure.Title>
+                  <ServiceAccountSummary
+                    access={serviceAccountProjects}
+                    monitors={connectedMonitors}
+                    scopes={scopes}
+                  />
+                </Disclosure.Title>
+                <Disclosure.Content>
+                  <Stack gap="2xl" paddingTop="md">
+                    <form.AppField name="serviceAccountProjects">
+                      {field => (
+                        <field.Layout.Stack label={t('Project access')}>
+                          <field.Base>
+                            {() => (
+                              <Stack gap="lg" width="100%">
+                                <Text size="sm" variant="muted">
+                                  {t(
+                                    'Projects with a connected monitor are always included. Add any others an investigation should look into, like upstream services.'
+                                  )}
+                                </Text>
+                                <ServiceAccountProjects
+                                  value={field.state.value}
+                                  monitors={monitors.filter(monitor =>
+                                    monitorIds.includes(monitor.id)
+                                  )}
+                                  disabled={readOnly}
+                                  onChange={field.handleChange}
+                                />
+                              </Stack>
+                            )}
+                          </field.Base>
+                        </field.Layout.Stack>
+                      )}
+                    </form.AppField>
+                    <Container borderTop="primary" paddingTop="2xl">
+                      <form.AppField name="scopes">
+                        {field => (
+                          <field.Layout.Stack label={t('Permissions')}>
+                            <field.Base>
+                              {() => (
+                                <Stack gap="lg" width="100%">
+                                  <Text size="sm" variant="muted">
+                                    {t(
+                                      'Read access is enough to investigate. Grant write access only for the actions you want this automation to take.'
+                                    )}
+                                  </Text>
+                                  <ServiceAccountPermissions
+                                    value={field.state.value}
+                                    disabled={readOnly}
+                                    onChange={field.handleChange}
+                                  />
+                                </Stack>
+                              )}
+                            </field.Base>
+                          </field.Layout.Stack>
                         )}
-                        onChange={projectIds =>
-                          field.handleChange({mode: 'selected', projectIds})
-                        }
-                        options={projects.map(project => ({
-                          value: project.id,
-                          label: project.slug,
-                        }))}
-                        placeholder={
-                          field.state.value.mode === 'all'
-                            ? t('All projects')
-                            : t('Select projects…')
-                        }
-                      />
-                      <Flex align="center" justify="between" gap="md" wrap="wrap">
-                        <Text variant="muted" size="sm">
-                          {field.state.value.mode === 'monitors'
-                            ? t('Using connected monitor projects.')
-                            : t('Project access is independent of connected monitors.')}
-                        </Text>
-                        {field.state.value.mode !== 'monitors' && (
-                          <Button
-                            size="xs"
-                            disabled={readOnly}
-                            onClick={() => field.handleChange({mode: 'monitors'})}
-                          >
-                            {t('Use monitor projects')}
-                          </Button>
-                        )}
-                      </Flex>
-                    </Stack>
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-              <form.AppField name="scopes">
-                {field => (
-                  <field.Layout.Stack
-                    label={t('Permission scopes')}
-                    hintText={t(
-                      'Starts with read access for investigations. Add write permissions only for actions you want the service account to perform.'
-                    )}
-                    required
-                  >
-                    <field.Select
-                      multiple
-                      clearable
-                      searchable
-                      disabled={readOnly}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      options={[...new Set([...availableScopes, ...field.state.value])]
-                        .sort()
-                        .map(scope => ({value: scope, label: scope}))}
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
+                      </form.AppField>
+                    </Container>
+                  </Stack>
+                </Disclosure.Content>
+              </Disclosure>
             </Stack>
           </form.FieldGroup>
 
@@ -504,32 +494,9 @@ function ConnectedMonitors({
 
 function getServiceAccountProjectSelection(
   serviceAccount: SeerServiceAccountResponse | null
-): z.infer<typeof serviceAccountProjectsSchema> {
-  if (!serviceAccount) {
-    return {mode: 'monitors'};
-  }
-  return serviceAccount.allProjects
-    ? {mode: 'all'}
-    : {mode: 'selected', projectIds: serviceAccount.projectIds.map(String)};
-}
-
-function resolveServiceAccountProjects(
-  selection: z.infer<typeof serviceAccountProjectsSchema>,
-  monitorIds: string[],
-  monitors: MetricDetector[]
-): string[] {
-  switch (selection.mode) {
-    case 'monitors':
-      return [
-        ...new Set(
-          monitors
-            .filter(monitor => monitorIds.includes(monitor.id))
-            .map(monitor => monitor.projectId)
-        ),
-      ];
-    case 'selected':
-      return selection.projectIds;
-    case 'all':
-      return [];
-  }
+): ServiceAccountProjectAccess {
+  return {
+    allProjects: serviceAccount?.allProjects ?? false,
+    projectIds: serviceAccount?.projectIds.map(String) ?? [],
+  };
 }

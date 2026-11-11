@@ -157,13 +157,22 @@ describe('MetricAutomationForm', () => {
     expect(await screen.findAllByText('#checkout-alerts')).not.toHaveLength(0);
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(
-      screen.getByRole('textbox', {name: 'Service account projects'})
+      screen.getByRole('button', {name: /1 project · 5 permissions/})
     );
-    await userEvent.click(
-      screen.getByRole('menuitemcheckbox', {name: 'payments-worker'})
+    expect(screen.getByText('1 connected monitor')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Remove checkout-api'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Add projects'}));
+    await userEvent.click(screen.getByRole('option', {name: 'payments-worker'}));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('button', {name: 'Remove payments-worker'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Issue & Event permission'}));
+    expect(screen.getByRole('option', {name: 'Admin'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Permission scopes'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'event:write'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Read & Write'}));
     await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
 
     await waitFor(() =>
@@ -180,7 +189,7 @@ describe('MetricAutomationForm', () => {
           enabled: false,
           monitorIds: [1],
           serviceAccount: {
-            scopes: [...serviceAccount.scopes, 'event:write'],
+            scopes: [...serviceAccount.scopes, 'event:write'].sort(),
             projectIds: [1, 2],
             allProjects: false,
           },
