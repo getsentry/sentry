@@ -140,7 +140,9 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
     return getDiscoverSeriesQueryOptions({
       ...options,
       dataset: DetectorSpansConfig.getDiscoverDataset(),
-      aggregate: translateAggregateTag(options.aggregate),
+      aggregate: isEquation(options.aggregate)
+        ? options.aggregate
+        : translateAggregateTag(options.aggregate),
     });
   },
   getIntervals: ({detectionType}) => {
@@ -174,11 +176,12 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
+  // The backend stores equations exactly as sent, so they skip the `user` tag translation.
   fromApiAggregate: aggregate => {
-    return translateAggregateTag(aggregate);
+    return isEquation(aggregate) ? aggregate : translateAggregateTag(aggregate);
   },
   toApiAggregate: aggregate => {
-    return translateAggregateTagBack(aggregate);
+    return isEquation(aggregate) ? aggregate : translateAggregateTagBack(aggregate);
   },
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
   getDiscoverDataset: () => DiscoverDatasets.SPANS,

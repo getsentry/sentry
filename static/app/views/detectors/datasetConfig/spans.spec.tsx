@@ -54,4 +54,10 @@ describe('spans equations', () => {
     expect(DetectorSpansConfig.fromApiAggregate(equation)).toBe(equation);
     expect(DetectorSpansConfig.toApiAggregate(equation)).toBe(equation);
   });
+
+  it('does not translate the user tag inside an equation', () => {
+    const userEquation = 'equation|count_unique(user) / count_unique(user)';
+    expect(DetectorSpansConfig.toApiAggregate(userEquation)).toBe(userEquation);
+    expect(DetectorSpansConfig.fromApiAggregate(userEquation)).toBe(userEquation);
+  });
 });
