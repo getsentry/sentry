@@ -928,8 +928,6 @@ function GroupDetailsContainer() {
 
 export default Sentry.withProfiler(GroupDetailsContainer);
 
-// Pad a wrapper instead of adding margin to the full-width Alert, which would
-// push it past the edge of the page and cause a horizontal scroll.
 function GroupLoadingError(props: React.ComponentProps<typeof LoadingError>) {
   return (
     <Container padding="xl">
