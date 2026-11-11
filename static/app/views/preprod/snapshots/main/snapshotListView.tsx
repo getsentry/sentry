@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 import {createSerializer, parseAsString} from 'nuqs';
 
 import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
@@ -21,6 +22,7 @@ import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
@@ -65,11 +67,14 @@ function snapshotKeyFor(card: GroupCard): string {
 
 const serializeSnapshotLinkQuery = createSerializer({selectedSnapshot: parseAsString});
 
-export function buildSnapshotLink(snapshotKey: string): string {
-  const search = serializeSnapshotLinkQuery(window.location.search, {
+export function buildSnapshotLink(
+  location: Pick<Location, 'pathname' | 'search'>,
+  snapshotKey: string
+): string {
+  const search = serializeSnapshotLinkQuery(location.search, {
     selectedSnapshot: snapshotKey,
   });
-  return `${window.location.origin}${window.location.pathname}${search}`;
+  return `${window.location.origin}${location.pathname}${search}`;
 }
 
 type GroupCard =
@@ -1017,7 +1022,11 @@ const CardRow = memo(function CardRowImpl({
   const {card} = row;
   const snapshotKey = snapshotKeyFor(card);
   const isSelected = snapshotKey === selectedSnapshotKey;
-  const copyUrl = useMemo(() => buildSnapshotLink(snapshotKey), [snapshotKey]);
+  const location = useLocation();
+  const copyUrl = useMemo(
+    () => buildSnapshotLink(location, snapshotKey),
+    [location, snapshotKey]
+  );
   const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
   const onCopyLink = useCallback(
     () =>

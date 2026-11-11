@@ -54,7 +54,7 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
           <QueryClientProvider client={queryClient}>
             <DocumentTitleManager>
               <ThemeAndStyleProvider>
-                <NuqsAdapter>
+                <NuqsAdapter defaultOptions={{shallow: false}}>
                   <CommandPaletteProvider>
                     <SimpleRouter
                       element={
