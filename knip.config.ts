@@ -8,6 +8,8 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
+  // TODO: Remove when setup flows consume the agent handoff prompt
+  'components/agentHandoff/agentHandoffPrompt.tsx',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -22,13 +24,9 @@ const productionEntryPoints = [
   'utils/seer/useSeerCreditCheck.tsx',
   // TODO: Remove when the Seer credit gates render it (#129563, #129565)
   'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
-  // TODO: Remove when onboarding consumes the agent handoff hook
-  'components/agentHandoff/useAgentHandoff.tsx',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
-  // TODO: Remove when the handoff prompt consumes its interaction hook
-  'components/agentHandoff/useHandoffPromptInteractions.tsx',
 ];
 
 // Scoped configs reuse the test package's dependencies. Parse the shared config

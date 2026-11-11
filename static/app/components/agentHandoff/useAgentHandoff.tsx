@@ -15,7 +15,7 @@ interface HandoffPrompt {
   prompt: string;
 }
 
-export interface OnboardingHandoffContext {
+interface OnboardingHandoffContext {
   runId: string;
 }
 
@@ -23,7 +23,7 @@ interface HandoffContexts {
   [AgentHandoffFlow.ONBOARDING]: OnboardingHandoffContext;
 }
 
-type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
+export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
   HandoffContexts[Flow];
 
 interface HandoffPromptOptions<Flow extends AgentHandoffFlow> {
