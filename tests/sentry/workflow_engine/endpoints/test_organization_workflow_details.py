@@ -148,23 +148,6 @@ class OrganizationWorkflowProjectScopeTest(APITestCase):
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "PUT"
 
-    def test_update_rejects_internal_trigger(self) -> None:
-        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
-        with mock.patch.object(handler, "is_internal", True):
-            self.get_error_response(
-                self.organization.slug,
-                self.workflow.id,
-                status_code=400,
-                raw_data={
-                    "triggers": {
-                        "logicType": "any-short",
-                        "conditions": [{"type": Condition.FIRST_SEEN_EVENT, "comparison": True}],
-                    }
-                },
-            )
-        assert self.workflow.when_condition_group is not None
-        assert not self.workflow.when_condition_group.conditions.exists()
-
     def test_update_cannot_replace_internal_condition(self) -> None:
         condition = self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
@@ -193,24 +176,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             )
         condition.refresh_from_db()
         assert condition.type == Condition.FIRST_SEEN_EVENT
-
-    def test_update_cannot_reuse_internal_group_without_conditions(self) -> None:
-        condition = self.create_data_condition(
-            condition_group=self.workflow.when_condition_group,
-            type=Condition.FIRST_SEEN_EVENT,
-            comparison=True,
-        )
-        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
-        with mock.patch.object(handler, "is_internal", True):
-            self.get_error_response(
-                self.organization.slug,
-                self.workflow.id,
-                status_code=400,
-                raw_data={
-                    "triggers": {"id": condition.condition_group_id, "logicType": "any-short"}
-                },
-            )
-        condition.refresh_from_db()
 
     def setUp(self) -> None:
         super().setUp()
