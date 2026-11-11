@@ -175,10 +175,11 @@ export function isSwitcherQuery(value: string): boolean {
 }
 
 export function buildNavigationTypeGlobalFilter(
-  buckets: NavigationTypeBucket[]
+  buckets: NavigationTypeBucket[],
+  dataset: WidgetType = WidgetType.SPANS
 ): GlobalFilter {
   const filter: GlobalFilter = {
-    dataset: WidgetType.SPANS,
+    dataset,
     tag: NAVIGATION_TYPE_TAG,
     value: navigationTypeQuery(buckets),
   };
@@ -190,9 +191,13 @@ export function buildNavigationTypeGlobalFilter(
 
 export function isNavigationTypeGlobalFilter(filter: GlobalFilter): boolean {
   return (
-    filter.dataset === WidgetType.SPANS &&
+    (filter.dataset === WidgetType.SPANS || filter.dataset === WidgetType.TRACEMETRICS) &&
     filter.tag.key === SpanFields.BROWSER_NAVIGATION_TYPE
   );
+}
+
+export function getNavigationTypeDataset(filters: GlobalFilter[]): WidgetType {
+  return filters.find(isNavigationTypeGlobalFilter)?.dataset ?? WidgetType.SPANS;
 }
 
 export function getBucketsFromGlobalFilters(
