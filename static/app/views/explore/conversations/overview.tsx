@@ -17,6 +17,7 @@ import {
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ConversationsEventParameters} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -160,20 +161,32 @@ function ConversationsOverviewPage() {
     });
   }, [organization]);
 
+  // Without agentic spans, onboarding replaces every tab, so it is tracked
+  // regardless of which tab is selected.
+  let onboardingEmptyState:
+    | ConversationsEventParameters['conversations.onboarding.page-view']['empty_state']
+    | null = null;
+  if (showOnboarding && !hasAgenticSpans) {
+    onboardingEmptyState = 'no_agent_spans';
+  } else if (showOnboarding && isConversationsTab) {
+    onboardingEmptyState = 'no_conversations';
+  }
+
   useEffect(() => {
-    if (isOnboardingLoading || !isConversationsTab) {
+    if (isOnboardingLoading) {
       return;
     }
-    if (showOnboarding) {
+    if (onboardingEmptyState) {
       trackAnalytics('conversations.onboarding.page-view', {
         organization,
+        empty_state: onboardingEmptyState,
       });
-    } else {
+    } else if (isConversationsTab) {
       trackAnalytics('conversations.table.page-view', {
         organization,
       });
     }
-  }, [isConversationsTab, showOnboarding, isOnboardingLoading, organization]);
+  }, [isConversationsTab, onboardingEmptyState, isOnboardingLoading, organization]);
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
