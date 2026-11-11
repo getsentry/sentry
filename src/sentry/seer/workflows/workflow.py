@@ -104,28 +104,36 @@ class SeerWorkflow:
             )
 
     @classmethod
-    @contextmanager
-    def _create_config(
+    def create(
         cls,
         *,
-        database: str,
         organization_id: int,
         strategy: SeerWorkflowStrategy,
-        enabled: bool,
-        schedule: SeerWorkflowSchedule,
-        filters: SeerWorkflowFilters,
-        service_account_grant: SeerServiceAccountGrant,
+        enabled: bool = False,
+        schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
+        scope: ScopeSelection,
+        environments: Sequence[str] = (),
         extras: SeerWorkflowConfigExtras | None = None,
-    ) -> Iterator[SeerWorkflowConfig]:
+        service_account_grant: SeerServiceAccountGrant,
+    ) -> SeerWorkflow:
         """
-        Create a config within the org's automation limit, with an outbox that creates its
-        service account in control. Writes in the block share the config's
-        transaction, so a config is never committed without the outbox that links its
-        account.
+        Create a user-defined automation within the org's automation limit. ``scope`` takes
+        the form the strategy's trigger selects projects by, and ``environments=[]`` means all
+        environments. ``service_account_grant`` sets the access of the automation's service
+        account, which is independent of ``scope``. Callers must authorize the grant and audit it.
 
-        The outbox drains when the transaction commits. If that fails, the config is kept
-        without an account and the outbox retries in the background.
+        The config, its scope, and the outbox that creates its service account in control share
+        one transaction, so a config is never committed without the outbox that links its
+        account. The outbox drains when the transaction commits. If that fails, the config is
+        kept without an account and the outbox retries in the background.
         """
+        # TODO(telkins): Connect existing default Error Spike monitors when seeding the
+        # default automation, and connect new projects' default monitors as they are created.
+        if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
+            raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
+        extras = extras or SeerWorkflowConfigExtras()
+        definition = get_definition(strategy)
+        definition.validate_settings(extras)
         if not service_account_grant.all_projects:
             validate_project_ids(organization_id, set(service_account_grant.project_ids))
         try:
@@ -133,7 +141,7 @@ class SeerWorkflow:
         except InvalidScopeError as e:
             raise WorkflowUpdateError(" ".join(e.messages)) from e
 
-        extras = extras or SeerWorkflowConfigExtras()
+        database = router.db_for_write(SeerWorkflowConfig)
         try:
             with outbox_context(transaction.atomic(database), flush=True):
                 existing = (
@@ -154,7 +162,7 @@ class SeerWorkflow:
                     strategy=strategy,
                     enabled=enabled,
                     schedule=schedule,
-                    filters=filters.dict(),
+                    filters=SeerWorkflowFilters(environments=list(environments)).dict(),
                     extras=extras.dict(exclude_none=True),
                 )
                 service_account_create_outbox(
@@ -167,67 +175,29 @@ class SeerWorkflow:
                     all_projects=service_account_grant.all_projects,
                     created_by_id=extras.created_by,
                 ).save()
-                yield config
+
+                update = ConfigUpdate(LockedConfig(config), definition)
+                update.set_scope(scope)
+                if update.dirty_fields:
+                    config.save(using=database, update_fields=sorted(update.dirty_fields))
+                definition.trigger.sync(config)
+                transaction.on_commit(
+                    partial(
+                        logger.info,
+                        "seer.workflow.created",
+                        extra={
+                            "organization_id": organization_id,
+                            "config_id": config.id,
+                            "config_version": config.version,
+                            "strategy": config.strategy,
+                        },
+                    ),
+                    using=database,
+                )
         except (OutboxFlushError, OutboxDatabaseError):
             logger.exception(
                 "seer.workflow.service_account.flush_failed",
                 extra={"organization_id": organization_id},
-            )
-
-    @classmethod
-    def create(
-        cls,
-        *,
-        organization_id: int,
-        strategy: SeerWorkflowStrategy,
-        enabled: bool = False,
-        schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
-        scope: ScopeSelection,
-        environments: Sequence[str] = (),
-        extras: SeerWorkflowConfigExtras | None = None,
-        service_account_grant: SeerServiceAccountGrant,
-    ) -> SeerWorkflow:
-        """
-        Create a user-defined automation. ``scope`` takes the form the strategy's trigger
-        selects projects by, and ``environments=[]`` means all environments.
-        ``service_account_grant`` sets the access of the automation's service account, which
-        is independent of ``scope``. Callers must authorize the grant and audit it.
-        """
-        # TODO(telkins): Connect existing default Error Spike monitors when seeding the
-        # default automation, and connect new projects' default monitors as they are created.
-        if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
-            raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
-        definition = get_definition(strategy)
-        definition.validate_settings(extras or SeerWorkflowConfigExtras())
-
-        database = router.db_for_write(SeerWorkflowConfig)
-        with cls._create_config(
-            database=database,
-            organization_id=organization_id,
-            strategy=strategy,
-            enabled=enabled,
-            schedule=schedule,
-            filters=SeerWorkflowFilters(environments=list(environments)),
-            service_account_grant=service_account_grant,
-            extras=extras,
-        ) as config:
-            update = ConfigUpdate(LockedConfig(config), definition)
-            update.set_scope(scope)
-            if update.dirty_fields:
-                config.save(using=database, update_fields=sorted(update.dirty_fields))
-            definition.trigger.sync(config)
-            transaction.on_commit(
-                partial(
-                    logger.info,
-                    "seer.workflow.created",
-                    extra={
-                        "organization_id": organization_id,
-                        "config_id": config.id,
-                        "config_version": config.version,
-                        "strategy": config.strategy,
-                    },
-                ),
-                using=database,
             )
         return cls(config_id=config.id, organization_id=organization_id)
 
