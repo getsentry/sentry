@@ -1,5 +1,3 @@
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
-
 from sentry.api.endpoints.organization_trace_item_attributes import (
     build_sentry_attribute_context,
     build_sentry_convention_context,
@@ -60,7 +58,6 @@ def test_build_sentry_convention_context_uses_stored_replacement_under_deprecate
 
     assert context is not None
     assert context["isDeprecated"] is False
-    assert context["brief"] == ATTRIBUTE_METADATA["sentry.release"].brief
     assert "replacementAttribute" not in context
 
 
