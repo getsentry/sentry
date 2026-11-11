@@ -335,6 +335,33 @@ describe('AutofixSection', () => {
       expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     });
 
+    it('collapses an expanded autofix-tab section when the run opens in the panel', async () => {
+      mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      const {rerender} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
+      expect(screen.getByRole('button', {name: 'Collapse Section'})).toBeInTheDocument();
+
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      rerender(<AutofixSection group={mockGroup} project={mockProject} />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'View Section'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        )
+      );
+    });
+
     it('keeps the section while the Explorer panel shows another chat', async () => {
       mockIsExplorerOpen = true;
       mockOpenRunId = 123;

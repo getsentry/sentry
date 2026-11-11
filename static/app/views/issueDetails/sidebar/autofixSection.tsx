@@ -120,7 +120,7 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       // there. Opening it on that tab shouldn't change the saved preference
       // for every other tab, and the key remounts it so each tab starts from
       // its own state.
-      key={startCollapsed ? 'collapsed' : 'default'}
+      key={`${isOnAutofixTab}-${isAutofixChatOpen}`}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
