@@ -32,6 +32,12 @@ class ProducerSourceTypeRegistryTest(TestCase):
     def test_type_must_fit_the_source_type_column(self) -> None:
         with pytest.raises(ValueError):
             register_producer_source_type(replace(EXAMPLE_SOURCE_TYPE, name="x" * 33))
+        assert "x" * 33 not in PRODUCER_SOURCE_TYPES
+
+    def test_type_cannot_contain_a_colon(self) -> None:
+        with pytest.raises(ValueError):
+            register_producer_source_type(replace(EXAMPLE_SOURCE_TYPE, name="example:issue"))
+        assert "example:issue" not in PRODUCER_SOURCE_TYPES
 
     def test_key_and_source_carry_the_type(self) -> None:
         resolved = ResolvedProducerSource(

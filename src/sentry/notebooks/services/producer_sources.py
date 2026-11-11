@@ -7,7 +7,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.models.organization import Organization
-from sentry.notebooks.models import NotebookSourceType
+from sentry.notebooks.models import Notebook, NotebookSourceType
 
 
 @dataclass(frozen=True)
@@ -38,16 +38,17 @@ class ProducerSourceType:
 
 PRODUCER_SOURCE_TYPES: dict[str, ProducerSourceType] = {}
 
-# Notebook.source_type holds the type name.
-MAX_SOURCE_TYPE_LENGTH = 32
-
 
 def register_producer_source_type(source_type: ProducerSourceType) -> None:
     # The engine and manual notebooks have their own create paths.
     if source_type.name in NotebookSourceType.values:
         raise ValueError(f"{source_type.name} is not a producer source type.")
-    if len(source_type.name) > MAX_SOURCE_TYPE_LENGTH:
-        raise ValueError(f"{source_type.name} is longer than {MAX_SOURCE_TYPE_LENGTH} characters.")
+    max_length = Notebook._meta.get_field("source_type").max_length
+    if max_length is not None and len(source_type.name) > max_length:
+        raise ValueError(f"{source_type.name} is longer than {max_length} characters.")
+    # source_key is "<type>:<key>", so a ":" in the type would let two sources share a key.
+    if ":" in source_type.name:
+        raise ValueError(f"{source_type.name} can't contain ':'.")
     PRODUCER_SOURCE_TYPES[source_type.name] = source_type
 
 
