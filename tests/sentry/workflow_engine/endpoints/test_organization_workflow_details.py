@@ -156,11 +156,12 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         )
         handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
         with mock.patch.object(handler, "is_internal", True):
-            self.get_error_response(
+            response = self.get_error_response(
                 self.organization.slug,
                 self.workflow.id,
                 status_code=400,
                 raw_data={
+                    **self.valid_workflow,
                     "triggers": {
                         "logicType": "any",
                         "conditions": [
@@ -171,9 +172,31 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                                 "conditionResult": True,
                             }
                         ],
-                    }
+                    },
                 },
             )
+        assert "Internal condition groups" in str(response.data)
+        condition.refresh_from_db()
+        assert condition.type == Condition.FIRST_SEEN_EVENT
+
+    def test_update_cannot_clear_internal_conditions(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                status_code=400,
+                raw_data={
+                    **self.valid_workflow,
+                    "triggers": {"logicType": "any", "conditions": []},
+                },
+            )
+        assert "Internal condition groups" in str(response.data)
         condition.refresh_from_db()
         assert condition.type == Condition.FIRST_SEEN_EVENT
 

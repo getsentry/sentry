@@ -33,7 +33,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # Check persisted contents too: callers can reference a group without sending
         # its conditions, or replace an internal condition with a public type.
-        group_id = attrs.get("id") or (self.instance.id if self.instance is not None else None)
+        group_id = attrs.get("id")
         organization = self.context.get("organization")
         internal_types = get_internal_condition_types()
         if (
