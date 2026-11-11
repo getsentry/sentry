@@ -253,7 +253,6 @@
       "safeFields",
       "scrapeJavaScript",
       "scrubIPAddresses",
-      "securityToken",
       "securityTokenHeader",
       "sensitiveFields",
       "slug",
@@ -508,11 +507,13 @@
         "type": "boolean"
       },
       "securityToken": {
-        "type": "string"
+        "type": "string",
+        "description": "Token sent with outbound source-scraping requests. Only included with project:write or project:admin access."
       },
       "securityTokenHeader": {
         "type": "string",
-        "nullable": true
+        "nullable": true,
+        "description": "Name of the header carrying the outbound source-scraping token. Defaults to X-Sentry-Token."
       },
       "sensitiveFields": {
         "type": "array",

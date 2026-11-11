@@ -678,7 +678,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         collapse = request.GET.getlist("collapse", [])
         data: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer(collapse=collapse)
+            project,
+            request.user,
+            DetailedProjectSerializer(collapse=collapse),
+            access=request.access,
         )
 
         # TODO: should switch to expand and move logic into the serializer
@@ -742,7 +745,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        old_data = serialize(project, request.user, DetailedProjectSerializer())
+        old_data = serialize(
+            project, request.user, DetailedProjectSerializer(), access=request.access
+        )
         has_elevated_scopes = request.access and (
             request.access.has_scope("project:write")
             or request.access.has_scope("project:admin")
@@ -1315,7 +1320,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
                 if len(changed_proj_settings) == 1:
                     body_partial: _ProjectDetailsResponse = serialize(
-                        project, request.user, DetailedProjectSerializer()
+                        project, request.user, DetailedProjectSerializer(), access=request.access
                     )
                     return Response(body_partial)
 
@@ -1333,7 +1338,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         body: _ProjectDetailsResponse = serialize(
-            project, request.user, DetailedProjectSerializer()
+            project, request.user, DetailedProjectSerializer(), access=request.access
         )
         if not has_dynamic_sampling(project.organization):
             body["dynamicSamplingBiases"] = None

@@ -417,9 +417,25 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
 
         assert response.data[0]["options"] == {
             "quotas:spike-protection-disabled": True,
-            "sentry:token": 1,
         }
         assert not response.data[1].get("options")
+
+    def test_scraping_token_excluded_for_read_only_token(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
+        self.project.update_option("quotas:spike-protection-disabled", True)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, teams=[self.team])
+        token = self.create_user_auth_token(user=member, scope_list=["org:read"])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"options": ["sentry:token", "quotas:spike-protection-disabled"]},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        self.check_valid_response(response, [self.project])
+        assert response.data[0]["options"] == {"quotas:spike-protection-disabled": True}
+        assert self.project.get_option("sentry:token") == "source-token"
 
 
 class OrganizationProjectsCountTest(APITestCase):
