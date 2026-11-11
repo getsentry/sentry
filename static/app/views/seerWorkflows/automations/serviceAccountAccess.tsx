@@ -70,24 +70,18 @@ const PERMISSIONS = SENTRY_APP_PERMISSIONS.toSorted(
   (a, b) => RESOURCE_ORDER.indexOf(a.resource) - RESOURCE_ORDER.indexOf(b.resource)
 );
 
-type Permission = (typeof SENTRY_APP_PERMISSIONS)[number];
-type PermissionLevel = keyof Permission['choices'];
-
 /**
  * Choices ascend, so the last one fully granted is the current level
  */
 function getPermissionLevel(
-  permission: Permission,
+  permission: (typeof SENTRY_APP_PERMISSIONS)[number],
   scopes: Set<string>
-): PermissionLevel {
-  const levels = Object.keys(permission.choices) as PermissionLevel[];
+): string {
   return (
-    levels.findLast(level => {
-      const choice = permission.choices[level];
-      return (
-        choice && choice.scopes.length > 0 && choice.scopes.every(s => scopes.has(s))
-      );
-    }) ?? 'no-access'
+    Object.entries(permission.choices).findLast(
+      ([, choice]) =>
+        choice.scopes.length > 0 && choice.scopes.every(scope => scopes.has(scope))
+    )?.[0] ?? 'no-access'
   );
 }
 
