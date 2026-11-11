@@ -55,15 +55,15 @@ function useMarkInboxItemReadOnView({
   const {mutate: updateInboxItems} = useMutation(
     updateInboxItemsMutationOptions({organization, queryClient})
   );
-  // Last activity seen per subject when it was marked read, so a failed request is not
-  // retried in a loop. Undefined means it was marked before its item was loaded.
+  // Last activity seen per subject on view, so a failed request is not retried in
+  // a loop. Undefined means it was marked before its item was loaded.
   const attemptedRef = useRef(new Map<string, string | undefined>());
 
   const isUnread = item?.isUnread;
   const lastActivityAt = item?.lastActivityAt;
 
   useEffect(() => {
-    if (!subject || isPending || isUnread === false) {
+    if (!subject || isPending) {
       return;
     }
     const subjectKey = `${subject.subjectType}:${subject.subjectId}`;
@@ -73,7 +73,9 @@ function useMarkInboxItemReadOnView({
       (attemptedActivity === undefined || attemptedActivity === lastActivityAt);
 
     attemptedRef.current.set(subjectKey, lastActivityAt);
-    if (!alreadyAttempted) {
+    // Remember already-read items too, so explicitly marking the open item unread
+    // does not immediately mark it read again without new activity.
+    if (!alreadyAttempted && isUnread !== false) {
       updateInboxItems({subject, update: {isRead: true}});
     }
   }, [subject, isPending, isUnread, lastActivityAt, updateInboxItems]);

@@ -378,6 +378,203 @@ describe('Inbox', () => {
     expect(checkbox).not.toBeChecked();
   });
 
+  describe('individual actions', () => {
+    it('marks only that item as read without opening it', async () => {
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      const selectedCheckbox = await screen.findByRole('checkbox', {
+        name: `Select ${notebookItem.title}`,
+      });
+      await userEvent.click(selectedCheckbox);
+      const actions = screen.getByRole('button', {
+        name: `Actions for ${issueItem.title}`,
+      });
+      await userEvent.hover(actions);
+      await userEvent.click(actions);
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Mark as read'})
+      );
+
+      await waitFor(() =>
+        expect(markReadRequest).toHaveBeenCalledWith(
+          '/organizations/org-slug/inbox/',
+          expect.objectContaining({
+            method: 'PUT',
+            query: {id: [issueItem.id]},
+            data: {isRead: true},
+          })
+        )
+      );
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
+      expect(selectedCheckbox).toBeChecked();
+      expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+
+      await userEvent.click(actions);
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
+      ).toBeInTheDocument();
+    });
+
+    it('marks only that item as unread without opening it', async () => {
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      const selectedCheckbox = await screen.findByRole('checkbox', {
+        name: `Select ${notebookItem.title}`,
+      });
+      await userEvent.click(selectedCheckbox);
+      const actions = screen.getByRole('button', {
+        name: `Actions for ${readNotebookItem.title}`,
+      });
+      await userEvent.hover(actions);
+      await userEvent.click(actions);
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
+      );
+
+      await waitFor(() =>
+        expect(markReadRequest).toHaveBeenCalledWith(
+          '/organizations/org-slug/inbox/',
+          expect.objectContaining({
+            method: 'PUT',
+            query: {id: [readNotebookItem.id]},
+            data: {isRead: false},
+          })
+        )
+      );
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(3);
+      expect(selectedCheckbox).toBeChecked();
+      expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+
+      await userEvent.click(actions);
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Mark as read'})
+      ).toBeInTheDocument();
+    });
+
+    it('keeps the open item unread when explicitly marked unread', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/notebooks/1000209/',
+        body: InvestigationDetailFixture({id: '1000209'}),
+      });
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/notebook/1000209/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: `Actions for ${readNotebookItem.title}`,
+        })
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
+      );
+
+      await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(1));
+      expect(markReadRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({query: {id: ['3']}, data: {isRead: false}})
+      );
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(3);
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/inbox/notebook/1000209/'
+      );
+    });
+
+    it('removes only that item and lets you undo the removal', async () => {
+      const removeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'DELETE',
+        statusCode: 204,
+      });
+      render(<Inbox />, {organization});
+
+      const actions = await screen.findByRole('button', {
+        name: `Actions for ${notebookItem.title}`,
+      });
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: `Select ${notebookItem.title}`})
+      );
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: `Select ${issueItem.title}`})
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [issueItem, readNotebookItem],
+      });
+      await userEvent.click(actions);
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Remove'}));
+
+      await waitFor(() =>
+        expect(removeRequest).toHaveBeenCalledWith(
+          '/organizations/org-slug/inbox/',
+          expect.objectContaining({method: 'DELETE', query: {id: ['2']}})
+        )
+      );
+      expect(
+        screen.queryByRole('link', {name: notebookItem.title!})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('link', {name: issueItem.title!})).toBeInTheDocument();
+      expect(screen.getByText('1 selected')).toBeInTheDocument();
+      expect(
+        screen.getByRole('checkbox', {name: `Select ${issueItem.title}`})
+      ).toBeChecked();
+      expect(await screen.findByText('Removed 1 item')).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        body: [issueItem, notebookItem, readNotebookItem],
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Undo'}));
+
+      expect(markReadRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({
+          method: 'PUT',
+          query: {id: ['2']},
+          data: {undoRemoval: true},
+        })
+      );
+      expect(
+        await screen.findByRole('link', {name: notebookItem.title!})
+      ).toBeInTheDocument();
+    });
+
+    it('shows an error and restores the item when removal fails', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'DELETE',
+        statusCode: 500,
+      });
+      render(<Inbox />, {organization});
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: `Actions for ${notebookItem.title}`})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Remove'}));
+
+      expect(await screen.findByText('Unable to remove item')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: notebookItem.title!})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('bulk actions', () => {
     function renderInbox() {
       return render(<Inbox />, {
