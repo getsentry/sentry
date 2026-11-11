@@ -72,7 +72,7 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
         response = self.client.post(
             self.url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": self.block.version,
             },
             format="json",
@@ -102,7 +102,7 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
 
         mock_client.return_value.start_run.side_effect = start_run
         body = {
-            "investigationVersion": self.notebook.version,
+            "notebookVersion": self.notebook.version,
             "requestId": str(uuid4()),
             "version": self.block.version,
         }
@@ -129,7 +129,7 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
 
         mock_client.return_value.start_run.side_effect = start_run
         body = {
-            "investigationVersion": self.notebook.version,
+            "notebookVersion": self.notebook.version,
             "version": self.block.version,
         }
         first = self.client.post(self.url, data={**body, "requestId": str(uuid4())}, format="json")
@@ -158,7 +158,7 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
         response = self.client.post(
             self.url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": self.block.version,
             },
             format="json",
@@ -189,7 +189,7 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
         response = self.client.post(
             self.url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": self.block.version,
             },
             format="json",
@@ -288,7 +288,7 @@ class NotebookTextExecutionEndpointTest(APITestCase):
         response = self.client.post(
             self.url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "version": self.block.version,
             },
             format="json",

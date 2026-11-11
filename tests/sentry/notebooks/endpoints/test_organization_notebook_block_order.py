@@ -38,7 +38,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "blockIds": [block.id for block in reversed(blocks)],
             },
             format="json",
@@ -52,7 +52,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": version,
+                "notebookVersion": version,
                 "blockIds": [blocks[0].id, blocks[0].id, blocks[1].id],
             },
             format="json",
@@ -72,7 +72,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
             response = self.client.put(
                 url,
                 data={
-                    "investigationVersion": self.notebook.version,
+                    "notebookVersion": self.notebook.version,
                     "blockIds": block_ids,
                 },
                 format="json",
@@ -87,7 +87,7 @@ class NotebookBlockOrderEndpointTest(APITestCase):
         response = self.client.put(
             url,
             data={
-                "investigationVersion": self.notebook.version,
+                "notebookVersion": self.notebook.version,
                 "blockIds": [first.id, second.id],
             },
             format="json",

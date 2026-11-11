@@ -98,7 +98,7 @@ class NotebookWriterTest(APITestCase):
         )
         block = client.post(
             self.url("sentry-api-0-organization-notebook-blocks", notebook_id=self.notebook.id),
-            {"investigationVersion": self.notebook.version, "kind": "text", "content": "a"},
+            {"notebookVersion": self.notebook.version, "kind": "text", "content": "a"},
             format="json",
         )
         if block.status_code != 201:
@@ -110,17 +110,17 @@ class NotebookWriterTest(APITestCase):
         )
         updated = client.put(
             block_url,
-            {"investigationVersion": 2, "version": 1, "content": "b"},
+            {"notebookVersion": 2, "version": 1, "content": "b"},
             format="json",
         )
         ordered = client.put(
             self.url(
                 "sentry-api-0-organization-notebook-block-order", notebook_id=self.notebook.id
             ),
-            {"investigationVersion": 3, "blockIds": [int(block.data["id"])]},
+            {"notebookVersion": 3, "blockIds": [int(block.data["id"])]},
             format="json",
         )
-        deleted = client.delete(block_url, {"investigationVersion": 4, "version": 2}, format="json")
+        deleted = client.delete(block_url, {"notebookVersion": 4, "version": 2}, format="json")
         return [
             created.status_code,
             block.status_code,
@@ -171,20 +171,20 @@ class NotebookWriterTest(APITestCase):
             assert (
                 client.put(
                     block_url,
-                    {"investigationVersion": 1, "version": 1, "content": "no"},
+                    {"notebookVersion": 1, "version": 1, "content": "no"},
                     format="json",
                 ).status_code
                 == 403
             )
             assert (
                 client.put(
-                    order_url, {"investigationVersion": 1, "blockIds": [block.id]}, format="json"
+                    order_url, {"notebookVersion": 1, "blockIds": [block.id]}, format="json"
                 ).status_code
                 == 403
             )
             assert (
                 client.delete(
-                    block_url, {"investigationVersion": 1, "version": 1}, format="json"
+                    block_url, {"notebookVersion": 1, "version": 1}, format="json"
                 ).status_code
                 == 403
             )
@@ -195,8 +195,8 @@ class NotebookWriterTest(APITestCase):
     def change_notebook(self, client: APIClient) -> list[int]:
         """Rename then archive the notebook and return the status codes."""
         url = self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
-        renamed = client.put(url, {"investigationVersion": 1, "title": "Renamed"}, format="json")
-        archived = client.delete(url, {"investigationVersion": 2}, format="json")
+        renamed = client.put(url, {"notebookVersion": 1, "title": "Renamed"}, format="json")
+        archived = client.delete(url, {"notebookVersion": 2}, format="json")
         return [renamed.status_code, archived.status_code]
 
     def test_users_agents_and_service_accounts_change_notebooks(self) -> None:

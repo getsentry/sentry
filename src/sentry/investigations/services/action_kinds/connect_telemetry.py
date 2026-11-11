@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 from django.db import router, transaction
 from django.db.models import QuerySet
 from rest_framework import serializers
 
 from sentry import features
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.models.organization import Organization
@@ -36,7 +37,9 @@ class ConnectTelemetryActionSerializer(ActionPayloadSerializer):
 
 
 class ConnectTelemetryAppliedDetails(TypedDict):
-    provider: TelemetryProvider
+    provider: Annotated[
+        TelemetryProvider, ApiDescription("The telemetry provider that was connected")
+    ]
 
 
 def telemetry_available(organization: Organization, provider: TelemetryProvider) -> bool:

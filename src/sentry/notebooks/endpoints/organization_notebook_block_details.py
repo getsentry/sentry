@@ -11,6 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -32,7 +33,8 @@ from sentry.notebooks.services import delete_block, update_block
 @cell_silo_endpoint
 class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PRIVATE, "DELETE": ApiPublishStatus.PRIVATE}
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC, "DELETE": ApiPublishStatus.PUBLIC}
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="Update an Investigation Block",
@@ -58,7 +60,8 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
                 value={"notebookVersion": 2, "version": 1, "content": "Revised observations"},
                 request_only=True,
             )
-        ],
+        ]
+        + NotebookExamples.BLOCK_DETAILS,
     )
     def put(
         self,

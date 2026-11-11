@@ -13,6 +13,7 @@ from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
@@ -79,7 +80,8 @@ def filter_by_trigger(
 @cell_silo_endpoint
 class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PUBLIC}
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="List an Organization's Investigations",
@@ -200,7 +202,8 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
                 value={"title": "Checkout latency", "projectIds": [1]},
                 request_only=True,
             )
-        ],
+        ]
+        + NotebookExamples.CREATE_NOTEBOOK,
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """

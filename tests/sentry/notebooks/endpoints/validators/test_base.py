@@ -73,23 +73,11 @@ class TestNotebookVersionValidator:
 
         assert data == {"notebook_version": 3}
 
-    def test_takes_the_old_investigation_version_name(self) -> None:
-        data = assert_valid(NotebookVersionValidator(data={"investigationVersion": 3}))
-
-        assert data == {"notebook_version": 3}
-
-    def test_takes_both_names_with_the_same_value(self) -> None:
-        data = assert_valid(
-            NotebookVersionValidator(data={"notebookVersion": 3, "investigationVersion": 3})
-        )
-
-        assert data == {"notebook_version": 3}
-
-    def test_rejects_both_names_with_different_values(self) -> None:
-        validator = NotebookVersionValidator(data={"notebookVersion": 3, "investigationVersion": 2})
+    def test_rejects_the_investigation_version_name(self) -> None:
+        validator = NotebookVersionValidator(data={"notebookVersion": 3, "investigationVersion": 3})
 
         assert not validator.is_valid()
-        assert "notebookVersion" in validator.errors
+        assert "investigationVersion" in validator.errors
 
     def test_requires_a_version(self) -> None:
         validator = NotebookVersionValidator(data={})

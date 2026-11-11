@@ -673,7 +673,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             self.investigation.refresh_from_db()
             validator = BlockUpdateValidator(
                 data={
-                    "investigationVersion": self.investigation.version,
+                    "notebookVersion": self.investigation.version,
                     "version": block.version,
                     "display": {**block.display, "queryCollapsed": False},
                 },

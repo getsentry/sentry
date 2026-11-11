@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -32,7 +33,8 @@ from sentry.service_accounts.auth import is_service_account_auth
 @cell_silo_endpoint
 class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    publish_status = {"POST": ApiPublishStatus.PUBLIC}
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="Create an Investigation Block",
@@ -71,7 +73,8 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
                 },
                 request_only=True,
             ),
-        ],
+        ]
+        + NotebookExamples.CREATE_BLOCK,
     )
     def post(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """

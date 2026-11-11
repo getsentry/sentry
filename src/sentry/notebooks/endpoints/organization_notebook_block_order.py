@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -31,7 +32,8 @@ from sentry.notebooks.services import reorder_blocks
 @cell_silo_endpoint
 class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="Reorder Investigation Blocks",
@@ -53,7 +55,8 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
                 value={"notebookVersion": 3, "blockIds": [2, 1]},
                 request_only=True,
             )
-        ],
+        ]
+        + NotebookExamples.NOTEBOOK_DETAILS,
     )
     def put(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """

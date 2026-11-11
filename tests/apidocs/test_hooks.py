@@ -51,7 +51,9 @@ def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     )
     with patch("sentry.apidocs.hooks.__write_ownership_data"):
         published = custom_preprocessing_hook(endpoints)
-    assert not {entry[0] for entry in selected}.intersection(entry[0] for entry in published)
+    assert not {(entry[0], entry[2]) for entry in selected}.intersection(
+        (entry[0], entry[2]) for entry in published
+    )
 
 
 class EndpointServersTest(TestCase):

@@ -117,31 +117,31 @@ class TestValidateDisplay:
 
 class TestBlockCreateValidator:
     def test_defaults_the_display_for_a_text_block(self) -> None:
-        data = assert_valid(BlockCreateValidator(data={"investigationVersion": 1, "kind": "text"}))
+        data = assert_valid(BlockCreateValidator(data={"notebookVersion": 1, "kind": "text"}))
 
         assert data["display"] == {"type": "markdown"}
 
     def test_defaults_the_display_for_a_query_block(self) -> None:
-        data = assert_valid(BlockCreateValidator(data={"investigationVersion": 1, "kind": "query"}))
+        data = assert_valid(BlockCreateValidator(data={"notebookVersion": 1, "kind": "query"}))
 
         assert data["display"] == {"version": 1, "type": "table", "defaultView": "table"}
 
     def test_rejects_an_unknown_kind(self) -> None:
-        validator = BlockCreateValidator(data={"investigationVersion": 1, "kind": "diagram"})
+        validator = BlockCreateValidator(data={"notebookVersion": 1, "kind": "diagram"})
 
         assert not validator.is_valid()
         assert "kind" in validator.errors
 
     def test_rejects_a_non_object_display(self) -> None:
         validator = BlockCreateValidator(
-            data={"investigationVersion": 1, "kind": "text", "display": "markdown"}
+            data={"notebookVersion": 1, "kind": "text", "display": "markdown"}
         )
 
         assert not validator.is_valid()
 
     def test_rejects_a_non_object_config(self) -> None:
         validator = BlockCreateValidator(
-            data={"investigationVersion": 1, "kind": "text", "config": [1, 2]}
+            data={"notebookVersion": 1, "kind": "text", "config": [1, 2]}
         )
 
         assert not validator.is_valid()
@@ -152,21 +152,19 @@ class TestBlockCreateValidator:
         assert not validator.is_valid()
         assert "notebookVersion" in validator.errors
 
-    def test_takes_the_notebook_version_under_either_name(self) -> None:
-        for data in ({"notebookVersion": 2}, {"investigationVersion": 2}):
-            validator = BlockCreateValidator(data={"kind": "text", **data})
+    def test_a_notebook_version_excludes_a_producer_key(self) -> None:
+        validator = BlockCreateValidator(
+            data={
+                "notebookVersion": 1,
+                "kind": "text",
+                "key": "summary",
+                "revision": 1,
+                "content": "a",
+            }
+        )
 
-            assert validator.is_valid(), validator.errors
-            assert validator.validated_data["notebook_version"] == 2
-
-    def test_a_notebook_version_under_either_name_excludes_a_producer_key(self) -> None:
-        for name in ("notebookVersion", "investigationVersion"):
-            validator = BlockCreateValidator(
-                data={name: 1, "kind": "text", "key": "summary", "revision": 1, "content": "a"}
-            )
-
-            assert not validator.is_valid()
-            assert "detail" in validator.errors
+        assert not validator.is_valid()
+        assert "detail" in validator.errors
 
 
 class TestBlockUpdateValidator:
@@ -175,7 +173,7 @@ class TestBlockUpdateValidator:
             kind = NotebookBlockKind.TEXT
 
         validator = BlockUpdateValidator(
-            data={"investigationVersion": 1, "version": 1, "display": {"type": "markdown"}},
+            data={"notebookVersion": 1, "version": 1, "display": {"type": "markdown"}},
             context={"block": FakeBlock()},
         )
 
@@ -187,7 +185,7 @@ class TestBlockUpdateValidator:
 
         validator = BlockUpdateValidator(
             data={
-                "investigationVersion": 1,
+                "notebookVersion": 1,
                 "version": 1,
                 "display": {"type": "line", "xAxis": "time", "yAxes": ["count()"]},
             },
@@ -197,13 +195,13 @@ class TestBlockUpdateValidator:
         assert not validator.is_valid()
 
     def test_requires_both_versions(self) -> None:
-        validator = BlockUpdateValidator(data={"investigationVersion": 1})
+        validator = BlockUpdateValidator(data={"notebookVersion": 1})
 
         assert not validator.is_valid()
         assert "version" in validator.errors
 
     def test_requires_a_block_field(self) -> None:
-        validator = BlockUpdateValidator(data={"investigationVersion": 1, "version": 1})
+        validator = BlockUpdateValidator(data={"notebookVersion": 1, "version": 1})
 
         assert not validator.is_valid()
         assert "detail" in validator.errors
@@ -211,14 +209,12 @@ class TestBlockUpdateValidator:
 
 class TestBlockOrderValidator:
     def test_accepts_block_ids(self) -> None:
-        data = assert_valid(
-            BlockOrderValidator(data={"investigationVersion": 1, "blockIds": [3, 1, 2]})
-        )
+        data = assert_valid(BlockOrderValidator(data={"notebookVersion": 1, "blockIds": [3, 1, 2]}))
 
         assert data["block_ids"] == [3, 1, 2]
 
     def test_rejects_non_positive_ids(self) -> None:
-        validator = BlockOrderValidator(data={"investigationVersion": 1, "blockIds": [0]})
+        validator = BlockOrderValidator(data={"notebookVersion": 1, "blockIds": [0]})
 
         assert not validator.is_valid()
 
@@ -231,7 +227,7 @@ class TestBlockDisplayErrorScoping:
         """
         validator = BlockCreateValidator(
             data={
-                "investigationVersion": 1,
+                "notebookVersion": 1,
                 "kind": "text",
                 "display": {"type": "line", "xAxis": "time", "yAxes": ["count()"]},
             }
@@ -244,7 +240,7 @@ class TestBlockDisplayErrorScoping:
     def test_block_update_requires_the_block_in_context(self) -> None:
         """Without the guard this raised an uncaught KeyError, i.e. a 500."""
         validator = BlockUpdateValidator(
-            data={"investigationVersion": 1, "version": 1, "display": {"type": "markdown"}}
+            data={"notebookVersion": 1, "version": 1, "display": {"type": "markdown"}}
         )
 
         assert not validator.is_valid()
@@ -254,7 +250,7 @@ class TestBlockDisplayErrorScoping:
     def test_rejects_non_boolean_display_flags(self, flag: str) -> None:
         validator = BlockCreateValidator(
             data={
-                "investigationVersion": 1,
+                "notebookVersion": 1,
                 "kind": "query",
                 "display": {
                     "version": 1,
@@ -273,7 +269,7 @@ class TestBlockDisplayErrorScoping:
     def test_accepts_boolean_display_flags(self, flag: str) -> None:
         validator = BlockCreateValidator(
             data={
-                "investigationVersion": 1,
+                "notebookVersion": 1,
                 "kind": "query",
                 "display": {
                     "version": 1,

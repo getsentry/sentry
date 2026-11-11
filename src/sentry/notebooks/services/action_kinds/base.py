@@ -4,10 +4,11 @@ import abc
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Generic, NotRequired, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, Generic, NotRequired, TypedDict, TypeVar
 
 from rest_framework.request import Request
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
 from sentry.notebooks.contracts import ActionPayloadSerializer
@@ -60,9 +61,14 @@ class ApplyError(TypedDict):
 class ActionRequestError(TypedDict):
     """What's stored on a request that went wrong, and shown with it."""
 
-    code: ApplyErrorCode
-    current: NotRequired[dict[str, SettingValue]]
-    messages: NotRequired[list[str]]
+    code: Annotated[ApplyErrorCode, ApiDescription("The error code")]
+    current: NotRequired[
+        Annotated[
+            dict[str, SettingValue],
+            ApiDescription("The current values of the settings the action would change"),
+        ]
+    ]
+    messages: NotRequired[Annotated[list[str], ApiDescription("Messages that explain the error")]]
 
 
 class ApplyFailed(Exception):

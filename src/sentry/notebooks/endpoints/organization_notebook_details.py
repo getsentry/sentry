@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
+from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -38,7 +39,7 @@ from sentry.notebooks.services.producer import archive_notebook, update_notebook
 class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
@@ -56,6 +57,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             403: constants.RESPONSE_FORBIDDEN,
             404: constants.RESPONSE_NOT_FOUND,
         },
+        examples=NotebookExamples.NOTEBOOK_DETAILS,
     )
     def get(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """
