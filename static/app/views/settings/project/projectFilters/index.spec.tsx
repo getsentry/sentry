@@ -1122,6 +1122,69 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('Updated name')).toBeInTheDocument();
   });
 
+  it('previews what the filter matches and what it does not', async () => {
+    renderInboundFilters(
+      [
+        CustomInboundFilterFixture({
+          id: '1',
+          conditions: [
+            {type: 'error_message', value: ['*Error*']},
+            {type: 'ip_address', value: ['10.1.0.0/16']},
+          ],
+        }),
+      ],
+      businessProject,
+      OrganizationFixture({
+        ...inboundFiltersV2Org,
+        features: [...inboundFiltersV2Org.features, 'inbound-filters-preview'],
+      })
+    );
+
+    const matchedQuery = '(error.type:*Error* OR error.value:*Error*) user.ip:10.1.*';
+    const unmatchedQuery =
+      '((!error.type:*Error* !error.value:*Error*) OR !user.ip:10.1.*)';
+    const statsUrl = `/organizations/${organization.slug}/events-stats/`;
+    const eventsUrl = `/organizations/${organization.slug}/events/`;
+    const example = (id: string, type: string, ip: string) => ({
+      id,
+      title: `${type}: boom`,
+      'error.type': [type],
+      'error.value': ['boom'],
+      'user.ip': ip,
+      'issue.id': 5,
+      timestamp: '2026-11-11T10:00:00+00:00',
+    });
+    MockApiClient.addMockResponse({
+      url: statsUrl,
+      body: {data: [[1700000000, [{count: 10}]]]},
+      match: [MockApiClient.matchQuery({query: ''})],
+    });
+    MockApiClient.addMockResponse({
+      url: statsUrl,
+      body: {data: [[1700000000, [{count: 3}]]]},
+      match: [MockApiClient.matchQuery({query: matchedQuery})],
+    });
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [example('a1', 'TypeError', '10.1.2.3')]},
+      match: [MockApiClient.matchQuery({query: matchedQuery})],
+    });
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [example('b2', 'TypeError', '192.168.0.1')]},
+      match: [MockApiClient.matchQuery({query: unmatchedQuery})],
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
+    const dialog = await screen.findByRole('dialog');
+
+    expect(await within(dialog).findByText(/3 of 10 match/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Matches')).toBeInTheDocument();
+    expect(within(dialog).getByText('10.1.2.3')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Does not match')).toBeInTheDocument();
+    expect(within(dialog).getByText('192.168.0.1')).toBeInTheDocument();
+  });
+
   it('keeps an IP address condition when the data type changes', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
