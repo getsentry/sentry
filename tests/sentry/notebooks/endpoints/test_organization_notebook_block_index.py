@@ -6,6 +6,7 @@ from uuid import uuid5
 from django.urls import reverse
 from rest_framework.response import Response
 
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
 from sentry.notebooks.models import (
     Notebook,
@@ -277,11 +278,54 @@ class NotebookProducerBlockTest(APITestCase):
         assert set(response.data) == {"content"}
         assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
 
-    def test_takes_a_position(self) -> None:
-        response = self.write(position=4)
+    def ordered_block_ids(self) -> list[str]:
+        return [
+            str(block_id)
+            for block_id in NotebookBlock.objects.filter(
+                notebook=self.notebook, deleted_at__isnull=True
+            )
+            .order_by("position", "id")
+            .values_list("id", flat=True)
+        ]
+
+    def test_inserts_at_a_position(self) -> None:
+        first = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+        second = self.create_notebook_block(notebook=self.notebook, position=1, kind="text")
+
+        response = self.write(position=1)
 
         assert response.status_code == 201, response.data
-        assert response.data["position"] == 4
+        assert response.data["position"] == 1
+        assert self.ordered_block_ids() == [str(first.id), response.data["id"], str(second.id)]
+        second.refresh_from_db()
+        assert second.position == 2
+
+    def test_clamps_a_large_position_and_later_appends_still_work(self) -> None:
+        user_block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+
+        response = self.write(position=BoundedPositiveIntegerField.MAX_VALUE)
+
+        assert response.status_code == 201, response.data
+        assert response.data["position"] == 1
+        appended = self.write(key="details")
+        assert appended.status_code == 201, appended.data
+        assert appended.data["position"] == 2
+        assert self.ordered_block_ids() == [
+            str(user_block.id),
+            response.data["id"],
+            appended.data["id"],
+        ]
+
+    def test_moves_an_existing_block_to_a_position(self) -> None:
+        user_block = self.create_notebook_block(notebook=self.notebook, position=0, kind="text")
+        created = self.write()
+        assert created.data["position"] == 1
+
+        moved = self.write(revision=2, position=0)
+
+        assert moved.status_code == 200, moved.data
+        assert moved.data["position"] == 0
+        assert self.ordered_block_ids() == [created.data["id"], str(user_block.id)]
 
     def test_overwrites_a_user_edit(self) -> None:
         created = self.write(content="Generated")

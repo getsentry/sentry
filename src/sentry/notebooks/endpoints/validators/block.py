@@ -161,7 +161,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
         min_value=0,
         max_value=BoundedPositiveIntegerField.MAX_VALUE,
         required=False,
-        help_text="Where a producer's block goes. A new block goes last when omitted, and an existing block stays put.",
+        help_text="Index among the notebook's blocks where a producer's block goes. Later blocks shift down, and a larger index puts it last. A new block goes last when omitted, and an existing block stays put.",
     )
     kind = serializers.ChoiceField(
         choices=NotebookBlockKind.choices,

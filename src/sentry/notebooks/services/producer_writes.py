@@ -383,11 +383,14 @@ def write_api_producer_block(
 ) -> tuple[NotebookBlock, bool]:
     """Write a complete producer block that a caller sent through the notebook API.
 
-    The bool is True when the key had no live block. A new block with no position goes last.
+    The bool is True when the key had no live block. `position` is an index among the
+    live blocks; a new block with no position goes last.
     """
     with notebook_writes(notebook) as writes:
         live = _live_block(writes.notebook, key)
-        if position is None and live is None:
+        if position is not None:
+            position = _make_room_at(writes.notebook, position, moving=live)
+        elif live is None:
             last = (
                 NotebookBlock.objects.filter(notebook=writes.notebook, deleted_at__isnull=True)
                 .aggregate(last=Max("position"))
@@ -421,6 +424,21 @@ def write_api_producer_block(
         except NewerProducerRevision:
             raise NotebookConflictError("The block has a newer revision.")
     return block, live is None
+
+
+def _make_room_at(notebook: Notebook, index: int, *, moving: NotebookBlock | None) -> int:
+    """Renumber the other live blocks around a gap at `index`, clamped to their count."""
+    blocks = NotebookBlock.objects.select_for_update().filter(
+        notebook=notebook, deleted_at__isnull=True
+    )
+    if moving is not None:
+        blocks = blocks.exclude(id=moving.id)
+    others = list(blocks.order_by("position", "id"))
+    index = min(index, len(others))
+    for position, block in enumerate(others):
+        block.position = position if position < index else position + 1
+    NotebookBlock.objects.bulk_update(others, ["position"])
+    return index
 
 
 def append_block_content(
