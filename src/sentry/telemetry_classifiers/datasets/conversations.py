@@ -20,6 +20,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
+from sentry.telemetry_classifiers.constants import COOLDOWN
 from sentry.telemetry_classifiers.types import Dataset, Event, TelemetryInput
 from sentry.utils import metrics
 
@@ -53,12 +54,13 @@ class ConversationDataset:
     def select(
         self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
     ) -> list[str]:
-        """Return conversations whose last span is in ``[start, end)`` and that match the filter.
+        """Return conversations whose COOLDOWN ended in ``[start, end)`` and that match the filter.
 
-        Any span after ``end`` keeps a conversation out, so callers wait for inactivity by
-        passing an ``end`` before now.
+        Any newer span keeps a conversation out until it goes quiet again.
         """
         now = timezone.now()
+        last_span_start = int((start - COOLDOWN).timestamp())
+        last_span_end = int((end - COOLDOWN).timestamp())
         # The filter needs all of a conversation's spans, so the query covers the lookback.
         params = SnubaParams(
             start=now - LOOKBACK, end=now, projects=[project], organization=project.organization
@@ -67,7 +69,7 @@ class ConversationDataset:
             params=params,
             query_string=(
                 f"{self.compile_filter(filter_query, params)} "
-                f"max(timestamp):>={int(start.timestamp())} max(timestamp):<{int(end.timestamp())}"
+                f"max(timestamp):>={last_span_start} max(timestamp):<{last_span_end}"
             ),
             selected_columns=[CONVERSATION_ID, "max(timestamp)"],
             orderby=["max(timestamp)", CONVERSATION_ID],

@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.telemetry_classifiers.constants import COOLDOWN
 from sentry.telemetry_classifiers.datasets.conversations import ConversationDataset
 from sentry.telemetry_classifiers.types import TelemetryInput
 from tests.sentry.api.endpoints.test_organization_ai_conversations_base import (
@@ -15,8 +16,11 @@ DATASET = ConversationDataset()
 class SelectConversationsTest(BaseAIConversationsTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.end = timezone.now().replace(second=0, microsecond=0) - timedelta(minutes=20)
+        # The window when cooldowns end, and the window of last spans that puts them there.
+        self.end = timezone.now().replace(second=0, microsecond=0)
         self.start = self.end - timedelta(minutes=5)
+        self.last_span_end = self.end - COOLDOWN
+        self.last_span_start = self.start - COOLDOWN
 
     def store_conversation_span(
         self, conversation_id: str, timestamp: datetime, agent_name: str | None = None
@@ -29,33 +33,40 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
         return DATASET.select(self.project, filter_query, self.start, self.end, limit=100)
 
     def test_selects_conversations_that_became_inactive_in_window(self) -> None:
-        self.store_conversation_span("inactive", self.end - timedelta(minutes=2))
-        self.store_conversation_span("still-active", self.end - timedelta(minutes=2))
-        self.store_conversation_span("still-active", self.end + timedelta(minutes=10))
-        self.store_conversation_span("inactive-earlier", self.start - timedelta(minutes=1))
+        self.store_conversation_span("inactive", self.last_span_end - timedelta(minutes=2))
+        self.store_conversation_span("still-active", self.last_span_end - timedelta(minutes=2))
+        self.store_conversation_span("still-active", self.last_span_end + timedelta(minutes=10))
+        self.store_conversation_span("in-cooldown", self.end - timedelta(minutes=10))
+        self.store_conversation_span(
+            "inactive-earlier", self.last_span_start - timedelta(minutes=1)
+        )
 
         assert self.select() == ["inactive"]
 
     def test_filter_matches_spans_from_before_the_window(self) -> None:
         self.store_conversation_span(
-            "researcher", self.start - timedelta(days=2), agent_name="researcher"
+            "researcher", self.last_span_start - timedelta(days=2), agent_name="researcher"
         )
-        self.store_conversation_span("researcher", self.end - timedelta(minutes=2))
-        self.store_conversation_span("writer", self.start - timedelta(days=2), agent_name="writer")
-        self.store_conversation_span("writer", self.end - timedelta(minutes=2))
+        self.store_conversation_span("researcher", self.last_span_end - timedelta(minutes=2))
+        self.store_conversation_span(
+            "writer", self.last_span_start - timedelta(days=2), agent_name="writer"
+        )
+        self.store_conversation_span("writer", self.last_span_end - timedelta(minutes=2))
 
         assert self.select("gen_ai.agent.name:researcher") == ["researcher"]
 
     def test_respects_limit(self) -> None:
-        self.store_conversation_span("first", self.end - timedelta(minutes=3))
-        self.store_conversation_span("second", self.end - timedelta(minutes=2))
+        self.store_conversation_span("first", self.last_span_end - timedelta(minutes=3))
+        self.store_conversation_span("second", self.last_span_end - timedelta(minutes=2))
 
         assert DATASET.select(self.project, "", self.start, self.end, limit=1) == ["first"]
 
     def test_limit_applies_after_the_filter(self) -> None:
-        self.store_conversation_span("writer", self.end - timedelta(minutes=3), agent_name="writer")
         self.store_conversation_span(
-            "researcher", self.end - timedelta(minutes=2), agent_name="researcher"
+            "writer", self.last_span_end - timedelta(minutes=3), agent_name="writer"
+        )
+        self.store_conversation_span(
+            "researcher", self.last_span_end - timedelta(minutes=2), agent_name="researcher"
         )
 
         assert DATASET.select(

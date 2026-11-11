@@ -16,7 +16,11 @@ class ClassifierDataset(Protocol):
     def select(
         self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
     ) -> list[str]:
-        """Return IDs of entities that became inactive in ``[start, end)`` and match the filter."""
+        """Return IDs of entities whose COOLDOWN ended in ``[start, end)`` and that match the filter.
+
+        That's entities whose last telemetry is in ``[start - COOLDOWN, end - COOLDOWN)``, with
+        nothing newer. Consecutive windows select each entity once per period of activity.
+        """
         ...
 
     def load(self, project: Project, entity_id: str) -> TelemetryInput | None:
