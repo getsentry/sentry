@@ -776,21 +776,33 @@ class SlackAgentEntrypoint(
                     },
                 )
 
-        for pr in _get_repo_pr_states(state):
-            if not _is_pr_out_of_credits(pr):
-                continue
-            key = f"pr_out_of_credits:{pr.repo_name}:{pr.pr_number}:{pr.commit_sha}"
-            if key in replies:
-                continue
-            message_ts = send_thread_update(
-                install=install,
-                thread=thread,
-                data=SeerAgentOutOfCredits(organization_id=organization_id),
+        replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+        pr_keys = [
+            key
+            for pr in _get_repo_pr_states(state)
+            if _is_pr_out_of_credits(pr)
+            and (key := f"pr_out_of_credits:{pr.repo_name}:{pr.pr_number}:{pr.commit_sha}")
+            not in replies
+        ]
+        if pr_keys:
+            # The notice is about the org, not a repo, so a turn gets one however many PRs failed,
+            # and none if it already has one because the run itself ran out of credits.
+            turn_key = _out_of_credits_key(state)
+            notice = replies.get(turn_key)
+            message_ts = (
+                notice["message_ts"]
+                if notice
+                else send_thread_update(
+                    install=install,
+                    thread=thread,
+                    data=SeerAgentOutOfCredits(organization_id=organization_id),
+                )
             )
             if message_ts:
-                SlackSeerAgentReplyCache.set(
-                    run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
-                )
+                for key in (turn_key, *pr_keys):
+                    SlackSeerAgentReplyCache.set(
+                        run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
+                    )
 
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
         answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
@@ -843,6 +855,12 @@ def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
 
 def _is_pr_out_of_credits(pr: RepoPRState) -> bool:
     return pr.pr_creation_status == "error" and pr.pr_creation_error_code == OUT_OF_CREDITS
+
+
+def _out_of_credits_key(state: SeerRunState) -> str:
+    """The reply key of the latest turn's out-of-credits notice, shared by the run and its PRs."""
+    turns = state.get_turns()
+    return f"out_of_credits:{turns[-1].blocks[0].id}" if turns else "out_of_credits"
 
 
 def _hash_pr_status(prs: Sequence[RepoPRState]) -> str:
@@ -922,8 +940,8 @@ def _next_agent_reply(
         repo_pr_states: list[RepoPRState] = []
     elif state.failure_reason == OUT_OF_CREDITS:
         # Seer ends the turn with its own plain-text notice; reply with the agent out-of-credits
-        # notification instead. Keyed on the last block so each stopped turn replies once.
-        key = f"out_of_credits:{state.blocks[-1].id}" if state.blocks else "out_of_credits"
+        # notification instead.
+        key = _out_of_credits_key(state)
         if key in replies:
             return None
         return key, SeerAgentOutOfCredits(organization_id=organization_id)
