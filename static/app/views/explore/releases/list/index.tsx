@@ -8,7 +8,6 @@ import {Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -670,15 +669,7 @@ function ReleasesHeader() {
           ),
         }}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={releasesFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={releasesFeedbackOptions} />
     </Fragment>
   );
 }

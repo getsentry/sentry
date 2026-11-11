@@ -13,12 +13,12 @@ from sentry.investigations.contracts import (
     RerunUpdatedPayloadSerializer,
     valid_action_requests,
 )
-from sentry.investigations.services.action_requests import (
+from sentry.notebooks.models import NotebookActionRequest
+from sentry.notebooks.services.action_requests import (
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
 )
-from sentry.notebooks.models import NotebookActionRequest
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -110,7 +110,7 @@ class SeerContractRowsTest(TestCase):
     def test_action_requested_payloads_become_rows(self) -> None:
         for name in ACTION_REQUESTED:
             request = fixture(name)["request"]
-            row = upsert_action_request(self.orchestration_run, request)
+            row = upsert_action_request(self.investigation, request)
 
             anchor = request["anchor"]
             assert (row.key, row.producer_revision, row.primary) == (
@@ -127,24 +127,22 @@ class SeerContractRowsTest(TestCase):
 
     def test_a_withdrawal_withdraws_the_row(self) -> None:
         upsert_action_request(
-            self.orchestration_run, fixture("action_requested_advice_only")["request"]
+            self.investigation, fixture("action_requested_advice_only")["request"]
         )
         withdrawn = fixture("action_withdrawn")
 
-        assert withdraw_action_request(
-            self.orchestration_run, withdrawn["key"], withdrawn["reason"]
-        )
+        assert withdraw_action_request(self.investigation, withdrawn["key"], withdrawn["reason"])
 
         row = self.row(withdrawn["key"])
         assert (row.state, row.reason) == ("withdrawn", withdrawn["reason"])
 
     def test_a_snapshot_keeps_its_requests_and_drops_the_rest(self) -> None:
         upsert_action_request(
-            self.orchestration_run, fixture("action_requested_advice_only")["request"]
+            self.investigation, fixture("action_requested_advice_only")["request"]
         )
         items = fixture("state_snapshot_action_requests")
 
-        sync_snapshot_action_requests(self.orchestration_run, valid_action_requests(items))
+        sync_snapshot_action_requests(self.investigation, valid_action_requests(items))
 
         states = {
             row.key: (row.state, row.primary)

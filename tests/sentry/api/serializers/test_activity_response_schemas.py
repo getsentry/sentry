@@ -179,6 +179,14 @@ class GroupActivitySchemaTest(TestCase):
                 ],
                 "source_event_id": EVENT_ID,
             },
+            GroupActionType.INVESTIGATION_LINKED: {
+                "notebook_id": self.create_notebook(
+                    organization=self.organization, title="Checkout latency"
+                ).id,
+                "hypothesis_id": "h-1",
+                "hypothesis_statement": "Payment retries exhaust the pool",
+                "reason": "Its timeouts start with the deploy.",
+            },
         }
 
     def assert_valid(self, item: Any) -> None:

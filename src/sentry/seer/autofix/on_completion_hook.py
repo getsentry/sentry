@@ -28,6 +28,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
@@ -786,12 +787,22 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "iteration_index": get_latest_iteration_index(state),
             },
         )
-        trigger_autofix_agent(
-            group=group,
-            step=next_step,
-            referrer=referrer,
-            run_id=run_id,
-        )
+        try:
+            trigger_autofix_agent(
+                group=group,
+                step=next_step,
+                referrer=referrer,
+                run_id=run_id,
+            )
+        except SeerOutOfCreditsException:
+            logger.info(
+                "autofix.on_completion_hook.next_step_out_of_credits",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "next_step": next_step,
+                },
+            )
 
     @classmethod
     def _push_changes(
@@ -841,6 +852,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 state=state,
                 verify_content=True,
             )
+        except SeerOutOfCreditsException:
+            logger.info(
+                "autofix.on_completion_hook.push_changes_out_of_credits",
+                extra={"run_id": run_id, "organization_id": group.organization.id},
+            )
+            return False
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",

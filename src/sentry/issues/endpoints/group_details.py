@@ -376,7 +376,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
             activity_items = get_serialized_activity_items(
-                group, request.user, endpoint=activity_read_endpoint(request)
+                group,
+                request.user,
+                access=request.access,
+                endpoint=activity_read_endpoint(request),
             )
             if activity_items is None:
                 activity = Activity.objects.get_activities_for_group(group, 100)

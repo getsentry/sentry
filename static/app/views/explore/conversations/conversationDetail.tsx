@@ -17,6 +17,7 @@ import {ConversationSummary} from './components/conversationSummary';
 import {
   CONVERSATION_VIEW_TABS,
   ConversationViewContent,
+  type ConversationViewTab,
 } from './components/conversationView';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
@@ -85,6 +86,17 @@ function ConversationDetailPage() {
     setQueryState({spanId: null, focusedTool: null});
   }, [setQueryState]);
 
+  const handleTabChange = (tab: ConversationViewTab) => {
+    if (tab !== queryState.tab) {
+      trackAnalytics('conversations.detail.tab-switch', {
+        organization,
+        fromTab: queryState.tab,
+        toTab: tab,
+      });
+    }
+    setQueryState({tab});
+  };
+
   const handleViewTimeline = useCallback(() => {
     setQueryState({tab: 'timeline'});
   }, [setQueryState]);
@@ -106,7 +118,7 @@ function ConversationDetailPage() {
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
-          <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
+          <Tabs value={queryState.tab} onChange={handleTabChange}>
             {({TabList}) => (
               <TabList variant="floating">
                 <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>

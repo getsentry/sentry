@@ -9,7 +9,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -396,30 +395,20 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 
 function ProfilingContentPageHeader() {
   return (
-    <Fragment>
-      <TopBar.Slot
-        name="breadcrumbs"
-        title={{
-          type: 'page-title',
-          label: t('Profiles'),
-          labelTooltip: (
-            <DocumentationHint docsUrl="https://docs.sentry.io/product/profiling/">
-              {t(
-                'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-              )}
-            </DocumentationHint>
-          ),
-        }}
-      />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Profiles'),
+        labelTooltip: (
+          <DocumentationHint docsUrl="https://docs.sentry.io/product/profiling/">
+            {t(
+              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+            )}
+          </DocumentationHint>
+        ),
+      }}
+    />
   );
 }
 

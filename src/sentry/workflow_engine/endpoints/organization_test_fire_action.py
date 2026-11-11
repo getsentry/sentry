@@ -142,6 +142,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
     workflow_event_data = WorkflowEventData(
         event=test_event,
         group=test_event.group,
+        organization=project.organization,
     )
 
     for action_data in actions:

@@ -20,7 +20,6 @@ import {
   isPrIterationBlock,
   isPullRequestsArtifact,
   isRootCauseArtifact,
-  isRunValidForPrIteration,
   isSolutionArtifact,
   useExplorerAutofix,
   type ExplorerAutofixState,
@@ -835,21 +834,6 @@ describe('isPrIterationBlock', () => {
     expect(isPrIterationBlock(block({step: 'pr_iteration'}))).toBe(true);
     expect(isPrIterationBlock(block({step: 'code_changes'}))).toBe(false);
     expect(isPrIterationBlock(block())).toBe(false);
-  });
-});
-
-describe('isRunValidForPrIteration', () => {
-  it('is true only when the autofix-pr-iteration-manual feature is enabled', () => {
-    expect(
-      isRunValidForPrIteration(
-        OrganizationFixture({features: ['autofix-pr-iteration-manual']})
-      )
-    ).toBe(true);
-    // Automated CI iteration does not enable the manual feedback form.
-    expect(
-      isRunValidForPrIteration(OrganizationFixture({features: ['autofix-pr-iteration']}))
-    ).toBe(false);
-    expect(isRunValidForPrIteration(OrganizationFixture({features: []}))).toBe(false);
   });
 });
 

@@ -232,6 +232,7 @@ export function VisualizeTransformationRows({
 
 interface AddTransformationButtonProps extends Props {
   iconOnly?: boolean;
+  variant?: 'transparent' | 'link';
 }
 
 export function AddTransformationButton({
@@ -240,6 +241,7 @@ export function AddTransformationButton({
   traceItemDataset,
   iconOnly = false,
   analyticsSource = 'explore',
+  variant = 'transparent',
 }: AddTransformationButtonProps) {
   const organization = useOrganization();
   const kindOptions = KIND_OPTIONS.map(option => ({
@@ -263,7 +265,12 @@ export function AddTransformationButton({
             tooltipProps={{title: t('Add Transformation')}}
           />
         ) : (
-          <OverlayTrigger.Button {...props} variant="link" icon={<IconAdd />}>
+          <OverlayTrigger.Button
+            {...props}
+            variant={variant}
+            size={variant === 'transparent' ? 'zero' : 'md'}
+            icon={<IconAdd />}
+          >
             {t('Add Transformation')}
           </OverlayTrigger.Button>
         )
