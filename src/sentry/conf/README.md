@@ -167,7 +167,70 @@ and cache. The keys are `sentry:system-token`, `sentry:install-id`,
 `sentry:latest_version`, `sentry:last_worker_ping`, `sentry:last_worker_version`,
 and `sentry:version-configured`.
 
-Until the policy release, runtime options retain their existing manager, storage,
-cache, permissions and update channels. Legacy `sentry configoptions`, drift checks and presenters
-remain available until Sentry #126993 retires that machinery. Keep their
-registrations, settings and dependencies until that release.
+After the settings rollout, SaaS single organization login always uses the direct
+integration app credential pair, including empty partners. Retired app option
+keys are neither promoted nor synthesized in SaaS. This remains true after the
+temporary deployment ownership metadata is removed. Self-hosted GitHub app
+remapping retains its legacy option and login precedence.
+
+## Runtime option API and command retirement
+
+SaaS options registered with `FLAG_AUTOMATOR_MODIFIABLE` resolve from the read
+hook when a value is set, then `SENTRY_OPTIONS`, `SENTRY_DEFAULT_OPTIONS`, and
+the registered default. They never read or populate the legacy store or cache.
+Explicit hook and disk values include `None`, empty strings and false. Unexpected
+read-hook failures propagate. SaaS setup wizard options resolve only from disk
+and defaults. Every write channel and deletion rejects both classes before
+storage mutation. Self-hosted options retain their existing storage and update
+permissions.
+
+Six persistent application keys retain their original `options.get/set/delete`
+store and cache behavior: `sentry:system-token`, `sentry:install-id`,
+`sentry:latest_version`, `sentry:last_worker_ping`, `sentry:last_worker_version`,
+and `sentry:version-configured`. Their values, fallbacks, coercion and update
+channels retain the existing option semantics. Other unregistered `sentry:*` and
+`getsentry:*` names reject; registered runtime names and project/organization
+state remain supported. Verify state cache repair before deployment.
+
+`can_update` now accepts `(key, channel)`. The requested value and `include_drift`
+arguments are removed because writability no longer depends on stored values or
+the previous update channel. The `DRIFTED` rejection reason is removed.
+`UpdateChannel.AUTOMATOR` remains solely as historical row metadata, including
+protected application state and exact backup restoration. Manager and store
+writes reject this channel before mutation, including on self-hosted instances.
+Invalid channel objects raise `TypeError` instead of inheriting unrestricted
+permissions. `APPLICATION`, `CLI`, `ADMIN`, `UNKNOWN`, and `KILLSWITCH` remain
+supported for active writes. `sentry configoptions` is retired; `sentry config`
+remains available for self-hosted option reads and writes. The three options used
+only by legacy audit and webhook presenters are unregistered.
+
+Deploy Sentry #126993 in a separate policy image after the combined reader
+release serves everywhere and has been observed. Require parity for every
+retained runtime key and target, including verified local fallback when no
+mounted value exists. Include GetSentry #22652 tooling through normal merged
+pins after checking their imports together. Installing tools must not run deletion.
+
+All watcher processes must already be stopped. Require signed reporter delivery
+for both namespaces and completed deployment-declaration removal. Verify policy
+in every workload, including early startup and failed hook initialization.
+Dormant legacy clients may remain, but no workload can invoke the retired command.
+Preserve protected state, self-hosted storage, and historical update metadata.
+
+Finish policy soak and rollback rehearsal, then close the rollback window before
+row cleanup. Use exact reviewed version 2 plans with explicit
+`rollback_closed_at`, protected durable backups, and guarded restoration. Closure
+must follow soak and rehearsal. Keep inventory and restore tooling through the
+later table-removal gates. Historical state reads and cache repair remain active.
+No enum cleanup requires rewriting protected rows.
+
+Retire unused clients and schemas after fleet readiness, policy soak, and rollback
+closure once their retired paths cannot use configuration rows. Individual row
+deletion need not precede that retirement. Keep application-state rows and the
+store, cache, and synchronization task until their separate migration.
+
+Deploy Sentry command and registration retirement before final GetSentry schema
+and client cleanup. The transitional GetSentry deployment writers define their
+own empty ownership set, so removing Sentry's default ownership setting does
+not prevent those writers from initializing. SaaS app credentials and aliases
+already use direct settings without that metadata. Remove the three presenter
+schema entries and their new namespace values after this Sentry retirement.

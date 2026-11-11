@@ -44,6 +44,7 @@ __all__ = (
     "get",
     "get_last_update_channel",
     "isset",
+    "is_saas_runtime_option",
     "lookup_key",
     "register",
     "unregister",
@@ -57,7 +58,6 @@ request_finished.connect(default_store.maybe_clean_local_cache)
 
 default_manager = OptionsManager(store=default_store)
 
-# expose public API
 get = default_manager.get
 set = default_manager.set
 delete = default_manager.delete
@@ -66,6 +66,7 @@ unregister = default_manager.unregister
 all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
+is_saas_runtime_option = default_manager.is_saas_runtime_option
 is_set_on_disk = default_manager.is_set_on_disk
 lookup_key = default_manager.lookup_key
 get_last_update_channel = default_manager.get_last_update_channel

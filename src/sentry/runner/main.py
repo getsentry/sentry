@@ -42,7 +42,6 @@ for cmd in map(
         "sentry.runner.commands.backup.import_",
         "sentry.runner.commands.cleanup.cleanup",
         "sentry.runner.commands.config.config",
-        "sentry.runner.commands.configoptions.configoptions",
         "sentry.runner.commands.createflag.createflag",
         "sentry.runner.commands.createflag.createissueflag",
         "sentry.runner.commands.createorg.createorg",
