@@ -177,6 +177,18 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
         )
         assert response.data["scopeType"] == ["Invalid scope type"]
 
+    def test_invalid_scope_identifier(self) -> None:
+        response = self.get_error_response(
+            "me",
+            user_id=self.user.id,
+            scope_type="organization",
+            scope_identifier="abc",
+            type="alerts",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            value="always",
+        )
+        assert response.data["scopeIdentifier"] == ["A valid integer is required."]
+
     def test_invalid_value(self) -> None:
         response = self.get_error_response(
             "me",
