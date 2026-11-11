@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from django.conf import settings
@@ -7,6 +8,8 @@ from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.utils.env import in_test_environment
 from sentry.utils.settings import is_self_hosted
+
+audit_logger = logging.getLogger("sentry.audit.user")
 
 DEV_ADMIN_EMAIL = "admin@sentry.io"
 
@@ -28,6 +31,13 @@ def create_dev_admin(**kwargs: object) -> None:
         password="admin",
         superuser=True,
         no_input=True,
+    )
+    audit_logger.info(
+        "user.create-dev-admin",
+        extra={
+            "actor": "post_upgrade",
+            "user_id": User.objects.get(username=DEV_ADMIN_EMAIL).id,
+        },
     )
 
 
