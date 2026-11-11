@@ -21,6 +21,8 @@ CRON_SPACING_HORIZON = timedelta(days=10 * 366)
 _CRON_SPACING_START = datetime(2024, 1, 1)
 # How many CronSim results _next_cron_after checks for one later than its input.
 _MAX_CRON_CANDIDATES = 10
+# Bound diagnostic work after a long outage; advancing the schedule itself stays exact.
+MAX_MISSED_CRON_FIRINGS = 1000
 
 
 class InvalidSchedule(ValueError):
@@ -204,6 +206,34 @@ def advance(trigger: ScheduledTrigger, scheduled_for: datetime, now: datetime) -
         missed = (now - scheduled_for) // interval
         return scheduled_for + (missed + 1) * interval
     return next_time_after(trigger, max(scheduled_for, now))
+
+
+def missed_between(
+    trigger: ScheduledTrigger, scheduled_for: datetime, next_scheduled_for: datetime
+) -> tuple[int, bool]:
+    """Count skipped times strictly between two firings; bool means the count is capped."""
+    scheduled_for = scheduled_for.astimezone(UTC)
+    next_scheduled_for = next_scheduled_for.astimezone(UTC)
+    if trigger.schedule_type == ScheduleType.INTERVAL:
+        assert trigger.interval is not None
+        return max(0, (next_scheduled_for - scheduled_for) // trigger.interval - 1), False
+
+    assert trigger.schedule_type == ScheduleType.CRON and trigger.cron_expression is not None
+    times = CronSim(trigger.cron_expression, scheduled_for.astimezone(ZoneInfo(trigger.timezone)))
+    missed = 0
+    previous = scheduled_for
+    for candidate in times:
+        candidate = candidate.astimezone(UTC)
+        if candidate >= next_scheduled_for:
+            break
+        # Match next_after's handling of repeated/coincident times around DST changes.
+        if candidate <= previous:
+            continue
+        if missed == MAX_MISSED_CRON_FIRINGS:
+            return missed, True
+        missed += 1
+        previous = candidate
+    return missed, False
 
 
 def reschedule_for_new_interval(
