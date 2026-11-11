@@ -92,3 +92,14 @@ def test_migrations_applied_is_false_unless_postgres_confirms(
 ) -> None:
     with mock.patch.object(subprocess, "run", side_effect=[result]):
         assert not sync.migrations_applied(("sentry",), (lockfile,))
+
+
+def test_skills_need_a_lock_and_an_installed_skill(sync: ModuleType, tmp_path: Path) -> None:
+    assert not sync.skills_installed(str(tmp_path))
+
+    (tmp_path / "agents.lock").write_text("version = 1\n")
+    (tmp_path / ".agents/skills").mkdir(parents=True)
+    assert not sync.skills_installed(str(tmp_path))
+
+    (tmp_path / ".agents/skills/commit").mkdir()
+    assert sync.skills_installed(str(tmp_path))

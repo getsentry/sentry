@@ -53,6 +53,18 @@ def stamp(reporoot: str, step: str, inputs: str) -> None:
         f.write(inputs)
 
 
+def skills_installed(reporoot: str) -> bool:
+    """The same test as `devenv doctor`, so a sync that doctor's fix runs reinstalls them."""
+    lock = f"{reporoot}/agents.lock"
+    skills = f"{reporoot}/.agents/skills"
+    return (
+        os.path.isfile(lock)
+        and os.path.getsize(lock) > 0
+        and os.path.isdir(skills)
+        and bool(os.listdir(skills))
+    )
+
+
 def migrations_applied(databases: tuple[str, ...], lockfiles: tuple[str, ...]) -> bool:
     """Whether each database has every app's latest migration from the lockfiles."""
     heads: list[tuple[str, ...]] = []
@@ -351,8 +363,7 @@ def main(context: dict[str, str]) -> int:
         os.path.exists(f"{reporoot}/agents.toml")
         and shutil.which("pnpm", path=f"{reporoot}/.devenv/bin")
         and not (
-            os.path.exists(f"{reporoot}/agents.lock")
-            and stamped(reporoot, "agent-skills", agents, max_age=DAY)
+            skills_installed(reporoot) and stamped(reporoot, "agent-skills", agents, max_age=DAY)
         )
     ):
         if run_procs(
