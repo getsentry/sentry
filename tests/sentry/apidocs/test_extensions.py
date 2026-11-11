@@ -21,17 +21,17 @@ from sentry.apidocs.extensions import (
 )
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
-    OrganizationInvestigationBlockExecutionDetailsEndpoint,
-)
-from sentry.investigations.endpoints.validators.investigation import InvestigationCreateValidator
+from sentry.investigations.endpoints.validators.investigation import InvestigationStartValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
-from sentry.notebooks.endpoints.organization_investigation_block_details import (
-    OrganizationInvestigationBlockDetailsEndpoint,
+from sentry.notebooks.endpoints.organization_notebook_block_details import (
+    OrganizationNotebookBlockDetailsEndpoint,
 )
-from sentry.notebooks.endpoints.schema import InvestigationSchema
+from sentry.notebooks.endpoints.organization_notebook_block_execution_details import (
+    OrganizationNotebookBlockExecutionDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.schema import NotebookSchema
 from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
 
@@ -236,7 +236,7 @@ def test_investigation_resume_schema_matches_validation(
     payload: dict[str, Any], valid: bool
 ) -> None:
     schema = generate_schema(
-        "executions/<execution_id>/", view=OrganizationInvestigationBlockExecutionDetailsEndpoint
+        "executions/<execution_id>/", view=OrganizationNotebookBlockExecutionDetailsEndpoint
     )
     request_schema = schema["paths"]["/executions/{execution_id}/"]["patch"]["requestBody"][
         "content"
@@ -247,9 +247,7 @@ def test_investigation_resume_schema_matches_validation(
 
 
 def test_investigation_delete_schema_requires_camel_case_versions() -> None:
-    schema = generate_schema(
-        "blocks/<block_id>/", view=OrganizationInvestigationBlockDetailsEndpoint
-    )
+    schema = generate_schema("blocks/<block_id>/", view=OrganizationNotebookBlockDetailsEndpoint)
     request = schema["paths"]["/blocks/{block_id}/"]["delete"]["requestBody"]
     assert request["required"] is True
     validator = OAS30Validator(
@@ -265,17 +263,18 @@ def test_investigation_delete_schema_requires_camel_case_versions() -> None:
     "serializer,payload,valid",
     [
         (
-            InvestigationCreateValidator,
+            InvestigationStartValidator,
             {"source": {"type": "manual", "seed": {"nestedKey": 1}}},
             True,
         ),
         (
-            InvestigationCreateValidator,
+            InvestigationStartValidator,
             {"source": {"type": "metric_open_period", "ref": {"groupId": 1, "openPeriodId": 2}}},
             True,
         ),
-        (InvestigationCreateValidator, {"source": {"type": "metric_open_period"}}, False),
-        (InvestigationCreateValidator, {"source": {"type": "unsupported"}}, False),
+        (InvestigationStartValidator, {"source": {"type": "metric_open_period"}}, False),
+        (InvestigationStartValidator, {"source": {"type": "unsupported"}}, False),
+        (InvestigationStartValidator, {"title": "No source"}, False),
         (
             InvestigationOrchestrationCommandValidator,
             {
@@ -304,7 +303,7 @@ def test_investigation_polymorphic_requests_match_validation(
 ) -> None:
     class ExampleEndpoint(Endpoint):
         permission_classes = ()
-        schema = InvestigationSchema()
+        schema = NotebookSchema()
 
         @extend_schema(request=serializer, responses={204: None})
         def post(self, request: HttpRequest) -> None:

@@ -44,8 +44,10 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {
   AddTransformationButton,
   VisualizeTransformationRows,
@@ -248,6 +250,7 @@ function Graph({
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -354,6 +357,8 @@ function Graph({
               key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={droppedData.band}
+              plottables={plottables}
+              isDroppedDataLoading={droppedData.isLoading}
             />
           )
         }
@@ -369,16 +374,22 @@ function Graph({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    chartInfo={chartInfo}
-                    isLoading={chartInfo.timeseriesResult.isPending}
-                    rawLogCounts={rawLogCounts}
-                    hasUserQuery={!!userQuery}
-                    disabled={
-                      !hasValidConditionalFilter ||
-                      (tableIsPending ? false : tableIsEmpty)
-                    }
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={chartInfo.timeseriesResult.isPending}
+                      rawLogCounts={rawLogCounts}
+                      hasUserQuery={!!userQuery}
+                      disabled={
+                        !hasValidConditionalFilter ||
+                        (tableIsPending ? false : tableIsEmpty)
+                      }
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}

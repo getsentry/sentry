@@ -536,7 +536,7 @@ class ExhaustiveFixtures(Fixtures):
         TelemetryClassifier.objects.create(
             project=project,
             name=f"conversation-classifier-{slug}",
-            result_attribute="sentry.classifier.result",
+            result_attribute="result",
             dataset=Dataset.CONVERSATION,
             filter_query="",
             status=TelemetryClassifierStatus.ENABLED,

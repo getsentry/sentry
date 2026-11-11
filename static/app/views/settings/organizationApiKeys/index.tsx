@@ -7,7 +7,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,17 +21,11 @@ function OrganizationApiKeys() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const {
-    data: apiKeys = [],
-    isPending,
-    isError,
-    refetch,
-  } = useQuery(
-    apiOptions.as<DeprecatedApiKey[]>()(
-      '/organizations/$organizationIdOrSlug/api-keys/',
-      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
-    )
+  const apiKeysOptions = apiOptions.as<DeprecatedApiKey[]>()(
+    '/organizations/$organizationIdOrSlug/api-keys/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
   );
+  const {data: apiKeys = [], isPending, isError, refetch} = useQuery(apiKeysOptions);
 
   const removeMutation = useMutation({
     mutationFn: ({removedId}: {removedId: string}) => {
@@ -47,20 +41,13 @@ function OrganizationApiKeys() {
       toast.loading(t('Removing API key'));
     },
     onSuccess: (_data, {removedId}) => {
-      setApiQueryData<DeprecatedApiKey[]>(
-        queryClient,
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/api-keys/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-        oldData => {
-          if (!oldData) {
-            return oldData;
-          }
-
-          return oldData.filter(({id}) => id !== removedId);
-        }
+      queryClient.setQueryData(apiKeysOptions.queryKey, previous =>
+        previous
+          ? {
+              ...previous,
+              json: previous.json.filter(({id}) => id !== removedId),
+            }
+          : undefined
       );
     },
     onError: () => {

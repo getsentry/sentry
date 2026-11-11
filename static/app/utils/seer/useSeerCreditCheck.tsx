@@ -1,6 +1,8 @@
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
+import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -17,6 +19,32 @@ export type SeerCreditOperation =
 
 interface SeerCreditCheckResponse {
   hasEnoughCredits: boolean;
+}
+
+export function seerCreditCheckApiOptions(
+  organization: Organization,
+  operation: SeerCreditOperation
+) {
+  return apiOptions.as<SeerCreditCheckResponse>()(
+    '/organizations/$organizationIdOrSlug/seer/credit-check/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {operation},
+      staleTime: 0,
+    }
+  );
+}
+
+/**
+ * Matches the org's credit checks for every operation, so they can all be
+ * rechecked at once, for example after credits are added.
+ */
+export function seerCreditChecksQueryKey(organization: Organization) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
 }
 
 interface UseSeerCreditCheckOptions {
@@ -51,14 +79,8 @@ export function useSeerCreditCheck(
     organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
-    ...apiOptions.as<SeerCreditCheckResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/credit-check/',
-      {
-        path: isChecking ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {operation},
-        staleTime: 0,
-      }
-    ),
+    ...seerCreditCheckApiOptions(organization, operation),
+    enabled: isChecking,
     // Credits move outside this page: a run elsewhere spends them and a billing
     // member can top up from another tab. Recheck on every mount and window
     // focus (which the app's query client turns off by default) so a gate
@@ -71,6 +93,13 @@ export function useSeerCreditCheck(
 
   return {
     hasEnoughCredits: isChecking ? (query.data?.hasEnoughCredits ?? true) : true,
+    /**
+     * Whether the check has answered, or failed, since the caller mounted. A
+     * cached answer from an earlier mount doesn't count, since credits can
+     * change in between. Wait on this rather than `isPending` before acting on
+     * the answer automatically.
+     */
+    hasCheckedSinceMount: !isChecking || query.isFetchedAfterMount,
     // A disabled query reports `isPending` forever, so only a running check
     // counts as pending.
     isPending: isChecking && query.isPending,

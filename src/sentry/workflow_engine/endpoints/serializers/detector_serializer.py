@@ -33,6 +33,7 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.types import DetectorType
 
 
@@ -115,9 +116,12 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         }
 
         workflows_map = defaultdict(list)
-        detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
-            "detector_id", "workflow_id"
-        )
+
+        # Ensure the workflow_ids belonging to hidden workflows are not included
+        detector_workflows = DetectorWorkflow.objects.filter(
+            detector__in=item_list, workflow__type__in=VISIBLE_WORKFLOW_TYPES
+        ).values_list("detector_id", "workflow_id")
+
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
@@ -204,8 +208,8 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
                 },
             )
             attrs[item]["latest_group"] = latest_groups_map.get(item.id)
-            if item.id in configs:
-                attrs[item]["config"] = configs[item.id]
+            if item.type == DetectorType.ERROR and item.project_id in configs:
+                attrs[item]["config"] = configs[item.project_id]
             else:
                 attrs[item]["config"] = item.config
             attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None

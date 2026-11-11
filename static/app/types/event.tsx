@@ -212,6 +212,10 @@ export type ExceptionType = {
 
 // This type is incomplete
 export type EventMetadata = {
+  /**
+   * Set when attachments of the event were dropped because the attachment quota was exceeded.
+   */
+  attachments_quota_exceeded?: boolean;
   current_level?: number;
   directive?: string;
   filename?: string;

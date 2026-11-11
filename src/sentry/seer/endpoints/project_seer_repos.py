@@ -563,13 +563,19 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             except ValueError as e:
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
-        replace_all_seer_project_repos(project, repos_data)
+        if is_seer_token_based_billing_onboarding_enabled(project.organization):
+            # Every linked repo is a Seer repo, so leaving one out shouldn't drop its config.
+            add_seer_project_repos(project, repos_data)
+            audit_event = "SEER_PROJECT_REPOSITORIES_UPDATE"
+        else:
+            replace_all_seer_project_repos(project, repos_data)
+            audit_event = "SEER_PROJECT_REPOSITORIES_REPLACE"
 
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
-            event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            event=audit_log.get_event_id(audit_event),
             data={
                 "project_id": project.id,
                 "project_slug": project.slug,

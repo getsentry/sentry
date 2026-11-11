@@ -15,6 +15,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.vcs.repo_utils import get_integrated_repository
 from sentry.preprod.vcs.status_checks.status_check_provider import (
     GitHubStatusCheckProvider,
     StatusCheckProvider,
@@ -32,11 +33,11 @@ def get_status_check_client(
     Returns None for expected failure cases (missing repo, integration, etc).
     Raises exceptions for unexpected errors that should be handled upstream.
     """
-    repository = Repository.objects.filter(
+    repository = get_integrated_repository(
         organization_id=project.organization_id,
         name=commit_comparison.head_repo_name,
-        provider=f"integrations:{commit_comparison.provider}",
-    ).first()
+        provider=commit_comparison.provider,
+    )
     if not repository:
         logger.info(
             "preprod.status_checks.create.no_repository",
@@ -59,20 +60,19 @@ def get_status_check_client_for_repo(
 ) -> tuple[StatusCheckClient, Repository] | tuple[None, None]:
     """Resolve a status check client from a repo name and provider.
 
-    Returns None on expected failures (missing or ambiguous active repository,
+    Returns None on expected failures (no active repository with an integration,
     inactive integration).
     """
-    repository, resolution = Repository.objects.resolve_active(
+    repository = get_integrated_repository(
         organization_id=project.organization_id,
         name=repo_name,
-        normalized_provider=provider,
+        provider=provider,
     )
     if not repository:
         logger.info(
             "preprod.status_checks.resolve.no_repository",
             extra={
                 "provider": provider,
-                "resolution": resolution,
                 "project_id": project.id,
             },
         )

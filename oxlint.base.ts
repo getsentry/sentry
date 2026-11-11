@@ -945,9 +945,7 @@ const base = defineConfig({
       },
     ],
     'typescript/ban-tslint-comment': 'error',
-    // Oxlint currently enforces this rule differently from typescript-eslint and
-    // would require behavior-neutral churn throughout the frontend.
-    'typescript/consistent-generic-constructors': 'off',
+    'typescript/consistent-generic-constructors': 'error',
     'typescript/consistent-indexed-object-style': 'error',
     'typescript/consistent-type-assertions': 'error',
     'typescript/dot-notation': 'error',
