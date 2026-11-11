@@ -3,7 +3,6 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.telemetry_classifiers.constants import COOLDOWN
 from sentry.telemetry_classifiers.datasets.conversations import ConversationDataset
 from sentry.telemetry_classifiers.types import TelemetryInput
 from tests.sentry.api.endpoints.test_organization_ai_conversations_base import (
@@ -19,8 +18,8 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
         # The window when cooldowns end, and the window of last spans that puts them there.
         self.end = timezone.now().replace(second=0, microsecond=0)
         self.start = self.end - timedelta(minutes=5)
-        self.last_span_end = self.end - COOLDOWN
-        self.last_span_start = self.start - COOLDOWN
+        self.last_span_end = self.end - ConversationDataset.cooldown
+        self.last_span_start = self.start - ConversationDataset.cooldown
 
     def store_conversation_span(
         self, conversation_id: str, timestamp: datetime, agent_name: str | None = None

@@ -20,7 +20,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.telemetry_classifiers.constants import COOLDOWN
 from sentry.telemetry_classifiers.types import Dataset, Event, TelemetryInput
 from sentry.utils import metrics
 
@@ -39,6 +38,9 @@ _ROLES = frozenset({"user", "assistant"})
 class ConversationDataset:
     """AI conversations: spans grouped by ``gen_ai.conversation.id``."""
 
+    # A conversation is classified once 20 minutes pass after its last span.
+    cooldown = timedelta(minutes=20)
+
     def compile_filter(self, filter_query: str, snuba_params: SnubaParams) -> str:
         """Compile a classifier filter into a query that selects whole conversations.
 
@@ -54,13 +56,13 @@ class ConversationDataset:
     def select(
         self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
     ) -> list[str]:
-        """Return conversations whose COOLDOWN ended in ``[start, end)`` and that match the filter.
+        """Return conversations whose cooldown ended in ``[start, end)`` and that match the filter.
 
         Any newer span keeps a conversation out until it goes quiet again.
         """
         now = timezone.now()
-        last_span_start = int((start - COOLDOWN).timestamp())
-        last_span_end = int((end - COOLDOWN).timestamp())
+        last_span_start = int((start - self.cooldown).timestamp())
+        last_span_end = int((end - self.cooldown).timestamp())
         # The filter needs all of a conversation's spans, so the query covers the lookback.
         params = SnubaParams(
             start=now - LOOKBACK, end=now, projects=[project], organization=project.organization
