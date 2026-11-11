@@ -21,7 +21,7 @@ def test_log_action_logs_each_firing() -> None:
     ]
 
     with patch("sentry.cadence.actions.logger") as logger:
-        trigger_type_registry.get(ScheduledTriggerType.LOG).hand_off(firings)
+        trigger_type_registry.get(ScheduledTriggerType.LOG).dispatch(firings)
 
     assert logger.info.call_args_list == [
         call(

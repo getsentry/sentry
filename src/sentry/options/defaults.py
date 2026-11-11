@@ -1696,7 +1696,7 @@ register(
 )
 
 # When True, firings whose targets their trigger type reports missing are dropped and their
-# triggers deleted. When False, every firing is handed off.
+# triggers deleted. When False, every firing is dispatched.
 register(
     "cadence.missing_target_check.enabled",
     type=Bool,

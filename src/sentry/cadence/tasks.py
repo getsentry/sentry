@@ -38,7 +38,7 @@ MISSING_TARGET_CHECK_SETTLE_WINDOW = timedelta(hours=1)
 @dataclass(frozen=True)
 class _ClaimedFiring:
     firing: TriggerFiring
-    # When the firing was due to be handed off: its scheduled_for plus its offset.
+    # When the firing was due to be dispatched: its scheduled_for plus its offset.
     fire_at: datetime
     # When the trigger's schedule was last changed. The tick's own updates don't change it.
     date_updated: datetime
@@ -63,11 +63,11 @@ class _Cursor:
 def cadence_tick() -> None:
     """
     Claim every trigger that is due and dispatch its firing, in batches. Each batch is
-    claimed and committed before its firings are handed off. Each trigger type's firings in
+    claimed and committed before its firings are dispatched. Each trigger type's firings in
     the batch may be checked for missing targets, opportunistically, and those found are
-    dropped and their triggers deleted. The rest are handed off in one call.
+    dropped and their triggers deleted. The rest are dispatched in one call.
 
-    Delivery is best-effort, not guaranteed: claimed firings are lost if their hand-off fails,
+    Delivery is best-effort, not guaranteed: claimed firings are lost if their dispatch fails,
     and a firing may occasionally be dispatched twice. Firings missed while the tick is
     behind or disabled are skipped, not caught up.
     """
@@ -135,8 +135,8 @@ def _claim_batch(
                 try:
                     offset = offset_of(trigger)
                 except NoRegistrationExistsError:
-                    # Without a registered behavior this firing is lost when dispatched, but the
-                    # trigger is kept so it fires once the behavior is deployed.
+                    # Without a registered handler this firing is lost when dispatched, but the
+                    # trigger is kept so it fires once the handler is deployed.
                     offset = timedelta(0)
                 # A scheduled time that has passed is still next if its offset firing hasn't.
                 trigger.next_scheduled_for = advance(trigger, scheduled_for, now - offset)
@@ -167,7 +167,7 @@ def _claim_batch(
 
 def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None:
     """
-    Hand off each trigger type's firings, after dropping those whose targets no longer exist.
+    Dispatch each trigger type's firings, after dropping those whose targets no longer exist.
     One type's failure doesn't affect others.
     """
     for trigger_type, claimed_firings in claimed.items():
@@ -209,14 +209,14 @@ def _drop_missing_targets(
     if not targets:
         return claimed_firings
     try:
-        behavior = trigger_type_registry.get(trigger_type)
+        handler = trigger_type_registry.get(trigger_type)
     except NoRegistrationExistsError:
         # Dispatching reports the missing registration.
         return claimed_firings
     try:
         with metrics.timer("cadence.trigger.missing_target_check_duration", tags=tags):
             # Ignore any target the check returns that it wasn't asked about.
-            missing = set(behavior.find_missing(targets)) & set(targets)
+            missing = set(handler.find_missing(targets)) & set(targets)
         if not missing:
             return claimed_firings
         ScheduledTrigger.objects.filter(
@@ -228,6 +228,8 @@ def _drop_missing_targets(
                 ),
             ),
             trigger_type=trigger_type,
+            # A trigger set during the check wasn't checked, so it's kept.
+            date_updated__lte=settled_before,
         ).delete()
     except Exception:
         metrics.incr("cadence.trigger.missing_target_check_failed", tags=tags)
@@ -254,7 +256,7 @@ def _dispatch_type(
 ) -> None:
     try:
         with metrics.timer("cadence.trigger.dispatch_duration", tags=tags):
-            trigger_type_registry.get(trigger_type).hand_off(firings)
+            trigger_type_registry.get(trigger_type).dispatch(firings)
     except Exception:
         metrics.incr("cadence.trigger.dispatch_failed", amount=len(firings), tags=tags)
         logger.exception(

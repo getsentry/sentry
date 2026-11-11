@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from sentry.cadence.models import ScheduledTriggerType
 from sentry.cadence.registry import (
-    TriggerBehavior,
     TriggerFiring,
+    TriggerHandler,
     TriggerTarget,
     register_trigger_type,
 )
@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 @register_trigger_type(ScheduledTriggerType.LOG)
-class LogTrigger(TriggerBehavior):
+class LogTriggerHandler(TriggerHandler):
     # Spread out, since LOG exists to validate scheduling.
     spread_window = timedelta(seconds=30)
 
-    def hand_off(self, firings: Sequence[TriggerFiring]) -> None:
+    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
         """
         Log each firing. For testing. seconds_since_scheduled includes the firing's offset
         within the LOG spread window, so it isn't lag; see cadence.trigger.dispatch_lag for

@@ -19,8 +19,8 @@ from pydantic import BaseModel
 from sentry import features
 from sentry.cadence.api import (
     ScheduledTriggerType,
-    TriggerBehavior,
     TriggerFiring,
+    TriggerHandler,
     TriggerTarget,
     clear_schedule,
     missing_targets,
@@ -57,11 +57,11 @@ def trigger_key_for(scheduled_for: datetime) -> str:
 
 
 @register_trigger_type(ScheduledTriggerType.SEER_WORKFLOW)
-class SeerWorkflowTrigger(TriggerBehavior):
+class SeerWorkflowTriggerHandler(TriggerHandler):
     # Matches the legacy night shift's spread of org runs over the hour after its scheduled time.
     spread_window = timedelta(hours=1)
 
-    def hand_off(self, firings: Sequence[TriggerFiring]) -> None:
+    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
         for firing in firings:
             record_scheduled_automation_run.apply_async(
                 kwargs={

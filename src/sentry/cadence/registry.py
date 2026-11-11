@@ -18,7 +18,7 @@ MAX_SPREAD_WINDOW = timedelta(hours=12)
 
 @dataclass(frozen=True)
 class TriggerFiring:
-    """One firing of a trigger, as passed to its trigger type's `hand_off`."""
+    """One firing of a trigger, as passed to its trigger type's `dispatch`."""
 
     organization_id: int
     trigger_type: ScheduledTriggerType
@@ -37,7 +37,7 @@ class TriggerTarget:
     target_id: int
 
 
-class TriggerBehavior(ABC):
+class TriggerHandler(ABC):
     """
     What Cadence needs to know about a trigger type. Subclass it and register the subclass
     with `register_trigger_type`, which instantiates it once, so it must be stateless.
@@ -55,15 +55,15 @@ class TriggerBehavior(ABC):
     spread_window: ClassVar[timedelta] = timedelta(0)
 
     @abstractmethod
-    def hand_off(self, firings: Sequence[TriggerFiring]) -> None:
+    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
         """
-        Hand off a batch of firings, all of this trigger type.
+        Dispatch a batch of firings, all of this trigger type.
 
-        This exists only to hand firings off: for each firing, schedule a task or publish a
-        Kafka message, nothing more, ideally in bulk. It is called inline by the cadence
-        tick, so a slow hand-off delays every trigger. A firing is usually delivered once,
-        but may occasionally be skipped or delivered twice, so whatever consumes it should
-        tolerate both.
+        Do only cheap work here, ideally in bulk: for each firing, schedule a task, publish a
+        Kafka message, or just log or count it. Anything slower belongs in the work it
+        schedules. It is called inline by the cadence tick, so a slow dispatch delays every
+        trigger. A firing is usually delivered once, but may occasionally be skipped or
+        delivered twice, so whatever consumes it should tolerate both.
         """
 
     @abstractmethod
@@ -79,27 +79,27 @@ class TriggerBehavior(ABC):
         """
 
 
-trigger_type_registry: Registry[TriggerBehavior] = Registry(enable_reverse_lookup=False)
+trigger_type_registry: Registry[TriggerHandler] = Registry(enable_reverse_lookup=False)
 
 
-def register_trigger_type[T: type[TriggerBehavior]](
+def register_trigger_type[T: type[TriggerHandler]](
     trigger_type: ScheduledTriggerType,
 ) -> Callable[[T], T]:
     """
-    Register the `TriggerBehavior` subclass for `trigger_type`. Raises at registration if
+    Register the `TriggerHandler` subclass for `trigger_type`. Raises at registration if
     the subclass doesn't implement every required method, or its settings are invalid.
     """
 
     def register(cls: T) -> T:
-        behavior = cls()
-        spread_window = behavior.spread_window
+        handler = cls()
+        spread_window = handler.spread_window
         if not timedelta(0) <= spread_window <= MAX_SPREAD_WINDOW:
             raise ValueError(
                 f"spread_window must be between 0 and {MAX_SPREAD_WINDOW}, got {spread_window}"
             )
         if spread_window % timedelta(seconds=1):
             raise ValueError("spread_window must be a whole number of seconds")
-        trigger_type_registry.register(trigger_type)(behavior)
+        trigger_type_registry.register(trigger_type)(handler)
         return cls
 
     return register
@@ -112,7 +112,7 @@ def missing_targets(
     org_field: str = "organization_id",
 ) -> list[TriggerTarget]:
     """
-    For `TriggerBehavior.find_missing`: those of `targets` with no `model` row whose primary
+    For `TriggerHandler.find_missing`: those of `targets` with no `model` row whose primary
     key is the target id and whose `org_field` is the organization id. One query, on the
     primary.
     """

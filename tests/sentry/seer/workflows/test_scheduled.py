@@ -18,7 +18,7 @@ from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.scheduled import (
     SCHEDULED_EXECUTION_FEATURE,
     ScheduledSeerWorkflow,
-    SeerWorkflowTrigger,
+    SeerWorkflowTriggerHandler,
     record_scheduled_automation_run,
     trigger_key_for,
 )
@@ -47,10 +47,11 @@ def test_trigger_key_is_the_scheduled_minute_in_utc() -> None:
     )
 
 
-class SeerWorkflowTriggerTest(TestCase):
+class SeerWorkflowTriggerHandlerTest(TestCase):
     def test_is_registered(self) -> None:
         assert isinstance(
-            trigger_type_registry.get(ScheduledTriggerType.SEER_WORKFLOW), SeerWorkflowTrigger
+            trigger_type_registry.get(ScheduledTriggerType.SEER_WORKFLOW),
+            SeerWorkflowTriggerHandler,
         )
 
     def test_find_missing_reports_deleted_configs(self) -> None:
@@ -60,7 +61,7 @@ class SeerWorkflowTriggerTest(TestCase):
         existing = TriggerTarget(organization_id=self.organization.id, target_id=config.id)
         deleted = TriggerTarget(organization_id=self.organization.id, target_id=config.id + 1)
 
-        assert SeerWorkflowTrigger().find_missing([existing, deleted]) == [deleted]
+        assert SeerWorkflowTriggerHandler().find_missing([existing, deleted]) == [deleted]
 
     @patch("sentry.seer.workflows.scheduled.record_scheduled_automation_run.apply_async")
     def test_enqueues_a_task_per_firing(self, mock_apply_async: MagicMock) -> None:
@@ -74,7 +75,7 @@ class SeerWorkflowTriggerTest(TestCase):
             for config_id in (11, 12)
         ]
 
-        SeerWorkflowTrigger().hand_off(firings)
+        SeerWorkflowTriggerHandler().dispatch(firings)
 
         assert mock_apply_async.call_args_list == [
             call(

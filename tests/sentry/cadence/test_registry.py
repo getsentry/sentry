@@ -7,8 +7,8 @@ import pytest
 from sentry.cadence.models import ScheduledTriggerType
 from sentry.cadence.registry import (
     MAX_SPREAD_WINDOW,
-    TriggerBehavior,
     TriggerFiring,
+    TriggerHandler,
     TriggerTarget,
     missing_targets,
     register_trigger_type,
@@ -28,8 +28,8 @@ def empty_registry() -> Generator[None]:
         yield
 
 
-class Behavior(TriggerBehavior):
-    def hand_off(self, firings: Sequence[TriggerFiring]) -> None:
+class Handler(TriggerHandler):
+    def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
         pass
 
     def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
@@ -39,15 +39,15 @@ class Behavior(TriggerBehavior):
 @pytest.mark.usefixtures("empty_registry")
 class TestRegisterTriggerType:
     def test_registers_an_instance(self) -> None:
-        assert register_trigger_type(SEER_WORKFLOW)(Behavior) is Behavior
+        assert register_trigger_type(SEER_WORKFLOW)(Handler) is Handler
 
-        behavior = trigger_type_registry.get(SEER_WORKFLOW)
-        assert isinstance(behavior, Behavior)
-        assert behavior.spread_window == timedelta(0)
+        handler = trigger_type_registry.get(SEER_WORKFLOW)
+        assert isinstance(handler, Handler)
+        assert handler.spread_window == timedelta(0)
 
     def test_registers_spread_window(self) -> None:
         @register_trigger_type(SEER_WORKFLOW)
-        class Spread(Behavior):
+        class Spread(Handler):
             spread_window = MAX_SPREAD_WINDOW
 
         assert trigger_type_registry.get(SEER_WORKFLOW).spread_window == MAX_SPREAD_WINDOW
@@ -61,7 +61,7 @@ class TestRegisterTriggerType:
         ],
     )
     def test_rejects_invalid_spread_window(self, spread_window: timedelta) -> None:
-        class Invalid(Behavior):
+        class Invalid(Handler):
             pass
 
         Invalid.spread_window = spread_window
@@ -71,26 +71,26 @@ class TestRegisterTriggerType:
         assert SEER_WORKFLOW not in trigger_type_registry.registrations
 
     def test_requires_find_missing(self) -> None:
-        class NoFindMissing(TriggerBehavior):
-            def hand_off(self, firings: Sequence[TriggerFiring]) -> None:
+        class NoFindMissing(TriggerHandler):
+            def dispatch(self, firings: Sequence[TriggerFiring]) -> None:
                 pass
 
         with pytest.raises(TypeError):
             register_trigger_type(SEER_WORKFLOW)(NoFindMissing)
 
-    def test_requires_hand_off(self) -> None:
-        class NoHandOff(TriggerBehavior):
+    def test_requires_dispatch(self) -> None:
+        class NoDispatch(TriggerHandler):
             def find_missing(self, targets: Sequence[TriggerTarget]) -> Collection[TriggerTarget]:
                 return ()
 
         with pytest.raises(TypeError):
-            register_trigger_type(SEER_WORKFLOW)(NoHandOff)
+            register_trigger_type(SEER_WORKFLOW)(NoDispatch)
 
     def test_rejects_duplicate_registration(self) -> None:
-        register_trigger_type(SEER_WORKFLOW)(Behavior)
+        register_trigger_type(SEER_WORKFLOW)(Handler)
 
         with pytest.raises(AlreadyRegisteredError):
-            register_trigger_type(SEER_WORKFLOW)(Behavior)
+            register_trigger_type(SEER_WORKFLOW)(Handler)
 
 
 class MissingTargetsTest(TestCase):

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.cadence.models import ScheduledTriggerType
-from sentry.cadence.registry import TriggerBehavior, trigger_type_registry
+from sentry.cadence.registry import TriggerHandler, trigger_type_registry
 from sentry.cadence.spread import fire_offset, spread_window_for
 from sentry.utils.registry import NoRegistrationExistsError
 
@@ -21,7 +21,7 @@ def empty_registry() -> Generator[None]:
 
 def register(spread_window: timedelta) -> None:
     trigger_type_registry.registrations[SEER_WORKFLOW] = MagicMock(
-        spec=TriggerBehavior, spread_window=spread_window
+        spec=TriggerHandler, spread_window=spread_window
     )
 
 
