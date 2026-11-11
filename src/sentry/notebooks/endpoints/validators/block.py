@@ -5,6 +5,7 @@ from typing import Any
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.notebooks.contracts import (
@@ -138,7 +139,7 @@ def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any
 class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]):
     """Append a user's block, or write a producer's block by key and revision.
 
-    Needs notebook and user_id in its context.
+    Needs notebook, user_id and producer_writer in its context.
     """
 
     investigation_version = serializers.IntegerField(
@@ -149,7 +150,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
     key = serializers.CharField(
         max_length=128,
         required=False,
-        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion.",
+        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion. Only service accounts and Seer agents can send it.",
     )
     revision = serializers.IntegerField(
         min_value=1,
@@ -199,6 +200,8 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
             raise serializers.ValidationError(
                 {"investigation_version": "Send investigationVersion, or key and revision."}
             )
+        elif not self.context["producer_writer"]:
+            raise PermissionDenied("Only service accounts and Seer agents write by key.")
         elif attrs["kind"] != NotebookBlockKind.TEXT:
             raise serializers.ValidationError({"kind": "A producer's block must be text."})
         elif not attrs.get("content"):
@@ -207,11 +210,22 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
             raise serializers.ValidationError(
                 {"content": f"Ensure this field has no more than {MAX_MARKDOWN_CHARS} characters."}
             )
-        elif get_producer_source_type(self.context["notebook"].source_type) is None:
+        elif (
+            source_type := get_producer_source_type(self.context["notebook"].source_type)
+        ) is None:
             raise serializers.ValidationError(
                 {"detail": "Only a notebook made for a producer source takes key and revision."},
                 code="not_producer_notebook",
             )
+        else:
+            stored_key = source_type.block_key(attrs["key"])
+            max_length = NotebookBlock._meta.get_field("producer_key").max_length
+            if max_length is not None and len(stored_key) > max_length:
+                limit = max_length - len(source_type.block_key(""))
+                raise serializers.ValidationError(
+                    {"key": f"Ensure this field has no more than {limit} characters."}
+                )
+            attrs["key"] = stored_key
         kind = attrs["kind"]
         display = attrs.get(
             "display",

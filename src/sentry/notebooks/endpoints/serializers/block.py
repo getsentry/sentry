@@ -8,7 +8,13 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
-from sentry.notebooks.models import NotebookBlock, NotebookBlockExecutionStatus, NotebookBlockKind
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecutionStatus,
+    NotebookBlockKind,
+)
+from sentry.notebooks.services.producer_sources import get_producer_source_type
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -68,7 +74,17 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
             "result_execution",
         )
 
-        return {block: {} for block in item_list}
+        source_types = dict(
+            Notebook.objects.filter(
+                id__in={block.notebook_id for block in item_list if block.producer_key}
+            ).values_list("id", "source_type")
+        )
+        return {
+            block: {
+                "source_type": get_producer_source_type(source_types.get(block.notebook_id, ""))
+            }
+            for block in item_list
+        }
 
     @override
     def serialize(
@@ -126,6 +142,10 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
             "lastEditedBy": (
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
             ),
-            "producerKey": obj.producer_key,
+            "producerKey": (
+                attrs["source_type"].caller_block_key(obj.producer_key)
+                if attrs["source_type"] is not None and obj.producer_key is not None
+                else obj.producer_key
+            ),
             "producerRevision": obj.producer_revision,
         }

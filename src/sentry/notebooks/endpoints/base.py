@@ -25,6 +25,7 @@ from sentry.notebooks.services import (
     NotebookSourceNotFound,
     NotebookValidationError,
 )
+from sentry.seer.agent_token import is_agent_auth
 from sentry.service_accounts.auth import is_service_account_auth
 from sentry.viewer_context import ActorId, actor_id_from_references
 
@@ -90,6 +91,11 @@ def require_notebook_writer(request: Request, notebook: Notebook | None = None) 
     if notebook is not None:
         require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
     return None
+
+
+def is_producer_writer(request: Request) -> bool:
+    """Whether the request can write producer blocks: a service account or a Seer agent."""
+    return is_service_account_auth(request.auth) or is_agent_auth(request.auth)
 
 
 def request_creator_actor(request: Request) -> ActorId:
