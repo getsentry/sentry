@@ -135,6 +135,7 @@ function AgentConnectionStory() {
             onRetry={() => setIsAgentConnected(false)}
             onSelectSnippet={() => {}}
             onSetupInBrowser={() => {}}
+            onStartOver={() => setIsAgentConnected(false)}
             run={makeAgenticProgressRun({
               sequence: 3,
               stages: pendingStages.map(stage =>

@@ -2,7 +2,7 @@ import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AgenticProgress, AgenticProgressList} from './agenticProgressList';
 
@@ -138,6 +138,21 @@ describe('AgenticProgressList', () => {
     expect(screen.getByText(/Last update/)).toBeInTheDocument();
     expect(screen.getByText('ID:Lg1iSt2qeQ')).toBeInTheDocument();
     await waitFor(() => expect(projectsRequest).toHaveBeenCalled());
+  });
+
+  it('can start over from an active run', async () => {
+    const onStartOver = jest.fn();
+
+    render(
+      <AgenticProgress
+        run={AgenticProgressRunFixture({runStatus: 'active'})}
+        onStartOver={onStartOver}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Start over'}));
+
+    expect(onStartOver).toHaveBeenCalledTimes(1);
   });
 
   it('collapses into a summary and hands back the first issue once complete', async () => {

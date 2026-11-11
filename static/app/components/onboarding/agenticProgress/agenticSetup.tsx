@@ -34,6 +34,7 @@ interface AgenticSetupProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   /** The host supplies the action for continuing with browser setup. */
   onSetupInBrowser: () => void;
+  onStartOver: () => void;
   run: AgenticProgressRun | undefined;
   onboardingCode?: string;
 }
@@ -46,6 +47,7 @@ export function AgenticSetup({
   onRetry,
   onSelectSnippet,
   onSetupInBrowser,
+  onStartOver,
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
@@ -109,6 +111,7 @@ export function AgenticSetup({
                 run={run}
                 onboardingCode={onboardingCode}
                 issueLinkReferrer={issueLinkReferrer}
+                onStartOver={onStartOver}
               />
             </MotionContainer>
           ) : (
