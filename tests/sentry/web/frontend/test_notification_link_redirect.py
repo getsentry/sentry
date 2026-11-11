@@ -119,6 +119,13 @@ class NotificationLinkRedirectTest(TestCase):
                 "email",
             ],
             [PULL_REQUEST_URL, self.organization.id, self.notification_uuid, "unknown", "email"],
+            [
+                PULL_REQUEST_URL,
+                self.organization.id,
+                self.notification_uuid,
+                "activity-seer-pr-ready-for-review",
+                "unknown",
+            ],
             [PULL_REQUEST_URL, self.organization.id],
         ):
             path = f"/tr/{signing.dumps(payload, salt=_PULL_REQUEST_REDIRECT_SALT, compress=True)}/"

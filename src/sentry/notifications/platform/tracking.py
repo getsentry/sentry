@@ -348,13 +348,14 @@ def parse_pull_request_redirect(token: str) -> PullRequestRedirect | None:
         or not isinstance(organization_id, int)
         or not isinstance(notification_uuid, str)
         or source not in _SOURCE_CATEGORIES
+        or provider not in NotificationProviderKey
     ):
         return None
     return PullRequestRedirect(
         url=url,
         context=NotificationTrackingContext(
-            source=source,
-            provider=provider,
+            source=NotificationSource(source),
+            provider=NotificationProviderKey(provider),
             category=_SOURCE_CATEGORIES[source],
             notification_uuid=notification_uuid,
             organization_id=organization_id,
