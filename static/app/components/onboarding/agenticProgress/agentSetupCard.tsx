@@ -18,6 +18,7 @@ interface AgentSetupCardProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   run: AgenticProgressRun | undefined;
   feedbackSource?: string;
+  unframed?: boolean;
 }
 
 export function AgentSetupCard({
@@ -25,29 +26,38 @@ export function AgentSetupCard({
   onCopyCommand,
   onSelectSnippet,
   run,
+  unframed = false,
 }: AgentSetupCardProps) {
   return (
-    <Stack gap="0" background="primary" border="primary" radius="xl" padding="xl">
+    <Stack
+      gap="0"
+      background={unframed ? undefined : 'primary'}
+      border={unframed ? undefined : 'primary'}
+      radius={unframed ? undefined : 'xl'}
+      padding={unframed ? undefined : 'xl'}
+    >
       <Stack gap="xs">
         <Flex align="center" gap="sm" wrap="wrap">
-          <Heading as="h3" size="lg">
+          <Heading as="h3" size={unframed ? 'xl' : 'lg'}>
             {t('Let your agent set up Sentry')}
           </Heading>
           <Tag variant="info">{t('Recommended')}</Tag>
         </Flex>
-        <Text as="p" size="md" variant="secondary">
+        <Text as="p" size={unframed ? 'lg' : 'md'} variant="secondary">
           {t('Paste one prompt and your agent does the rest.')}
         </Text>
       </Stack>
 
       <Stack as="ul" role="list" gap="md" padding="xl 0">
-        <Benefit>{tct('[emphasis:Detects your stack]', {emphasis: <strong />})}</Benefit>
-        <Benefit>
+        <Benefit large={unframed}>
+          {tct('[emphasis:Detects your stack]', {emphasis: <strong />})}
+        </Benefit>
+        <Benefit large={unframed}>
           {tct('[emphasis:Installs and configures the SDKs] in your code', {
             emphasis: <strong />,
           })}
         </Benefit>
-        <Benefit>
+        <Benefit large={unframed}>
           {tct('[emphasis:Sends a test error] and confirms it, so you know it works', {
             emphasis: <strong />,
           })}
@@ -67,11 +77,11 @@ export function AgentSetupCard({
   );
 }
 
-function Benefit({children}: {children: ReactNode}) {
+function Benefit({children, large}: {children: ReactNode; large: boolean}) {
   return (
     <Flex as="li" align="center" gap="sm">
       <IconCheckmark size="sm" variant="success" />
-      <Text size="md">{children}</Text>
+      <Text size={large ? 'lg' : 'md'}>{children}</Text>
     </Flex>
   );
 }

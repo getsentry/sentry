@@ -636,13 +636,13 @@ describe('Onboarding', () => {
         });
 
         renderOnboarding('welcome');
-        expect(screen.getByRole('heading', {name: /Code breaks/})).toBeInTheDocument();
+        expect(screen.getByRole('heading', {name: 'Ship happens.'})).toBeInTheDocument();
 
         act(resolveAgenticRunRequest);
 
         expect(await screen.findByRole('heading', {name: heading})).toBeInTheDocument();
         expect(
-          screen.queryByRole('heading', {name: /Code breaks/})
+          screen.queryByRole('heading', {name: 'Ship happens.'})
         ).not.toBeInTheDocument();
         expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
       }
