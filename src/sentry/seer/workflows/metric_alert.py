@@ -453,9 +453,6 @@ def _set_monitor_selection(
     """
     selected = set(monitor_ids)
     _validate_monitors(organization_id, selected)
-    if not selected and config.backing_workflow_id is None:
-        return None
-
     workflow, created = _get_or_create_backing_workflow(organization_id, config)
     existing = set(
         DetectorWorkflow.objects.filter(workflow=workflow).values_list("detector_id", flat=True)
