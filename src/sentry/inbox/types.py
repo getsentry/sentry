@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 
 from django.db import router, transaction
 from django.db.models.functions import Greatest
@@ -52,6 +53,18 @@ class InboxItemType[SubjectT](ABC):
         """Subject URL, independent of inbox items or events."""
 
 
+class InboxEventSummary(StrEnum):
+    ISSUE_USER_ASSIGNED = "Assigned to you"
+    ISSUE_TEAM_ASSIGNED = "Assigned to your team"
+    ISSUE_USER_MENTIONED = "Mentioned you in a comment"
+    ISSUE_TEAM_MENTIONED = "Mentioned your team in a comment"
+    ISSUE_PR_READY_FOR_REVIEW = "Pull request ready for review"
+    NOTEBOOK_COMPLETED = "Investigation completed"
+    NOTEBOOK_MENTIONED = "Mentioned you"
+    NOTEBOOK_TEAM_MENTIONED = "Mentioned your team"
+    NOTEBOOK_PARTICIPANT_ADDED = "Added you"
+
+
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
     """
@@ -59,7 +72,7 @@ class InboxEventData:
     Add fields with defaults so existing events remain readable.
     """
 
-    summary: str
+    summary: InboxEventSummary
 
 
 @dataclass(frozen=True, kw_only=True)

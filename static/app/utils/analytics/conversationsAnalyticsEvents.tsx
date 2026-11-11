@@ -1,3 +1,5 @@
+import type {AgentsTableTab} from 'sentry/views/explore/conversations/components/agentsTable';
+
 export type ConversationsEventParameters = {
   'conversations.detail.click-errors-link': Record<string, unknown>;
   'conversations.detail.click-trace-link': Record<string, unknown>;
@@ -33,9 +35,12 @@ export type ConversationsEventParameters = {
     tab?: 'agent' | 'human';
     value?: string;
   };
-  'conversations.onboarding.page-view': Record<string, unknown>;
+  'conversations.onboarding.page-view': {
+    empty_state: 'no_agent_spans' | 'no_conversations';
+  };
   'conversations.page-view': Record<string, unknown>;
   'conversations.save_as': {
+    chart: string;
     save_type: 'alert' | 'dashboard';
   };
   'conversations.save_query_modal': {
@@ -43,7 +48,9 @@ export type ConversationsEventParameters = {
     save_type?: 'save_new_query' | 'rename_query';
     ui_source?: 'table';
   };
-  'conversations.table.page-view': Record<string, unknown>;
+  'conversations.table.page-view': {
+    tab: AgentsTableTab;
+  };
   'conversations.table.paginate': {
     direction: 'next' | 'previous';
   };

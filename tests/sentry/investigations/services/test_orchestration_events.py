@@ -36,7 +36,7 @@ from sentry.investigations.services.orchestration_events import (
     synchronize_orchestration_projection,
 )
 from sentry.models.organizationmember import OrganizationMember
-from sentry.notebooks.endpoints.serializers import InvestigationBlockSerializer
+from sentry.notebooks.endpoints.serializers import NotebookBlockSerializer
 from sentry.notebooks.endpoints.validators.block import BlockUpdateValidator
 from sentry.notebooks.models import (
     NotebookActionRequest,
@@ -50,10 +50,10 @@ from sentry.notebooks.models import (
 from sentry.notebooks.services.action_kinds import ACTION_KINDS
 from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.notebooks import (
-    InvestigationConflictError,
-    archive_investigation,
+    NotebookConflictError,
+    archive_notebook_row,
     update_block,
-    update_investigation,
+    update_notebook_row,
 )
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
@@ -357,8 +357,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
-        archived = archive_investigation(
-            investigation=self.investigation, expected_version=self.investigation.version
+        archived = archive_notebook_row(
+            notebook=self.investigation, expected_version=self.investigation.version
         )
         version = archived.version
         notebook_revision = self.orchestration_run.notebook_revision
@@ -415,8 +415,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_scope_fallback_keeps_output_permissions_after_project_selection_changes(self) -> None:
         other_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id, other_project.id],
@@ -431,8 +431,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_started", payload))
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[other_project.id],
@@ -539,15 +539,15 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
                 serialize(
                     block,
                     self.user,
-                    InvestigationBlockSerializer(),
+                    NotebookBlockSerializer(),
                 )["content"]
                 == "Original report"
             )
 
     def test_identical_replacement_result_keeps_the_started_project_scope(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id],
@@ -558,8 +558,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.make_event(1, "report_block_upserted", payload))
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[replacement_project.id],
@@ -584,7 +584,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["content"]
             == payload["content"]
         )
@@ -746,8 +746,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
 
     def test_failed_kind_replacement_snapshot_restores_original_output(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[self.project.id],
@@ -761,8 +761,8 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         original_execution = block.current_execution
         assert original_execution is not None
         self.investigation.refresh_from_db()
-        update_investigation(
-            investigation=self.investigation,
+        update_notebook_row(
+            notebook=self.investigation,
             expected_version=self.investigation.version,
             fields={},
             project_ids=[replacement_project.id],
@@ -829,7 +829,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             serialize(
                 block,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["content"]
             == "Original report"
         )
@@ -1212,7 +1212,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             actor_id=self.user.id,
         )
 
-        with pytest.raises(InvestigationConflictError):
+        with pytest.raises(NotebookConflictError):
             update_investigation_with_orchestration(
                 investigation=self.investigation,
                 expected_version=original_version,
@@ -1385,7 +1385,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         shared = serialize(
             block,
             viewer,
-            InvestigationBlockSerializer(),
+            NotebookBlockSerializer(),
         )
         assert shared["content"] == "fresh"
         assert shared["generatedContent"] == "fresh"
@@ -1424,7 +1424,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             serialize(
                 in_flight,
                 self.user,
-                InvestigationBlockSerializer(),
+                NotebookBlockSerializer(),
             )["outputStatus"]
             == NotebookBlockExecutionStatus.RUNNING
         )
@@ -2458,7 +2458,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
         self.investigation.refresh_from_db()
         edited = update_block(
             block=edited,
-            expected_investigation_version=self.investigation.version,
+            expected_notebook_version=self.investigation.version,
             expected_block_version=edited.version,
             user_id=self.user.id,
             values={"content": "my notes"},

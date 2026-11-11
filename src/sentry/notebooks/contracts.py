@@ -129,7 +129,7 @@ class VisualizationSerializer(StrictContractSerializer):
     topN = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=20)
 
 
-class InvestigationQueryLinkSerializer(StrictContractSerializer):
+class NotebookQueryLinkSerializer(StrictContractSerializer):
     kind = serializers.CharField(max_length=64)
     params = serializers.DictField()
 
@@ -145,7 +145,7 @@ class InvestigationQueryLinkSerializer(StrictContractSerializer):
         return value
 
 
-class InvestigationQueryResultSerializer(StrictContractSerializer):
+class NotebookQueryResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
     tableMarkdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
     chart = SeerChartEmbedSerializer(required=False, allow_null=True)
@@ -153,7 +153,7 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
     isEmpty = serializers.BooleanField(default=False)
     chartUnavailableReason = serializers.CharField(required=False, allow_null=True)
     queryLinks = serializers.ListField(
-        child=InvestigationQueryLinkSerializer(), required=False, default=list
+        child=NotebookQueryLinkSerializer(), required=False, default=list
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
@@ -164,7 +164,7 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
         return attrs
 
 
-class InvestigationTextResultSerializer(StrictContractSerializer):
+class NotebookTextResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
     markdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
 
@@ -172,7 +172,7 @@ class InvestigationTextResultSerializer(StrictContractSerializer):
 def validate_query_result(value: Any) -> dict[str, Any]:
     if json_byte_size(value) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Query result exceeds the maximum artifact size.")
-    serializer = InvestigationQueryResultSerializer(data=value)
+    serializer = NotebookQueryResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
 
@@ -180,7 +180,7 @@ def validate_query_result(value: Any) -> dict[str, Any]:
 def validate_text_result(value: Any) -> dict[str, Any]:
     if json_byte_size(value) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Text result exceeds the maximum artifact size.")
-    serializer = InvestigationTextResultSerializer(data=value)
+    serializer = NotebookTextResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
 

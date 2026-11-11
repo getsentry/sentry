@@ -483,18 +483,25 @@ function getSingleRunSections(
   blocks: Block[],
   runState: ExplorerAutofixState
 ): AutofixSection[] {
-  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks)
-    .filter(artifact => artifact.key === SINGLE_RUN_ROOT_CAUSE_KEY)
-    .flatMap(artifact => {
+  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks).flatMap(
+    artifact => {
+      if (artifact.key !== 'root_cause' && artifact.key !== SINGLE_RUN_ROOT_CAUSE_KEY) {
+        return [];
+      }
       const headline = artifact.data?.headline;
       const cause = artifact.data?.cause;
       if (!isString(headline) || !isString(cause)) {
         return [];
       }
       return [
-        {...artifact, data: {one_line_description: headline, cause, five_whys: []}},
+        {
+          ...artifact,
+          key: 'root_cause',
+          data: {one_line_description: headline, cause, five_whys: []},
+        },
       ];
-    });
+    }
+  );
 
   const sections: AutofixSection[] = [
     {

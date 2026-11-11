@@ -7,6 +7,12 @@ import type {ClassifierDataset} from './types';
 
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
+export const ENRICHMENT_ATTRIBUTE_PREFIX = 'sentry.enrichment.';
+
+export function getEnrichmentAttributeName(resultAttribute: string) {
+  return `${ENRICHMENT_ATTRIBUTE_PREFIX}${resultAttribute}`;
+}
+
 export function getClassifiersPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/classifiers/`);
 }

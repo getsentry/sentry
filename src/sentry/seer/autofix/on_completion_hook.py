@@ -230,7 +230,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
             return
-        if not cls._run_completed(organization, run_id, state):
+        paused = state.status == "awaiting_user_input"
+        if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":
                 cls._notify_entrypoints_of_failure(
                     organization, run_id, group, state.failure_reason

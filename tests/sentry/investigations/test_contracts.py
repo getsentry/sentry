@@ -577,12 +577,12 @@ class RecordingKind(ActionKind[_Details]):
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         self.checked.append(
-            ([item.id for item in action_requests], sorted(investigations), access, user)
+            ([item.id for item in action_requests], sorted(notebooks), access, user)
         )
         return {item.id: self.reason for item in action_requests}
 
