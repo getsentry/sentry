@@ -508,8 +508,32 @@ describe('attributesTree', () => {
       />
     );
 
-    await userEvent.hover(screen.getByRole('link', {name: 'name'}));
+    await userEvent.hover(screen.getByRole('link', {name: 'logger.name'}));
 
+    expect(
+      await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
+  });
+
+  it('describes a linked key when it is focused with the keyboard', async () => {
+    render(
+      <AttributesTree
+        attributes={[{name: 'sentry.logger.name', type: 'str', value: 'sentry.python'}]}
+        config={{attributeDetailsType: 'log', disableActions: true}}
+        getAdjustedAttributeKey={() => 'logger.name'}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({features: ['attribute-management']}),
+          projectSlug: 'project-slug',
+        }}
+      />
+    );
+
+    await userEvent.tab();
+
+    expect(screen.getByRole('link', {name: 'logger.name'})).toHaveFocus();
     expect(
       await screen.findByText('The name of the logger that generated this event.')
     ).toBeInTheDocument();

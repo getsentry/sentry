@@ -86,10 +86,10 @@ export function AttributeDetailsTooltip({
   if (to) {
     // Not InfoText, which would put a second tab stop inside the link.
     return (
-      <Text monospace>
+      <Text monospace variant="muted">
         {styleProps => (
-          <Tooltip title={title} skipWrapper showUnderline>
-            <Link to={to} {...styleProps}>
+          <Tooltip title={title} skipWrapper showUnderline underlineColor="muted">
+            <Link to={to} aria-label={attributeName} {...styleProps}>
               {label}
             </Link>
           </Tooltip>

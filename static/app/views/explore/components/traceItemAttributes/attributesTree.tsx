@@ -296,6 +296,35 @@ function AttributesTreeRowDropdown({
 /**
  * Uses raw names when available, otherwise prettifies keys, and simplifies the value
  */
+function getAttribute(
+  attribute: TraceItemResponseAttribute,
+  useRawAttributeNames: boolean,
+  getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
+): Attribute | undefined {
+  const attributeValue =
+    attribute.type === 'bool'
+      ? String(attribute.value)
+      : attribute.type === 'array'
+        ? JSON.stringify(attribute.value)
+        : attribute.value;
+
+  if (!defined(attributeValue)) {
+    return undefined;
+  }
+
+  return {
+    attribute_key:
+      useRawAttributeNames && attribute.rawName !== undefined
+        ? attribute.rawName
+        : prettifyAttributeName(attribute.name),
+    attribute_value: attributeValue,
+    original_attribute_key: getAdjustedAttributeKey
+      ? getAdjustedAttributeKey(attribute)
+      : attribute.name,
+    type: attribute.type,
+  };
+}
+
 const ATTRIBUTE_DETAILS_PAGE_TYPES: ReadonlySet<GetFieldDefinitionType> = new Set([
   'log',
   'span',
@@ -327,33 +356,4 @@ function getAttributeDetailsTargetForAttribute(
     organizationSlug,
     projectSlug,
   });
-}
-
-function getAttribute(
-  attribute: TraceItemResponseAttribute,
-  useRawAttributeNames: boolean,
-  getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
-): Attribute | undefined {
-  const attributeValue =
-    attribute.type === 'bool'
-      ? String(attribute.value)
-      : attribute.type === 'array'
-        ? JSON.stringify(attribute.value)
-        : attribute.value;
-
-  if (!defined(attributeValue)) {
-    return undefined;
-  }
-
-  return {
-    attribute_key:
-      useRawAttributeNames && attribute.rawName !== undefined
-        ? attribute.rawName
-        : prettifyAttributeName(attribute.name),
-    attribute_value: attributeValue,
-    original_attribute_key: getAdjustedAttributeKey
-      ? getAdjustedAttributeKey(attribute)
-      : attribute.name,
-    type: attribute.type,
-  };
 }
