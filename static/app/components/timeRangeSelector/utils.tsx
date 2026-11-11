@@ -176,14 +176,14 @@ export function getAbsoluteSummary(
     precision: 'second',
     clock: '24',
     showTimezone: false,
-    timezone: undefined,
+    timezone: utc ? 'UTC' : undefined,
   });
   const endTimeFormatted = formatDateTime(endDate, {
     mode: 'time',
     precision: 'second',
     clock: '24',
     showTimezone: false,
-    timezone: undefined,
+    timezone: utc ? 'UTC' : undefined,
   });
 
   const showDateOnly =

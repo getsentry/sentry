@@ -1,9 +1,12 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DateTimeProvider} from '@sentry/scraps/dateTime';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {getAbsoluteSummary, getArbitraryRelativePeriod, parseStatsPeriod} from './utils';
 
@@ -61,6 +64,21 @@ describe('getAbsoluteSummary', () => {
 
     expect(screen.getByText('Jan 1, 2025 1:00 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('Jan 2, 2025 2:00 AM UTC')).toBeInTheDocument();
+  });
+
+  it('keeps a full UTC day date-only when the viewer uses another timezone', () => {
+    const user = UserFixture();
+    user.options.timezone = 'America/Los_Angeles';
+    ConfigStore.set('user', user);
+
+    render(
+      <Fragment>
+        {getAbsoluteSummary('2025-01-01T00:00:00', '2025-01-02T23:59:59', true)}
+      </Fragment>
+    );
+
+    expect(screen.getByText('Jan 1, 2025')).toBeInTheDocument();
+    expect(screen.getByText('Jan 2, 2025')).toBeInTheDocument();
   });
 
   it('converts offset-less UTC page filters to the viewer timezone', () => {
