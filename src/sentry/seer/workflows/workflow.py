@@ -494,12 +494,20 @@ class ConfigUpdate:
         self.mark("enabled")
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
+        """Replace extras as-is. Rename with ``set_name``, which strategies may extend."""
         new_extras = extras.dict(exclude_none=True)
         current_extras = {k: v for k, v in self.config.extras.items() if v is not None}
         if current_extras == new_extras:
             return
         self.config.extras = new_extras
         self.mark("extras")
+
+    def set_name(self, name: str | None) -> None:
+        extras = SeerWorkflowConfigExtras.parse_obj(self.config.extras)
+        if extras.name == name:
+            return
+        extras.name = name
+        self.set_extras(extras)
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         """Replace the selected projects, bumping the version only when the selection changes.

@@ -902,10 +902,28 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert workflow.extras.name == "Latency breaches"
         assert config.version == 1
         assert config.backing_workflow is not None
+        assert config.backing_workflow.name == "Latency breaches"
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == set(self.monitor_ids)
         assert set(workflow.get_project_ids()) == {monitor.project_id for monitor in self.monitors}
+
+    def test_renaming_the_automation_renames_its_backing_workflow(self) -> None:
+        backing = self.select_monitors(self.monitor_ids).backing_workflow
+        assert backing is not None
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+
+        with workflow.update_config() as update:
+            update.set_name("Checkout latency")
+        backing.refresh_from_db()
+        assert backing.name == "Checkout latency"
+
+        with workflow.update_config() as update:
+            update.set_name(None)
+        backing.refresh_from_db()
+        assert backing.name == "Seer automation"
 
     def test_create_with_monitors_rolls_back_on_invalid_monitor(self) -> None:
         foreign = self.create_detector(

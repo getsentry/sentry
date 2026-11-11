@@ -203,6 +203,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         required=False,
         allow_empty=True,
     )
+    name = serializers.CharField(required=False, allow_null=True, max_length=64)
 
     def validate_projectIds(self, value: list[int]) -> list[int]:
         if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
@@ -211,7 +212,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+            raise serializers.ValidationError("Send projectIds, monitorIds, enabled, or name.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
@@ -557,7 +558,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           access.
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
-        - Enabling or pausing requires access to every project the config covers.
+        - Enabling, pausing, or renaming requires access to every project the config covers.
+        - ``name`` renames the automation; ``null`` clears it.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -582,6 +584,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
+        rename = "name" in serializer.validated_data
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
@@ -612,7 +615,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.config.filters
                 ).all_projects
 
-                if enabled is not None:
+                if enabled is not None or rename:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -626,7 +629,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     if denied is not None:
                         raise PermissionDenied(detail=denied)
 
+                if enabled is not None:
                     update.set_enabled(enabled)
+
+                if rename:
+                    update.set_name(serializer.validated_data["name"])
 
                 if project_ids is not None:
                     # Narrowing an all-projects config drops future projects the caller may
