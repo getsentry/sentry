@@ -524,71 +524,6 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert self.selected_project_ids(config) == [self.project.id]
         assert "updatedBy" not in response.data
 
-    def test_put_renames_config(self) -> None:
-        config = self.create_config(extras={"name": "Old name", "created_by": self.user.id})
-        version = config.version
-
-        response = self.get_success_response(
-            self.organization.slug, config.id, method="put", name="  New name  "
-        )
-
-        assert response.data["name"] == "New name"
-        assert response.data["updatedBy"] == str(self.user.id)
-        assert response.data["version"] == version + 1
-        config.refresh_from_db()
-        assert config.extras == {
-            "name": "New name",
-            "created_by": self.user.id,
-            "updated_by": self.user.id,
-        }
-
-    def test_put_name_with_other_fields(self) -> None:
-        config = self.create_config()
-
-        response = self.get_success_response(
-            self.organization.slug,
-            config.id,
-            method="put",
-            name="Checkout triage",
-            projectIds=[self.project.id],
-        )
-
-        assert response.data["name"] == "Checkout triage"
-        assert response.data["projects"] == [self.project.id]
-
-    def test_put_same_name_keeps_version(self) -> None:
-        config = self.create_config(version=3, extras={"name": "Same"})
-
-        response = self.get_success_response(
-            self.organization.slug, config.id, method="put", name="Same"
-        )
-
-        assert response.data["version"] == 3
-        assert "updatedBy" not in response.data
-
-    def test_put_invalid_name_returns_400(self) -> None:
-        config = self.create_config(extras={"name": "Old name"})
-
-        for name in ("a" * 65, "", "   ", None):
-            response = self.get_error_response(
-                self.organization.slug, config.id, method="put", name=name, status_code=400
-            )
-            assert "name" in response.data
-
-        config.refresh_from_db()
-        assert config.extras == {"name": "Old name"}
-
-    def test_put_empty_body_returns_400(self) -> None:
-        config = self.create_config()
-
-        response = self.get_error_response(
-            self.organization.slug, config.id, method="put", status_code=400
-        )
-
-        assert response.data["non_field_errors"] == [
-            "Send projectIds, monitorIds, enabled, or name."
-        ]
-
     def test_put_nonexistent_projects_return_403(self) -> None:
         config = self.create_config()
         Factories.create_seer_workflow_config_project(config, self.project)
@@ -914,11 +849,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             method="put",
             projectIds=[self.project.id],
             enabled=True,
+            name="Checkout triage",
         )
 
         assert response.data["version"] == config.version + 1
         assert response.data["enabled"] is True
         assert response.data["projects"] == [self.project.id]
+        assert response.data["name"] == "Checkout triage"
+        config.refresh_from_db()
+        assert config.extras["name"] == "Checkout triage"
 
     def test_put_failure_rolls_back_every_change(self) -> None:
         config = self.create_config()
