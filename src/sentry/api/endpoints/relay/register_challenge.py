@@ -5,7 +5,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.auth import create_register_challenge, is_version_supported
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id
@@ -76,7 +75,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
                 {"detail": "Missing relay signature"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        secret = options.get("system.secret-key")
+        secret = settings.SECRET_KEY
 
         try:
             challenge = create_register_challenge(request.body, sig, secret)

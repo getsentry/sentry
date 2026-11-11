@@ -5,8 +5,8 @@ from collections.abc import Mapping
 from typing import Any, cast
 
 import orjson
+from django.conf import settings
 
-from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import (
@@ -56,11 +56,11 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     )
 
     def get_oauth_client_id(self) -> str:
-        client_id = options.get("gcp.client-id")
+        client_id = settings.SENTRY_GCP_CLIENT_ID
         return client_id
 
     def get_oauth_client_secret(self) -> str:
-        client_secret = options.get("gcp.client-secret")
+        client_secret = settings.SENTRY_GCP_CLIENT_SECRET
         return client_secret
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
