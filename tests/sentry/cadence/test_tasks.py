@@ -324,18 +324,6 @@ class CadenceTickTest(CadenceTickTestCase):
             ),
         ]
 
-    @freeze_time(NOW)
-    def test_tick_duration_includes_action_time(self) -> None:
-        self.create_trigger(NOW)
-        with (
-            patch("sentry.cadence.tasks.time.monotonic", return_value=100.0) as monotonic,
-            patch("sentry.cadence.tasks.metrics.timing") as timing,
-        ):
-            self.action.side_effect = lambda _: monotonic.configure_mock(return_value=105.0)
-            cadence_tick()
-
-        timing.assert_any_call("cadence.tick.duration", 5.0, sample_rate=1.0)
-
     def test_later_trigger_types_include_time_spent_in_earlier_actions(self) -> None:
         with freeze_time(NOW) as clock:
             self.create_trigger(NOW)

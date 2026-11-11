@@ -83,7 +83,6 @@ def cadence_tick() -> None:
                 return
     finally:
         metrics.distribution("cadence.tick.claimed", claimed_count)
-        metrics.timing("cadence.tick.duration", time.monotonic() - start, sample_rate=1.0)
 
 
 def _claim_batch(
