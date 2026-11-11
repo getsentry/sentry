@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, assert_never, cast
+from typing import Any, NamedTuple, TypeIs, assert_never, cast, get_args
 
 import sentry_sdk
 from django.db.models import Q
@@ -359,13 +359,11 @@ _CONVENTION_TYPE_TO_SEARCH_TYPE: dict[str, str] = {
 }
 
 
-_SEARCH_TYPE_TO_UNIT: dict[str, TraceItemAttributeUnit] = {
-    "byte": "byte",
-    "currency": "currency",
-    "millisecond": "millisecond",
-    "percentage": "percentage",
-    "second": "second",
-}
+_TRACE_ITEM_ATTRIBUTE_UNITS: frozenset[str] = frozenset(get_args(TraceItemAttributeUnit))
+
+
+def _is_trace_item_attribute_unit(value: str) -> TypeIs[TraceItemAttributeUnit]:
+    return value in _TRACE_ITEM_ATTRIBUTE_UNITS
 
 
 def _scrubbing_mode(apply_scrubbing: ApplyScrubbing) -> TraceItemAttributeScrubbingMode:
@@ -616,16 +614,16 @@ def resolve_attribute_unit(
     # A user attribute can share a column's public alias without being that column.
     column = get_column_definitions(item_type).columns.get(public_name)
     if column is not None and column.internal_name == name and not column.secondary_alias:
-        unit = _SEARCH_TYPE_TO_UNIT.get(column.search_type)
-        if unit is not None:
-            return unit
+        if _is_trace_item_attribute_unit(column.search_type):
+            return column.search_type
 
     metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(name)
     if metadata is None or metadata.search_alias is None or metadata.search_alias.type is None:
         return None
     if _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value, "number") != "number":
         return None
-    return _SEARCH_TYPE_TO_UNIT.get(metadata.search_alias.type)
+    unit = metadata.search_alias.type
+    return unit if _is_trace_item_attribute_unit(unit) else None
 
 
 def _replacement_superseded_by_present_source(

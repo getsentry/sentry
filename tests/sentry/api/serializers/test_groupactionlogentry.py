@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.auth.access import Access, from_user
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
@@ -110,6 +111,82 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             "impact_assessment",
             "first_seen",
         ]
+
+    def _investigation_link(self, notebook_id: int) -> GroupActionLogEntry:
+        return self.create_group_action_log_entry(
+            type=GroupActionType.INVESTIGATION_LINKED,
+            source="seer:investigation",
+            data={
+                "notebook_id": notebook_id,
+                "hypothesis_id": "h-1",
+                "hypothesis_statement": "Payment retries exhaust the pool",
+                "reason": "Its timeouts start with the deploy.",
+            },
+        )
+
+    def test_investigation_linked_entry(self) -> None:
+        investigation = self.create_notebook(
+            organization=self.organization, title="Checkout latency"
+        )
+        entry = self._investigation_link(investigation.id)
+
+        result = serialize(entry, self.user)
+
+        assert result["type"] == "investigation_linked"
+        assert result["user"] is None
+        assert result["source"] == "seer:investigation"
+        assert result["data"] == {
+            "investigation": {
+                "id": str(investigation.id),
+                "title": "Checkout latency",
+                "status": "active",
+            },
+            "hypothesisId": "h-1",
+            "hypothesisStatement": "Payment retries exhaust the pool",
+            "reason": "Its timeouts start with the deploy.",
+        }
+
+    def test_investigation_linked_entry_after_deletion(self) -> None:
+        investigation = self.create_notebook(organization=self.organization, title="Gone")
+        entry = self._investigation_link(investigation.id)
+        investigation.delete()
+
+        assert serialize(entry, self.user)["data"]["investigation"] is None
+
+    def test_investigation_linked_entry_from_another_organization(self) -> None:
+        investigation = self.create_notebook(
+            organization=self.create_organization(), title="Someone else's"
+        )
+        entry = self._investigation_link(investigation.id)
+
+        assert serialize(entry, self.user)["data"]["investigation"] is None
+
+    @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
+    def test_investigation_links_are_in_activity(self) -> None:
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_link(investigation.id)
+
+        assert [item["type"] for item in self._activity_items()] == [
+            "investigation_linked",
+            "first_seen",
+        ]
+
+    @with_feature(["organizations:investigations", "organizations:investigations-issue-links"])
+    def test_investigation_links_are_hidden_from_tokens_without_an_org_scope(self) -> None:
+        self._first_seen()
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_link(investigation.id)
+        event_only = from_user(self.user, self.organization, scopes=["event:read"])
+
+        assert [item["type"] for item in self._activity_items(access=event_only)] == ["first_seen"]
+
+    @with_feature("organizations:investigations")
+    def test_investigation_links_are_hidden_without_the_flag(self) -> None:
+        self._first_seen()
+        investigation = self.create_notebook(organization=self.organization, title="Checkout")
+        self._investigation_link(investigation.id)
+
+        assert [item["type"] for item in self._activity_items()] == ["first_seen"]
 
     def test_pull_request_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -528,10 +605,16 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"comment_id": comment.id, **data},
         )
 
-    def _activity_items(self, limit: int = 99) -> list[dict[str, Any]]:
+    def _activity_items(
+        self, limit: int = 99, access: Access | None = None
+    ) -> list[dict[str, Any]]:
         with action_log_activity_enabled():
             items = get_serialized_activity_items(
-                self.group, self.user, endpoint="test", limit=limit
+                self.group,
+                self.user,
+                access=access or from_user(self.user, self.organization),
+                endpoint="test",
+                limit=limit,
             )
         assert items is not None
         return items
@@ -630,7 +713,12 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         self.create_group_action_log_entry(type=GroupActionType.LINK_EXTERNAL_ISSUE)
 
         with action_log_activity_enabled():
-            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+            items = get_serialized_activity_items(
+                self.group,
+                self.user,
+                access=from_user(self.user, self.organization),
+                endpoint="test",
+            )
 
         assert items is None
 

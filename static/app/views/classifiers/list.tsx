@@ -26,7 +26,12 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import type {TelemetryClassifier} from './types';
-import {getClassifierDetailPath, getDatasetLabel, getNewClassifierPath} from './utils';
+import {
+  getClassifierDetailPath,
+  getDatasetLabel,
+  getEnrichmentAttributeName,
+  getNewClassifierPath,
+} from './utils';
 
 const CLASSIFIERS_PER_PAGE = 25;
 
@@ -107,9 +112,9 @@ function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
           size="sm"
           density="compressed"
           ellipsis
-          title={classifier.resultAttribute}
+          title={getEnrichmentAttributeName(classifier.resultAttribute)}
         >
-          {classifier.resultAttribute}
+          {getEnrichmentAttributeName(classifier.resultAttribute)}
         </Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>

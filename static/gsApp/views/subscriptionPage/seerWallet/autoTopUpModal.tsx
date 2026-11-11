@@ -1,6 +1,6 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,11 +11,14 @@ import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
@@ -27,13 +30,17 @@ import {
 const RELOAD_PRESETS_CENTS = [1000, 2500, 5000, 15000];
 
 interface AutoTopUpModalOptions {
-  autoTopUp: SeerWalletAutoTopUp;
-  creditPriceCents: number;
   organization: Organization;
-  purchasedExpiresAt: string | null;
 }
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
+
+type AutoTopUpFormProps = AutoTopUpModalProps & {
+  autoTopUp: SeerWalletAutoTopUp;
+  balanceCredits: number;
+  creditPriceCents: number;
+  purchasedExpiresAt: string | null;
+};
 
 function parseWholeNumber(value: string) {
   return Math.max(0, parseInt(value.replace(/\D/g, ''), 10) || 0);
@@ -43,18 +50,76 @@ function toWholeDollarCents(cents: number) {
   return Math.floor(cents / 100) * 100;
 }
 
-function AutoTopUpModal({
+/**
+ * Seer auto-reload settings. The modal loads the wallet itself so it can be
+ * opened from anywhere; on the billing page the wallet card has already loaded
+ * it, so it shows straight from the cache.
+ */
+function AutoTopUpModal(props: AutoTopUpModalProps) {
+  const {Header, Body, organization} = props;
+  const balanceQuery = useQuery(seerWalletBalanceOptions(organization));
+  const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
+
+  // The wallet only includes credit pricing for billing roles, the only ones
+  // offered auto-reload.
+  const creditPriceCents = balanceQuery.data?.creditPriceCents;
+
+  if (balanceQuery.data && autoTopUpQuery.data && creditPriceCents !== undefined) {
+    return (
+      <AutoTopUpForm
+        {...props}
+        autoTopUp={autoTopUpQuery.data}
+        balanceCredits={balanceQuery.data.balance}
+        creditPriceCents={creditPriceCents}
+        purchasedExpiresAt={balanceQuery.data.purchased.expiresAt}
+      />
+    );
+  }
+
+  const isError =
+    balanceQuery.isError ||
+    autoTopUpQuery.isError ||
+    (balanceQuery.data && creditPriceCents === undefined);
+
+  return (
+    <Fragment>
+      <Header closeButton>
+        <Heading as="h2" size="xl">
+          {t('Seer auto-reload')}
+        </Heading>
+      </Header>
+      <Body>
+        {isError ? (
+          <LoadingError
+            message={t('Unable to load your Seer credits.')}
+            onRetry={() => {
+              balanceQuery.refetch();
+              autoTopUpQuery.refetch();
+            }}
+          />
+        ) : (
+          <LoadingIndicator />
+        )}
+      </Body>
+    </Fragment>
+  );
+}
+
+function AutoTopUpForm({
   Header,
   Body,
   Footer,
   closeModal,
   organization,
   autoTopUp,
+  balanceCredits,
   creditPriceCents,
   purchasedExpiresAt,
-}: AutoTopUpModalProps) {
+}: AutoTopUpFormProps) {
   const queryClient = useQueryClient();
   const isTurningOn = !autoTopUp.enabled;
+  // The backend only bills a reload once the balance is below the threshold.
+  const isChargedNow = isTurningOn && balanceCredits < autoTopUp.thresholdCredits;
   const [isConfirmingTurnOff, setIsConfirmingTurnOff] = useState(false);
   const [reloadCents, setReloadCents] = useState(
     toWholeDollarCents(autoTopUp.topUpCredits * creditPriceCents)
@@ -77,10 +142,12 @@ function AutoTopUpModal({
       queryClient.invalidateQueries({
         queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
       });
-      // Turning on asks the user to pay for a reload now, so refresh the balance as well.
+      // Turning on can bill a reload right away, so refresh the balance as well.
       queryClient.invalidateQueries({
         queryKey: seerWalletBalanceOptions(organization).queryKey,
       });
+      // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
+      queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
       if (!data.enabled) {
         toast.success(t('Auto-reload turned off'));
       } else if (isTurningOn) {
@@ -224,7 +291,7 @@ function AutoTopUpModal({
               onChange={setDailyLimitCents}
             />
           </Stack>
-          {isTurningOn && (
+          {isChargedNow && (
             <Stack
               gap="md"
               padding="lg"
@@ -269,9 +336,11 @@ function AutoTopUpModal({
                 })
               }
             >
-              {isTurningOn
+              {isChargedNow
                 ? tct('Turn on and pay [price] + tax', {price: reloadPrice})
-                : t('Save')}
+                : isTurningOn
+                  ? t('Turn on')
+                  : t('Save')}
             </Button>
           </Grid>
         </Flex>
@@ -318,5 +387,7 @@ const modalCss = css`
 `;
 
 export function openSeerAutoTopUpModal(options: AutoTopUpModalOptions) {
-  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {modalCss});
+  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {
+    modalCss,
+  });
 }
