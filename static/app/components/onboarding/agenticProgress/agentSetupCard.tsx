@@ -7,7 +7,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
 import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
@@ -58,20 +57,12 @@ export function AgentSetupCard({
       <Stack>
         <AgentHandoffPrompt
           context={run ? {runId: run.runId} : null}
+          feedbackSource={feedbackSource}
           flow={AgentHandoffFlow.ONBOARDING}
           onCopySuccess={() => onCopyCommand('prompt')}
           onSelect={() => onSelectSnippet('prompt')}
         />
       </Stack>
-
-      <Flex justify="end" paddingTop="lg">
-        <FeedbackButton
-          size="xs"
-          feedbackOptions={{
-            tags: {'feedback.source': feedbackSource},
-          }}
-        />
-      </Flex>
     </Stack>
   );
 }
