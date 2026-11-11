@@ -43,6 +43,3 @@ class ResolvedDefinition:
     key: str
     dataset: Dataset
     output_type: TelemetryClassifierOutputType
-    # Identifies the executable definition in claims and result identity. Definitions can't be
-    # edited yet, so the one-shot ID is enough; this needs a stored revision once they can.
-    revision: str

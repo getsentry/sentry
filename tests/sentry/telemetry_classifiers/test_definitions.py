@@ -33,7 +33,6 @@ class ResolveClassifierDefinitionTest(TestCase):
             key="conversation_user_frustration",
             dataset=Dataset.CONVERSATION,
             output_type=TelemetryClassifierOutputType.BINARY,
-            revision="conversation_user_frustration",
         )
 
     def test_rejects_custom_classifier(self) -> None:
