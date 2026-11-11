@@ -9,7 +9,7 @@ from sentry.integrations.jira.client import JiraCloudClient
 from sentry.integrations.jira.tasks import apply_forge_issue_event, sync_metadata
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiConnectionResetError, ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, control_silo_test
@@ -190,12 +190,12 @@ class ApplyForgeIssueEventTest(TestCase):
     def test_raises_temporary_errors_for_retry(
         self, moved: MagicMock, assignee: MagicMock, status: MagicMock
     ) -> None:
-        assignee.side_effect = ApiError("Jira is down", code=503)
-
-        with pytest.raises(ApiError):
-            apply_forge_issue_event(self.integration.id, EVENT)
-        # The status change is already applied before the retry.
-        assert status.call_count == 1
+        for error in (ApiError("Jira is down", code=503), ApiConnectionResetError("reset")):
+            assignee.side_effect = error
+            with pytest.raises(type(error)):
+                apply_forge_issue_event(self.integration.id, EVENT)
+        # The status change is applied before each retry.
+        assert status.call_count == 2
 
 
 @cell_silo_test

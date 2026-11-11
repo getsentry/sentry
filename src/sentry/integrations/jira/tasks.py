@@ -21,6 +21,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
     ApiError,
     ApiHostError,
     ApiRateLimitedError,
@@ -151,9 +152,19 @@ def apply_forge_issue_event(integration_id: int, event: dict[str, Any]) -> None:
 
 
 def _is_temporary(error: Exception) -> bool:
-    if isinstance(error, (ApiHostError, ApiTimeoutError, ApiRateLimitedError, RpcRemoteException)):
+    if isinstance(
+        error,
+        (
+            ApiConnectionResetError,
+            ApiHostError,
+            ApiRateLimitedError,
+            ApiTimeoutError,
+            RpcRemoteException,
+        ),
+    ):
         return True
-    return isinstance(error, ApiError) and (error.code or 0) >= 500
+    # No status means Jira never responded, such as a broken connection.
+    return isinstance(error, ApiError) and (error.code is None or error.code >= 500)
 
 
 def _apply_forge_change(
