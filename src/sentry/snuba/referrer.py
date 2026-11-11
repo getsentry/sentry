@@ -864,7 +864,6 @@ class Referrer(StrEnum):
         "tasks.process_projects_with_sessions.session_count"
     )
     TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT = "telemetry_classifiers.conversations.select"
-    TELEMETRY_CLASSIFIERS_CONVERSATIONS_FILTER = "telemetry_classifiers.conversations.filter"
     TELEMETRY_CLASSIFIERS_CONVERSATIONS_LOAD = "telemetry_classifiers.conversations.load"
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
 

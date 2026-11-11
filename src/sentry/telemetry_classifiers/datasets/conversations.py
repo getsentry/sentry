@@ -20,7 +20,8 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.telemetry_classifiers.types import Event, TelemetryInput
+from sentry.telemetry_classifiers.types import Dataset, Event, TelemetryInput
+from sentry.utils import metrics
 
 CONVERSATION_ID = "gen_ai.conversation.id"
 # How far back a conversation's spans are read, both for filters and for its events.
@@ -58,14 +59,14 @@ class ConversationDataset:
         passing an ``end`` before now.
         """
         now = timezone.now()
-        # A narrow query finds conversations that just went inactive. The filter then runs over
-        # the lookback only for those, since it needs all of a conversation's spans.
-        inactive = Spans.run_table_query(
-            params=SnubaParams(
-                start=start, end=now, projects=[project], organization=project.organization
-            ),
+        # The filter needs all of a conversation's spans, so the query covers the lookback.
+        params = SnubaParams(
+            start=now - LOOKBACK, end=now, projects=[project], organization=project.organization
+        )
+        result = Spans.run_table_query(
+            params=params,
             query_string=(
-                f"has:{CONVERSATION_ID} has:gen_ai.operation.type "
+                f"{self.compile_filter(filter_query, params)} "
                 f"max(timestamp):>={int(start.timestamp())} max(timestamp):<{int(end.timestamp())}"
             ),
             selected_columns=[CONVERSATION_ID, "max(timestamp)"],
@@ -76,34 +77,7 @@ class ConversationDataset:
             config=CONVERSATION_RESOLVER_CONFIG,
             sampling_mode="HIGHEST_ACCURACY",
         )
-        conversation_ids = [row[CONVERSATION_ID] for row in inactive["data"]]
-        if not conversation_ids or not filter_query.strip():
-            return conversation_ids
-
-        params = SnubaParams(
-            start=now - LOOKBACK, end=now, projects=[project], organization=project.organization
-        )
-        matching = Spans.run_table_query(
-            params=params,
-            query_string=(
-                f"{build_escaped_term_filter(CONVERSATION_ID, conversation_ids)} "
-                f"{self.compile_filter(filter_query, params)}"
-            ),
-            # EAP only returns groups that have a selected aggregate.
-            selected_columns=[CONVERSATION_ID, "max(timestamp)"],
-            orderby=None,
-            offset=0,
-            limit=len(conversation_ids),
-            referrer=Referrer.TELEMETRY_CLASSIFIERS_CONVERSATIONS_FILTER.value,
-            config=CONVERSATION_RESOLVER_CONFIG,
-            sampling_mode="HIGHEST_ACCURACY",
-        )
-        matching_ids = {row[CONVERSATION_ID] for row in matching["data"]}
-        return [
-            conversation_id
-            for conversation_id in conversation_ids
-            if conversation_id in matching_ids
-        ]
+        return [row[CONVERSATION_ID] for row in result["data"]]
 
     def load(self, project: Project, entity_id: str) -> TelemetryInput | None:
         """Load the conversation's newest spans with messages as user and assistant messages."""
@@ -130,10 +104,15 @@ class ConversationDataset:
             return None
 
         events, messages_cut = _message_events(list(reversed(rows[:MAX_SPANS])))
+        truncated = len(rows) > MAX_SPANS or messages_cut
+        if truncated:
+            metrics.incr(
+                "telemetry_classifiers.load.truncated", tags={"dataset": Dataset.CONVERSATION}
+            )
         newest = rows[0]
         return TelemetryInput(
             events=events,
-            truncated=len(rows) > MAX_SPANS or messages_cut,
+            truncated=truncated,
             trace_id=newest["trace"],
             timestamp=datetime.fromisoformat(newest["timestamp"]),
             client_sample_rate=newest.get("client_sample_rate") or 1.0,

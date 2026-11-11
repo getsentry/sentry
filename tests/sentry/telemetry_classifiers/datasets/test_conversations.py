@@ -52,6 +52,16 @@ class SelectConversationsTest(BaseAIConversationsTestCase):
 
         assert DATASET.select(self.project, "", self.start, self.end, limit=1) == ["first"]
 
+    def test_limit_applies_after_the_filter(self) -> None:
+        self.store_conversation_span("writer", self.end - timedelta(minutes=3), agent_name="writer")
+        self.store_conversation_span(
+            "researcher", self.end - timedelta(minutes=2), agent_name="researcher"
+        )
+
+        assert DATASET.select(
+            self.project, "gen_ai.agent.name:researcher", self.start, self.end, limit=1
+        ) == ["researcher"]
+
 
 class LoadConversationTest(BaseAIConversationsTestCase):
     def setUp(self) -> None:
@@ -111,6 +121,7 @@ class LoadConversationTest(BaseAIConversationsTestCase):
         with (
             patch("sentry.telemetry_classifiers.datasets.conversations.MAX_SPANS", 2),
             patch("sentry.telemetry_classifiers.datasets.conversations.MAX_MESSAGE_CHARS", 10),
+            patch("sentry.telemetry_classifiers.datasets.conversations.metrics.incr") as incr,
         ):
             loaded = DATASET.load(self.project, "conversation")
 
@@ -120,6 +131,9 @@ class LoadConversationTest(BaseAIConversationsTestCase):
             {"role": "user", "content": "x" * 10},
         ]
         assert loaded.truncated
+        incr.assert_called_once_with(
+            "telemetry_classifiers.load.truncated", tags={"dataset": "conversation"}
+        )
 
     def test_returns_none_without_message_spans(self) -> None:
         self.store_ai_span("conversation", self.start, operation_type="tool")
