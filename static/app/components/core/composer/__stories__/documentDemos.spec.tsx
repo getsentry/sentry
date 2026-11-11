@@ -1,8 +1,40 @@
-import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {parseComposerDocument} from '@sentry/scraps/composer/document';
 
 import {DocumentComposerDemo} from './documentDemos';
 
 jest.unmock('prismjs');
+
+it('keeps a team mention identity when replacing it in the demo', async () => {
+  const user = userEvent.setup();
+  render(<DocumentComposerDemo />);
+
+  await user.click(screen.getByRole('button', {name: 'Change mention Frontend'}));
+
+  expect(
+    screen.queryByRole('button', {name: 'Change mention Frontend'})
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByRole('button', {name: 'Change mention Platform'})).toHaveLength(
+    2
+  );
+  const document = parseComposerDocument(
+    JSON.parse(
+      screen.getByRole<HTMLTextAreaElement>('textbox', {name: 'Document JSON'}).value
+    )
+  );
+  const teamMentions = document.blocks.flatMap(block =>
+    block.type === 'paragraph' || block.type === 'quote'
+      ? block.children.filter(
+          child => child.type === 'mention' && child.actorType === 'team'
+        )
+      : []
+  );
+  expect(teamMentions).toEqual([
+    {type: 'mention', actorType: 'team', id: 'team-2', label: 'Platform'},
+    {type: 'mention', actorType: 'team', id: 'team-2', label: 'Platform'},
+  ]);
+});
 
 it.each(['dropzone', 'editor'])('queues a file once when dropped on the %s', target => {
   render(<DocumentComposerDemo />);

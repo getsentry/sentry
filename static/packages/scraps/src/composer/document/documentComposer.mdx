@@ -16,11 +16,11 @@ This experimental editor explores a small comment document model independently o
 
 ## Edit a comment document
 
-The example includes editable text and formatting, mentions, an issue reference, a quote, a code block, and an attachment reference. The mention and reference buttons are real React components: clicking them replaces the corresponding node. Save and restore uses local browser storage; no comment is sent to a server.
+The example includes longer prose with user and team mentions, several issue references, a plain paragraph for comparison, a quote, a code block, and an attachment reference. The mention and reference buttons are real React components: clicking them replaces the corresponding node. Save and restore uses local browser storage; no comment is sent to a server.
 
 Code blocks use the shared dark syntax theme by default. Supported languages are highlighted while editing; unknown or unspecified languages remain plain code without changing the stored language. Mentions use avatars and tabular numerals. Issue references borrow Seer's icon and the linked design's compact reference chips.
 
-Type `@` for people or `#` for issues. The demo filters local options as you type; arrows navigate, Enter or Tab selects, and Escape dismisses suggestions. Code blocks and inline code do not activate suggestions.
+Type `@` for people or teams, or `#` for issues. The demo filters local options as you type; arrows navigate, Enter or Tab selects, and Escape dismisses suggestions. Code blocks and inline code do not activate suggestions.
 
 <Storybook.Demo overflow="visible" align="start" maxHeight="none">
   <DocumentComposerDemo />

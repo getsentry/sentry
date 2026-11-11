@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import {IconAttachment} from '@sentry/icons/attachment';
 import {IconIssues} from '@sentry/icons/issues';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
+import {Avatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {
   DocumentComposer,
@@ -22,20 +22,73 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 const SAVED_DRAFT_KEY = 'scraps-composer-document-spike';
-const PEOPLE: readonly DocumentMention[] = [
-  {type: 'mention', actorType: 'user', id: 'user-1', label: 'Alice'},
-  {type: 'mention', actorType: 'user', id: 'user-2', label: 'Bob'},
-];
+const ALICE: DocumentMention = {
+  type: 'mention',
+  actorType: 'user',
+  id: 'user-1',
+  label: 'Alice',
+};
+const BOB: DocumentMention = {
+  type: 'mention',
+  actorType: 'user',
+  id: 'user-2',
+  label: 'Bob',
+};
+const FRONTEND: DocumentMention = {
+  type: 'mention',
+  actorType: 'team',
+  id: 'team-1',
+  label: 'Frontend',
+};
+const PLATFORM: DocumentMention = {
+  type: 'mention',
+  actorType: 'team',
+  id: 'team-2',
+  label: 'Platform',
+};
+const MENTIONS: readonly DocumentMention[] = [ALICE, BOB, FRONTEND, PLATFORM];
+const RETRY_ISSUE: DocumentReference = {
+  type: 'reference',
+  kind: 'issue',
+  id: 'issue-42',
+  label: 'WEB-42',
+};
+const REQUEST_ISSUE: DocumentReference = {
+  type: 'reference',
+  kind: 'issue',
+  id: 'issue-99',
+  label: 'WEB-99',
+};
+const CACHE_ISSUE: DocumentReference = {
+  type: 'reference',
+  kind: 'issue',
+  id: 'issue-128',
+  label: 'WEB-128',
+};
+const RELEASE_ISSUE: DocumentReference = {
+  type: 'reference',
+  kind: 'issue',
+  id: 'issue-256',
+  label: 'WEB-256',
+};
 const ISSUES: readonly DocumentReference[] = [
-  {type: 'reference', kind: 'issue', id: 'issue-42', label: 'WEB-42'},
-  {type: 'reference', kind: 'issue', id: 'issue-99', label: 'WEB-99'},
+  RETRY_ISSUE,
+  REQUEST_ISSUE,
+  CACHE_ISSUE,
+  RELEASE_ISSUE,
 ];
 const MENTION_SOURCE = {
   getSuggestions: query =>
-    PEOPLE.filter(person => person.label.toLowerCase().includes(query.toLowerCase())),
+    MENTIONS.filter(person => person.label.toLowerCase().includes(query.toLowerCase())),
   renderSuggestion: person => (
     <Flex gap="sm" align="center">
-      <UserAvatar size={20} user={{id: person.id, name: person.label, type: 'user'}} />
+      <Avatar
+        type="letter_avatar"
+        size={20}
+        identifier={person.label}
+        name={person.label}
+        round={person.actorType === 'user'}
+      />
       <Text tabular>{person.label}</Text>
     </Flex>
   ),
@@ -62,12 +115,53 @@ const INITIAL_DOCUMENT: ComposerDocument = {
     {
       type: 'paragraph',
       children: [
-        {type: 'text', text: 'Hey ', marks: []},
-        {type: 'mention', actorType: 'user', id: 'user-1', label: 'Alice'},
-        {type: 'text', text: ', please check ', marks: []},
-        {type: 'reference', kind: 'issue', id: 'issue-42', label: 'WEB-42'},
-        {type: 'text', text: ' ', marks: []},
-        {type: 'text', text: 'before merging.', marks: ['bold']},
+        {type: 'text', text: 'I traced the retry path with ', marks: []},
+        ALICE,
+        {type: 'text', text: ' and the ', marks: []},
+        FRONTEND,
+        {type: 'text', text: ' team this morning. The behaviour in ', marks: []},
+        RETRY_ISSUE,
+        {
+          type: 'text',
+          text: ' matches the report: the first request succeeds, but the next request can still reuse a stale response after the connection has recovered. Before merging, ',
+          marks: [],
+        },
+        BOB,
+        {type: 'text', text: ' can compare the request timeline against ', marks: []},
+        REQUEST_ISSUE,
+        {
+          type: 'text',
+          text: ' and confirm that the retry keeps the original context. I attached the console output above so everyone can follow the same sequence without reproducing the entire session.',
+          marks: [],
+        },
+      ],
+    },
+    {
+      type: 'paragraph',
+      children: [
+        {
+          type: 'text',
+          text: 'The next pass should cover a slow connection, an interrupted request, and a successful retry after navigation. Please keep the original request open while checking the second attempt, then repeat the sequence after clearing the cache. The expected result is one completed report with the latest values, no duplicate notification, and a useful error message when the request cannot recover.',
+          marks: [],
+        },
+      ],
+    },
+    {
+      type: 'paragraph',
+      children: [
+        {type: 'text', text: 'For the release check, the ', marks: []},
+        PLATFORM,
+        {type: 'text', text: ' team can verify the cache changes in ', marks: []},
+        CACHE_ISSUE,
+        {type: 'text', text: ' while ', marks: []},
+        ALICE,
+        {type: 'text', text: ' reviews the rollout notes in ', marks: []},
+        RELEASE_ISSUE,
+        {
+          type: 'text',
+          text: '. Once those checks agree, we can enable the fix for the next test run and watch the retry count. Please add any unexpected response codes to the issue, along with the step that triggered them, so the follow-up stays actionable.',
+          marks: [],
+        },
       ],
     },
     {
@@ -194,7 +288,7 @@ export function DocumentComposerDemo() {
             </Button>
           </Flex>
           <Text id="document-composer-hint" size="sm" variant="muted">
-            Type @ to mention someone or # to reference an issue.
+            Type @ to mention a person or team, or # to reference an issue.
           </Text>
           {pendingFiles.length > 0 && (
             <Flex gap="sm" wrap="wrap" aria-label="Pending attachments">
@@ -274,13 +368,16 @@ export function DocumentComposerDemo() {
                 size="zero"
                 variant="link"
                 aria-label={`Change mention ${mention.label}`}
-                onClick={() =>
-                  actions.replace({
-                    ...mention,
-                    id: mention.id === 'user-1' ? 'user-2' : 'user-1',
-                    label: mention.label === 'Alice' ? 'Bob' : 'Alice',
-                  })
-                }
+                onClick={() => {
+                  const replacement = MENTIONS.find(
+                    candidate =>
+                      candidate.actorType === mention.actorType &&
+                      candidate.id !== mention.id
+                  );
+                  if (replacement) {
+                    actions.replace(replacement);
+                  }
+                }}
               >
                 <Text size="md" density="comfortable" tabular variant="primary">
                   <Flex
@@ -289,12 +386,15 @@ export function DocumentComposerDemo() {
                     align="center"
                     height="1em"
                     css={css`
-                      vertical-align: text-bottom;
+                      vertical-align: -0.125em;
                     `}
                   >
-                    <UserAvatar
+                    <Avatar
+                      type="letter_avatar"
                       size={14}
-                      user={{id: mention.id, name: mention.label, type: 'user'}}
+                      identifier={mention.label}
+                      name={mention.label}
+                      round={mention.actorType === 'user'}
                     />
                   </Flex>{' '}
                   {mention.label}

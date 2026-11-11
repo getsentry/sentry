@@ -24,7 +24,7 @@ export const DocumentEditor = styled(Prose.withComponent(ComposerEditor))`
   & > p,
   & > blockquote,
   & > [data-document-atom='attachment'] {
-    margin-bottom: ${p => p.theme.space.md};
+    margin-bottom: ${p => p.theme.space.xl};
 
     &:last-child {
       margin-bottom: 0;
@@ -35,7 +35,7 @@ export const DocumentEditor = styled(Prose.withComponent(ComposerEditor))`
   && > code.language-block {
     display: block;
     overflow-x: auto;
-    margin: 0 0 ${p => p.theme.space.md};
+    margin: 0 0 ${p => p.theme.space.xl};
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
     border-radius: ${p => p.theme.radius.md};
     color: var(--prism-base);
