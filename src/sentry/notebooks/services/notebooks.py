@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Max
 from django.utils import timezone
 
@@ -145,6 +145,44 @@ def create_notebook(
         )
         _create_project_links(notebook, project_ids)
     return notebook
+
+
+def get_or_create_source_notebook(
+    *, organization: Organization, source_key: str, create: Callable[[int], Notebook]
+) -> tuple[Notebook, bool]:
+    """The active notebook for source_key, or the one create() makes at the next revision.
+    The bool is True when create() ran.
+    """
+    # Uniqueness on the active source and revision arbitrates concurrent launches.
+    for attempt in range(3):
+        active = (
+            Notebook.objects.filter(
+                organization=organization,
+                source_key=source_key,
+                status=NotebookStatus.ACTIVE,
+            )
+            .order_by("-source_revision", "-id")
+            .first()
+        )
+        if active is not None:
+            return active, False
+        latest_revision = Notebook.objects.filter(
+            organization=organization,
+            source_key=source_key,
+        ).aggregate(latest=Max("source_revision"))["latest"]
+        try:
+            return create((latest_revision or 0) + 1), True
+        except IntegrityError:
+            if attempt == 2:
+                active = Notebook.objects.filter(
+                    organization=organization,
+                    source_key=source_key,
+                    status=NotebookStatus.ACTIVE,
+                ).first()
+                if active is not None:
+                    return active, False
+                raise
+    raise AssertionError("unreachable")
 
 
 def _copy_title(title: str) -> str:

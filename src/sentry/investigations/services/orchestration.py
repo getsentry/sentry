@@ -9,8 +9,7 @@ from functools import partial
 from typing import Any
 from uuid import UUID, uuid5
 
-from django.db import IntegrityError, router, transaction
-from django.db.models import Max
+from django.db import router, transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
@@ -46,6 +45,7 @@ from sentry.notebooks.services.notebooks import (
     archive_notebook_row,
     create_notebook,
     default_notebook_title,
+    get_or_create_source_notebook,
     update_notebook_row,
 )
 from sentry.users.services.user.service import user_service
@@ -649,48 +649,25 @@ def create_agentic_breached_metric_investigation(
         raise NotebookValidationError({"projectIds": "The metric project must be selected."})
     normalized_source = resolved_source.source
     source_key = agentic_breached_metric_source_key(normalized_source)
-    # Uniqueness on the active source and revision arbitrates concurrent launches.
-    for attempt in range(3):
-        active = (
-            Notebook.objects.filter(
-                organization=organization,
-                source_key=source_key,
-                status=NotebookStatus.ACTIVE,
-            )
-            .order_by("-source_revision", "-id")
-            .first()
-        )
-        if active is not None:
-            return active, False
-        latest_revision = Notebook.objects.filter(
+
+    def create(revision: int) -> Notebook:
+        investigation, _ = _create_agentic_investigation(
             organization=organization,
+            creator=creator,
+            title=title,
+            source=normalized_source,
+            orchestration_source=_breached_metric_orchestration_source(normalized_source),
+            project_ids=project_ids,
+            filters=filters,
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
             source_key=source_key,
-        ).aggregate(latest=Max("source_revision"))["latest"]
-        try:
-            investigation, _ = _create_agentic_investigation(
-                organization=organization,
-                creator=creator,
-                title=title,
-                source=normalized_source,
-                orchestration_source=_breached_metric_orchestration_source(normalized_source),
-                project_ids=project_ids,
-                filters=filters,
-                source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
-                source_key=source_key,
-                source_revision=(latest_revision or 0) + 1,
-            )
-            return investigation, True
-        except IntegrityError:
-            if attempt == 2:
-                active = Notebook.objects.filter(
-                    organization=organization,
-                    source_key=source_key,
-                    status=NotebookStatus.ACTIVE,
-                ).first()
-                if active is not None:
-                    return active, False
-                raise
-    raise AssertionError("unreachable")
+            source_revision=revision,
+        )
+        return investigation
+
+    return get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
 
 
 def _require_accessible_projects(
