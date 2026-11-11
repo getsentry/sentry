@@ -261,6 +261,19 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.data["stats"]["spans"]["lastSeen"] is None
         assert response.data["lastSeen"] is None
 
+    def test_describes_stored_replacement_when_its_public_name_is_a_deprecated_convention(
+        self,
+    ) -> None:
+        self._store_log({"sentry.release": {"string_value": "backend@1.0.0"}})
+
+        response = self.do_request(
+            query={"attributeName": "release", "attributeType": "string", "dataset": "logs"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["isDeprecated"] is False
+        assert "replacementAttribute" not in response.data["context"]
+
     def test_returns_404_when_sentry_defined_attribute_was_not_stored(self) -> None:
         self._store_span()
 
