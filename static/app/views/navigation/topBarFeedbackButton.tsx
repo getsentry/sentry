@@ -1,6 +1,8 @@
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
@@ -29,6 +31,7 @@ export function TopBarFeedbackButton({
   feedbackOptions,
   'aria-label': ariaLabel = t('Give Feedback'),
 }: TopBarFeedbackButtonProps) {
+  const organization = useOrganization({allowNull: true});
   const {display} = useTopBarActionDisplay();
   const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
   const {runId: seerExplorerRunId} = useSeerExplorerChatState();
@@ -39,12 +42,20 @@ export function TopBarFeedbackButton({
 
   const isIconOnly = display === 'icon';
   const hasCustomLabel = ariaLabel !== t('Give Feedback');
+  const feedbackSource = resolvedFeedbackOptions?.tags?.['feedback.source'];
 
   return (
     <FeedbackButton
       aria-label={ariaLabel}
       feedbackOptions={resolvedFeedbackOptions}
       tooltipProps={isIconOnly || hasCustomLabel ? {title: ariaLabel} : undefined}
+      onClick={() => {
+        trackAnalytics('navigation.feedback_button_clicked', {
+          organization,
+          seer_explorer_open: isSeerExplorerOpen,
+          source: typeof feedbackSource === 'string' ? feedbackSource : undefined,
+        });
+      }}
     >
       {isIconOnly ? null : t('Give Feedback')}
     </FeedbackButton>

@@ -76,17 +76,11 @@ export function AgenticCreateProject({
     refreshRun,
     restartRun,
   } = useAgenticSetupRun({
+    createOnboardingCode: false,
     enabled: canCreateProject && setupMethod === 'agent',
     session,
     onSessionChange: setSession,
   });
-
-  const prompt = [
-    t('Help me create and set up Sentry projects for this application.'),
-    '',
-    t('org slug: %s', organization.slug),
-    ...(onboardingCode ? [t('run code: %s', onboardingCode)] : []),
-  ].join('\n');
 
   const handleCopyCommand = (source: AgentSetupCopySource) => {
     trackAnalytics('project_creation.agent_setup_command_copied', {
@@ -123,7 +117,6 @@ export function AgenticCreateProject({
               <AgenticSetup
                 run={run}
                 onboardingCode={onboardingCode}
-                prompt={prompt}
                 isAgentConnected={isAgentConnected}
                 hasInitFailed={hasInitFailed}
                 hasProgressFailed={hasProgressFailed}
