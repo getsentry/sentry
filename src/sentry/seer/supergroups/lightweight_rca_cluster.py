@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
@@ -18,7 +19,9 @@ from sentry.seer.similarity.utils import (
     SEER_INELIGIBLE_EVENT_PLATFORMS,
     event_content_has_stacktrace,
 )
+from sentry.services.eventstore.models import Event
 from sentry.utils import metrics
+from sentry.utils.validators import normalize_event_id
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +47,31 @@ def trigger_lightweight_rca_cluster(group: Group, event_id: str | None = None) -
             )
             return
         event_id = event.event_id
+        ready_event = eventstore.get_event_by_id(group.project.id, event_id, group_id=group.id)
+    else:
+        # post_process already loaded this event from nodestore, so read it from there.
+        # get_event_by_id also queries Snuba for event types other than "error", and a
+        # slow query can run past the task's processing deadline.
+        #
+        # Accepted tradeoff: without Snuba we cannot check that the event still belongs
+        # to this group. An event that an unmerge moved to another group after the task
+        # was queued is sent to Seer under the group the task was queued with.
+        ready_event = None
+        normalized_event_id = normalize_event_id(event_id)
+        if normalized_event_id:
+            nodestore_event = Event(
+                project_id=group.project_id, event_id=normalized_event_id, group_id=group.id
+            )
+            # Reading data loads it from nodestore. It is empty when nodestore has no
+            # payload for this id.
+            if nodestore_event.data:
+                # get_event_by_id sets these when it is given a group id. Set them here
+                # too so the event type stays on this task's trace.
+                event_type = nodestore_event.get_event_type()
+                sentry_sdk.set_tag("nodestore.event_type", event_type)
+                sentry_sdk.set_attribute("nodestore.event_type", event_type)
+                ready_event = nodestore_event
 
-    ready_event = eventstore.get_event_by_id(group.project.id, event_id, group_id=group.id)
     if not ready_event:
         logger.info(
             "lightweight_rca_cluster.event_not_ready",
