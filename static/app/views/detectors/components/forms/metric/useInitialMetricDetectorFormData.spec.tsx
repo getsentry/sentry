@@ -84,4 +84,37 @@ describe('useInitialMetricDetectorFormData', () => {
     expect(result.current.dataset).toBe(DetectorDataset.METRICS);
     expect(result.current.aggregateFunction).toBe(aggregate);
   });
+
+  it('accepts a span equation from the URL with the spans-monitor-equations flag', () => {
+    const aggregate = 'equation|sum(span.duration) / count(span.duration)';
+    const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
+      organization: OrganizationFixture({
+        features: ['performance-view', 'spans-monitor-equations'],
+      }),
+      initialRouterConfig: {
+        location: {pathname: '/', query: {dataset: 'spans', aggregate}},
+      },
+    });
+
+    expect(result.current.dataset).toBe(DetectorDataset.SPANS);
+    expect(result.current.aggregateFunction).toBe(aggregate);
+  });
+
+  it('falls back to the default span aggregate for a URL equation without the flag', () => {
+    const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
+      organization: OrganizationFixture({features: ['performance-view']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            dataset: 'spans',
+            aggregate: 'equation|sum(span.duration) / count(span.duration)',
+          },
+        },
+      },
+    });
+
+    expect(result.current.dataset).toBe(DetectorDataset.SPANS);
+    expect(result.current.aggregateFunction).toBe('count(span.duration)');
+  });
 });

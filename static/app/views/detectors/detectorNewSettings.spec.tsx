@@ -1378,6 +1378,77 @@ describe('DetectorEdit', () => {
     });
   });
 
+  describe('Metric Detector with span equations', () => {
+    const metricRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {detectorType: 'metric_issue', project: project.id},
+      },
+    };
+
+    it('does not offer equations without the spans-monitor-equations flag', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: metricRouterConfig,
+      });
+      await screen.findByText('New Monitor');
+
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
+
+      expect(screen.queryByRole('radio', {name: 'Equation'})).not.toBeInTheDocument();
+    });
+
+    it('switches a span monitor to an equation and submits it', async () => {
+      const organizationWithEquations = OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'spans-monitor-equations'],
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithEquations,
+        initialRouterConfig: metricRouterConfig,
+      });
+      await screen.findByText('New Monitor');
+
+      await userEvent.click(screen.getByText('Errors'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Equation'}));
+      expect(screen.getByRole('radio', {name: 'Equation'})).toBeChecked();
+      expect(screen.queryByRole('button', {name: 'count'})).not.toBeInTheDocument();
+
+      await userEvent.type(
+        screen.getByRole('spinbutton', {name: 'High threshold'}),
+        '100'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              dataSources: [
+                expect.objectContaining({
+                  aggregate: 'equation|count(span.duration)',
+                  dataset: 'events_analytics_platform',
+                  eventTypes: ['trace_item_span'],
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    });
+  });
+
   describe('Metric Detector URL draft', () => {
     const newMetricQuery = {detectorType: 'metric_issue', project: project.id};
 

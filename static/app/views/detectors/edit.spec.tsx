@@ -1122,6 +1122,85 @@ describe('DetectorEdit', () => {
       expect(screen.getByRole('button', {name: 'p75'})).toBeDisabled();
     });
 
+    describe('span equations', () => {
+      const aggregate = 'equation|sum(span.duration) / count(span.duration)';
+      const spanEquationDetector = MetricDetectorFixture({
+        id: '1',
+        name: 'Span Equation Detector',
+        projectId: project.id,
+        dataSources: [
+          SnubaQueryDataSourceFixture({
+            queryObj: {
+              id: '1',
+              status: 1,
+              subscription: '1',
+              snubaQuery: {
+                aggregate,
+                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                id: '',
+                query: '',
+                timeWindow: 3600,
+                eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+                extrapolationMode: ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED,
+              },
+            },
+          }),
+        ],
+      });
+
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${spanEquationDetector.id}/`,
+          body: spanEquationDetector,
+        });
+      });
+
+      it('shows a stored equation read-only and saves it unchanged without the flag', async () => {
+        const updateRequest = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${spanEquationDetector.id}/`,
+          method: 'PUT',
+          body: spanEquationDetector,
+        });
+
+        render(<DetectorEdit />, {organization, initialRouterConfig});
+        await screen.findAllByText('Span Equation Detector');
+
+        expect(screen.getByRole('textbox', {name: 'Equation'})).toHaveValue(
+          'sum(span.duration) / count(span.duration)'
+        );
+        expect(screen.queryByRole('radio', {name: 'Equation'})).not.toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(updateRequest).toHaveBeenCalledWith(
+            `/organizations/${organization.slug}/detectors/${spanEquationDetector.id}/`,
+            expect.objectContaining({
+              data: expect.objectContaining({
+                dataSources: [expect.objectContaining({aggregate})],
+              }),
+            })
+          );
+        });
+      });
+
+      it('opens a stored equation in the equation editor with the flag', async () => {
+        const organizationWithEquations = OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'spans-monitor-equations'],
+        });
+
+        render(<DetectorEdit />, {
+          organization: organizationWithEquations,
+          initialRouterConfig,
+        });
+        await screen.findAllByText('Span Equation Detector');
+
+        expect(screen.getByRole('radio', {name: 'Equation'})).toBeChecked();
+        expect(screen.queryByRole('textbox', {name: 'Equation'})).not.toBeInTheDocument();
+      });
+    });
+
     it('changes SERVER_WEIGHTED extrapolation mode to CLIEND_AND_SERVER_WEIGHTED when editing and saving', async () => {
       const spanDetectorWithExtrapolation = MetricDetectorFixture({
         id: '1',
