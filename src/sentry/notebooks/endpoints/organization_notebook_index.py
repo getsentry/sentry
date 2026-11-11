@@ -33,6 +33,7 @@ from sentry.notebooks.endpoints.serializers import (
 from sentry.notebooks.endpoints.validators import NotebookCreateValidator
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services.producer import filter_by_run_status, known_run_statuses
+from sentry.notebooks.services.producer_sources import ProducerSource
 from sentry.notebooks.telemetry import record_notebook_started
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
@@ -215,8 +216,17 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
-        requested_project_ids = validator.validated_data.get("project_ids", [])
-        if not set(requested_project_ids).issubset(organization_project_ids(organization)):
+        values = validator.validated_data
+        accessible_project_ids = organization_project_ids(organization)
+        source: ProducerSource | None = values.get("source")
+        if source is not None and not set(source.resolved.project_ids).issubset(
+            accessible_project_ids
+        ):
+            return Response(
+                {"source": ["One or more of the source's projects are inaccessible."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not set(values.get("project_ids", [])).issubset(accessible_project_ids):
             return Response(
                 {"detail": "One or more projects are inaccessible."},
                 status=status.HTTP_400_BAD_REQUEST,

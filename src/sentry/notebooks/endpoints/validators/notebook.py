@@ -9,7 +9,12 @@ from sentry.api.helpers.creator import CreatorReference
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import Notebook, NotebookStatus
-from sentry.notebooks.services.notebooks import create_manual_notebook, create_producer_notebook
+from sentry.notebooks.services.notebooks import (
+    NotebookSourceNotFound,
+    NotebookValidationError,
+    create_manual_notebook,
+    create_producer_notebook,
+)
 from sentry.notebooks.services.producer_sources import ProducerSource, get_producer_source_type
 
 
@@ -33,7 +38,14 @@ class ProducerSourceField(serializers.Field[ProducerSource, object, object, obje
         validator = source_type.validator(data=fields, context=self.context)
         if not validator.is_valid():
             raise serializers.ValidationError(validator.errors)
-        resolved = source_type.resolve(self.context["organization"], dict(validator.validated_data))
+        try:
+            resolved = source_type.resolve(
+                self.context["organization"], dict(validator.validated_data)
+            )
+        except NotebookValidationError as error:
+            raise serializers.ValidationError(error.errors)
+        except NotebookSourceNotFound:
+            raise serializers.ValidationError("Source not found.")
         return ProducerSource(source_type=source_type, resolved=resolved)
 
 

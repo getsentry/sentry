@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -14,15 +15,26 @@ import sentry.apidocs.extensions  # noqa: F401
 from sentry.apidocs.hooks import CustomGenerator
 from sentry.investigations.apidocs import PRIVATE_SCHEMA_SETTINGS
 from sentry.investigations.models import InvestigationOrchestrationStatus
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.services.notebooks import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.producer import PRODUCERS
+from sentry.notebooks.services.producer_sources import (
+    PRODUCER_SOURCE_TYPES,
+    ProducerSourceType,
+    ResolvedProducerSource,
+    register_producer_source_type,
+)
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.notebook_producer_sources import register_example_source_type
+from sentry.testutils.helpers.notebook_producer_sources import (
+    ExampleSourceValidator,
+    register_example_source_type,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -185,6 +197,44 @@ class OrganizationNotebookIndexTest(APITestCase):
         )
 
         assert response.status_code == 400
+        assert response.data == {
+            "source": ["One or more of the source's projects are inaccessible."]
+        }
+        assert not Notebook.objects.filter(title="Issue notebook").exists()
+
+    def test_create_reports_source_resolution_errors_on_the_source(self) -> None:
+        def resolve(organization: Organization, values: dict[str, Any]) -> ResolvedProducerSource:
+            if values["issue_id"] == 1:
+                raise NotebookSourceNotFound
+            raise NotebookValidationError({"issueId": "The issue is resolved."})
+
+        register_producer_source_type(
+            ProducerSourceType(
+                name="failing_issue", validator=ExampleSourceValidator, resolve=resolve
+            )
+        )
+        self.addCleanup(PRODUCER_SOURCE_TYPES.pop, "failing_issue")
+
+        def post(issue_id: int) -> Response:
+            return self.client.post(
+                self.collection_url,
+                data={
+                    "title": "Issue notebook",
+                    "source": {
+                        "type": "failing_issue",
+                        "issueId": issue_id,
+                        "projectId": self.project.id,
+                    },
+                },
+                format="json",
+            )
+
+        missing = post(1)
+        assert missing.status_code == 400
+        assert missing.data == {"source": ["Source not found."]}
+        invalid = post(2)
+        assert invalid.status_code == 400
+        assert invalid.data == {"source": {"issueId": "The issue is resolved."}}
         assert not Notebook.objects.filter(title="Issue notebook").exists()
 
     def test_list_includes_summary_when_projects_are_accessible(self) -> None:
