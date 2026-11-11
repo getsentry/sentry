@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconSettings} from '@sentry/icons/settings';
@@ -39,44 +39,47 @@ type Props = {
   requiresUpgrade?: boolean;
 };
 
-export class InstalledIntegration extends Component<Props> {
-  handleUninstallClick = () => {
-    this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
-  };
-
-  getRemovalBodyAndText(aspects: OrganizationIntegration['provider']['aspects']) {
-    if (aspects?.removal_dialog) {
-      return {
-        body: aspects.removal_dialog.body,
-        actionText: aspects.removal_dialog.actionText,
-      };
-    }
+function getRemovalBodyAndText(aspects: OrganizationIntegration['provider']['aspects']) {
+  if (aspects?.removal_dialog) {
     return {
-      body: t(
-        'Deleting this integration will remove any project associated data such as repositories, external tickets, team links. This will also disable all notifications sent by this integration. This action cannot be undone. Are you sure you want to delete this integration?'
-      ),
-      actionText: t('Delete'),
+      body: aspects.removal_dialog.body,
+      actionText: aspects.removal_dialog.actionText,
     };
   }
+  return {
+    body: t(
+      'Deleting this integration will remove any project associated data such as repositories, external tickets, team links. This will also disable all notifications sent by this integration. This action cannot be undone. Are you sure you want to delete this integration?'
+    ),
+    actionText: t('Delete'),
+  };
+}
 
-  handleRemove(integration: OrganizationIntegration) {
-    this.props.onRemove(integration);
-    this.props.trackIntegrationAnalytics('integrations.uninstall_completed');
-  }
+export function InstalledIntegration({
+  integration,
+  onDisable,
+  onRemove,
+  organization,
+  provider,
+  trackIntegrationAnalytics,
+  requiresUpgrade,
+}: Props) {
+  const integrationStatus = getIntegrationStatus(integration);
 
-  handleUpdatePermissionsClick = () => {
-    openGithubPermissionsUpdateModal(this.props.integration);
+  const handleUninstallClick = () => {
+    trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
-  get integrationStatus() {
-    const {integration} = this.props;
-    return getIntegrationStatus(integration);
-  }
+  const handleUpdatePermissionsClick = () => {
+    openGithubPermissionsUpdateModal(integration);
+  };
 
-  get removeConfirmProps() {
-    const {integration} = this.props;
-    const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
+  const handleRemove = () => {
+    onRemove(integration);
+    trackIntegrationAnalytics('integrations.uninstall_completed');
+  };
 
+  const getRemoveConfirmProps = () => {
+    const {body, actionText} = getRemovalBodyAndText(integration.provider.aspects);
     const message = (
       <Fragment>
         <Alert.Container>
@@ -90,12 +93,11 @@ export class InstalledIntegration extends Component<Props> {
     return {
       message,
       confirmText: actionText,
-      onConfirm: () => this.handleRemove(integration),
+      onConfirm: handleRemove,
     };
-  }
+  };
 
-  get disableConfirmProps() {
-    const {integration} = this.props;
+  const getDisableConfirmProps = () => {
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <Fragment>
@@ -107,140 +109,133 @@ export class InstalledIntegration extends Component<Props> {
         {body}
       </Fragment>
     );
-
     return {
       message,
       confirmText: actionText,
-      onConfirm: () => this.props.onDisable(integration),
+      onConfirm: () => onDisable(integration),
     };
-  }
+  };
 
-  render() {
-    const {integration, organization, provider, requiresUpgrade} = this.props;
+  const removeConfirmProps =
+    integrationStatus === 'active' && integration.provider.canDisable
+      ? getDisableConfirmProps()
+      : getRemoveConfirmProps();
 
-    const removeConfirmProps =
-      this.integrationStatus === 'active' && integration.provider.canDisable
-        ? this.disableConfirmProps
-        : this.removeConfirmProps;
+  const allowMemberConfiguration = ['github', 'gitlab'].includes(provider.key);
 
-    const allowMemberConfiguration = ['github', 'gitlab'].includes(
-      this.props.provider.key
-    );
-
-    return (
-      <Access access={['org:integrations']}>
-        {({hasAccess}) => {
-          const superuser = isActiveSuperuser();
-          const canUpdate = hasAccess || superuser;
-          const canConfigure = canUpdate && this.integrationStatus === 'active';
-          const disableAction = !canConfigure;
-          const isPendingDeletion = this.integrationStatus === 'pending_deletion';
-          return (
-            <Fragment>
-              <IntegrationItemBox>
-                <IntegrationItem
-                  integration={integration}
-                  requiresUpgrade={requiresUpgrade}
-                />
-              </IntegrationItemBox>
-              <div>
-                {requiresUpgrade && (
-                  <Tooltip
-                    disabled={canUpdate}
-                    position="left"
-                    title={t(
-                      'You must be an organization owner, manager or admin to update'
-                    )}
-                  >
-                    {provider.key === 'github' ? (
-                      <Button
-                        data-test-id="integration-upgrade-button"
-                        disabled={disableAction}
-                        icon={<IconWarning />}
-                        onClick={this.handleUpdatePermissionsClick}
-                        variant="primary"
-                        size="sm"
-                      >
-                        {t('Update Now')}
-                      </Button>
-                    ) : (
-                      <AddIntegrationButton
-                        analyticsParams={{
-                          view: 'integrations_directory_integration_detail',
-                          already_installed: true,
-                        }}
-                        modalParams={
-                          provider.key === 'slack'
-                            ? getSlackUpgradeModalParams(integration.missingFeatures)
-                            : undefined
-                        }
-                        buttonText={t('Update %s', provider.name)}
-                        data-test-id="integration-upgrade-button"
-                        disabled={disableAction}
-                        onAddIntegration={() => {}}
-                        organization={organization}
-                        provider={provider}
-                        variant="primary"
-                        size="sm"
-                      />
-                    )}
-                  </Tooltip>
-                )}
-                {!provider.metadata.aspects?.directEnable && (
-                  <Tooltip
-                    disabled={allowMemberConfiguration || hasAccess || superuser}
-                    position="left"
-                    title={t(
-                      'You must be an organization owner, manager or admin to configure'
-                    )}
-                  >
-                    <StyledLinkButton
-                      variant="transparent"
-                      icon={<IconSettings />}
-                      disabled={!allowMemberConfiguration && !canConfigure}
-                      to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                      data-test-id="integration-configure-button"
-                    >
-                      {t('Configure')}
-                    </StyledLinkButton>
-                  </Tooltip>
-                )}
-              </div>
-              <div>
+  return (
+    <Access access={['org:integrations']}>
+      {({hasAccess}) => {
+        const superuser = isActiveSuperuser();
+        const canUpdate = hasAccess || superuser;
+        const canConfigure = canUpdate && integrationStatus === 'active';
+        const disableAction = !canConfigure;
+        const isPendingDeletion = integrationStatus === 'pending_deletion';
+        return (
+          <Fragment>
+            <IntegrationItemBox>
+              <IntegrationItem
+                integration={integration}
+                requiresUpgrade={requiresUpgrade}
+              />
+            </IntegrationItemBox>
+            <div>
+              {requiresUpgrade && (
                 <Tooltip
-                  disabled={hasAccess}
+                  disabled={canUpdate}
+                  position="left"
                   title={t(
-                    'You must be an organization owner, manager or admin to uninstall'
+                    'You must be an organization owner, manager or admin to update'
                   )}
                 >
-                  <Confirm
-                    priority="danger"
-                    onConfirming={this.handleUninstallClick}
-                    disabled={!hasAccess || isPendingDeletion}
-                    {...removeConfirmProps}
-                  >
+                  {provider.key === 'github' ? (
                     <Button
-                      disabled={!hasAccess || isPendingDeletion}
-                      variant="transparent"
-                      icon={<IconDelete />}
-                      data-test-id="integration-remove-button"
+                      data-test-id="integration-upgrade-button"
+                      disabled={disableAction}
+                      icon={<IconWarning />}
+                      onClick={handleUpdatePermissionsClick}
+                      variant="primary"
+                      size="sm"
                     >
-                      {t('Uninstall')}
+                      {t('Update Now')}
                     </Button>
-                  </Confirm>
+                  ) : (
+                    <AddIntegrationButton
+                      analyticsParams={{
+                        view: 'integrations_directory_integration_detail',
+                        already_installed: true,
+                      }}
+                      modalParams={
+                        provider.key === 'slack'
+                          ? getSlackUpgradeModalParams(integration.missingFeatures)
+                          : undefined
+                      }
+                      buttonText={t('Update %s', provider.name)}
+                      data-test-id="integration-upgrade-button"
+                      disabled={disableAction}
+                      onAddIntegration={() => {}}
+                      organization={organization}
+                      provider={provider}
+                      variant="primary"
+                      size="sm"
+                    />
+                  )}
                 </Tooltip>
-              </div>
-              <IntegrationStatus
-                status={this.integrationStatus}
-                // Let the hook handle the alert for disabled org integrations
-                hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
-              />
-            </Fragment>
-          );
-        }}
-      </Access>
-    );
-  }
+              )}
+              {!provider.metadata.aspects?.directEnable && (
+                <Tooltip
+                  disabled={allowMemberConfiguration || hasAccess || superuser}
+                  position="left"
+                  title={t(
+                    'You must be an organization owner, manager or admin to configure'
+                  )}
+                >
+                  <StyledLinkButton
+                    variant="transparent"
+                    icon={<IconSettings />}
+                    disabled={!allowMemberConfiguration && !canConfigure}
+                    to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                    data-test-id="integration-configure-button"
+                  >
+                    {t('Configure')}
+                  </StyledLinkButton>
+                </Tooltip>
+              )}
+            </div>
+            <div>
+              <Tooltip
+                disabled={hasAccess}
+                title={t(
+                  'You must be an organization owner, manager or admin to uninstall'
+                )}
+              >
+                <Confirm
+                  priority="danger"
+                  onConfirming={handleUninstallClick}
+                  disabled={!hasAccess || isPendingDeletion}
+                  {...removeConfirmProps}
+                >
+                  <Button
+                    disabled={!hasAccess || isPendingDeletion}
+                    variant="transparent"
+                    icon={<IconDelete />}
+                    data-test-id="integration-remove-button"
+                  >
+                    {t('Uninstall')}
+                  </Button>
+                </Confirm>
+              </Tooltip>
+            </div>
+            <IntegrationStatus
+              status={integrationStatus}
+              // Let the hook handle the alert for disabled org integrations
+              hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
+            />
+          </Fragment>
+        );
+      }}
+    </Access>
+  );
 }
 
 const StyledLinkButton = styled(LinkButton)`
