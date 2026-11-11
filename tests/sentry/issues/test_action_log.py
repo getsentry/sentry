@@ -45,6 +45,7 @@ from sentry.issues.action_log.types import (
     UnlinkExternalIssueAction,
     ViewAction,
 )
+from sentry.issues.endpoints.group_details import VIEW_ACTION_PUBLISH_INTERVAL
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -488,7 +489,7 @@ class TestActionLogIntegration(APITestCase, SnubaTestCase):
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
             source=ActionSource.WEB,
-            date_added=timezone.now() - timedelta(days=3),
+            date_added=timezone.now() - VIEW_ACTION_PUBLISH_INTERVAL - timedelta(minutes=1),
         )
         with capture_action_log() as log:
             response = self.client.get(self.url, format="json")

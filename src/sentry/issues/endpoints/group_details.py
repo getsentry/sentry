@@ -93,7 +93,7 @@ from sentry.utils.http import is_mcp_request
 logger = logging.getLogger(__name__)
 
 # A ViewAction is published at most once per group/source/actor in this interval.
-VIEW_ACTION_PUBLISH_INTERVAL = timedelta(days=2)
+VIEW_ACTION_PUBLISH_INTERVAL = timedelta(hours=4)
 
 
 def get_group_global_count(group: Group) -> str:
