@@ -247,27 +247,49 @@ describe('ProjectAttributeDetails', () => {
     expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
   });
 
-  it('hides the cardinality when the attribute is a boolean', async () => {
+  it.each(['array', 'boolean'])(
+    'hides the cardinality when the attribute is %s',
+    async attributeType => {
+      MockApiClient.addMockResponse({
+        url: detailsEndpoint,
+        body: {
+          name: 'cache.hit',
+          attributeType,
+          attributeSource: {source_type: 'user'},
+          datasets: ['spans'],
+          context: {},
+          lastSeen: '2017-10-15T02:41:20+00:00',
+          stats: {spans: {lastSeen: '2017-10-15T02:41:20+00:00', cardinality: null}},
+        },
+      });
+
+      renderDetails(attributeType, 'cache.hit');
+
+      expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+      expect(screen.queryByText('Cardinality')).not.toBeInTheDocument();
+    }
+  );
+
+  it('renders the raw unit when the unit has no label', async () => {
     MockApiClient.addMockResponse({
       url: detailsEndpoint,
       body: {
-        name: 'cache.hit',
-        attributeType: 'boolean',
-        attributeSource: {source_type: 'user'},
-        datasets: ['spans'],
-        context: {},
-        lastSeen: '2017-10-15T02:41:20+00:00',
-        stats: {spans: {lastSeen: '2017-10-15T02:41:20+00:00', cardinality: null}},
+        name: 'payload_size',
+        attributeType: 'number',
+        attributeSource: {source_type: 'sentry'},
+        datasets: ['logs'],
+        lastSeen: null,
+        stats: {logs: {lastSeen: null, cardinality: null}},
+        context: {unit: 'kibibyte'},
       },
     });
 
-    renderDetails('boolean', 'cache.hit');
+    renderDetails('number', 'payload_size');
 
-    expect(await screen.findByText('2 days ago')).toBeInTheDocument();
-    expect(screen.queryByText('Cardinality')).not.toBeInTheDocument();
+    expect(await screen.findByText('kibibyte')).toBeInTheDocument();
   });
 
-  it('labels the source as custom when the attribute has custom context', async () => {
+  it('renders the description of a custom attribute when it has custom context', async () => {
     MockApiClient.addMockResponse({
       url: detailsEndpoint,
       body: {
@@ -283,7 +305,8 @@ describe('ProjectAttributeDetails', () => {
 
     renderDetails('number', 'cart.size');
 
-    expect(await screen.findByText('Custom')).toBeInTheDocument();
+    expect(await screen.findByText('Items in the cart.')).toBeInTheDocument();
+    expect(screen.getByText('Custom')).toBeInTheDocument();
   });
 
   it('renders the count of values modified by Relay when the attribute is in spans', async () => {
