@@ -7,7 +7,6 @@ They are excluded from the public schema and its downstream publishing workflow.
 
 from typing import Any
 
-from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint
 
 
@@ -17,7 +16,7 @@ def investigation_endpoints(endpoints: Any) -> Any:
         (path, path_regex, method, callback)
         for path, path_regex, method, callback in endpoints
         if issubclass(callback.view_class, OrganizationNotebooksBaseEndpoint)
-        and callback.view_class.publish_status.get(method) is ApiPublishStatus.PRIVATE
+        and not callback.view_class.publish_status[method].is_published
     ]
 
 
