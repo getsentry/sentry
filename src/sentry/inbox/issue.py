@@ -1,8 +1,6 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from django.db.models import Q
-
 from sentry import features
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.types import (
@@ -10,11 +8,11 @@ from sentry.inbox.types import (
     InboxEventData,
     InboxEventType,
     InboxItemType,
+    get_recipient_user_ids,
 )
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
 from sentry.users.models.user import User
@@ -85,26 +83,6 @@ inbox_item_event_type_registry.register(ISSUE_PR_READY_FOR_REVIEW.event_type)(
 )
 
 
-def _get_recipient_user_ids(
-    group: Group, *, user_ids: Iterable[int], team_ids: Iterable[int]
-) -> list[int]:
-    members = OrganizationMember.objects.filter(
-        Q(user_id__in=user_ids)
-        | Q(
-            organizationmemberteam__team_id__in=team_ids,
-            organizationmemberteam__team__organization_id=group.project.organization_id,
-            organizationmemberteam__is_active=True,
-        ),
-        organization_id=group.project.organization_id,
-        user_is_active=True,
-    )
-    return [
-        user_id
-        for user_id in members.values_list("user_id", flat=True).distinct()
-        if user_id is not None
-    ]
-
-
 def record_issue_assignment(
     *,
     group: Group,
@@ -123,8 +101,8 @@ def record_issue_assignment(
             summary="Assigned to your team" if is_team else "Assigned to you",
             assignment_source=assignment_source,
         ),
-        recipient_user_ids=_get_recipient_user_ids(
-            group,
+        recipient_user_ids=get_recipient_user_ids(
+            organization_id=group.project.organization_id,
             user_ids=[] if is_team else [assignee.id],
             team_ids=[assignee.id] if is_team else [],
         ),
@@ -145,7 +123,11 @@ def record_issue_user_mention(
     ISSUE_USER_MENTIONED.record(
         subject=group,
         data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=comment_id),
-        recipient_user_ids=_get_recipient_user_ids(group, user_ids=mentioned_user_ids, team_ids=[]),
+        recipient_user_ids=get_recipient_user_ids(
+            organization_id=group.project.organization_id,
+            user_ids=mentioned_user_ids,
+            team_ids=[],
+        ),
         actor=actor,
     )
 
@@ -163,7 +145,11 @@ def record_issue_team_mention(
     ISSUE_TEAM_MENTIONED.record(
         subject=group,
         data=IssueMentionedData(summary="Mentioned your team in a comment", comment_id=comment_id),
-        recipient_user_ids=_get_recipient_user_ids(group, user_ids=[], team_ids=mentioned_team_ids),
+        recipient_user_ids=get_recipient_user_ids(
+            organization_id=group.project.organization_id,
+            user_ids=[],
+            team_ids=mentioned_team_ids,
+        ),
         actor=actor,
     )
 
@@ -175,7 +161,9 @@ def record_issue_pr_ready_for_review(
         return
 
     user_ids, team_ids = IssueOwnersActivityAlertStrategy(group=group).get_issue_owner_ids()
-    recipients = _get_recipient_user_ids(group, user_ids=user_ids, team_ids=team_ids)
+    recipients = get_recipient_user_ids(
+        organization_id=group.project.organization_id, user_ids=user_ids, team_ids=team_ids
+    )
     for pr_url in pr_urls:
         ISSUE_PR_READY_FOR_REVIEW.record(
             subject=group,
