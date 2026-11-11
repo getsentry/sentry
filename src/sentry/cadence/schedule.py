@@ -219,6 +219,9 @@ def missed_between(
         return max(0, (next_scheduled_for - scheduled_for) // trigger.interval - 1), False
 
     assert trigger.schedule_type == ScheduleType.CRON and trigger.cron_expression is not None
+    # An intervening cron time would have to be at least min_gap before the next one.
+    if next_scheduled_for - scheduled_for <= timedelta(seconds=trigger.min_gap_seconds):
+        return 0, False
     times = CronSim(trigger.cron_expression, scheduled_for.astimezone(ZoneInfo(trigger.timezone)))
     missed = 0
     previous = scheduled_for

@@ -187,7 +187,7 @@ def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None
         missed = sum(c.missed for c in claimed_firings)
         if missed:
             metrics.incr("cadence.trigger.missed", amount=missed, tags=tags, sample_rate=1.0)
-        capped = sum(c.missed_count_capped for c in claimed_firings)
+        capped = sum(int(c.missed_count_capped) for c in claimed_firings)
         if capped:
             logger.warning(
                 "cadence.trigger.missed_count_capped",
