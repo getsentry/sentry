@@ -222,7 +222,7 @@ def test_onboarding_claim_issues_reporting_code() -> None:
     assert "using the organization slug above" in guide
     assert "guide's Onboarding Progress section" in guide
     assert "https://docs.sentry.io/index.md" in guide
-    assert "agent-setup/get-started.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
 
 
 def test_onboarding_preview_does_not_issue_reporting_code() -> None:
