@@ -93,6 +93,7 @@ describe('useScmProjectDetails', () => {
   }
 
   beforeEach(() => {
+    TeamStore.reset();
     // useCreateNotificationAction queries messaging integrations on mount.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
@@ -102,7 +103,6 @@ describe('useScmProjectDetails', () => {
   });
 
   afterEach(() => {
-    TeamStore.reset();
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
   });
