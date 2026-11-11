@@ -316,20 +316,23 @@ describe('AutofixSection', () => {
       mockOpenRunId = null;
     });
 
-    it('hides the section while the run is open in the Explorer panel', async () => {
+    it('collapses the section while the run is open in the Explorer panel', async () => {
       mockIsExplorerOpen = true;
       mockOpenRunId = 776;
-      const request = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: singleRunBody,
       });
 
       render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
       await waitFor(() =>
-        expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument()
+        expect(screen.getByRole('button', {name: 'View Section'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        )
       );
+      expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     });
 
     it('keeps the section while the Explorer panel shows another chat', async () => {

@@ -112,9 +112,7 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
     );
   }
 
-  if (isAutofixChatOpen) {
-    return null;
-  }
+  const startCollapsed = isOnAutofixTab || isAutofixChatOpen;
 
   return (
     <SidebarFoldSection
@@ -122,7 +120,7 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       // there. Opening it on that tab shouldn't change the saved preference
       // for every other tab, and the key remounts it so each tab starts from
       // its own state.
-      key={isOnAutofixTab ? 'autofix-tab' : 'default'}
+      key={startCollapsed ? 'collapsed' : 'default'}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
@@ -131,8 +129,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       }
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
-      initialCollapse={isOnAutofixTab}
-      disableCollapsePersistence={isOnAutofixTab}
+      initialCollapse={startCollapsed}
+      disableCollapsePersistence={startCollapsed}
     >
       <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
