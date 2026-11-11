@@ -15,7 +15,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
-from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
@@ -442,23 +442,15 @@ def _build_workflow_evaluations(
     trigger_evals: dict[Workflow, DataConditionGroupEvaluation],
     filter_evals: dict[Workflow, list[DataConditionGroupEvaluation]],
     delayed_items: dict[Workflow, DelayedWorkflowItem],
-    actions: Iterable[Action],
-    action_to_workflow_id: dict[int, WorkflowId],
 ) -> dict[WorkflowId, WorkflowEvaluation]:
     """
     Build a per-workflow WorkflowEvaluation for every evaluated workflow, capturing its
-    trigger (WHEN) evaluation, action-filter (IF) evaluations, and resulting actions.
+    trigger (WHEN) evaluation and action-filter (IF) evaluations.
 
     `result` contains deferred evaluation details for workflows enqueued for slow evaluation,
-    otherwise the actions enqueued for that workflow (empty when the workflow triggered but no
-    actions were enqueued). `action_to_workflow_id` attributes each action to a single workflow,
-    so an action shared across workflows is counted once here.
+    otherwise an empty action list; triggered actions are attached afterwards with
+    `ProcessWorkflowsResult.with_triggered_actions`.
     """
-    actions_by_workflow_id: dict[WorkflowId, list[Action]] = defaultdict(list)
-    for action in actions:
-        if (workflow_id := action_to_workflow_id.get(action.id)) is not None:
-            actions_by_workflow_id[workflow_id].append(action)
-
     workflow_evaluations: dict[WorkflowId, WorkflowEvaluation] = {}
     for workflow, trigger_eval in trigger_evals.items():
         delayed_item = delayed_items.get(workflow)
@@ -469,7 +461,7 @@ def _build_workflow_evaluations(
                 passing_if_group_ids=frozenset(delayed_item.passing_if_group_ids),
             )
         else:
-            result = actions_by_workflow_id.get(workflow.id, [])
+            result = []
 
         workflow_evaluations[workflow.id] = WorkflowEvaluation(
             workflow_id=workflow.id,
@@ -621,15 +613,15 @@ def process_workflows(
         },
     )
 
-    evaluation = _evaluate_workflows(
+    result, action_groups, delayed_items = _evaluate_workflows(
         workflows, event_data, event_start_time, detector=associated_detector
     )
-    if not evaluation.should_process_actions:
-        return evaluation.result
-    enqueue_workflows(batch_client, evaluation.delayed_items)
+    if not action_groups and not delayed_items:
+        return result
+    enqueue_workflows(batch_client, delayed_items)
 
     actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
-        evaluation.action_groups, event_data
+        action_groups, event_data
     )
 
     triggered_action_count = len(set(actions))
@@ -658,36 +650,7 @@ def process_workflows(
             action_to_workflow_id=action_to_workflow_id,
         )
 
-    return evaluation.with_actions(actions, action_to_workflow_id)
-
-
-@dataclass(frozen=True)
-class EvaluatedWorkflows:
-    """Condition results awaiting action suppression/dispatch or delayed processing."""
-
-    result: ProcessWorkflowsResult
-    action_groups: set[DataConditionGroup]
-    delayed_items: dict[Workflow, DelayedWorkflowItem]
-    should_process_actions: bool
-
-    def with_actions(
-        self, actions: Iterable[Action], action_to_workflow_id: dict[int, WorkflowId]
-    ) -> ProcessWorkflowsResult:
-        actions_by_workflow: dict[int, list[Action]] = defaultdict(list)
-        for action in actions:
-            if (workflow_id := action_to_workflow_id.get(action.id)) is not None:
-                actions_by_workflow[workflow_id].append(action)
-        return replace(
-            self.result,
-            evaluations={
-                workflow_id: (
-                    evaluation
-                    if isinstance(evaluation.result, DeferredWorkflowEvaluationResult)
-                    else replace(evaluation, result=actions_by_workflow.get(workflow_id, []))
-                )
-                for workflow_id, evaluation in self.result.evaluations.items()
-            },
-        )
+    return result.with_triggered_actions(actions, action_to_workflow_id)
 
 
 @isolated_workflow_event_context()
@@ -697,14 +660,19 @@ def _evaluate_workflows(
     event_start_time: datetime,
     *,
     detector: Detector | None = None,
-) -> EvaluatedWorkflows:
-    """Evaluate selected workflows without requiring issue lookup or action dispatch."""
+) -> tuple[ProcessWorkflowsResult, set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem]]:
+    """
+    Evaluate selected workflows without requiring issue lookup or action dispatch.
+
+    Returns the evaluation result alongside the action groups whose filters passed and the
+    workflows to enqueue for delayed (slow condition) processing.
+    """
     organization = event_data.get_organization()
     WorkflowEventContext.set(WorkflowEventContextData(organization=organization, detector=detector))
     try:
         environment = get_environment_by_event(event_data)
     except Environment.DoesNotExist:
-        return EvaluatedWorkflows(
+        return (
             _build_process_workflows_result(
                 event_data=event_data,
                 outcome=WorkflowEvaluationOutcome.ENVIRONMENT_NOT_FOUND,
@@ -712,7 +680,6 @@ def _evaluate_workflows(
             ),
             set(),
             {},
-            should_process_actions=False,
         )
     WorkflowEventContext.set(
         WorkflowEventContextData(
@@ -730,7 +697,7 @@ def _evaluate_workflows(
         )
     }
     if not workflows:
-        return EvaluatedWorkflows(
+        return (
             _build_process_workflows_result(
                 event_data=event_data,
                 outcome=WorkflowEvaluationOutcome.NO_WORKFLOWS,
@@ -738,7 +705,6 @@ def _evaluate_workflows(
             ),
             set(),
             {},
-            should_process_actions=False,
         )
 
     triggered_workflows, delayed_items, trigger_stats, trigger_evals = evaluate_workflow_triggers(
@@ -746,18 +712,17 @@ def _evaluate_workflows(
     )
     # Partial trigger evaluations can be marked triggered without being eligible
     # for action processing (e.g. activities with unresolved slow conditions).
-    should_process_actions = bool(triggered_workflows or delayed_items)
     action_groups: set[DataConditionGroup] = set()
     filter_evals: dict[Workflow, list[DataConditionGroupEvaluation]] = {}
     action_stats = EvaluationStats()
-    if should_process_actions:
+    if triggered_workflows or delayed_items:
         action_groups, delayed_items, action_stats, filter_evals = (
             evaluate_workflows_action_filters(
                 triggered_workflows, event_data, delayed_items, event_start_time
             )
         )
     (trigger_stats + action_stats).report_metrics("process_workflows.workflows_evaluated")
-    return EvaluatedWorkflows(
+    return (
         _build_process_workflows_result(
             event_data=event_data,
             outcome=WorkflowEvaluationOutcome.COMPLETED,
@@ -768,11 +733,8 @@ def _evaluate_workflows(
                 trigger_evals=trigger_evals,
                 filter_evals=filter_evals,
                 delayed_items=delayed_items,
-                actions=[],
-                action_to_workflow_id={},
             ),
         ),
         action_groups,
         delayed_items,
-        should_process_actions=should_process_actions,
     )

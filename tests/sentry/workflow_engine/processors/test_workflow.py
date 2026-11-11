@@ -1456,14 +1456,18 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
                 "sentry.workflow_engine.processors.workflow._get_environment_by_group"
             ) as environment,
         ):
-            evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
+            evaluation, action_groups, delayed_items = _evaluate_workflows(
+                {self.workflow}, self.event_data, FROZEN_TIME
+            )
         lookup.assert_not_called()
         environment.assert_not_called()
         assert WorkflowEventContext.get() is previous_context
-        assert evaluation.action_groups == {self.action_group}
-        assert evaluation.delayed_items == {}
-        assert evaluation.result.outcome == WorkflowEvaluationOutcome.COMPLETED
-        result = evaluation.with_actions([self.action], {self.action.id: self.workflow.id})
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        assert evaluation.outcome == WorkflowEvaluationOutcome.COMPLETED
+        result = evaluation.with_triggered_actions(
+            [self.action], {self.action.id: self.workflow.id}
+        )
         artifact = result.evaluation_artifacts()[0]
         assert artifact.event_id == self.source.event_id.hex
         assert artifact.group_id is None
@@ -1491,13 +1495,13 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         environment_workflow = self.create_workflow(environment=self.create_environment())
         disabled = self.create_workflow(enabled=False)
         with self.options({"workflow_engine.filter_cross_org_workflows": False}):
-            evaluation = _evaluate_workflows(
+            evaluation, action_groups, _ = _evaluate_workflows(
                 {self.workflow, foreign, environment_workflow, disabled},
                 self.event_data,
                 FROZEN_TIME,
             )
-        assert evaluation.result.evaluated_workflow_ids() == {self.workflow.id}
-        assert evaluation.action_groups == {self.action_group}
+        assert evaluation.evaluated_workflow_ids() == {self.workflow.id}
+        assert action_groups == {self.action_group}
 
     def test_evaluates_opted_in_condition(self) -> None:
         class OrganizationEventCondition(WorkflowTriggerDataConditionHandler):
@@ -1519,15 +1523,19 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
                 condition_result=True,
             )
             self.workflow.update(when_condition_group=trigger_group)
-            matching = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
-            assert matching.action_groups == {self.action_group}
-            assert matching.result.evaluations[self.workflow.id].error is None
+            matching, matching_action_groups, _ = _evaluate_workflows(
+                {self.workflow}, self.event_data, FROZEN_TIME
+            )
+            assert matching_action_groups == {self.action_group}
+            assert matching.evaluations[self.workflow.id].error is None
 
             condition.update(comparison=uuid4().hex)
-            nonmatching = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
-            assert nonmatching.action_groups == set()
-            assert not nonmatching.result.evaluations[self.workflow.id].triggered
-            assert nonmatching.result.evaluations[self.workflow.id].error is None
+            nonmatching, nonmatching_action_groups, _ = _evaluate_workflows(
+                {self.workflow}, self.event_data, FROZEN_TIME
+            )
+            assert nonmatching_action_groups == set()
+            assert not nonmatching.evaluations[self.workflow.id].triggered
+            assert nonmatching.evaluations[self.workflow.id].error is None
 
     def test_rejects_issue_only_trigger_in_none_group(self) -> None:
         condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.NONE)
@@ -1538,12 +1546,11 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             condition_result=True,
         )
         self.workflow.update(when_condition_group=condition_group)
-        evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
-        assert evaluation.action_groups == set()
-        assert (
-            evaluation.result.evaluations[self.workflow.id].outcome
-            == WorkflowEvaluationOutcome.ERROR
+        evaluation, action_groups, _ = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME
         )
+        assert action_groups == set()
+        assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
 
     def test_rejects_issue_only_slow_conditions(self) -> None:
         condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ANY)
@@ -1554,13 +1561,12 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             condition_result=True,
         )
         self.workflow.update(when_condition_group=condition_group)
-        evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
-        assert evaluation.action_groups == set()
-        assert evaluation.delayed_items == {}
-        assert (
-            evaluation.result.evaluations[self.workflow.id].outcome
-            == WorkflowEvaluationOutcome.ERROR
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME
         )
+        assert action_groups == set()
+        assert delayed_items == {}
+        assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
 
     def test_rejects_issue_only_action_filter(self) -> None:
         self.action_group.update(logic_type=DataConditionGroup.Type.NONE)
@@ -1570,12 +1576,11 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             comparison=PriorityLevel.HIGH,
             condition_result=True,
         )
-        evaluation = _evaluate_workflows({self.workflow}, self.event_data, FROZEN_TIME)
-        assert evaluation.action_groups == set()
-        assert (
-            evaluation.result.evaluations[self.workflow.id].outcome
-            == WorkflowEvaluationOutcome.ERROR
+        evaluation, action_groups, _ = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME
         )
+        assert action_groups == set()
+        assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
 
     def test_requires_matching_explicit_organization(self) -> None:
         previous_context = WorkflowEventContext.get()

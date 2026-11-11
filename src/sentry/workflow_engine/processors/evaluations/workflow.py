@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections import defaultdict
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol, TypedDict
 
@@ -185,6 +186,31 @@ class ProcessWorkflowsResult(WorkflowEvaluationBatch):
     group_id: int | None
     outcome: WorkflowEvaluationOutcome
     project_id: int | None
+
+    def with_triggered_actions(
+        self, actions: Iterable[Action], action_to_workflow_id: dict[ActionId, WorkflowId]
+    ) -> ProcessWorkflowsResult:
+        """
+        Return a copy whose non-deferred evaluations carry the actions triggered for them.
+
+        `action_to_workflow_id` attributes each action to a single workflow, so an action
+        shared across workflows is counted once.
+        """
+        actions_by_workflow: dict[WorkflowId, list[Action]] = defaultdict(list)
+        for action in actions:
+            if (workflow_id := action_to_workflow_id.get(action.id)) is not None:
+                actions_by_workflow[workflow_id].append(action)
+        return replace(
+            self,
+            evaluations={
+                workflow_id: (
+                    evaluation
+                    if isinstance(evaluation.result, DeferredWorkflowEvaluationResult)
+                    else replace(evaluation, result=actions_by_workflow.get(workflow_id, []))
+                )
+                for workflow_id, evaluation in self.evaluations.items()
+            },
+        )
 
     def has_triggered_actions(self) -> bool:
         return any(
