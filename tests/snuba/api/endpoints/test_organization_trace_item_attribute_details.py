@@ -7,6 +7,7 @@ from uuid import uuid4
 from django.urls import reverse
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.response import Response
+from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -260,6 +261,72 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["stats"]["spans"]["lastSeen"] is None
         assert response.data["lastSeen"] is None
+
+    def test_describes_stored_replacement_when_its_public_name_is_a_deprecated_convention(
+        self,
+    ) -> None:
+        self._store_log({"sentry.release": {"string_value": "backend@1.0.0"}})
+
+        response = self.do_request(
+            query={"attributeName": "release", "attributeType": "string", "dataset": "logs"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["sentry.release"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["isDeprecated"] is False
+        assert "replacementAttribute" not in response.data["context"]
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
+
+    def test_returns_changelog_of_the_convention_its_context_describes_when_stored_under_two_names(
+        self,
+    ) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "/a"}, "data": {"sentry.segment.name": "/a"}}
+                )
+            ]
+        )
+
+        response = self.do_request(
+            query={"attributeName": "transaction", "attributeType": "string", "dataset": "spans"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["transaction"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["brief"] == ATTRIBUTE_METADATA["transaction"].brief
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
+
+    def test_returns_changelog_of_the_convention_its_context_describes_when_datasets_store_different_names(
+        self,
+    ) -> None:
+        self.store_spans([self.create_span({"sentry_tags": {"transaction": "/a"}})])
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "my.metric", 1.0, "counter", attributes={"sentry.segment.name": "/a"}
+                )
+            ]
+        )
+
+        response = self.do_request(
+            query={"attributeName": "transaction", "attributeType": "string"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["transaction"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert response.data["datasets"] == ["spans", "tracemetrics"]
+        assert response.data["context"]["brief"] == ATTRIBUTE_METADATA["transaction"].brief
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
 
     def test_returns_404_when_sentry_defined_attribute_was_not_stored(self) -> None:
         self._store_span()
