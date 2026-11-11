@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
@@ -494,6 +494,95 @@ describe('Inbox', () => {
       expect(router.location.pathname).toBe(
         '/organizations/org-slug/inbox/notebook/1000209/'
       );
+    });
+
+    it('waits for auto-mark-read before sending an explicit mark-unread update', async () => {
+      mockIssuePreviewRequests(issueItem.subjectId);
+      const readResponse = Promise.withResolvers<void>();
+      const autoReadRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        method: 'PUT',
+        match: [MockApiClient.matchData({isRead: true})],
+        body: {updatedCount: 1},
+        asyncDelay: readResponse.promise,
+      });
+      render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/org-slug/inbox/issue/${issueItem.subjectId}/`,
+          },
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      await waitFor(() => expect(autoReadRequest).toHaveBeenCalledTimes(1));
+      const actions = screen.getByRole('button', {
+        name: `Actions for ${issueItem.title}`,
+      });
+      await userEvent.click(actions);
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
+      );
+
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
+      expect(markReadRequest).not.toHaveBeenCalled();
+
+      await act(() => {
+        readResponse.resolve();
+        return readResponse.promise;
+      });
+
+      await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(1));
+      expect(markReadRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({query: {id: [issueItem.id]}, data: {isRead: false}})
+      );
+      await waitFor(() => expect(actions).toBeEnabled());
+      await userEvent.click(actions);
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Mark as read'})
+      ).toBeInTheDocument();
+    });
+
+    it('marks an explicitly unread item read when reopened after viewing another item', async () => {
+      mockIssuePreviewRequests(issueItem.subjectId);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/notebooks/1000209/',
+        body: InvestigationDetailFixture({id: '1000209'}),
+      });
+      render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/notebook/1000209/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: `Actions for ${readNotebookItem.title}`,
+        })
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
+      );
+      await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(1));
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(3);
+
+      await userEvent.click(screen.getByRole('link', {name: issueItem.title!}));
+      await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(2));
+      await userEvent.click(screen.getByRole('link', {name: readNotebookItem.title!}));
+
+      await waitFor(() => expect(markReadRequest).toHaveBeenCalledTimes(3));
+      expect(markReadRequest).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/inbox/',
+        expect.objectContaining({
+          query: {subject_type: ['notebook'], subject_id: readNotebookItem.subjectId},
+          data: {isRead: true},
+        })
+      );
+      expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(1);
     });
 
     it('removes only that item and lets you undo the removal', async () => {
