@@ -20,7 +20,6 @@ def resolve_prebuilt_definition(key: str, dataset: str) -> ResolvedDefinition:
         key=prebuilt.key,
         dataset=prebuilt.dataset,
         output_type=prebuilt.output_type,
-        contract=prebuilt.contract,
     )
 
 
