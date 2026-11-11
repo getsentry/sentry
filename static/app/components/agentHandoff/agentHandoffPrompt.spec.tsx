@@ -16,6 +16,7 @@ describe('AgentHandoffPrompt', () => {
   const organization = OrganizationFixture();
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const context = {runId: 'a'.repeat(32)};
+  const feedbackSource = 'agent-handoff-prompt-test';
   const prompt =
     'Fetch and follow the instructions at https://sentry.io/agent-handoff/. Your secret token is `sntryh_example`.';
   const write = jest.fn();
@@ -48,6 +49,7 @@ describe('AgentHandoffPrompt', () => {
     render(
       <AgentHandoffPrompt
         context={context}
+        feedbackSource={feedbackSource}
         flow={AgentHandoffFlow.ONBOARDING}
         onCopySuccess={onCopySuccess}
       />,
@@ -85,9 +87,14 @@ describe('AgentHandoffPrompt', () => {
       method: 'POST',
       body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
-    render(<AgentHandoffPrompt context={context} flow={AgentHandoffFlow.ONBOARDING} />, {
-      organization,
-    });
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Advanced options'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: /Use IP pinning/}));
@@ -118,6 +125,7 @@ describe('AgentHandoffPrompt', () => {
         <input aria-label="Prior input" />
         <AgentHandoffPrompt
           context={context}
+          feedbackSource={feedbackSource}
           flow={AgentHandoffFlow.ONBOARDING}
           onSelect={onSelect}
         />
@@ -141,9 +149,14 @@ describe('AgentHandoffPrompt', () => {
       statusCode: 503,
       body: {detail: 'Unavailable'},
     });
-    render(<AgentHandoffPrompt context={context} flow={AgentHandoffFlow.ONBOARDING} />, {
-      organization,
-    });
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+      />,
+      {organization}
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
@@ -153,9 +166,14 @@ describe('AgentHandoffPrompt', () => {
   });
 
   it('explains when a selected prompt is copied before its context is ready', async () => {
-    render(<AgentHandoffPrompt context={null} flow={AgentHandoffFlow.ONBOARDING} />, {
-      organization,
-    });
+    render(
+      <AgentHandoffPrompt
+        context={null}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+      />,
+      {organization}
+    );
 
     fireEvent.copy(screen.getByText('sntryh_****'));
 

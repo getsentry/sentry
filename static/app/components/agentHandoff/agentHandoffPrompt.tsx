@@ -16,6 +16,7 @@ import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
 import {toast} from '@sentry/scraps/toast';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -28,6 +29,7 @@ import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
 interface AgentHandoffPromptProps<Flow extends AgentHandoffFlow> {
   context: AgentHandoffContext<Flow> | null;
+  feedbackSource: string;
   flow: Flow;
   onCopySuccess?: () => void;
   onSelect?: () => void;
@@ -35,6 +37,7 @@ interface AgentHandoffPromptProps<Flow extends AgentHandoffFlow> {
 
 export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   context,
+  feedbackSource,
   flow,
   onCopySuccess,
   onSelect,
@@ -132,40 +135,49 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
           <ExternalLink href={previewUrl}>{t('See the full instructions')}</ExternalLink>
         </Text>
 
-        <DropdownMenu
-          closeOnSelect={false}
-          items={[
-            {
-              key: 'ip-pinning',
-              label: t('Use IP pinning'),
-              details: t(
-                'Only allows this prompt to be claimed from your IP address. Disable this when your agent runs on a different network than your local machine.'
-              ),
-              textValue: t('Use IP pinning'),
-              disabled: copyDisabled,
-              isSelected: useIpPinning,
-              closeOnSelect: false,
-              onAction: toggleIpPinning,
-            },
-          ]}
-          maxWidth={360}
-          position="bottom-end"
-          shouldApplyMinWidth={false}
-          size="xs"
-          usePortal
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              aria-label={t('Advanced options')}
-              icon={<IconSettings />}
-              showChevron={false}
-              size="xs"
-              variant="transparent"
-            >
-              {t('Advanced')}
-            </OverlayTrigger.Button>
-          )}
-        />
+        <Flex align="center" gap="sm">
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              tags: {'feedback.source': feedbackSource},
+            }}
+          />
+
+          <DropdownMenu
+            closeOnSelect={false}
+            items={[
+              {
+                key: 'ip-pinning',
+                label: t('Use IP pinning'),
+                details: t(
+                  'Only allows this prompt to be claimed from your IP address. Disable this when your agent runs on a different network than your local machine.'
+                ),
+                textValue: t('Use IP pinning'),
+                disabled: copyDisabled,
+                isSelected: useIpPinning,
+                closeOnSelect: false,
+                onAction: toggleIpPinning,
+              },
+            ]}
+            maxWidth={360}
+            position="bottom-end"
+            shouldApplyMinWidth={false}
+            size="xs"
+            usePortal
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                aria-label={t('Advanced options')}
+                icon={<IconSettings />}
+                showChevron={false}
+                size="xs"
+                variant="transparent"
+              >
+                {t('Advanced')}
+              </OverlayTrigger.Button>
+            )}
+          />
+        </Flex>
       </Flex>
 
       {!useIpPinning && (
