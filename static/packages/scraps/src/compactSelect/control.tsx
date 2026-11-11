@@ -567,7 +567,6 @@ export function Control<Value extends SelectKey>({
                 {searchEnabled && (
                   <Search
                     ref={searchRef}
-                    data-1p-ignore
                     placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                     value={searchInputValue}
                     onFocus={onSearchFocus}

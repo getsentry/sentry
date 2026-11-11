@@ -13,6 +13,24 @@ describe('showNewSeer', () => {
     });
   });
 
+  describe('new token-billed Seer plan', () => {
+    it('returns true when token-billed-seer-enabled is present', () => {
+      const organization = OrganizationFixture({
+        features: ['token-billed-seer-enabled'],
+      });
+
+      expect(showNewSeer(organization)).toBe(true);
+    });
+
+    it('returns true even when seer-added is present', () => {
+      const organization = OrganizationFixture({
+        features: ['token-billed-seer-enabled', 'seer-added'],
+      });
+
+      expect(showNewSeer(organization)).toBe(true);
+    });
+  });
+
   describe('old Seer plan (seer-added)', () => {
     it('returns false when seer-added is present', () => {
       const organization = OrganizationFixture({

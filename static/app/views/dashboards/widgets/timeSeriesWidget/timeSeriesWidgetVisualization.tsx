@@ -10,7 +10,7 @@ import type {
 import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
@@ -54,10 +54,7 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {
-  RELEASE_BUBBLE_SERIES_NAME,
-  useReleaseBubbles,
-} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
@@ -109,6 +106,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * highlight. `onClick` is called when the band is clicked.
    */
   droppedData?: DroppedDataProps;
+
+  /**
+   * Controls rendered at the end of the legend row. They render even when the legend is hidden.
+   */
+  legendActions?: React.ReactNode;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -306,11 +308,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     [paletteSize, theme.chart]
   );
 
-  // Create a lookup of series names (given to ECharts) to labels (from
-  // Plottable). This makes it easier to look up alises when rendering tooltips
-  // and legends
-  const aliases = Object.fromEntries(
-    props.plottables.map(plottable => [plottable.name, plottable.label])
+  const plottablesByName = Object.fromEntries(
+    props.plottables.map(plottable => [plottable.name, plottable])
   );
 
   // Create tooltip formatter
@@ -383,12 +382,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
         // to ensure the lookup works correctly for series with characters that are escaped.
-        const alias = aliases[unescape(seriesName)];
+        const plottable = plottablesByName[unescape(seriesName)];
+        const alias = plottable?.label;
         if (alias) {
           // The alias value comes from `plottable.label` and is not
           // HTML-escaped. Escape it for safe insertion into raw HTML
           // tooltip strings.
-          return escape(truncationFormatter(alias, true, false));
+          const label = escape(truncationFormatter(alias, true, false));
+          return plottable.labelSuffix
+            ? `${label}<span style="color: ${theme.tokens.content.secondary}"> · ${escape(plottable.labelSuffix)}</span>`
+            : label;
         }
         // `seriesName` is already HTML-escaped by `getFormatter`, so
         // skip escaping to avoid double-encoding (e.g., `>` → `&gt;`
@@ -467,7 +470,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
-    onReleaseBubbleLegendSelectChanged,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -477,7 +479,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     minTime: earliestTimeStamp,
     maxTime: latestTimeStamp,
     releases: bubbleReleases,
-    legendSelected: legendSelection[RELEASE_BUBBLE_SERIES_NAME] !== false,
+    legendSelected: true,
     yAxisIndex: yAxes.length,
   });
 
@@ -540,11 +542,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const handleLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
-    (event, instance) => {
-      onReleaseBubbleLegendSelectChanged(event, instance);
+    event => {
       handleLegendSelectionChange(event.selected);
     },
-    [onReleaseBubbleLegendSelectChanged, handleLegendSelectionChange]
+    [handleLegendSelectionChange]
   );
 
   const handleChartReady = useCallback(
@@ -609,8 +610,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // that label, add some grid padding.
   const xAxisGrid = showXAxis ? {} : {bottom: 5};
 
+  // Release bubbles are toggled from outside the chart (e.g., a dashboard
+  // widget's Layers menu), so only release lines get a legend item.
+  const releaseLegendSeries = hasReleaseBubbles ? null : releaseSeries;
+
   let visibleSeriesCount = props.plottables.length;
-  if (releaseSeries) {
+  if (releaseLegendSeries) {
     visibleSeriesCount += 1;
   }
 
@@ -680,17 +685,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return {
       name: plottable.name,
       label: plottable.label,
+      suffix: plottable.labelSuffix,
       color,
     };
   });
 
-  if (releaseSeries) {
-    const releaseName = typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
+  if (releaseLegendSeries) {
+    const releaseName =
+      typeof releaseLegendSeries.name === 'string' ? releaseLegendSeries.name : '';
     const releaseColor =
-      typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
+      typeof releaseLegendSeries.color === 'string' ? releaseLegendSeries.color : '';
     chartLegendItems.push({
       name: releaseName,
-      label: hasReleaseBubbles ? t('Releases') : releaseName,
+      label: releaseName,
       color: releaseColor,
     });
   }
@@ -699,7 +706,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // This ensures that when the legend is clicked, none of the series are permanently hidden.
   const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
     (acc, item) => {
-      acc[item.name] = legendSelection[item.name] !== false;
+      acc[item.name] = !showLegend || legendSelection[item.name] !== false;
       return acc;
     },
     {}
@@ -777,16 +784,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.droppedData?.onClick
   );
 
+  const legend = showLegend ? (
+    <ChartLegend
+      items={chartLegendItems}
+      selected={normalizedLegendSelection}
+      onSelectionChange={handleLegendSelectionChange}
+      truncateMenuLabels={props.truncateLegendMenuLabels}
+    />
+  ) : null;
+
   return (
     <Stack height="100%">
       {ActionMenu}
-      {showLegend && (
-        <ChartLegend
-          items={chartLegendItems}
-          selected={normalizedLegendSelection}
-          onSelectionChange={handleLegendSelectionChange}
-          truncateMenuLabels={props.truncateLegendMenuLabels}
-        />
+      {props.legendActions ? (
+        <Flex align="center" gap="sm">
+          <Container flex="1" minWidth="0">
+            {legend}
+          </Container>
+          {props.legendActions}
+        </Flex>
+      ) : (
+        legend
       )}
       <Container flex="1 1 0%" minHeight="0">
         <BaseChart
@@ -795,14 +813,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           renderer="canvas"
           series={band.series}
           grid={{...band.grid, ...xAxisGrid}}
-          legend={
-            showLegend
-              ? {
-                  show: false,
-                  selected: normalizedLegendSelection,
-                }
-              : undefined
-          }
+          legend={{show: false, selected: normalizedLegendSelection}}
           onLegendSelectChanged={handleLegendSelectChanged}
           tooltip={{
             appendToBody: true,

@@ -21,29 +21,32 @@ jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
   () => ({
-    TimeSeriesWidgetVisualization: jest.fn(
-      ({
-        plottables,
-      }: {
-        plottables: Array<{
-          name: string;
-          thresholds?: {max_values: {max1?: number; max2?: number}};
-        }>;
-      }) => {
-        const thresholdValues = plottables.find(
-          plottable => plottable.name === '__thresholds__'
-        )?.thresholds?.max_values;
+    TimeSeriesWidgetVisualization: Object.assign(
+      jest.fn(
+        ({
+          plottables,
+        }: {
+          plottables: Array<{
+            name: string;
+            thresholds?: {max_values: {max1?: number; max2?: number}};
+          }>;
+        }) => {
+          const thresholdValues = plottables.find(
+            plottable => plottable.name === '__thresholds__'
+          )?.thresholds?.max_values;
 
-        return (
-          <div data-test-id="chart">
-            {thresholdValues && (
-              <div data-test-id="threshold-values">
-                {thresholdValues.max1}, {thresholdValues.max2}
-              </div>
-            )}
-          </div>
-        );
-      }
+          return (
+            <div data-test-id="chart">
+              {thresholdValues && (
+                <div data-test-id="threshold-values">
+                  {thresholdValues.max1}, {thresholdValues.max2}
+                </div>
+              )}
+            </div>
+          );
+        }
+      ),
+      {LoadingPlaceholder: () => <div data-test-id="loading-placeholder" />}
     ),
   })
 );
@@ -395,78 +398,41 @@ describe('VisualizationWidget threshold time windows', () => {
 });
 
 describe('VisualizationWidget dropped-data heatmap', () => {
-  const orgWithFlags = () =>
-    OrganizationFixture({
-      features: [
-        'explore-data-fidelity-annotations',
-        'dashboards-data-fidelity-annotations',
-      ],
-    });
-
-  let droppedDataRequest: jest.Mock;
+  const band = {
+    dataset: DiscoverDatasets.SPANS,
+    droppedEvents: [OutcomeRowFixture({count: 10})],
+    acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+    onClick: jest.fn(),
+  };
 
   beforeEach(() => {
     jest.mocked(TimeSeriesWidgetVisualization).mockClear();
-    droppedDataRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-dropped/',
-      body: {
-        droppedEvents: [OutcomeRowFixture({count: 10})],
-        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
-        meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
-      },
-    });
   });
 
-  function lastDroppedDataProp() {
-    const calls = jest.mocked(TimeSeriesWidgetVisualization).mock.calls;
-    return calls.at(-1)![0].droppedData;
-  }
-
-  it('passes the band to the chart', async () => {
+  it('passes the band to the chart', () => {
     render(
       <VisualizationWidget
         widget={spansBreakdownWidget}
         selection={selection}
-        widgetInterval="5m"
-      />,
-      {organization: orgWithFlags()}
+        droppedData={band}
+      />
     );
 
-    await waitFor(() =>
-      expect(lastDroppedDataProp()).toEqual(
-        expect.objectContaining({dataset: DiscoverDatasets.SPANS})
-      )
-    );
+    expect(
+      jest.mocked(TimeSeriesWidgetVisualization).mock.calls.at(-1)![0].droppedData
+    ).toBe(band);
   });
 
-  it('hides the heatmap while editing a widget (disableFullscreen)', async () => {
+  it('shows a placeholder while the band loads', () => {
     render(
       <VisualizationWidget
         widget={spansBreakdownWidget}
         selection={selection}
-        widgetInterval="5m"
-        disableFullscreen
-      />,
-      {organization: orgWithFlags()}
+        isDroppedDataLoading
+      />
     );
 
-    await waitFor(() => expect(droppedDataRequest).toHaveBeenCalled());
-    expect(lastDroppedDataProp()).toBeUndefined();
-  });
-
-  it('does not request dropped data for unsupported widget types', async () => {
-    render(
-      <VisualizationWidget
-        widget={{...spansBreakdownWidget, widgetType: WidgetType.TRANSACTIONS}}
-        selection={selection}
-        widgetInterval="5m"
-      />,
-      {organization: orgWithFlags()}
-    );
-
-    await waitFor(() => expect(TimeSeriesWidgetVisualization).toHaveBeenCalled());
-    expect(droppedDataRequest).not.toHaveBeenCalled();
-    expect(lastDroppedDataProp()).toBeUndefined();
+    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 });
 
@@ -499,12 +465,13 @@ describe('VisualizationWidget releases', () => {
     expect(lastShowReleaseAsProp()).toBe('bubble');
   });
 
-  it('hides releases for mobile builds widgets', async () => {
+  it('does not request or show releases when showReleases is false', async () => {
     render(
       <VisualizationWidget
-        widget={{...spansBreakdownWidget, widgetType: WidgetType.PREPROD_APP_SIZE}}
+        widget={spansBreakdownWidget}
         selection={selection}
         widgetInterval="5m"
+        showReleases={false}
       />
     );
 

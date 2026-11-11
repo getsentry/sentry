@@ -1,25 +1,26 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict, cast
 
 from django.db import router, transaction
 from django.db.models import QuerySet
 from rest_framework import serializers
 
 from sentry import features
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
-from sentry.investigations.contracts import ActionPayloadSerializer
-from sentry.investigations.services.action_kinds.base import (
+from sentry.models.organization import Organization
+from sentry.notebooks.contracts import ActionPayloadSerializer
+from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookActionRequestState
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ApplyContext,
     CannotApplyReason,
     FollowUpCommand,
 )
-from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookActionRequestState
 from sentry.seer.agent.monitoring_providers import org_monitoring_provider_registry
 
 CONNECT_TELEMETRY_ACTION = "connect_telemetry"
@@ -36,7 +37,9 @@ class ConnectTelemetryActionSerializer(ActionPayloadSerializer):
 
 
 class ConnectTelemetryAppliedDetails(TypedDict):
-    provider: TelemetryProvider
+    provider: Annotated[
+        TelemetryProvider, ApiDescription("The telemetry provider that was connected")
+    ]
 
 
 def telemetry_available(organization: Organization, provider: TelemetryProvider) -> bool:
@@ -71,22 +74,23 @@ def open_connect_requests(
     )
 
 
-class ConnectTelemetryKind(ActionKind):
+class ConnectTelemetryKind(ActionKind[ConnectTelemetryAppliedDetails]):
     kind = CONNECT_TELEMETRY_ACTION
     payload_serializer = ConnectTelemetryActionSerializer
+    applied_details = ConnectTelemetryAppliedDetails
 
     def cannot_apply_reasons(
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         can_install = access.has_scope(_INSTALL_SCOPE)
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
-            if not features.has(TELEMETRY_FEATURE, investigations[item.notebook_id].organization):
+            if not features.has(TELEMETRY_FEATURE, notebooks[item.notebook_id].organization):
                 reasons[item.id] = CannotApplyReason.UNSUPPORTED_ACTION
             elif not can_install:
                 reasons[item.id] = CannotApplyReason.PERMISSION_DENIED

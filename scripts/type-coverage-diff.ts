@@ -156,8 +156,8 @@ export function compareItems<T extends CoverageItem>(
 
   // Reserve unchanged occurrences first, so an added duplicate cannot use them.
   match(
-    [...current].sort((a, b) => Number(isAdded(a)) - Number(isAdded(b))),
-    [...old].sort((a, b) => Number(isRemoved(a)) - Number(isRemoved(b))),
+    current.toSorted((a, b) => Number(isAdded(a)) - Number(isAdded(b))),
+    old.toSorted((a, b) => Number(isRemoved(a)) - Number(isRemoved(b))),
     item => JSON.stringify([item.file, semanticKey(item)]),
     item =>
       JSON.stringify([

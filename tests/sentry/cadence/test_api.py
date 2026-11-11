@@ -13,7 +13,7 @@ from sentry.cadence.api import (
     set_schedule,
 )
 from sentry.cadence.models import ScheduledTrigger, ScheduleType
-from sentry.cadence.registry import TriggerTypeRegistration, trigger_type_registry
+from sentry.cadence.registry import TriggerHandler, trigger_type_registry
 from sentry.cadence.schedule import Schedule
 from sentry.cadence.spread import fire_offset
 from sentry.testutils.cases import TestCase
@@ -31,10 +31,8 @@ class CadenceApiTestCase(TestCase):
         self.register(timedelta(0))
 
     def register(self, spread_window: timedelta) -> None:
-        registration = TriggerTypeRegistration(action=MagicMock(), spread_window=spread_window)
-        self.enterContext(
-            patch.dict(trigger_type_registry.registrations, {SEER_WORKFLOW: registration})
-        )
+        handler = MagicMock(spec=TriggerHandler, spread_window=spread_window)
+        self.enterContext(patch.dict(trigger_type_registry.registrations, {SEER_WORKFLOW: handler}))
 
     def set(self, target_id: int, schedule: Schedule) -> ScheduledTriggerInfo:
         return set_schedule(

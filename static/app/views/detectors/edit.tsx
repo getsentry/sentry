@@ -1,6 +1,7 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -27,7 +28,11 @@ export default function DetectorEdit() {
   if (isError) {
     return (
       <LoadingError
-        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        message={
+          error instanceof RequestError && error.status === 404
+            ? t('The monitor could not be found.')
+            : undefined
+        }
         onRetry={refetch}
       />
     );

@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
-from typing import Literal
+from typing import Any, Literal
 
-from django.db import router, transaction
+from django.db import OperationalError, router, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -14,6 +14,7 @@ from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry import features
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -36,8 +37,8 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
     open_connect_requests,
     telemetry_available,
 )
-from sentry.investigations.services.action_requests import complete_action_requests
 from sentry.investigations.services.actor_access import resolve_investigation_service_account
+from sentry.investigations.services.issue_links import link_investigation_issues
 from sentry.investigations.services.orchestration import (
     FOLLOW_UP_COMMAND_TYPES,
     INTERNAL_COMMAND_TYPES,
@@ -53,7 +54,8 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
-from sentry.notebooks.services.notebooks import InvestigationValidationError
+from sentry.notebooks.services.action_requests import complete_action_requests
+from sentry.notebooks.services.notebooks import NotebookValidationError
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
@@ -323,7 +325,7 @@ def _dispatch_viewer_scope(
                 account_id=actor.id,
                 project_ids=investigation.projects.values_list("id", flat=True),
             )
-        except InvestigationValidationError as error:
+        except NotebookValidationError as error:
             raise PermissionDenied from error
     else:
         context = ViewerContext(
@@ -577,6 +579,18 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
             return
 
         _mark_command_dispatch_acknowledged(run.id, command.id, response["rerun"])
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.publish_investigation_issue_links",
+    namespace=seer_tasks,
+    # Publishing is idempotent per investigation and issue, so a retry can't duplicate.
+    retry=Retry(times=3, on=(RpcRemoteException, OperationalError), delay=60),
+)
+def publish_investigation_issue_links(
+    investigation_id: int, linked_issues: list[dict[str, Any]]
+) -> None:
+    link_investigation_issues(investigation_id=investigation_id, linked_issues=linked_issues)
 
 
 class TelemetryNotConnectedYet(Exception):

@@ -7,7 +7,7 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
+import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {DiscoverButton} from 'sentry/components/discoverButton';
@@ -23,6 +23,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
@@ -54,7 +55,7 @@ type Props = {
 
 export function ProjectIssues({organization, location, projectId, query = ''}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
-  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
+  const [onCursor, setOnCursor] = useState<CursorHandler | undefined>();
   const [issuesType, setIssuesType] = useQueryState('issuesType', {
     ...parseAsStringLiteral(Object.values(IssuesType)),
     defaultValue: IssuesType.UNHANDLED,
@@ -225,7 +226,11 @@ export function ProjectIssues({organization, location, projectId, query = ''}: P
           >
             {t('Open in Explore')}
           </DiscoverButton>
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
+          <StyledPagination
+            {...getPaginationProps(pageLinks)}
+            onCursor={onCursor}
+            size="xs"
+          />
         </Grid>
       </Flex>
 

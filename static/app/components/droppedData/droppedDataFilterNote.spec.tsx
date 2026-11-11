@@ -8,13 +8,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DroppedDataFilterNote} from './droppedDataFilterNote';
 
 describe('DroppedDataFilterNote', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   function setEnvironments(environments: string[]) {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture({environments}));
   }
-
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
 
   it('renders nothing without a search or environment', () => {
     setEnvironments([]);

@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -49,7 +50,9 @@ export function ScreenshotCard({
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 
-  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`;
+  const downloadUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`
+  );
 
   function handleDelete() {
     trackAnalytics('issue_details.attachment_tab.screenshot_modal_deleted', {

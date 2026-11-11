@@ -21,6 +21,7 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
+import {EventGpuCrashReport} from 'sentry/components/events/gpuCrashReport';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
@@ -158,6 +159,9 @@ export function EventDetailsContent({
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
+      <ErrorBoundary mini>
+        <EventGpuCrashReport event={event} />
+      </ErrorBoundary>
       <EventStackTrace event={event} group={group} projectSlug={projectSlug} />
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (

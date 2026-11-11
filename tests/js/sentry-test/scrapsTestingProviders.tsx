@@ -8,6 +8,7 @@ import {
 
 import {SentryFormErrorProvider} from 'sentry/scrapsProviders/formError';
 import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
+import {SentryPaginationProvider} from 'sentry/scrapsProviders/pagination';
 
 const testTranslation: TranslationContextValue = {
   t: (string, ...args) =>
@@ -19,10 +20,12 @@ export function ScrapsTestingProviders({children}: {children: React.ReactNode}) 
   return (
     <SentryFormErrorProvider>
       <TranslationContextProvider value={testTranslation}>
-        <SentryLinkBehaviorProvider>
-          {children}
-          {createPortal(<ToastProvider />, document.body)}
-        </SentryLinkBehaviorProvider>
+        <SentryPaginationProvider>
+          <SentryLinkBehaviorProvider>
+            {children}
+            {createPortal(<ToastProvider />, document.body)}
+          </SentryLinkBehaviorProvider>
+        </SentryPaginationProvider>
       </TranslationContextProvider>
     </SentryFormErrorProvider>
   );

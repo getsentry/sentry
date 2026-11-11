@@ -25,7 +25,17 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
-from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED
+from sentry.seer.credits import (
+    SeerFeature,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
+from sentry.seer.endpoints.utils import (
+    SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+    SEER_PERMISSION_DENIED,
+    seer_out_of_credits_response,
+)
 from sentry.seer.models import SeerPermissionError
 from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.users.services.user.service import user_service
@@ -52,8 +62,9 @@ def handle_ui_feedback(
 
     Returns None once the feedback has been handed off, or the error response
     the endpoint should send back when the request cannot be acted on: 400 when
-    the feedback is empty or the run has no pull request yet, and 409 when
-    iteration on the run is paused. Raises ``PermissionDenied`` when Seer
+    the feedback is empty or the run has no pull request yet, 409 when
+    iteration on the run is paused, and 402 when the organization doesn't have
+    enough Seer credits. Raises ``PermissionDenied`` when Seer
     refuses to show us the run.
     """
     if not user_feedback:
@@ -78,6 +89,15 @@ def handle_ui_feedback(
         return Response(
             {"detail": PAUSED_PR_ITERATION_DETAIL[pause_reason]},
             status=status.HTTP_409_CONFLICT,
+        )
+
+    # Check credits here, since the queued feedback is consumed after this request returns.
+    credits = check_seer_operation(
+        group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+    )
+    if not credits.has_enough_credits:
+        return seer_out_of_credits_response(
+            SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL, get_denial_reason(credits)
         )
 
     serialized_users = user_service.serialize_many(

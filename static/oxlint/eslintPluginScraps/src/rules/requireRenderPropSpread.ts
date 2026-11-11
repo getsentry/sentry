@@ -208,7 +208,7 @@ function getRenderFunctionReturnedElements(
     return getReturnedElements(renderFunction.body);
   }
 
-  if (!renderFunction.body || renderFunction.body.type !== 'BlockStatement') {
+  if (renderFunction.body?.type !== 'BlockStatement') {
     return [];
   }
 

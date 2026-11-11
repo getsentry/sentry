@@ -11,40 +11,40 @@ from sentry.notebooks.models import (
     NotebookBlockKind,
 )
 from sentry.notebooks.services.auto_run import schedule_eligible_auto_run_blocks
-from sentry.notebooks.tasks import dispatch_investigation_execution
+from sentry.notebooks.tasks import dispatch_notebook_execution
 from sentry.testutils.cases import TestCase
 
 
-class InvestigationAutoRunTest(TestCase):
+class NotebookAutoRunTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
-        self.investigation = self.create_notebook(
+        self.notebook = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
         )
-        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        self.create_notebook_project(notebook=self.notebook, project=self.project)
         self.root = self.create_notebook_block(
-            notebook=self.investigation,
+            notebook=self.notebook,
             position=0,
             kind=NotebookBlockKind.QUERY,
             prompt="Chart the breach",
             config={"autoRun": True},
         )
         self.sibling = self.create_notebook_block(
-            notebook=self.investigation,
+            notebook=self.notebook,
             position=1,
             kind=NotebookBlockKind.TEXT,
             prompt="Explain the chart",
         )
 
-    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_notebook_execution")
     def test_dispatches_each_auto_run_block(self, dispatch: mock.Mock) -> None:
         self.sibling.update(config={"autoRun": True})
 
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
 
@@ -57,11 +57,11 @@ class InvestigationAutoRunTest(TestCase):
             self.sibling.current_execution.id,
         }
 
-    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_notebook_execution")
     def test_redispatches_an_existing_pending_execution(self, dispatch: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
         self.root.refresh_from_db()
@@ -71,7 +71,7 @@ class InvestigationAutoRunTest(TestCase):
 
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
 
@@ -84,15 +84,15 @@ class InvestigationAutoRunTest(TestCase):
     def test_duplicate_dispatches_only_start_one_run(self, start_execution_run: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=False):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
         self.root.refresh_from_db()
         execution_id = self.root.current_execution_id
         assert execution_id is not None
 
-        dispatch_investigation_execution(execution_id)
-        dispatch_investigation_execution(execution_id)
+        dispatch_notebook_execution(execution_id)
+        dispatch_notebook_execution(execution_id)
 
         start_execution_run.assert_called_once()
 
@@ -100,24 +100,24 @@ class InvestigationAutoRunTest(TestCase):
     def test_stale_dispatch_claim_can_be_reclaimed(self, start_execution_run: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=False):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
         self.root.refresh_from_db()
         execution = self.root.current_execution
         assert execution is not None
 
-        dispatch_investigation_execution(execution.id)
+        dispatch_notebook_execution(execution.id)
         execution.update(started_at=timezone.now() - timedelta(minutes=6))
-        dispatch_investigation_execution(execution.id)
+        dispatch_notebook_execution(execution.id)
 
         assert start_execution_run.call_count == 2
 
-    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_notebook_execution")
     def test_redispatches_a_stale_dispatch_claim(self, dispatch: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=False):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
         self.root.refresh_from_db()
@@ -131,13 +131,13 @@ class InvestigationAutoRunTest(TestCase):
 
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
 
         dispatch.delay.assert_called_once_with(execution.id)
 
-    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_notebook_execution")
     def test_does_not_start_more_cells_after_a_current_execution_fails(
         self, dispatch: mock.Mock
     ) -> None:
@@ -150,7 +150,7 @@ class InvestigationAutoRunTest(TestCase):
         self.root.current_execution = failed_execution
         self.root.save(update_fields=["current_execution"])
         independent = self.create_notebook_block(
-            notebook=self.investigation,
+            notebook=self.notebook,
             position=2,
             kind=NotebookBlockKind.QUERY,
             prompt="Compare releases",
@@ -159,7 +159,7 @@ class InvestigationAutoRunTest(TestCase):
 
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
+                notebook_id=self.notebook.id,
                 user_id=self.user.id,
             )
 
@@ -192,7 +192,7 @@ class InvestigationAutoRunTest(TestCase):
         self.sibling.current_execution = sibling_execution
         self.sibling.save(update_fields=["current_execution"])
 
-        dispatch_investigation_execution(failed_execution.id)
+        dispatch_notebook_execution(failed_execution.id)
 
         failed_execution.refresh_from_db()
         sibling_execution.refresh_from_db()

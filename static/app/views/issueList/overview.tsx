@@ -8,7 +8,7 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import * as qs from 'query-string';
+import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -26,7 +26,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
@@ -47,6 +46,7 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -179,7 +179,7 @@ function IssueListOverviewInner({
   const actionTakenRef = useRef(false);
   const {getRunIdForAnalytics} = useAiQueryContext();
 
-  const groups = useLegacyStore(GroupStore);
+  const groups = useStore(GroupStore);
   useEffect(() => {
     const storeGroupIds = groups.map(group => group.id).slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, storeGroupIds)) {
@@ -707,7 +707,7 @@ function IssueListOverviewInner({
     transitionTo({sort: newSort});
   };
 
-  const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
+  const onCursorChange: CursorHandler = (nextCursor, delta) => {
     const queryPageInt = parsePageQueryParam(location, NaN);
     let nextPage: number | undefined = isNaN(queryPageInt) ? delta : queryPageInt + delta;
 

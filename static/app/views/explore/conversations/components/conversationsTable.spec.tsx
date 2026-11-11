@@ -61,9 +61,14 @@ function mockConversations(body: Array<Record<string, unknown>>) {
   });
 }
 
-function TestConversationsTable() {
+function TestConversationsTable({persistColumnWidths}: {persistColumnWidths?: boolean}) {
   const conversations = useConversations();
-  return <ConversationsTable conversations={conversations} />;
+  return (
+    <ConversationsTable
+      conversations={conversations}
+      persistColumnWidths={persistColumnWidths}
+    />
+  );
 }
 
 function renderTable() {
@@ -78,6 +83,34 @@ describe('ConversationsTable', () => {
       PageFiltersStore.reset();
       PageFiltersStore.init();
     });
+  });
+
+  it('updates its table cursor while preserving unrelated query filters', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [{...BASE_CONVERSATION, title: 'Paginated conversation'}],
+      headers: {
+        Link: '<https://example.com/next>; rel="next"; results="true"; cursor="next-conversation"',
+      },
+    });
+    const {router} = render(<TestConversationsTable />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/conversations/',
+          query: {environment: ['production', 'staging']},
+        },
+      },
+    });
+    await screen.findByText('Paginated conversation');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await waitFor(() => {
+      expect(router.location.query).toEqual({
+        environment: ['production', 'staging'],
+        tableCursor: 'next-conversation',
+      });
+    });
+    expect(router.location.pathname).toBe('/conversations/');
   });
 
   it('renders the shared no-data state when there are no conversations', async () => {
@@ -280,6 +313,31 @@ describe('ConversationsTable', () => {
     await waitFor(() => {
       const stored = localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
       expect(stored && JSON.parse(stored)).toEqual({tools: 300});
+    });
+  });
+
+  it('ignores and does not persist column widths when persistence is disabled', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    render(<TestConversationsTable persistColumnWidths={false} />, {organization});
+
+    await screen.findByText('With tools');
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).not.toContain(
+      '400px'
+    );
+
+    dragHandle(screen.getByRole('separator', {name: 'Tools'}), {from: 0, to: 300});
+
+    await waitFor(() => {
+      expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+        '300px'
+      );
+    });
+    expect(JSON.parse(localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY)!)).toEqual({
+      tools: 400,
     });
   });
 

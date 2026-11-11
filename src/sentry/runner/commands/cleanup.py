@@ -772,7 +772,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (PullRequestActivityLog, "date_updated", "date_updated"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
-        (Commit, "date_added", "id"),
+        (Commit, "date_added", "date_added"),
         (UptimeResponseCapture, "date_added", "date_added"),
         (SeerRun, "last_triggered_at", "last_triggered_at"),
     ]

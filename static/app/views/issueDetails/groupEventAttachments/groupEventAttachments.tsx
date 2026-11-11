@@ -12,12 +12,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 import {useEventQuery} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 
 import {
   EventAttachmentFilter,
@@ -168,7 +169,7 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? screenshotGallery
         : attachmentsTable}
-      <NoMarginPagination pageLinks={pageLinks} />
+      <NoMarginPagination {...getPaginationProps(pageLinks)} />
     </Stack>
   );
 }

@@ -15,7 +15,7 @@ const PREBUILT_CLASSIFIERS = [
     key: 'tool_failure',
     name: 'Tool failure',
     description: 'When a tool fails.',
-    resultAttribute: 'sentry.classifier.tool_failure',
+    resultAttribute: 'tool_failure',
   }),
 ];
 
@@ -231,7 +231,7 @@ describe('NewClassifier', () => {
       'Tool failure'
     );
     expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveValue(
-      'sentry.classifier.tool_failure'
+      'tool_failure'
     );
   });
 
@@ -265,7 +265,7 @@ describe('NewClassifier', () => {
     const title = await screen.findByRole('textbox', {name: /Classifier title/});
     expect(title).toHaveValue('User frustration');
     expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveValue(
-      'sentry.classifier.user_frustration'
+      'user_frustration'
     );
 
     await userEvent.clear(title);
@@ -284,7 +284,7 @@ describe('NewClassifier', () => {
             name: 'Frustrated users',
             prebuiltClassifierKey: 'user_frustration',
             project: 2,
-            resultAttribute: 'sentry.classifier.user_frustration',
+            resultAttribute: 'user_frustration',
           },
         })
       );
@@ -294,6 +294,37 @@ describe('NewClassifier', () => {
         `/organizations/${organization.slug}/seer/classifiers/42/`
       );
     });
+  });
+
+  it('shows the enrichment prefix next to the attribute name', async () => {
+    renderPage({project: '1', prebuilt: 'tool_failure'});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByText('sentry.enrichment.'));
+
+    expect(screen.getByRole('textbox', {name: /Attribute name/})).toHaveFocus();
+  });
+
+  it('rejects attribute names with invalid characters', async () => {
+    const createMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/classifiers/`,
+      method: 'POST',
+      body: TelemetryClassifierFixture({id: '42'}),
+    });
+
+    renderPage({project: '1', prebuilt: 'tool_failure'});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+
+    const attribute = await screen.findByRole('textbox', {name: /Attribute name/});
+    await userEvent.clear(attribute);
+    await userEvent.type(attribute, 'Tool Failure');
+    await userEvent.click(screen.getByRole('button', {name: 'Create classifier'}));
+
+    await waitFor(() => {
+      expect(attribute).toHaveAttribute('aria-invalid', 'true');
+    });
+    expect(createMock).not.toHaveBeenCalled();
   });
 
   it('keeps edits when going back and shows server errors on the field', async () => {

@@ -31,6 +31,7 @@ import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid'
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -438,8 +439,8 @@ export function InvestigationsPage() {
                 </TableWrapper>
                 <Container marginBottom="2xl">
                   <Pagination
-                    pageLinks={data?.headers.Link}
-                    onCursor={(nextCursor, _path, _nextQuery, direction) => {
+                    {...getPaginationProps(data?.headers.Link)}
+                    onCursor={(nextCursor, direction) => {
                       const offset = Number(nextCursor?.split?.(':')?.[1] ?? 0);
                       setQueryParams({
                         cursor:

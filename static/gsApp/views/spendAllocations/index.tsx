@@ -20,6 +20,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -509,7 +510,10 @@ export function SpendAllocationsRoot({subscription}: Props) {
               spendAllocations={currentAllocations}
             />
             {pageLinks && (
-              <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />
+              <Pagination
+                {...getPaginationProps(pageLinks)}
+                onCursor={setCurrentCursor}
+              />
             )}
           </Fragment>
         )}
