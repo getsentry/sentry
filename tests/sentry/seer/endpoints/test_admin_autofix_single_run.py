@@ -272,7 +272,7 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         with (
             self.tasks(),
             patch(
-                "sentry.seer.workflows.metric_alert.create_agentic_breached_metric_investigation",
+                "sentry.seer.workflows.breached_metrics.create_agentic_breached_metric_investigation",
                 return_value=(notebook, True),
             ) as investigate,
         ):
