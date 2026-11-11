@@ -936,7 +936,9 @@ class TestSeerRpcMethods(APITestCase):
                 project=project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
             )
 
-        result = get_project_preferences(organization_id=self.organization.id, project_id=project.id)
+        result = get_project_preferences(
+            organization_id=self.organization.id, project_id=project.id
+        )
 
         assert len(result.repositories) == MAX_SEER_REPOS_PER_PROJECT
 
