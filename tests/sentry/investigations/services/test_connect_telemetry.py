@@ -10,19 +10,19 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.investigations.contracts import ActionRequestItem
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRerun,
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
-from sentry.investigations.services.action_requests import upsert_action_request
+from sentry.notebooks.contracts import ActionRequestItem
 from sentry.notebooks.models import (
     NotebookActionRequest,
     NotebookActionRequestState,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_requests import upsert_action_request
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.signals import integration_added
 from sentry.tasks.seer.investigation import (
@@ -673,7 +673,7 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
     def test_a_new_connect_request_schedules_one_check(self, delay: mock.MagicMock) -> None:
         with self.capture_on_commit_callbacks(execute=True):
             upsert_action_request(
-                self.orchestration_run,
+                self.investigation,
                 {
                     "key": "connect-telemetry-gcp-r0",
                     "reportRevision": 0,
@@ -706,8 +706,10 @@ class MarkInvestigationTelemetryConnectedTaskTest(TelemetryFixtures):
             "action": {"kind": "connect_telemetry", "provider": "gcp"},
         }
 
-        upsert_action_request(self.orchestration_run, item)
-        upsert_action_request(self.orchestration_run, {**item, "title": "Connect GCP"})
+        upsert_action_request(self.orchestration_run.investigation, item)
+        upsert_action_request(
+            self.orchestration_run.investigation, {**item, "title": "Connect GCP"}
+        )
 
         suggested = [
             call

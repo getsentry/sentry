@@ -20,12 +20,14 @@ from sentry.models.apidevicecode import (
 )
 from sentry.utils import json, metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger("sentry.oauth")
 
 
 @control_silo_view
+@ai_machine_readable
 class OAuthDeviceAuthorizationView(View):
     """
     OAuth 2.0 Device Authorization Endpoint (RFC 8628 §3.1/§3.2).

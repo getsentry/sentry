@@ -201,15 +201,12 @@ describe('SyntheticMetricBreachForm', () => {
       {name: 'us', locality_url: 'https://us.example.com'},
       {name: 'eu', locality_url: 'https://eu.example.com'},
     ]);
-    MockApiClient.addMockResponse({
-      url: '/_admin/customers/search/',
-      body: ['https://us.example.com', 'https://eu.example.com'].flatMap(regionUrl =>
-        [organization, otherOrganization].map(org => ({
-          ...org,
-          links: {...org.links, regionUrl},
-        }))
-      ),
-    });
+    for (const cell of ['us', 'eu']) {
+      MockApiClient.addMockResponse({
+        url: `/_admin/cells/${cell}/customers/`,
+        body: [organization, otherOrganization],
+      });
+    }
     MockApiClient.addMockResponse({
       url: '/organizations/test-org/detectors/',
       body: [monitor],
@@ -220,34 +217,101 @@ describe('SyntheticMetricBreachForm', () => {
     });
   });
 
-  it('loads organizations from later pages when the first page belongs to another locality', async () => {
-    MockApiClient.addMockResponse({
-      url: '/_admin/customers/search/',
-      match: [MockApiClient.matchQuery({query: 'Test', cursor: undefined})],
-      body: [{...otherOrganization, links: {regionUrl: 'https://us.example.com'}}],
-      headers: {
-        Link: '<https://example.com/api/0/_admin/customers/search/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
-      },
+  it('defaults to the sentry organization and loads its monitors', async () => {
+    const defaultOrganization = OrganizationFixture({
+      id: '789',
+      slug: 'sentry',
+      name: 'Default organization',
     });
     MockApiClient.addMockResponse({
-      url: '/_admin/customers/search/',
-      match: [MockApiClient.matchQuery({query: 'Test', cursor: '0:50:0'})],
-      body: [{...organization, links: {regionUrl: 'https://eu.example.com'}}],
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchQuery({query: 'slug:sentry', per_page: 1})],
+      body: [defaultOrganization],
+    });
+    const monitors = MockApiClient.addMockResponse({
+      url: '/organizations/sentry/detectors/',
+      body: [monitor],
     });
     render(<SyntheticMetricBreachForm />);
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    expect(await screen.findByText('Default organization (sentry)')).toBeInTheDocument();
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Metric monitor'}),
+      'Checkout latency (Project ID: 7, Monitor ID: 42)'
+    );
+    expect(monitors).toHaveBeenCalledWith(
+      '/organizations/sentry/detectors/',
+      expect.objectContaining({host: 'https://us.example.com'})
+    );
+    expect(screen.getByRole('button', {name: 'Create test breach'})).toBeEnabled();
+  });
+
+  it('keeps an explicit selection when the default organization arrives late', async () => {
+    const response = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchQuery({query: 'slug:sentry'})],
+      asyncDelay: response.promise,
+      body: [OrganizationFixture({id: '789', slug: 'sentry'})],
+    });
+    render(<SyntheticMetricBreachForm />);
+
     await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'Test');
-    expect(
-      await screen.findByText('Load more results to search this region')
-    ).toBeInTheDocument();
-    expect(screen.queryByText('No organizations found')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Load more organizations'}));
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Organization'}),
       'Test organization (test-org)'
     );
-    expect(screen.queryByText('Other organization (other-org)')).not.toBeInTheDocument();
+    await act(async () => {
+      response.resolve();
+      await response.promise;
+    });
+
+    expect(screen.getByText('Test organization (test-org)')).toBeInTheDocument();
+    expect(screen.queryByText(/\(sentry\)/)).not.toBeInTheDocument();
+  });
+
+  it('sorts by members and promotes an exact slug match loaded on a later page', async () => {
+    const firstPage = MockApiClient.addMockResponse({
+      url: '/_admin/cells/eu/customers/',
+      match: [MockApiClient.matchQuery({query: 'TEST-ORG', cursor: undefined})],
+      body: [otherOrganization],
+      headers: {
+        Link: '<https://eu.example.com/api/0/_admin/cells/eu/customers/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
+      },
+    });
+    const nextPage = MockApiClient.addMockResponse({
+      url: '/_admin/cells/eu/customers/',
+      match: [MockApiClient.matchQuery({query: 'TEST-ORG', cursor: '0:50:0'})],
+      body: [organization],
+    });
+    render(<SyntheticMetricBreachForm />);
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization'}), 'TEST-ORG');
+    expect(await screen.findByText('Other organization (other-org)')).toBeInTheDocument();
+    expect(firstPage).toHaveBeenCalledWith(
+      '/_admin/cells/eu/customers/',
+      expect.objectContaining({
+        host: 'https://eu.example.com',
+        query: {query: 'TEST-ORG', per_page: 50, sortBy: 'members', cursor: undefined},
+      })
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Load more organizations'}));
+    expect(await screen.findByText('Test organization (test-org)')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('menuitemradio').map(option => option.textContent)
+    ).toEqual(['Test organization (test-org)', 'Other organization (other-org)']);
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Organization'}),
+      'Test organization (test-org)'
+    );
+    expect(nextPage).toHaveBeenCalledWith(
+      '/_admin/cells/eu/customers/',
+      expect.objectContaining({
+        host: 'https://eu.example.com',
+        query: {query: 'TEST-ORG', per_page: 50, sortBy: 'members', cursor: '0:50:0'},
+      })
+    );
     expect(
       screen.queryByRole('button', {name: 'Load more organizations'})
     ).not.toBeInTheDocument();
@@ -394,7 +458,7 @@ describe('SyntheticMetricBreachForm', () => {
       {name: '--monolith--', locality_url: 'http://dev.example.com:8000'},
     ]);
     MockApiClient.addMockResponse({
-      url: '/_admin/customers/search/',
+      url: '/_admin/cells/--monolith--/customers/',
       body: [organization],
     });
     const request = MockApiClient.addMockResponse({

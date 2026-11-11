@@ -26,7 +26,7 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -375,7 +375,7 @@ class SeerAgentClient:
         self.enable_write_pull_request = enable_write_pull_request
         # The same gate the investigation endpoints apply, so Code Mode isn't handed
         # operations that would only 404.
-        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+        self.enable_investigation_tools = enable_investigation_tools and has_notebooks_access(
             organization, actor=user
         )
         # The inbox endpoints are personal, so they answer only with a user behind the run.
@@ -1005,6 +1005,7 @@ class SeerAgentClient:
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
         allow_force_push: bool = True,
+        source: str | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1019,6 +1020,7 @@ class SeerAgentClient:
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
             allow_force_push: Overwrite the branch if it has commits Seer didn't push
+            source: Stable caller-flow label, or None when unspecified; not the commit author
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1036,6 +1038,7 @@ class SeerAgentClient:
         # Trigger PR creation
         payload: dict[str, Any] = {
             "type": "create_pr",
+            "source": source,
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
             "allow_force_push": allow_force_push,

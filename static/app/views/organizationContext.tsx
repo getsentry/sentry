@@ -17,7 +17,6 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {User} from 'sentry/types/user';
 import {shutdownIntercom} from 'sentry/utils/intercom';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -54,7 +53,10 @@ export function OrganizationContextProvider({children}: Props) {
     useShallow(state => ({lastOrganization: state.lastOrganization, user: state.user}))
   );
   const organizations = useStore(OrganizationsStore, state => state.organizations);
-  const {organization, error} = useLegacyStore(OrganizationStore);
+  const {organization, error} = useStore(
+    OrganizationStore,
+    useShallow(state => ({organization: state.organization, error: state.error}))
+  );
   const lastOrganizationSlug = lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
   const spanRef = useRef<Sentry.Span | null>(null);
