@@ -29,15 +29,13 @@ export function PrCommentRules() {
         },
         copy: {
           panelTitle: t('Size Analysis - PR Comments'),
-          enabledLabel: t('PR Comments Enabled'),
+          enabledLabel: t('Enable PR Comments'),
           enabledDescription: t(
             "Sentry will post PR comments based on your build's app size."
           ),
           toggleAriaLabel: t('Toggle PR comments'),
+          disabledTooltip: t("PR comments won't be posted, but your rules are saved."),
           emptyRulesText: t('No PR comment rules configured. Create one to get started.'),
-          disabledHintText: t(
-            "PR comments are disabled. Rules are saved but won't be evaluated."
-          ),
           addRuleButtonLabel: t('Create PR Comment Rule'),
           connectRepoText: t(
             'Connect at least one repository to get Size Analysis PR comments'

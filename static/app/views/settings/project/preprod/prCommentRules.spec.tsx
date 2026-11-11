@@ -44,11 +44,6 @@ describe('PrCommentRules', () => {
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
     expect(
-      screen.getByText(
-        "PR comments are disabled. Rules are saved but won't be evaluated."
-      )
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole('button', {name: 'Create PR Comment Rule'})
     ).toBeInTheDocument();
   });
@@ -124,11 +119,6 @@ describe('PrCommentRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
-    expect(
-      screen.getByText(
-        "PR comments are disabled. Rules are saved but won't be evaluated."
-      )
-    ).toBeInTheDocument();
   });
 
   it('enables PR comments when toggled on', async () => {

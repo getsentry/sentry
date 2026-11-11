@@ -5,11 +5,15 @@ import {useQueryState} from 'nuqs';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -33,13 +37,14 @@ interface SizeRulesPanelConfig {
   copy: {
     addRuleButtonLabel: string;
     connectRepoText: string;
-    disabledHintText: string;
+    disabledTooltip: React.ReactNode;
     emptyRulesText: string;
     enabledDescription: string;
     enabledLabel: string;
     form: RuleFormCopy;
     panelTitle: string;
     toggleAriaLabel: string;
+    docsHint?: {docsUrl: string; text: React.ReactNode};
   };
   rules: SizeRulesConfig;
 }
@@ -88,7 +93,29 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
 
   return (
     <Panel>
-      <PanelHeader>{copy.panelTitle}</PanelHeader>
+      <PanelHeader>
+        <Flex align="center" gap="sm" minHeight="20px">
+          <Flex align="center" gap="xs">
+            {copy.panelTitle}
+            {copy.docsHint && (
+              <InfoTip
+                title={
+                  <DocumentationHint docsUrl={copy.docsHint.docsUrl}>
+                    {copy.docsHint.text}
+                  </DocumentationHint>
+                }
+                size="sm"
+                position="right"
+              />
+            )}
+          </Flex>
+          {hasRepositories && !config.enabled && (
+            <Tooltip title={copy.disabledTooltip}>
+              <Tag variant="warning">{t('Disabled')}</Tag>
+            </Tooltip>
+          )}
+        </Flex>
+      </PanelHeader>
       <PanelBody>
         {hasRepositories ? (
           <Fragment>
@@ -108,14 +135,6 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
                 aria-label={copy.toggleAriaLabel}
               />
             </Flex>
-
-            {!config.enabled && (
-              <Container padding="md" borderBottom="primary">
-                <Text align="center" variant="muted" italic>
-                  {copy.disabledHintText}
-                </Text>
-              </Container>
-            )}
 
             {config.rules.length > 0 ? (
               <Stack>

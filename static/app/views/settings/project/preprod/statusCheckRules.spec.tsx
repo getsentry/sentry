@@ -71,6 +71,7 @@ describe('StatusCheckRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle status checks'})
     ).toBeChecked();
+    expect(screen.queryByText('Disabled')).not.toBeInTheDocument();
   });
 
   it('reflects a disabled project from the option key when the explicit field is absent', async () => {
@@ -92,11 +93,7 @@ describe('StatusCheckRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle status checks'})
     ).not.toBeChecked();
-    expect(
-      screen.getByText(
-        "Status checks are disabled. Rules are saved but won't be evaluated."
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
   });
 
   it('shows saved rules while disabled', async () => {
