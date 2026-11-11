@@ -181,12 +181,13 @@ function ConversationsOverviewPage() {
         organization,
         empty_state: onboardingEmptyState,
       });
-    } else if (isConversationsTab) {
+    } else {
       trackAnalytics('conversations.table.page-view', {
         organization,
+        tab: activeTab,
       });
     }
-  }, [isConversationsTab, onboardingEmptyState, isOnboardingLoading, organization]);
+  }, [activeTab, onboardingEmptyState, isOnboardingLoading, organization]);
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({
