@@ -487,7 +487,7 @@ function ReleasesListInnerPage() {
                     </PageFilterBar>
                   )}
                 </Container>
-                <LinkTabs value={selectedTab} onActivate={handleTabChange}>
+                <LinkTabs value={selectedTab} onChange={handleTabChange}>
                   {({TabList}) => (
                     <TabList aria-label={t('Releases tab selector')}>
                       <TabList.Item

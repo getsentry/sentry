@@ -28,14 +28,14 @@ const TABS = [
 function LinkedTabs({
   value = 'details',
   disabled,
-  onActivate,
+  onChange,
 }: {
   disabled?: boolean;
-  onActivate?: (key: string) => void;
+  onChange?: (key: string) => void;
   value?: string;
 }) {
   return (
-    <LinkTabs value={value} disabled={disabled} onActivate={onActivate}>
+    <LinkTabs value={value} disabled={disabled} onChange={onChange}>
       {({TabList, TabPanels}) => (
         <Fragment>
           <TabList>
@@ -56,22 +56,20 @@ function LinkedTabs({
   );
 }
 
-function RoutedTabs({onActivate}: {onActivate: (key: string) => void}) {
+function RoutedTabs({onChange}: {onChange: (key: string) => void}) {
   const {pathname} = useLocation();
-  return (
-    <LinkedTabs value={pathname.split('/')[2] ?? 'details'} onActivate={onActivate} />
-  );
+  return <LinkedTabs value={pathname.split('/')[2] ?? 'details'} onChange={onChange} />;
 }
 
 describe('Tabs routing', () => {
   it.each(['{Enter}', ' '])('navigates to the focused tab with %s', async key => {
-    const onActivate = jest.fn();
-    const {router} = render(<RoutedTabs onActivate={onActivate} />, {
+    const onChange = jest.fn();
+    const {router} = render(<RoutedTabs onChange={onChange} />, {
       initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
     await userEvent.tab();
-    onActivate.mockClear();
+    onChange.mockClear();
     await userEvent.keyboard('{ArrowRight}');
 
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveFocus();
@@ -80,31 +78,31 @@ describe('Tabs routing', () => {
       '/tabs/activity/'
     );
     expect(router.location.pathname).toBe('/tabs/details/');
-    expect(onActivate).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
 
     await userEvent.keyboard(key);
 
     await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
-    expect(onActivate).toHaveBeenCalledTimes(1);
-    expect(onActivate).toHaveBeenCalledWith('activity');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('activity');
 
     router.navigate(-1);
     await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
     expect(screen.getByRole('tabpanel')).toHaveTextContent(TABS[0].content);
-    expect(onActivate).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   it('navigates once when a tab link is clicked', async () => {
-    const onActivate = jest.fn();
-    const {router} = render(<LinkedTabs onActivate={onActivate} />, {
+    const onChange = jest.fn();
+    const {router} = render(<LinkedTabs onChange={onChange} />, {
       initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
     await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
 
     await waitFor(() => expect(router.location.pathname).toBe('/tabs/activity/'));
-    expect(onActivate).toHaveBeenCalledTimes(1);
-    expect(onActivate).toHaveBeenCalledWith('activity');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('activity');
 
     router.navigate(-1);
     await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
@@ -114,8 +112,8 @@ describe('Tabs routing', () => {
     'does not change selection or navigate locally on a %s click',
     async modifier => {
       const user = userEvent.setup();
-      const onActivate = jest.fn();
-      const {router} = render(<LinkedTabs onActivate={onActivate} />, {
+      const onChange = jest.fn();
+      const {router} = render(<LinkedTabs onChange={onChange} />, {
         initialRouterConfig: {location: {pathname: '/tabs/details/'}},
       });
 
@@ -134,8 +132,8 @@ describe('Tabs routing', () => {
 
       expect(preventNativeNavigation).toHaveBeenCalledTimes(1);
       expect(router.location.pathname).toBe('/tabs/details/');
-      expect(onActivate).toHaveBeenCalledTimes(1);
-      expect(onActivate).toHaveBeenCalledWith('activity');
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith('activity');
       expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
         'aria-selected',
         'true'
@@ -144,18 +142,18 @@ describe('Tabs routing', () => {
   );
 
   it('moves focus without changing selection until the link is activated', async () => {
-    const onActivate = jest.fn();
-    const {router} = render(<LinkedTabs onActivate={onActivate} />, {
+    const onChange = jest.fn();
+    const {router} = render(<LinkedTabs onChange={onChange} />, {
       initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
     await userEvent.tab();
-    onActivate.mockClear();
+    onChange.mockClear();
     await userEvent.keyboard('{ArrowRight}');
 
     expect(router.location.pathname).toBe('/tabs/details/');
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveFocus();
-    expect(onActivate).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
       'aria-selected',
       'true'
@@ -182,19 +180,19 @@ describe('Tabs routing', () => {
   });
 
   it('does not navigate when the controlled value changes', () => {
-    const onActivate = jest.fn();
-    const {router, rerender} = render(<LinkedTabs onActivate={onActivate} />, {
+    const onChange = jest.fn();
+    const {router, rerender} = render(<LinkedTabs onChange={onChange} />, {
       initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
-    rerender(<LinkedTabs value="activity" onActivate={onActivate} />);
+    rerender(<LinkedTabs value="activity" onChange={onChange} />);
 
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
     expect(router.location.pathname).toBe('/tabs/details/');
-    expect(onActivate).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByRole('tabpanel')).toHaveTextContent(TABS[1].content);
   });
 });
@@ -266,8 +264,8 @@ describe('Tabs overflow routing', () => {
     'navigates once to an overflowing link by %s',
     async interaction => {
       containerWidth = 260;
-      const onActivate = jest.fn();
-      const {router} = render(<RoutedTabs onActivate={onActivate} />, {
+      const onChange = jest.fn();
+      const {router} = render(<RoutedTabs onChange={onChange} />, {
         initialRouterConfig: {location: {pathname: '/tabs/details/'}},
       });
 
@@ -285,8 +283,8 @@ describe('Tabs overflow routing', () => {
       expect(
         screen.getByRole('tab', {name: 'User Feedback', hidden: true})
       ).toHaveAttribute('aria-selected', 'true');
-      expect(onActivate).toHaveBeenCalledTimes(1);
-      expect(onActivate).toHaveBeenCalledWith('user-feedback');
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith('user-feedback');
 
       router.navigate(-1);
       await waitFor(() => expect(router.location.pathname).toBe('/tabs/details/'));
@@ -300,8 +298,8 @@ describe('Tabs overflow routing', () => {
   it('preserves selection when an overflowing link is opened with a modifier', async () => {
     const user = userEvent.setup();
     containerWidth = 260;
-    const onActivate = jest.fn();
-    const {router} = render(<LinkedTabs onActivate={onActivate} />, {
+    const onChange = jest.fn();
+    const {router} = render(<LinkedTabs onChange={onChange} />, {
       initialRouterConfig: {location: {pathname: '/tabs/details/'}},
     });
 
@@ -324,8 +322,8 @@ describe('Tabs overflow routing', () => {
     }
 
     expect(router.location.pathname).toBe('/tabs/details/');
-    expect(onActivate).toHaveBeenCalledTimes(1);
-    expect(onActivate).toHaveBeenCalledWith('attachments');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith('attachments');
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveAttribute(
       'aria-selected',
       'true'
