@@ -59,58 +59,22 @@ export function AgenticSetup({
   const showsProgress =
     Boolean(run) && (isAgentConnected || run?.runStatus === 'completed' || hasRunFailed);
   const isLayered = appearance === 'layered';
+  // Progress and failure views stay identical to the default appearance.
+  const isLayeredLanding = isLayered && !showsProgress;
 
-  const primaryContent = (
-    <MotionContainer
-      layout
-      width="100%"
-      position="relative"
-      transition={CARD_MORPH_TRANSITION}
-    >
-      <AnimatePresence initial={false} mode="popLayout">
-        {run && showsProgress ? (
-          <MotionContainer
-            key="progress"
-            layout="position"
-            width="100%"
-            initial={{opacity: 0}}
-            animate={{opacity: 1}}
-            exit={{opacity: 0}}
-            transition={CARD_MORPH_TRANSITION}
-          >
-            <AgenticProgress
-              run={run}
-              onboardingCode={onboardingCode}
-              issueLinkReferrer={issueLinkReferrer}
-              unframed={isLayered}
-            />
-          </MotionContainer>
-        ) : (
-          <MotionContainer
-            key="setup"
-            layout="position"
-            width="100%"
-            initial={{opacity: 0}}
-            animate={{opacity: 1}}
-            exit={{opacity: 0}}
-            transition={CARD_MORPH_TRANSITION}
-          >
-            <AgentSetupCard
-              feedbackSource={feedbackSource}
-              onCopyCommand={onCopyCommand}
-              onSelectSnippet={onSelectSnippet}
-              run={run}
-              unframed={isLayered}
-            />
-          </MotionContainer>
-        )}
-      </AnimatePresence>
-    </MotionContainer>
+  const setupCard = (
+    <AgentSetupCard
+      feedbackSource={feedbackSource}
+      onCopyCommand={onCopyCommand}
+      onSelectSnippet={onSelectSnippet}
+      run={run}
+      unframed={isLayered}
+    />
   );
 
   return (
     <Stack
-      gap={isLayered ? '3xl' : '2xl'}
+      gap={isLayeredLanding ? '3xl' : '2xl'}
       width="100%"
       position="relative"
       align="center"
@@ -145,20 +109,52 @@ export function AgenticSetup({
         </Alert>
       </ScmCollapsibleReveal>
 
-      {isLayered ? (
-        <Container width="100%" style={{transform: 'rotate(-1deg)'}}>
-          <LayeredContainer>
-            <Container
-              padding={showsProgress ? undefined : '2xl'}
-              paddingBottom={showsProgress ? 'xl' : undefined}
+      <MotionContainer
+        layout
+        width="100%"
+        position="relative"
+        transition={CARD_MORPH_TRANSITION}
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          {run && showsProgress ? (
+            <MotionContainer
+              key="progress"
+              layout="position"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={CARD_MORPH_TRANSITION}
             >
-              {primaryContent}
-            </Container>
-          </LayeredContainer>
-        </Container>
-      ) : (
-        primaryContent
-      )}
+              <AgenticProgress
+                run={run}
+                onboardingCode={onboardingCode}
+                issueLinkReferrer={issueLinkReferrer}
+              />
+            </MotionContainer>
+          ) : (
+            <MotionContainer
+              key="setup"
+              layout="position"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={CARD_MORPH_TRANSITION}
+            >
+              {isLayered ? (
+                <Container width="100%" style={{transform: 'rotate(-1deg)'}}>
+                  <LayeredContainer>
+                    <Container padding="2xl">{setupCard}</Container>
+                  </LayeredContainer>
+                </Container>
+              ) : (
+                setupCard
+              )}
+            </MotionContainer>
+          )}
+        </AnimatePresence>
+      </MotionContainer>
 
       <ScmCollapsibleReveal open={hasRunFailed}>
         <Button variant="primary" onClick={onRetry}>
@@ -169,62 +165,59 @@ export function AgenticSetup({
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
         <Stack gap="2xl" align="center" width="100%">
           <Text
-            variant={isLayered ? 'secondary' : 'muted'}
-            size={isLayered ? 'lg' : 'md'}
+            variant={isLayeredLanding ? 'secondary' : 'muted'}
+            size={isLayeredLanding ? 'lg' : 'md'}
             bold
           >
             {t('or')}
           </Text>
 
-          <Container width="100%">
-            {cardProps => (
-              <ToggleCard
-                {...cardProps}
-                style={{transform: isLayered ? 'rotate(0.5deg)' : undefined}}
-                variant="button"
-                onClick={onSetupInBrowser}
-                data-test-id="onboarding-setup-in-browser"
-              >
-                <Grid
-                  columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
-                  gap="0 md"
-                  width="100%"
-                  areas={`
+          <ToggleCard
+            style={{
+              transform: isLayeredLanding ? 'rotate(0.5deg)' : undefined,
+            }}
+            variant="button"
+            onClick={onSetupInBrowser}
+            data-test-id="onboarding-setup-in-browser"
+          >
+            <Grid
+              columns={`${SETUP_CARD_MARKER_PX} 1fr max-content`}
+              gap="0 md"
+              width="100%"
+              areas={`
           "icon title chevron"
           ".    body  body"
         `}
+            >
+              <Flex area="icon" align="center" justify="center">
+                <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
+              </Flex>
+              <Flex area="title" align="center">
+                <Text bold size="lg">
+                  {t('Set up manually')}
+                </Text>
+              </Flex>
+              <Flex area="chevron" align="center">
+                <IconChevron
+                  direction="right"
+                  size={SETUP_CARD_ICON_SIZE}
+                  variant="secondary"
+                />
+              </Flex>
+              <Container area="body" paddingTop="xs">
+                <Text
+                  variant={isLayeredLanding ? 'secondary' : 'muted'}
+                  size="md"
+                  density="comfortable"
+                  textWrap="pretty"
                 >
-                  <Flex area="icon" align="center" justify="center">
-                    <IconSliders size={SETUP_CARD_ICON_SIZE} variant="secondary" />
-                  </Flex>
-                  <Flex area="title" align="center">
-                    <Text bold size="lg">
-                      {t('Set up manually')}
-                    </Text>
-                  </Flex>
-                  <Flex area="chevron" align="center">
-                    <IconChevron
-                      direction="right"
-                      size={SETUP_CARD_ICON_SIZE}
-                      variant="secondary"
-                    />
-                  </Flex>
-                  <Container area="body" paddingTop="xs">
-                    <Text
-                      variant={isLayered ? 'secondary' : 'muted'}
-                      size="md"
-                      density="comfortable"
-                      textWrap="pretty"
-                    >
-                      {t(
-                        'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
-                      )}
-                    </Text>
-                  </Container>
-                </Grid>
-              </ToggleCard>
-            )}
-          </Container>
+                  {t(
+                    'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
+                  )}
+                </Text>
+              </Container>
+            </Grid>
+          </ToggleCard>
         </Stack>
       </ScmCollapsibleReveal>
     </Stack>

@@ -273,12 +273,10 @@ export function AgenticProgressList({
   extraContentByStage,
   header,
   stages,
-  unframed = false,
 }: {
   stages: AgenticProgressStageState[];
   extraContentByStage?: Partial<Record<AgenticProgressStage, React.ReactNode>>;
   header?: React.ReactNode;
-  unframed?: boolean;
 }) {
   const [hasEntered, setHasEntered] = useState(false);
   useEffect(() => {
@@ -290,11 +288,11 @@ export function AgenticProgressList({
     <MotionStack
       width="100%"
       background="primary"
-      border={unframed ? undefined : 'primary'}
-      radius={unframed ? undefined : 'xl'}
+      border="primary"
+      radius="xl"
       overflow="hidden"
       gap="0"
-      style={{borderBottomWidth: unframed ? 0 : 2}}
+      style={{borderBottomWidth: 2}}
       initial="initial"
       animate={hasEntered ? 'animate' : 'initial'}
       transition={STAGE_LIST_STAGGER_TRANSITION}
@@ -360,13 +358,7 @@ const RunId = styled(Text)`
   opacity: 0.6;
 `;
 
-function AgenticProgressSummary({
-  projectSlugs,
-  unframed,
-}: {
-  projectSlugs: string[];
-  unframed: boolean;
-}) {
+function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
   const {projects} = useProjects({slugs: projectSlugs});
   const soleProjectSlug = projectSlugs.length === 1 ? projectSlugs[0] : undefined;
   const soleProject = soleProjectSlug
@@ -379,8 +371,8 @@ function AgenticProgressSummary({
     <Flex
       width="100%"
       background="primary"
-      border={unframed ? undefined : 'primary'}
-      radius={unframed ? undefined : 'xl'}
+      border="primary"
+      radius="xl"
       padding="xl"
       gap="md"
       align="center"
@@ -415,12 +407,10 @@ export function AgenticProgress({
   // oxlint-disable-next-line react/todo
   onboardingCode = run.onboardingCode,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
-  unframed = false,
 }: {
   run: AgenticProgressRun;
   issueLinkReferrer?: string;
   onboardingCode?: string;
-  unframed?: boolean;
 }) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
@@ -441,7 +431,7 @@ export function AgenticProgress({
             animate={{opacity: 1}}
             exit={{opacity: 0}}
           >
-            <AgenticProgressSummary projectSlugs={projectSlugs} unframed={unframed} />
+            <AgenticProgressSummary projectSlugs={projectSlugs} />
           </MotionContainer>
         ) : (
           <MotionContainer
@@ -453,7 +443,6 @@ export function AgenticProgress({
           >
             <AgenticProgressList
               stages={run.stages}
-              unframed={unframed}
               extraContentByStage={
                 projectSlugs.length
                   ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}

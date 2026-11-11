@@ -142,6 +142,7 @@ export function NewWelcomeUI(props: StepProps) {
   } = useOnboardingAgentSetupRun({enabled: showAgentSetup});
   const showAgentHeading =
     showAgentSetup && (isAgentConnected || isSetupComplete || hasRunFailed);
+  const showAgentLanding = showAgentSetup && !showAgentHeading;
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
@@ -178,17 +179,20 @@ export function NewWelcomeUI(props: StepProps) {
     <MotionContainer
       width="100%"
       margin="0 auto"
-      maxWidth={showAgentSetup ? '600px' : SCM_STEP_CONTENT_WIDTH}
+      maxWidth={showAgentLanding ? '600px' : SCM_STEP_CONTENT_WIDTH}
       position="relative"
     >
       <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
-            <Stack gap="md" paddingBottom={showAgentSetup ? '2xl' : 'xl'}>
+            <Stack
+              gap={showAgentLanding ? 'md' : 'lg'}
+              paddingBottom={showAgentLanding ? '2xl' : 'xl'}
+            >
               <MotionContainer {...ONBOARDING_ENTER}>
                 <Heading
                   as="h2"
-                  size={showAgentSetup ? '4xl' : '3xl'}
+                  size={showAgentLanding ? '4xl' : '3xl'}
                   align="center"
                   wrap="pre-line"
                 >
@@ -198,8 +202,8 @@ export function NewWelcomeUI(props: StepProps) {
               <MotionContainer {...ONBOARDING_ENTER}>
                 <Text
                   align="center"
-                  variant={showAgentSetup ? 'secondary' : 'muted'}
-                  size={showAgentSetup ? 'xl' : 'lg'}
+                  variant={showAgentLanding ? 'secondary' : 'muted'}
+                  size={showAgentLanding ? 'xl' : 'lg'}
                   density="comfortable"
                 >
                   {scmHeading.description}
