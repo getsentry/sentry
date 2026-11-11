@@ -29,7 +29,6 @@ class NotificationCategory(StrEnum):
     SENTRY_APP = "sentry-app"
     ACTIVITY = "activity"
     DEPLOY = "deploy"
-    INBOX = "inbox"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -107,9 +106,6 @@ class NotificationSource(StrEnum):
     ACTIVITY_ASSIGNED = "activity-assigned"
     ACTIVITY_UNASSIGNED = "activity-unassigned"
 
-    # INBOX
-    INBOX_ITEM = "inbox-item"
-
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
     NotificationCategory.DEBUG: [
@@ -177,9 +173,6 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_NOTE,
         NotificationSource.ACTIVITY_ASSIGNED,
         NotificationSource.ACTIVITY_UNASSIGNED,
-    ],
-    NotificationCategory.INBOX: [
-        NotificationSource.INBOX_ITEM,
     ],
 }
 

@@ -296,7 +296,7 @@ class RecordTest(TestCase):
         other = self.create_user()
 
         with patch("sentry.inbox.types.metrics.incr") as incr:
-            recorded = ISSUE_USER_MENTIONED.record(
+            ISSUE_USER_MENTIONED.record(
                 subject=self.group,
                 data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                 recipient_user_ids=iter([actor.id, self.user.id, other.id, self.user.id]),
@@ -305,9 +305,6 @@ class RecordTest(TestCase):
 
         items = list(InboxItem.objects.order_by("user_id"))
         assert [item.user_id for item in items] == sorted([self.user.id, other.id])
-        assert sorted((event.inbox_item.id, event.id) for event in recorded) == sorted(
-            (item.id, item.events.get().id) for item in items
-        )
         for item in items:
             event = item.events.get()
             assert item.subject_id == str(self.group.id)
@@ -327,13 +324,12 @@ class RecordTest(TestCase):
         group = self.group
         for recipients in ([], [123, 123]):
             with self.assertNumQueries(0):
-                recorded = ISSUE_USER_MENTIONED.record(
+                ISSUE_USER_MENTIONED.record(
                     subject=group,
                     data=IssueMentionedData(summary="Mentioned you", comment_id=123),
                     recipient_user_ids=recipients,
                     actor=InboxActor.user(123),
                 )
-            assert recorded == []
 
     def test_query_count_for_multiple_recipients(self) -> None:
         group = self.group

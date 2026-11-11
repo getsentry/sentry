@@ -1,6 +1,5 @@
 from .data_export import DataExportFailureTemplate, DataExportSuccessTemplate
 from .deploy import DeployReleaseTemplate
-from .inbox import InboxItemNotificationTemplate
 from .issue import IssueNotificationTemplate
 from .metric_alert import MetricAlertNotificationTemplate
 from .sentry_app_webhook_disabled import SentryAppWebhookDisabledTemplate
@@ -8,7 +7,6 @@ from .sentry_app_webhook_disabled import SentryAppWebhookDisabledTemplate
 __all__ = (
     "DataExportSuccessTemplate",
     "DataExportFailureTemplate",
-    "InboxItemNotificationTemplate",
     "IssueNotificationTemplate",
     "MetricAlertNotificationTemplate",
     "SentryAppWebhookDisabledTemplate",
