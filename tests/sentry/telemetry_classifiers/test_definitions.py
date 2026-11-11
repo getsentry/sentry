@@ -6,6 +6,7 @@ from sentry.telemetry_classifiers.definitions import (
     InvalidClassifierDefinition,
     resolve_classifier_definition,
 )
+from sentry.telemetry_classifiers.inference import CONVERSATION_USER_MESSAGES_BINARY
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.types import (
     Dataset,
@@ -33,6 +34,7 @@ class ResolveClassifierDefinitionTest(TestCase):
             key="conversation_user_frustration",
             dataset=Dataset.CONVERSATION,
             output_type=TelemetryClassifierOutputType.BINARY,
+            contract=CONVERSATION_USER_MESSAGES_BINARY,
         )
 
     def test_rejects_custom_classifier(self) -> None:
