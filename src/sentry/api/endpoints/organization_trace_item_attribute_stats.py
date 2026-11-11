@@ -277,6 +277,10 @@ def query_column_last_seen(
                     "trace_item_attribute_stats.failed",
                     extra={"dataset": dataset, "stat": "column_last_seen"},
                 )
+                metrics.incr(
+                    "trace_item_attribute_stats.failed",
+                    tags={"dataset": dataset, "stat": "column_last_seen"},
+                )
                 last_seen_by_dataset[dataset] = None
                 continue
             if dataset_last_seen is not None:
