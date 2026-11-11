@@ -307,26 +307,8 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
-    OrganizationInvestigationActionRequestApplyEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_action_request_recheck import (
-    OrganizationInvestigationActionRequestRecheckEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
-    OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_block_order import (
-    OrganizationInvestigationBlockOrderEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_details import (
-    OrganizationInvestigationsDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_duplicate import (
-    OrganizationInvestigationsDuplicateEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_index import (
     OrganizationInvestigationsIndexEndpoint,
@@ -462,6 +444,15 @@ from sentry.monitors.endpoints.project_processing_errors_details import (
 from sentry.monitors.endpoints.project_processing_errors_index import (
     ProjectProcessingErrorsIndexEndpoint,
 )
+from sentry.notebooks.endpoints.organization_investigation_action_request_apply import (
+    OrganizationInvestigationActionRequestApplyEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_action_request_recheck import (
+    OrganizationInvestigationActionRequestRecheckEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_action_request_retry_follow_up import (
+    OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
+)
 from sentry.notebooks.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
 )
@@ -474,6 +465,9 @@ from sentry.notebooks.endpoints.organization_investigation_block_executions impo
 from sentry.notebooks.endpoints.organization_investigation_block_index import (
     OrganizationInvestigationBlocksEndpoint,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_order import (
+    OrganizationInvestigationBlockOrderEndpoint,
+)
 from sentry.notebooks.endpoints.organization_investigation_comment_counts import (
     OrganizationInvestigationCommentCountsEndpoint,
 )
@@ -482,6 +476,12 @@ from sentry.notebooks.endpoints.organization_investigation_comment_details impor
 )
 from sentry.notebooks.endpoints.organization_investigation_comments_index import (
     OrganizationInvestigationCommentsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_details import (
+    OrganizationInvestigationsDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_duplicate import (
+    OrganizationInvestigationsDuplicateEndpoint,
 )
 from sentry.notebooks.endpoints.organization_investigation_favorite import (
     OrganizationInvestigationsFavoriteEndpoint,

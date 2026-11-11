@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, TypedDict, cast
 
 import orjson
 from django.utils.dateparse import parse_datetime
@@ -23,6 +23,28 @@ def json_byte_size(value: Any) -> int:
         return len(orjson.dumps(value, default=str))
     except TypeError as error:
         raise serializers.ValidationError("Payload is not serializable.") from error
+
+
+class RelaxedContractSerializer(serializers.Serializer[Any]):
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        validated = cast("dict[str, Any]", super().to_internal_value(data))
+        if not isinstance(data, dict):
+            return validated
+        passthrough = {key: value for key, value in data.items() if key not in self.fields}
+        return {**passthrough, **validated}
+
+
+class StrictCharField(serializers.CharField):
+    """A string that rejects the numbers DRF would stringify, and keeps its whitespace."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("trim_whitespace", False)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data: Any) -> str:
+        if not isinstance(data, str):
+            self.fail("invalid")
+        return super().to_internal_value(data)
 
 
 class StrictContractSerializer(serializers.Serializer[Any]):
@@ -161,3 +183,33 @@ def validate_text_result(value: Any) -> dict[str, Any]:
     serializer = InvestigationTextResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
     return dict(serializer.validated_data)
+
+
+class ActionRequestAnchor(TypedDict):
+    type: Literal["block", "hypothesis"]
+    id: str
+
+
+class ActionRequestItem(TypedDict):
+    """A request from Seer that has passed validation."""
+
+    key: str
+    reportRevision: int
+    title: str
+    rationale: str
+    impact: str | None
+    primary: bool
+    anchor: ActionRequestAnchor | None
+    # The action kind owns this, so nothing else should read inside it.
+    action: dict[str, Any] | None
+
+
+class ActionPayloadSerializer(RelaxedContractSerializer):
+    """Base class for an action kind's payload. Each kind validates its own fields."""
+
+    kind = StrictCharField(max_length=64)
+
+    @classmethod
+    def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
+        """Remove values this kind won't accept. Return None to keep the request as advice."""
+        return action

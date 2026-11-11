@@ -4,14 +4,16 @@ from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager
 from typing import Any, cast
 from unittest import mock
+from zlib import crc32
 
 import pytest
 from django.utils import timezone
 from redis import StrictRedis
+from redis.exceptions import ConnectionError as RedisConnectionError
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry.buffer.base import Buffer, BufferField
-from sentry.buffer.redis import RedisBuffer, _coerce_val, make_key
+from sentry.buffer.redis import PENDING_SLICES, RedisBuffer, _coerce_val, make_key
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.tasks.process_buffer import process_incr
@@ -290,6 +292,66 @@ class TestRedisBuffer:
 
         assert process.call_args.args[1] == {"times_seen": 8}
         assert client.hgetall(key) == {}
+
+    @mock.patch("sentry.buffer.base.Buffer.process")
+    def test_split_lists_and_clears_row_in_its_slice(
+        self,
+        process: mock.MagicMock,
+        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
+    ) -> None:
+        client = self.buf.cluster
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        filters: dict[str, Any] = {"pk": 1}
+        key = make_key(model, filters=filters)
+        pending_key = f"b:p:{crc32(key.encode()) % PENDING_SLICES}"
+
+        with set_sentry_option("buffer.split-pending-set", True):
+            self.buf.incr(model, {"times_seen": 1}, filters)
+
+            assert client.zrange("b:p", 0, -1) == []
+            assert len(client.zrange(pending_key, 0, -1)) == 1
+            assert 0 < client.ttl(pending_key) <= self.buf.pending_key_expire
+
+            self.buf.process(key=key)
+
+        assert client.zrange(pending_key, 0, -1) == []
+
+    @mock.patch("sentry.buffer.redis.process_incr")
+    def test_process_pending_reads_every_slice(self, process_incr: mock.MagicMock) -> None:
+        self.buf.incr_batch_size = 5
+        client = self.buf.cluster
+        client.zadd("b:p", {"foo": 1})
+        client.zadd("b:p:63", {"bar": 1})
+
+        self.buf.process_pending()
+
+        assert len(process_incr.apply_async.mock_calls) == 1
+        batch_keys = process_incr.apply_async.mock_calls[0].kwargs["kwargs"]["batch_keys"]
+        assert sorted(batch_keys) == ["bar", "foo"]
+        assert client.zrange("b:p", 0, -1) == []
+        assert client.zrange("b:p:63", 0, -1) == []
+
+    @mock.patch("sentry.buffer.redis.random.shuffle")
+    @mock.patch("sentry.buffer.redis.process_incr")
+    def test_process_pending_flushes_rows_read_before_a_slice_failure(
+        self, process_incr: mock.MagicMock, shuffle: mock.MagicMock
+    ) -> None:
+        self.buf.incr_batch_size = 5
+        client = self.buf.cluster
+        client.zadd("b:p", {"foo": 1})
+        client.zadd("b:p:1", {"bar": 1})
+        # With shuffle disabled, b:p is read first and b:p:0 second.
+        side_effect = [client.zrange("b:p", 0, -1), RedisConnectionError()]
+
+        with mock.patch.object(client, "zrange", side_effect=side_effect) as zrange:
+            self.buf.process_pending()
+
+        assert zrange.call_count == 2
+        assert process_incr.apply_async.mock_calls == [
+            mock.call(kwargs={"batch_keys": ["foo"]}, headers=mock.ANY)
+        ]
+        assert client.zrange("b:p:1", 0, -1) != []
 
     @django_db_all
     @freeze_time()

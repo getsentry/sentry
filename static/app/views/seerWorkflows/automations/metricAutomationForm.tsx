@@ -1,12 +1,13 @@
-import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {queryOptions, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {
   defaultFormOptions,
   DisplayField,
@@ -15,11 +16,9 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type {Detector, MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -30,7 +29,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
   SeerServiceAccountResponse,
   SeerWorkflowConfigResponse,
@@ -41,6 +39,8 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
+import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
+import {MonitorTable} from './monitorTable';
 
 const serviceAccountProjectsSchema = z.discriminatedUnion('mode', [
   z.object({mode: z.literal('monitors')}),
@@ -79,8 +79,6 @@ export function MetricAutomationForm(props: Props) {
       scope !== 'org:superuser' &&
       scope !== 'org:billing'
   );
-  const getProjectSlug = (projectId: string) =>
-    projects.find(project => project.id === projectId)?.slug ?? projectId;
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
@@ -151,8 +149,7 @@ export function MetricAutomationForm(props: Props) {
       }
     },
   });
-  // Fetch connected monitors by ID so they resolve even when they aren't in the
-  // picker's current search results
+  // Fetch connected monitors by ID so they resolve regardless of the picker's filters
   const queryClient = useQueryClient();
   const monitorIds = useStore(form.store, state => state.values.monitorIds);
   const monitorsQueryOptions = detectorListApiOptions(organization, {
@@ -163,7 +160,7 @@ export function MetricAutomationForm(props: Props) {
   const monitorsQuery = useQuery({
     ...monitorsQueryOptions,
     enabled: monitorIds.length > 0,
-    // Show monitors already fetched by the picker's search or an earlier lookup while
+    // Show monitors already fetched by the picker or an earlier lookup while
     // the by-ID fetch runs, so a newly connected monitor appears right away
     placeholderData: previous => {
       const known = new Map<string, Detector>();
@@ -234,87 +231,28 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Scope')}>
-            <Fragment>
-              <Stack gap="lg">
-                <form.AppField name="monitorIds">
-                  {field => (
-                    <field.Layout.Stack
-                      label={t('Connected monitors')}
-                      hintText={t(
-                        'Search by monitor name. You can connect more than one.'
-                      )}
-                    >
-                      {/* TODO: The picker flashes while typing monitor names.
-                         Suspected cause, in SelectAsyncField (components/core/form/field/selectAsyncField.tsx):
-                         - Each debounced input is a new query key, and it reads `data: options = []`, so the
-                           options are empty until each new search returns.
-                         - It also shows loading whenever the input differs from the debounced value, so the
-                           loading state appears on every keystroke even before a request starts.
-                         Likely fix: add `placeholderData: keepPreviousData` to the queryOptions below so the
-                         previous results stay visible, and/or only show loading in SelectAsyncField when there
-                         are no options to display. */}
-                      <field.SelectAsync
-                        multiple
-                        clearable
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                        placeholder={t('Connect metric monitors…')}
-                        queryOptions={debouncedInput => {
-                          // Filter query by form input
-                          const baseOptions = detectorListApiOptions(organization, {
-                            query: debouncedInput
-                              ? `type:metric_issue name:"*${escapeSearchValue(debouncedInput)}*"`
-                              : 'type:metric_issue',
-                            projects: [-1],
-                            limit: 100,
-                            sortBy: '-latestGroup',
-                          });
-                          return queryOptions({
-                            ...baseOptions,
-                            select: ({json}) => {
-                              const results = json.filter(
-                                monitor => monitor.type === 'metric_issue'
-                              );
-                              // Keep already-selected monitors in the options so their labels still render
-                              const selected = monitors.filter(
-                                monitor =>
-                                  field.state.value.includes(monitor.id) &&
-                                  !results.some(result => result.id === monitor.id)
-                              );
-                              return [...selected, ...results].map(monitor => ({
-                                value: monitor.id,
-                                label: `${monitor.name} · ${getProjectSlug(monitor.projectId)}`,
-                              }));
-                            },
-                          });
-                        }}
-                      />
-                    </field.Layout.Stack>
+            <form.AppField name="monitorIds">
+              {field => (
+                <field.Layout.Stack
+                  label={t('Connected monitors')}
+                  hintText={t(
+                    'Seer investigates when any of these metric monitors breaches.'
                   )}
-                </form.AppField>
-                {hasMonitorsError && <LoadingError onRetry={monitorsQuery.refetch} />}
-                <ConnectedMonitorList
-                  monitorIds={monitorIds}
-                  monitors={monitors}
-                  getProjectSlug={getProjectSlug}
-                  onDisconnect={monitorId =>
-                    form.setFieldValue(
-                      'monitorIds',
-                      monitorIds.filter(id => id !== monitorId)
-                    )
-                  }
-                />
-              </Stack>
-              <DisplayField.Row label={t('Projects and environments')}>
-                <MonitorProjectsSummary
-                  monitorIds={monitorIds}
-                  monitors={monitors}
-                  isPending={monitorsQuery.isLoading}
-                  isError={monitorsQuery.isError}
-                  getProjectSlug={getProjectSlug}
-                />
-              </DisplayField.Row>
-            </Fragment>
+                >
+                  <field.Base>
+                    {() => (
+                      <ConnectedMonitors
+                        monitorIds={field.state.value}
+                        monitors={monitors}
+                        isPending={monitorsQuery.isLoading}
+                        isError={hasMonitorsError}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  </field.Base>
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Actions')}>
@@ -444,118 +382,70 @@ export function MetricAutomationForm(props: Props) {
   );
 }
 
-type MonitorScopeProps = {
-  getProjectSlug: (projectId: string) => string;
-  monitorIds: string[];
-  monitors: MetricDetector[];
-};
-
-function ConnectedMonitorList({
+function ConnectedMonitors({
   monitorIds,
   monitors,
-  getProjectSlug,
-  onDisconnect,
-}: MonitorScopeProps & {onDisconnect: (monitorId: string) => void}) {
-  const organization = useOrganization();
-
-  if (monitorIds.length === 0) {
-    return (
-      <Stack padding="xl" gap="sm" align="center" background="secondary" radius="md">
-        <Text bold>{t('No monitors connected')}</Text>
-        <Text variant="muted" align="center">
-          {t('Connect a metric monitor above, or save now and choose monitors later.')}
-        </Text>
-      </Stack>
-    );
-  }
-
+  isPending,
+  isError,
+  onChange,
+}: {
+  isError: boolean;
+  isPending: boolean;
+  monitorIds: string[];
+  monitors: MetricDetector[];
+  onChange: (monitorIds: string[]) => void;
+}) {
+  const {openDrawer} = useDrawer();
   const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
   const projectCount = new Set(selected.map(monitor => monitor.projectId)).size;
 
   return (
-    <Stack gap="md">
-      <Text size="sm" variant="muted">
-        {tn('%s monitor connected', '%s monitors connected', monitorIds.length)}
-        {' · '}
-        {tn('%s project', '%s projects', projectCount)}
-      </Text>
-      <Stack border="primary" radius="md">
-        {selected.map((monitor, index) => (
-          <Flex
-            key={monitor.id}
-            align="center"
-            justify="between"
-            gap="md"
-            padding="lg"
-            borderTop={index ? 'primary' : undefined}
-          >
-            <Stack gap="xs" minWidth={0}>
-              <ExternalLink
-                href={makeMonitorDetailsPathname(organization.slug, monitor.id)}
-              >
-                {monitor.name}
-              </ExternalLink>
-              <Text size="sm" variant="muted">
-                {getProjectSlug(monitor.projectId)}
-                {!monitor.enabled && ` · ${t('Monitor paused')}`}
-              </Text>
-            </Stack>
-            <Button
-              size="xs"
-              variant="transparent"
-              icon={<IconClose />}
-              aria-label={t('Disconnect %s', monitor.name)}
-              onClick={() => onDisconnect(monitor.id)}
-            />
-          </Flex>
-        ))}
-      </Stack>
-    </Stack>
-  );
-}
-
-function MonitorProjectsSummary({
-  monitorIds,
-  monitors,
-  getProjectSlug,
-  isPending,
-  isError,
-}: MonitorScopeProps & {isError: boolean; isPending: boolean}) {
-  if (monitorIds.length === 0) {
-    return (
-      <Text variant="muted">
-        {t('Connect monitors to see their projects and environments.')}
-      </Text>
-    );
-  }
-  if (isPending) {
-    return <Text variant="muted">{t('Loading monitor scope…')}</Text>;
-  }
-  if (isError) {
-    return <Text variant="muted">{t('Monitor scope is unavailable.')}</Text>;
-  }
-
-  const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
-  const projectIds = new Set(selected.map(monitor => monitor.projectId));
-
-  return (
-    <Stack gap="md">
-      {Array.from(projectIds, projectId => {
-        const environments = selected
-          .filter(monitor => monitor.projectId === projectId)
-          .map(monitor => monitor.dataSources[0].queryObj.snubaQuery.environment);
-
-        return (
-          <Stack key={projectId} gap="xs">
-            <Text>{getProjectSlug(projectId)}</Text>
-            <Text size="sm" variant="muted">
-              {environments.some(environment => !environment)
-                ? t('All environments')
-                : [...new Set(environments)].join(', ')}
-            </Text>
-          </Stack>
-        );
-      })}
+    <Stack gap="md" width="100%" minWidth={0} containerType="inline-size">
+      <Flex align="center" justify="between" gap="md">
+        <Text size="sm" variant="muted">
+          {monitorIds.length === 0
+            ? t('No monitors connected')
+            : `${tn('%s monitor connected', '%s monitors connected', monitorIds.length)} · ${tn('%s project', '%s projects', projectCount)}`}
+        </Text>
+        <Button
+          size="sm"
+          icon={<IconAdd />}
+          onClick={() =>
+            openDrawer(
+              () => (
+                <ConnectMonitorsDrawer
+                  initialMonitorIds={monitorIds}
+                  onChange={onChange}
+                />
+              ),
+              {
+                ariaLabel: t('Connect monitors'),
+                drawerKey: 'seer-automation-connect-monitors',
+                drawerWidth: '70%',
+              }
+            )
+          }
+        >
+          {t('Connect monitors')}
+        </Button>
+      </Flex>
+      <MonitorTable
+        monitors={selected}
+        isError={isError}
+        pendingRows={isPending ? monitorIds.length : 0}
+        emptyMessage={t(
+          'Connect a metric monitor, or save now and choose monitors later.'
+        )}
+        renderAction={monitor => (
+          <Button
+            size="xs"
+            variant="transparent"
+            icon={<IconClose />}
+            aria-label={t('Disconnect %s', monitor.name)}
+            onClick={() => onChange(monitorIds.filter(id => id !== monitor.id))}
+          />
+        )}
+      />
     </Stack>
   );
 }
@@ -590,12 +480,4 @@ function resolveServiceAccountProjects(
     case 'all':
       return [];
   }
-}
-
-/**
- * Escapes text for use inside a quoted wildcard search value. The search parser
- * only unescapes `\"` and `\*`, so backslashes are dropped rather than escaped.
- */
-function escapeSearchValue(value: string): string {
-  return value.replace(/[\\"*]/g, char => (char === '\\' ? '' : `\\${char}`));
 }

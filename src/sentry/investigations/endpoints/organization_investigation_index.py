@@ -16,12 +16,6 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.investigations.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-    InvestigationSerializer,
-    InvestigationSerializerResponse,
-)
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
 from sentry.investigations.models import InvestigationOrchestrationStatus
 from sentry.investigations.services import (
@@ -37,6 +31,12 @@ from sentry.notebooks.endpoints.base import (
     request_creator_actor,
     require_authenticated_user,
     service_error,
+)
+from sentry.notebooks.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
+    InvestigationSerializer,
+    InvestigationSerializerResponse,
 )
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services import create_manual_investigation

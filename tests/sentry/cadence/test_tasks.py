@@ -10,7 +10,7 @@ from sentry.cadence.registry import (
     trigger_type_registry,
 )
 from sentry.cadence.spread import fire_offset, offset_of
-from sentry.cadence.tasks import _claim_batch, cadence_tick
+from sentry.cadence.tasks import _claim_batch, _Cursor, cadence_tick
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -137,6 +137,49 @@ class CadenceTickTest(CadenceTickTestCase):
         )
 
     @freeze_time(NOW)
+    def test_claims_in_batches_with_tied_fire_times(self) -> None:
+        triggers = [self.create_trigger(NOW) for _ in range(5)]
+
+        with patch("sentry.cadence.tasks.TICK_BATCH_SIZE", 2):
+            cadence_tick()
+
+        assert self.action.call_count == 3
+        assert [ctx.target_id for ctx in self.dispatched()] == [t.target_id for t in triggers]
+
+    @freeze_time(NOW)
+    def test_claim_batch_resumes_after_cursor(self) -> None:
+        passed = self.create_trigger(NOW - timedelta(minutes=2))
+        tied_before = self.create_trigger(NOW - timedelta(minutes=1))
+        tied_after = self.create_trigger(NOW - timedelta(minutes=1))
+        later = self.create_trigger(NOW)
+
+        claimed, selected, cursor = _claim_batch(
+            NOW, _Cursor(fire_at=NOW - timedelta(minutes=1), id=tied_before.id)
+        )
+
+        assert selected == 2
+        assert [c.firing.target_id for c in claimed[SEER_WORKFLOW]] == [
+            tied_after.target_id,
+            later.target_id,
+        ]
+        assert cursor == _Cursor(fire_at=NOW, id=later.id)
+        passed.refresh_from_db()
+        assert passed.next_fire_at == NOW - timedelta(minutes=2)
+        tied_before.refresh_from_db()
+        assert tied_before.next_fire_at == NOW - timedelta(minutes=1)
+
+    @freeze_time(NOW)
+    def test_claim_batch_with_nothing_due_keeps_cursor(self) -> None:
+        self.create_trigger(NOW + timedelta(minutes=1))
+        after = _Cursor(fire_at=NOW - timedelta(minutes=1), id=1)
+
+        claimed, selected, cursor = _claim_batch(NOW, after)
+
+        assert claimed == {}
+        assert selected == 0
+        assert cursor == after
+
+    @freeze_time(NOW)
     def test_stops_claiming_after_time_limit(self) -> None:
         triggers = [self.create_trigger(NOW - timedelta(minutes=i)) for i in range(5)]
 
@@ -192,7 +235,7 @@ class CadenceTickTest(CadenceTickTestCase):
             "select_for_update",
             wraps=ScheduledTrigger.objects.select_for_update,
         ) as select_for_update:
-            _claim_batch(NOW)
+            _claim_batch(NOW, None)
 
         select_for_update.assert_called_once_with(skip_locked=True)
         trigger.refresh_from_db()

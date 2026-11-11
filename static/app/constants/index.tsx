@@ -922,13 +922,6 @@ export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA as unknown as
 // so this will have to change
 export const FILTER_MASK = '[Filtered]';
 
-// Errors that may occur during the fetching of organization details
-export const ORGANIZATION_FETCH_ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
-  ORG_NO_ACCESS: 'ORG_NO_ACCESS',
-  NO_ORGS: 'NO_ORGS',
-};
-
 // Keep in sync with RESERVED_PROJECT_SLUGS in src/sentry/constants.py
 export const RESERVED_PROJECT_SLUGS: ReadonlySet<string> = new Set([
   '$all',

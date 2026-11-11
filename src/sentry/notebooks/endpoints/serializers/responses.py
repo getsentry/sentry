@@ -1,6 +1,10 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from sentry.notebooks.endpoints.serializers.action_request import (
+    InvestigationActionRequestSerializerResponse,
+)
+
 
 class InvestigationViewerResponse(TypedDict):
     userId: str
@@ -34,3 +38,15 @@ class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
 class InvestigationTitlePreviewResponse(TypedDict):
     status: str | None
     preview: str | None
+
+
+class InvestigationActionRequestApplyResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse
+
+
+class InvestigationActionRequestRecheckResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse
+
+
+class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
+    actionRequest: InvestigationActionRequestSerializerResponse
