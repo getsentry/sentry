@@ -385,8 +385,14 @@ function RunTiming({run}: {run: SeerAutomationRun}) {
       <Text wrap="nowrap">
         <TimeSince
           date={run.dateAdded}
+          maxWidth={320}
           tooltipBody={
-            <Grid columns="max-content max-content" gap="xs md" align="center">
+            <Grid
+              columns="max-content max-content"
+              gap="xs md"
+              align="center"
+              justifyItems="start"
+            >
               <Text variant="muted">{t('Started')}</Text>
               <DateTime date={run.dateAdded} seconds timeZone />
               {run.dateCompleted && (
