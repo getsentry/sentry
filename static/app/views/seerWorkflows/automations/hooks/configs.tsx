@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   skipToken,
   useIsMutating,
   useMutation,
@@ -35,9 +36,14 @@ function useConfigUrls(configId = '') {
 }
 
 /**
- * Fetches the organization's automation configs. Pass `ids` to only fetch those configs.
+ * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
+ * an empty list fetches nothing. Pass `keepPrevious` to keep returning the last configs
+ * while a different set of `ids` loads.
  */
-export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
+export function useFetchConfigs({
+  ids,
+  keepPrevious,
+}: {ids?: string[]; keepPrevious?: boolean} = {}) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -45,12 +51,16 @@ export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
     ...apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        path:
+          automationsEnabled && ids?.length !== 0
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
         query: {id: ids},
         staleTime: 0,
       }
     ),
     select: data => selectJson(data).configs,
+    placeholderData: keepPrevious ? keepPreviousData : undefined,
   });
 }
 
