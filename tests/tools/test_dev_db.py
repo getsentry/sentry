@@ -68,9 +68,7 @@ def test_reset_is_ordered(fake_run: FakeRun) -> None:
         ("createdb", "region"),
         ("createdb", "secondary"),
         ("upgrade", "--noinput"),
-        ("createuser", "--superuser"),
     ]
-    assert "admin@sentry.io" in fake_run.calls[-1]
 
 
 def test_reset_in_ci_creates_passwordless_user(fake_run: FakeRun) -> None:

@@ -223,15 +223,9 @@ If this is a first-time setup, the database needs seeding:
 .venv/bin/sentry upgrade --noinput
 ```
 
-This runs all Django migrations AND creates default data (organizations, roles, projects). Without this, the dev server will 500 on every page.
+This runs all Django migrations AND creates default data (organizations, roles, projects, and the admin@sentry.io / admin superuser). Without this, the dev server will 500 on every page.
 
 **Do NOT just run `sentry django migrate`** — that only runs migrations without seeding the required default data.
-
-### Create Superuser
-
-```bash
-.venv/bin/sentry createuser --superuser --email admin@sentry.io --password admin --no-input
-```
 
 ## Step 7: Start the Dev Server
 
