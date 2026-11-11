@@ -79,6 +79,8 @@ from .validators import GroupValidator, ValidationError
 
 logger = logging.getLogger(__name__)
 
+DISCARD_GROUP_HASH_BATCH_SIZE = 1000
+
 
 class MultipleProjectsError(Exception):
     pass
@@ -110,23 +112,22 @@ def handle_discard(
     groups_to_delete = defaultdict(list)
 
     for group in group_list:
-        with transaction.atomic(router.db_for_write(GroupTombstone)):
-            try:
+        try:
+            with transaction.atomic(router.db_for_write(GroupTombstone)):
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
                     actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
-            except IntegrityError:
-                # in this case, a tombstone has already been created
-                # for a group, so no hash updates are necessary
-                pass
-            else:
-                groups_to_delete[group.project_id].append(group)
+        except IntegrityError:
+            # An earlier attempt created the tombstone. It may have stopped before it moved
+            # every hash, so resume from where it left off.
+            tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
+            if group.status in (GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS):
+                continue
 
-                GroupHash.objects.filter(group=group).update(
-                    group=None, group_tombstone_id=tombstone.id
-                )
+        _move_group_hashes_to_tombstone(group, tombstone)
+        groups_to_delete[group.project_id].append(group)
 
     for project in projects:
         delete_group_list(
@@ -134,6 +135,24 @@ def handle_discard(
         )
 
     return Response(status=204)
+
+
+def _move_group_hashes_to_tombstone(group: Group, tombstone: GroupTombstone) -> None:
+    # A group can have so many hashes that one UPDATE exceeds the statement timeout. Each
+    # batch commits on its own, so a retry after a timeout continues instead of starting over.
+    # The group is deleted only after this finishes, because group deletion also deletes the
+    # hashes that still point at it.
+    while True:
+        hash_ids = list(
+            GroupHash.objects.filter(group_id=group.id).values_list("id", flat=True)[
+                :DISCARD_GROUP_HASH_BATCH_SIZE
+            ]
+        )
+        if not hash_ids:
+            return
+        GroupHash.objects.filter(id__in=hash_ids, group_id=group.id).update(
+            group=None, group_tombstone_id=tombstone.id
+        )
 
 
 def self_subscribe_and_assign_issue(

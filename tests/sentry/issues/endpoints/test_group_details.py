@@ -1186,6 +1186,57 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
+    def test_discard_moves_hashes_in_batches(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        hash_ids = [
+            GroupHash.objects.create(hash=f"{i:032x}", project=group.project, group=group).id
+            for i in range(5)
+        ]
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        with (
+            self.tasks(),
+            self.feature("projects:discard-groups"),
+            mock.patch("sentry.api.helpers.group_index.update.DISCARD_GROUP_HASH_BATCH_SIZE", 2),
+        ):
+            resp = self.client.put(url, data={"discard": True})
+
+        assert resp.status_code == 204
+        assert not Group.objects.filter(id=group.id).exists()
+        tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
+        assert not GroupHash.objects.filter(id__in=hash_ids, group_id__isnull=False).exists()
+        assert (
+            GroupHash.objects.filter(id__in=hash_ids, group_tombstone_id=tombstone.id).count() == 5
+        )
+
+    def test_discard_resumes_after_partial_attempt(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        tombstone = GroupTombstone.objects.create(
+            previous_group_id=group.id,
+            project_id=group.project_id,
+            message=group.message,
+        )
+        moved_hash = GroupHash.objects.create(
+            hash="a" * 32, project=group.project, group=None, group_tombstone_id=tombstone.id
+        )
+        remaining_hash = GroupHash.objects.create(hash="b" * 32, project=group.project, group=group)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        with self.tasks(), self.feature("projects:discard-groups"):
+            resp = self.client.put(url, data={"discard": True})
+
+        assert resp.status_code == 204
+        assert not Group.objects.filter(id=group.id).exists()
+        assert GroupTombstone.objects.filter(previous_group_id=group.id).count() == 1
+        for group_hash in (moved_hash, remaining_hash):
+            group_hash.refresh_from_db()
+            assert group_hash.group_id is None
+            assert group_hash.group_tombstone_id == tombstone.id
+
     def test_discard_performance_issue(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(type=PerformanceSlowDBQueryGroupType.type_id)
