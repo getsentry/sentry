@@ -7,6 +7,7 @@ import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -197,6 +198,7 @@ function RunRow({
   const status = getDisplayStatus(run);
   const outputs = run.executions.flatMap(execution => execution.outputs);
   const errorMessage = getErrorMessage(run);
+  const automationName = config?.name ?? getStrategyLabel(run.strategy);
 
   return (
     <SimpleTable.Row>
@@ -240,11 +242,11 @@ function RunRow({
           {isConfigPending ? (
             <Placeholder height="20px" width="120px" />
           ) : (
-            <Text ellipsis>
+            <InfoText title={automationName} mode="overflowOnly">
               <Link to={getAutomationDetailPath(organization.slug, run.configId)}>
-                {config?.name ?? getStrategyLabel(run.strategy)}
+                {automationName}
               </Link>
-            </Text>
+            </InfoText>
           )}
         </SimpleTable.RowCell>
       )}
@@ -338,7 +340,7 @@ function MonitorTriggerCell({
         {isMonitorPending ? (
           <Placeholder height="20px" width="160px" />
         ) : (
-          <Text ellipsis>
+          <InfoText title={monitor?.name} mode="overflowOnly">
             {monitor ? (
               <Link to={makeMonitorDetailsPathname(organization.slug, monitor.id)}>
                 {monitor.name}
@@ -346,7 +348,7 @@ function MonitorTriggerCell({
             ) : (
               t('Metric monitor breach')
             )}
-          </Text>
+          </InfoText>
         )}
       </Flex>
       <Flex gap="sm" align="center" wrap="wrap">
