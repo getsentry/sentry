@@ -1,3 +1,4 @@
+import {useEffect, useImperativeHandle, type RefObject} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -16,6 +17,7 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -64,7 +66,39 @@ const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
   'team:read',
 ];
 
-type Props = {mode: 'create'} | {config: SeerWorkflowConfigResponse; mode: 'edit'};
+export type MetricAutomationFormHandle = {reset: () => void};
+
+type Props =
+  | {mode: 'create'}
+  | {
+      config: SeerWorkflowConfigResponse;
+      /**
+       * Lets a submit button outside the form target it
+       */
+      formId: string;
+      /**
+       * Exposes the form's reset so callers outside the form can discard changes
+       */
+      formRef: RefObject<MetricAutomationFormHandle | null>;
+      mode: 'edit';
+      /**
+       * Name edited outside the form, in the page header
+       */
+      name: string;
+      onSaved: () => void;
+      /**
+       * Prevents editing until the user starts configuring
+       */
+      readOnly: boolean;
+      /**
+       * Reports whether any field differs from its saved value
+       */
+      setFormHasChanges: (hasChanges: boolean) => void;
+      /**
+       * Disables save while monitors are loading
+       */
+      setMonitorsPending: (pending: boolean) => void;
+    };
 
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
@@ -79,6 +113,7 @@ export function MetricAutomationForm(props: Props) {
       scope !== 'org:superuser' &&
       scope !== 'org:billing'
   );
+  const readOnly = props.mode === 'edit' && props.readOnly;
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
@@ -87,7 +122,6 @@ export function MetricAutomationForm(props: Props) {
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
   const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
-      enabled: value.enabled,
       monitorIds: value.monitorIds.map(Number),
       serviceAccount: {
         scopes: value.scopes,
@@ -102,6 +136,7 @@ export function MetricAutomationForm(props: Props) {
     if (props.mode === 'create') {
       const config = await createConfig.mutateAsync({
         ...fields,
+        enabled: value.enabled,
         strategy: 'breached_metric_investigation',
         name: value.name,
       });
@@ -109,12 +144,14 @@ export function MetricAutomationForm(props: Props) {
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
-    const config = await updateConfig.mutateAsync(fields);
+    const config = await updateConfig.mutateAsync({...fields, name: props.name});
     toast.success(t('Automation saved.'));
+    props.onSaved();
     return config;
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
+    ...(props.mode === 'edit' ? {formId: props.formId} : {}),
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
       name:
@@ -143,12 +180,19 @@ export function MetricAutomationForm(props: Props) {
           });
         }
       } catch (error) {
+        toast.error(getRequestErrorUserMessage(error, t('Unable to save automation.')));
         if (error instanceof RequestError) {
           setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
       }
     },
   });
+  const formRef = props.mode === 'edit' ? props.formRef : undefined;
+  // Lets the page header's Cancel button discard changes from outside the form
+  useImperativeHandle(formRef, () => ({reset: () => form.reset()}), [form]);
+  const hasChanges = useStore(form.store, state => !state.isDefaultValue);
+  const setFormHasChanges = props.mode === 'edit' ? props.setFormHasChanges : undefined;
+  useEffect(() => setFormHasChanges?.(hasChanges), [setFormHasChanges, hasChanges]);
   // Fetch connected monitors by ID so they resolve regardless of the picker's filters
   const queryClient = useQueryClient();
   const monitorIds = useStore(form.store, state => state.values.monitorIds);
@@ -178,6 +222,11 @@ export function MetricAutomationForm(props: Props) {
   const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
   const isResolvingMonitors =
     monitorIds.length > 0 && (monitorsQuery.isLoading || monitorsQuery.isPlaceholderData);
+  const setMonitorsPending = props.mode === 'edit' ? props.setMonitorsPending : undefined;
+  useEffect(
+    () => setMonitorsPending?.(isResolvingMonitors),
+    [setMonitorsPending, isResolvingMonitors]
+  );
   // For typing
   const monitors =
     monitorIds.length > 0
@@ -246,6 +295,7 @@ export function MetricAutomationForm(props: Props) {
                         monitors={monitors}
                         isPending={monitorsQuery.isLoading}
                         isError={hasMonitorsError}
+                        disabled={readOnly}
                         onChange={field.handleChange}
                       />
                     )}
@@ -256,21 +306,19 @@ export function MetricAutomationForm(props: Props) {
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Actions')}>
-            <form.AppField name="enabled">
-              {field => (
-                <field.Layout.Row
-                  label={t('Start investigations')}
-                  hintText={t(
-                    'Automatically investigate connected monitor breaches. Turn off to pause this automation.'
-                  )}
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
+            {/* Not configurable yet, so these show the fixed behavior */}
+            <DisplayField.Row
+              label={t('Start investigations')}
+              hintText={t('Automatically investigate connected monitor breaches.')}
+            >
+              <Switch checked disabled aria-label={t('Start investigations')} />
+            </DisplayField.Row>
+            <DisplayField.Row
+              label={t('Send notifications')}
+              hintText={t('Post findings to alert targets of the connected monitors')}
+            >
+              <Switch checked disabled aria-label={t('Send notifications')} />
+            </DisplayField.Row>
           </form.FieldGroup>
 
           <form.FieldGroup title={t('Service account capabilities')}>
@@ -293,7 +341,7 @@ export function MetricAutomationForm(props: Props) {
                         multiple
                         clearable
                         searchable
-                        disabled={field.state.value.mode === 'all'}
+                        disabled={readOnly || field.state.value.mode === 'all'}
                         value={resolveServiceAccountProjects(
                           field.state.value,
                           monitorIds,
@@ -321,6 +369,7 @@ export function MetricAutomationForm(props: Props) {
                         {field.state.value.mode !== 'monitors' && (
                           <Button
                             size="xs"
+                            disabled={readOnly}
                             onClick={() => field.handleChange({mode: 'monitors'})}
                           >
                             {t('Use monitor projects')}
@@ -344,6 +393,7 @@ export function MetricAutomationForm(props: Props) {
                       multiple
                       clearable
                       searchable
+                      disabled={readOnly}
                       value={field.state.value}
                       onChange={field.handleChange}
                       options={[...new Set([...availableScopes, ...field.state.value])]
@@ -360,21 +410,19 @@ export function MetricAutomationForm(props: Props) {
             <Text variant="muted" size="sm">
               {t('Changes apply when you save.')}
             </Text>
-            <Flex gap="md">
-              {props.mode === 'create' ? (
+            {props.mode === 'create' && (
+              <Flex gap="md">
                 <LinkButton to={getAutomationsPath(organization.slug)}>
                   {t('Cancel')}
                 </LinkButton>
-              ) : (
-                <form.ResetButton>{t('Discard changes')}</form.ResetButton>
-              )}
-              <form.SubmitButton
-                variant="primary"
-                disabled={isResolvingMonitors || hasMonitorsError}
-              >
-                {props.mode === 'create' ? t('Create automation') : t('Save changes')}
-              </form.SubmitButton>
-            </Flex>
+                <form.SubmitButton
+                  variant="primary"
+                  disabled={isResolvingMonitors || hasMonitorsError}
+                >
+                  {t('Create automation')}
+                </form.SubmitButton>
+              </Flex>
+            )}
           </Flex>
         </Stack>
       </form.AppForm>
@@ -387,8 +435,10 @@ function ConnectedMonitors({
   monitors,
   isPending,
   isError,
+  disabled,
   onChange,
 }: {
+  disabled: boolean;
   isError: boolean;
   isPending: boolean;
   monitorIds: string[];
@@ -410,6 +460,7 @@ function ConnectedMonitors({
         <Button
           size="sm"
           icon={<IconAdd />}
+          disabled={disabled}
           onClick={() =>
             openDrawer(
               () => (
@@ -442,6 +493,7 @@ function ConnectedMonitors({
             variant="transparent"
             icon={<IconClose />}
             aria-label={t('Disconnect %s', monitor.name)}
+            disabled={disabled}
             onClick={() => onChange(monitorIds.filter(id => id !== monitor.id))}
           />
         )}

@@ -12,7 +12,7 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
         self.login_as(self.user)
         self.classifier = self.create_telemetry_classifier(
             name="Frustration",
-            result_attribute="sentry.classifier.frustration",
+            result_attribute="frustration",
             filter_query="gen_ai.agent.name:support",
             created_by_id=self.user.id,
         )
@@ -29,7 +29,7 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "id": str(self.classifier.id),
             "projectId": str(self.project.id),
             "name": "Frustration",
-            "resultAttribute": "sentry.classifier.frustration",
+            "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
@@ -85,7 +85,7 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         self.login_as(self.user)
         self.classifier = self.create_telemetry_classifier(
             name="Refusals",
-            result_attribute="sentry.classifier.refusal",
+            result_attribute="refusal",
             prebuilt_classifier_key="refusal",
             natural_language_prompt=None,
             compiled_prompt=None,
@@ -118,7 +118,7 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
                 "id": str(self.classifier.id),
                 "projectId": str(self.project.id),
                 "name": "Refusals",
-                "resultAttribute": "sentry.classifier.refusal",
+                "resultAttribute": "refusal",
                 "dataset": "conversation",
                 "filterQuery": "",
                 "status": "disabled",

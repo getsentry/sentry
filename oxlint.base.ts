@@ -468,9 +468,7 @@ const base = defineConfig({
     'no-unreachable': 'error',
     'no-unsafe-finally': 'error',
     'no-unsafe-negation': 'error',
-    // Oxlint reports TypeScript patterns that ESLint accepts and suggests
-    // replacing optional access with unsafe non-null assertions.
-    'no-unsafe-optional-chaining': 'off',
+    'no-unsafe-optional-chaining': 'error',
     'no-unused-labels': 'error',
     'no-unused-private-class-members': 'error',
     'no-useless-catch': 'error',
@@ -515,9 +513,8 @@ const base = defineConfig({
     radix: 'error',
     yoda: 'error',
     'e18e/prefer-includes': 'error',
-    // The ESLint plugin does not report the existing copy-then-mutate forms.
-    'e18e/prefer-array-to-reversed': 'off',
-    'e18e/prefer-array-to-sorted': 'off',
+    'e18e/prefer-array-to-reversed': 'error',
+    'e18e/prefer-array-to-sorted': 'error',
     'e18e/prefer-array-to-spliced': 'error',
     'e18e/prefer-nullish-coalescing': 'error',
     'e18e/prefer-url-canparse': 'error',
@@ -810,7 +807,7 @@ const base = defineConfig({
     'unicorn/prefer-includes': 'off',
     'unicorn/prefer-keyboard-event-key': 'error',
     'unicorn/prefer-math-trunc': 'error',
-    'unicorn/prefer-modern-dom-apis': 'off',
+    'unicorn/prefer-modern-dom-apis': 'error',
     'unicorn/prefer-modern-math-apis': 'error',
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
@@ -954,9 +951,7 @@ const base = defineConfig({
     'typescript/non-nullable-type-assertion-style': 'error',
     'typescript/prefer-for-of': 'error',
     'typescript/prefer-function-type': 'error',
-    // Keep explicit guards when optional chaining can change runtime behavior,
-    // especially for undeclared globals such as webpack's `module`.
-    'typescript/prefer-optional-chain': 'off',
+    'typescript/prefer-optional-chain': 'error',
     'typescript/consistent-type-exports': 'error',
     'typescript/switch-exhaustiveness-check': [
       'error',

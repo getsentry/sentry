@@ -192,6 +192,7 @@ export type SeerWorkflowConfigCreateRequest = {
 export type SeerWorkflowConfigUpdateRequest = {
   enabled?: boolean;
   monitorIds?: number[];
+  name?: string;
   /**
    * [-1] for all projects, otherwise selected project IDs
    */
