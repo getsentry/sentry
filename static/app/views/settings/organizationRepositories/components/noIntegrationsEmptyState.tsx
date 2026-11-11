@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -14,6 +15,7 @@ import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/inte
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 interface Props {
   onAddIntegration: (data: IntegrationWithConfig) => void;
@@ -22,6 +24,7 @@ interface Props {
 
 export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
   const organization = useOrganization();
+  const canInstall = hasEveryAccess(['org:integrations'], {organization});
   const isSeerSupported = useIsSeerSupportedProvider();
 
   return (
@@ -39,14 +42,22 @@ export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
               </Tooltip>
             )}
           </Flex>
-          <AddIntegrationButton
-            provider={provider}
-            organization={organization}
-            onAddIntegration={onAddIntegration}
-            size="sm"
-            icon={<IconAdd />}
-            buttonText={t('Connect')}
-          />
+          {canInstall ? (
+            <AddIntegrationButton
+              provider={provider}
+              organization={organization}
+              onAddIntegration={onAddIntegration}
+              size="sm"
+              icon={<IconAdd />}
+              buttonText={t('Connect')}
+            />
+          ) : (
+            <RequestIntegrationButton
+              name={provider.name}
+              slug={provider.slug}
+              type="first_party"
+            />
+          )}
         </PanelItem>
       ))}
     </Panel>
