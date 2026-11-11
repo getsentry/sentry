@@ -1,25 +1,25 @@
 __all__ = (
-    "InvestigationActionRequestSerializer",
-    "InvestigationActionRequestSerializerResponse",
-    "InvestigationBlockSerializer",
-    "InvestigationBlockSerializerResponse",
-    "InvestigationDetailsSerializer",
-    "InvestigationDetailsSerializerResponse",
-    "InvestigationParameterSerializerResponse",
-    "InvestigationSerializer",
-    "InvestigationSerializerResponse",
+    "NotebookActionRequestSerializer",
+    "NotebookActionRequestSerializerResponse",
+    "NotebookBlockSerializer",
+    "NotebookBlockSerializerResponse",
+    "NotebookDetailsSerializer",
+    "NotebookDetailsSerializerResponse",
+    "NotebookParameterSerializerResponse",
+    "NotebookSerializer",
+    "NotebookSerializerResponse",
 )
 
 
 from .action_request import (
-    InvestigationActionRequestSerializer,
-    InvestigationActionRequestSerializerResponse,
+    NotebookActionRequestSerializer,
+    NotebookActionRequestSerializerResponse,
 )
-from .block import InvestigationBlockSerializer, InvestigationBlockSerializerResponse
-from .investigation import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-    InvestigationSerializer,
-    InvestigationSerializerResponse,
+from .block import NotebookBlockSerializer, NotebookBlockSerializerResponse
+from .notebook import (
+    NotebookDetailsSerializer,
+    NotebookDetailsSerializerResponse,
+    NotebookSerializer,
+    NotebookSerializerResponse,
 )
-from .parameter import InvestigationParameterSerializerResponse
+from .parameter import NotebookParameterSerializerResponse

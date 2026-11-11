@@ -3,15 +3,15 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.notebooks.endpoints.serializers.investigation import (
-    InvestigationOrchestrationSerializerResponse,
+from sentry.notebooks.endpoints.serializers.notebook import (
+    NotebookOrchestrationSerializerResponse,
 )
 from sentry.notebooks.models import Notebook
 
 
 def orchestration_summaries_by_investigation(
     investigations: Sequence[Notebook],
-) -> dict[int, InvestigationOrchestrationSerializerResponse]:
+) -> dict[int, NotebookOrchestrationSerializerResponse]:
     return {
         investigation_id: {
             "phase": phase,

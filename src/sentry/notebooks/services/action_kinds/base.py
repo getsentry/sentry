@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class CannotApplyReason(StrEnum):
     """Why the viewer can't apply a request. The UI switches on these."""
 
-    INVESTIGATION_ARCHIVED = "investigation_archived"
+    NOTEBOOK_ARCHIVED = "investigation_archived"
     NOT_SUGGESTED = "not_suggested"
     UNSUPPORTED_ACTION = "unsupported_action"
     NO_ACCESS = "no_access"
@@ -75,7 +75,7 @@ class ApplyFailed(Exception):
 class ApplyContext:
     """When applying, the caller holds the investigation, run, and request row locks."""
 
-    investigation: Notebook
+    notebook: Notebook
     run: NotebookProducerRun
     action_request: NotebookActionRequest
     request: Request
@@ -120,14 +120,14 @@ class ActionKind(abc.ABC, Generic[TDetails]):
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         """For each suggested request, why the viewer can't apply it, or None if they can."""
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
 
-    def check_remote(self, investigation: Notebook, action_request: NotebookActionRequest) -> None:
+    def check_remote(self, notebook: Notebook, action_request: NotebookActionRequest) -> None:
         """Checks that ask another silo, for a request the viewer can apply. They run before
         apply and its dry run take locks, since a silo call can't run in a transaction. Raise
         ActionInvalid where apply would.
