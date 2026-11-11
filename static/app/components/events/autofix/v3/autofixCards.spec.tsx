@@ -419,6 +419,28 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Click button')).toBeInTheDocument();
     });
 
+    it('shows why a single run stopped instead of the failure text', () => {
+      const stop = {
+        key: 'single_run_stop',
+        reason: 'stop',
+        data: {reason: 'R', next_step: 'N'},
+      };
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [stop])}
+        />
+      );
+
+      expect(screen.getByText('R')).toBeInTheDocument();
+      expect(screen.getByText('N')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Seer failed to generate a root cause/)
+      ).not.toBeInTheDocument();
+    });
+
     it('renders card shell when artifact data is null', () => {
       const artifact = makeRootCauseArtifact(null);
 
