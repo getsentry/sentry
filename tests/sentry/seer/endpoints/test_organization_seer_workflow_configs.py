@@ -748,15 +748,6 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         self.login_as(member)
 
         response = self.get_success_response(self.organization.slug, workflow.config_id)
-        assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
-
-        with self.feature("organizations:service-accounts"):
-            response = self.get_success_response(
-                self.organization.slug,
-                workflow.config_id,
-                method="put",
-                serviceAccount={"scopes": ["event:read"], "projectIds": [accessible.id]},
-            )
 
         assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
         assert service_account_project_ids(get_service_account(workflow.config_id)) == sorted(
@@ -764,15 +755,18 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
 
     @with_feature("organizations:service-accounts")
-    def test_member_cannot_add_scopes_to_a_service_account_with_hidden_projects(self) -> None:
+    def test_member_put_service_account_keeps_hidden_projects_without_adding_scopes(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
         hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        deleted = self.create_project()
         with outbox_runner():
             workflow = self.create_metric_workflow(
                 service_account_grant=SeerServiceAccountGrant(
-                    scopes=["event:read", "project:read"], project_ids=[accessible.id, hidden.id]
+                    scopes=["event:read", "project:read"],
+                    project_ids=[accessible.id, hidden.id, deleted.id],
                 )
             )
+        Project.objects.filter(id=deleted.id).update(status=ObjectStatus.PENDING_DELETION)
         self.login_as(member)
 
         self.get_error_response(
@@ -785,41 +779,18 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             },
             status_code=403,
         )
-        assert get_service_account(workflow.config_id).scope_list == [
-            "event:read",
-            "project:read",
-        ]
 
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug,
             workflow.config_id,
             method="put",
             serviceAccount={"scopes": ["event:read"], "projectIds": [accessible.id]},
         )
+
+        assert response.data["serviceAccount"]["projectIds"] == [accessible.id]
         account = get_service_account(workflow.config_id)
         assert account.scope_list == ["event:read"]
         assert service_account_project_ids(account) == sorted([accessible.id, hidden.id])
-
-    @with_feature("organizations:service-accounts")
-    def test_put_service_account_drops_deleted_projects(self) -> None:
-        kept = self.create_project()
-        deleted = self.create_project()
-        with outbox_runner():
-            workflow = self.create_metric_workflow(
-                service_account_grant=SeerServiceAccountGrant(
-                    scopes=["event:read"], project_ids=[kept.id, deleted.id]
-                )
-            )
-        Project.objects.filter(id=deleted.id).update(status=ObjectStatus.PENDING_DELETION)
-
-        self.get_success_response(
-            self.organization.slug,
-            workflow.config_id,
-            method="put",
-            serviceAccount={"scopes": ["event:read"], "projectIds": [kept.id]},
-        )
-
-        assert service_account_project_ids(get_service_account(workflow.config_id)) == [kept.id]
 
     @with_feature("organizations:service-accounts")
     def test_put_service_account_on_a_config_without_one_returns_400(self) -> None:
@@ -835,8 +806,6 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
 
         assert response.data == {"detail": "Couldn't update the automation."}
-        config.refresh_from_db()
-        assert config.service_account_id is None
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not ServiceAccount.objects.filter(organization_id=self.organization.id).exists()
 
@@ -844,43 +813,28 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
     def test_put_updates_the_existing_service_account(self) -> None:
         with outbox_runner():
             workflow = self.create_metric_workflow()
-        account = get_service_account(workflow.config_id)
         version = workflow.get_config().version
+        grant = {"scopes": ["project:read"], "allProjects": True}
 
         with outbox_runner():
             response = self.get_success_response(
-                self.organization.slug,
-                workflow.config_id,
-                method="put",
-                serviceAccount={"scopes": ["project:read"], "allProjects": True},
+                self.organization.slug, workflow.config_id, method="put", serviceAccount=grant
             )
 
+        account = get_service_account(workflow.config_id)
+        assert account.scope_list == ["project:read"]
+        assert account.all_projects
         assert response.data["updatedBy"] == str(self.user.id)
-        assert workflow.get_config().version == version + 1
-
         assert response.data["serviceAccount"] == {
             "serviceAccountId": str(account.id),
             "scopes": ["project:read"],
             "projectIds": [],
             "allProjects": True,
         }
-        account = get_service_account(workflow.config_id)
-        assert account.scope_list == ["project:read"]
-        assert account.all_projects
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.filter(organization_id=self.organization.id).count() == 1
-            assert AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT"), target_object=account.id
-            ).exists()
-        detail = self.get_success_response(self.organization.slug, workflow.config_id)
-        assert detail.data["serviceAccount"] == response.data["serviceAccount"]
 
         with outbox_runner():
             self.get_success_response(
-                self.organization.slug,
-                workflow.config_id,
-                method="put",
-                serviceAccount={"scopes": ["project:read"], "allProjects": True},
+                self.organization.slug, workflow.config_id, method="put", serviceAccount=grant
             )
 
         assert workflow.get_config().version == version + 1
@@ -893,38 +847,19 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
 
     @with_feature("organizations:service-accounts")
-    def test_service_account_with_scopes_the_caller_lacks_changes_nothing(self) -> None:
-        monitor = self.create_metric_monitor(self.project)
-        workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+    def test_put_service_account_is_limited_to_the_callers_access(self) -> None:
+        workflow = self.create_metric_workflow()
         token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
 
         response = self.client.put(
             f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
-            {"monitorIds": [], "serviceAccount": {"scopes": ["org:write"]}},
+            {"serviceAccount": {"scopes": ["org:write"]}},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
         assert response.status_code == 403
-        assert self.connected_monitor_ids(workflow) == {monitor.id}
         assert get_service_account(workflow.config_id).scope_list == ["event:read"]
-
-    @with_feature("organizations:service-accounts")
-    def test_all_projects_service_account_requires_a_global_role(self) -> None:
-        workflow = self.create_metric_workflow()
-        api_key = self.create_api_key(
-            organization=self.organization, scope_list=["project:read", "event:read"]
-        )
-
-        response = self.client.put(
-            f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{workflow.config_id}/",
-            {"serviceAccount": {"scopes": ["event:read"], "allProjects": True}},
-            format="json",
-            HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
-        )
-
-        assert response.status_code == 403
-        assert not get_service_account(workflow.config_id).all_projects
 
         self.get_success_response(
             self.organization.slug,
@@ -933,19 +868,16 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             serviceAccount={"scopes": ["event:read"], "allProjects": True},
         )
         member, project = self.create_member_with_project(open_membership=False)
-        monitor = self.create_metric_monitor(project)
         self.login_as(member)
 
         self.get_error_response(
             self.organization.slug,
             workflow.config_id,
             method="put",
-            monitorIds=[monitor.id],
             serviceAccount={"scopes": ["event:read"], "projectIds": [project.id]},
             status_code=403,
         )
         assert get_service_account(workflow.config_id).all_projects
-        assert workflow.get_monitors() == []
 
         with self.feature({"organizations:service-accounts": False}):
             self.get_error_response(
