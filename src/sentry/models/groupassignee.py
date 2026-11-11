@@ -149,10 +149,11 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
     ) -> GroupAssignmentState:
-        from sentry.inbox.issue import record_issue_assignment
+        from sentry.inbox.issue import ISSUE_TEAM_ASSIGNED, ISSUE_USER_ASSIGNED, IssueAssignedData
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity, ActivityIntegration
         from sentry.models.groupsubscription import GroupSubscription
+        from sentry.notifications.platform.inbox import create_inbox_items
         from sentry.users.models.user import User as UserModel
         from sentry.users.services.user import RpcUser
 
@@ -241,11 +242,16 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             except ValueError:
                 logger.exception("groupassignee.inbox.invalid_integration")
             else:
+                is_team = assignee_type == "team"
                 safe_execute(
-                    record_issue_assignment,
-                    group=group,
-                    assignee=assigned_to,
-                    assignment_source=inbox_assignment_source,
+                    create_inbox_items,
+                    event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
+                    subject=group,
+                    data=IssueAssignedData(
+                        summary="Assigned to your team" if is_team else "Assigned to you",
+                        assignment_source=inbox_assignment_source,
+                    ),
+                    recipients=[Actor.from_object(assigned_to)],
                     actor=InboxActor.user(acting_user.id)
                     if acting_user is not None
                     else SYSTEM_ACTOR,

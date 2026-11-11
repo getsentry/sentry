@@ -5,7 +5,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
-from sentry.inbox.issue import record_issue_pr_ready_for_review
+from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
 from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
@@ -20,6 +20,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_investigations_access
 from sentry.notebooks.models import Notebook
+from sentry.notifications.platform.inbox import create_inbox_items
+from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -56,6 +58,8 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
+from sentry.types.actor import ActorType as RecipientType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
@@ -785,15 +789,26 @@ def _create_seer_activity(
             if (pr_url := get_path(pr, "pull_request", "pr_url"))
         ]
         if pr_urls:
-            safe_execute(
-                record_issue_pr_ready_for_review,
-                group=group,
-                pr_urls=pr_urls,
-                seer_run_id=event_payload["run_id"],
-                actor=InboxActor.user(actor_user_id)
-                if actor_user_id is not None
-                else INBOX_SYSTEM_ACTOR,
-            )
+            user_ids, team_ids = IssueOwnersActivityAlertStrategy(group=group).get_issue_owner_ids()
+            owners = [
+                *(Actor(id=user_id, actor_type=RecipientType.USER) for user_id in user_ids),
+                *(Actor(id=team_id, actor_type=RecipientType.TEAM) for team_id in team_ids),
+            ]
+            for pr_url in pr_urls:
+                safe_execute(
+                    create_inbox_items,
+                    event_type=ISSUE_PR_READY_FOR_REVIEW,
+                    subject=group,
+                    data=IssuePRReadyForReviewData(
+                        summary="Pull request ready for review",
+                        pr_url=pr_url,
+                        seer_run_id=event_payload["run_id"],
+                    ),
+                    recipients=owners,
+                    actor=InboxActor.user(actor_user_id)
+                    if actor_user_id is not None
+                    else INBOX_SYSTEM_ACTOR,
+                )
 
 
 def record_seer_activity(

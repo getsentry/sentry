@@ -13,7 +13,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.inbox.notebook import record_notebook_completed
+from sentry.inbox.notebook import NOTEBOOK_COMPLETED, NotebookCompletedData
+from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -42,6 +43,8 @@ from sentry.investigations.services.orchestration import (
     requeue_commands_behind,
     schedule_orchestration_commands,
 )
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -60,7 +63,9 @@ from sentry.notebooks.services.producer_writes import (
     remove_blocks,
     upsert_block,
 )
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.types.actor import Actor, ActorType
 from sentry.utils import json
 
 MAX_ORCHESTRATION_EVENT_BYTES = 1024 * 1024
@@ -304,7 +309,26 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     # Remember skipped completions too: enabling recording or restoring access must
     # not backfill old notifications when Seer replays a completed projection.
     control["inboxCompletedGeneration"] = run.generation
-    record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
+
+    notebook = run.investigation
+    if notebook.created_by_id is None or not has_investigations_access(notebook.organization):
+        return
+    creator = OrganizationMember.objects.filter(
+        organization_id=notebook.organization_id,
+        user_id=notebook.created_by_id,
+        user_is_active=True,
+    ).first()
+    if creator is None or not creator.get_scopes() & INVESTIGATION_SCOPES:
+        return
+    create_inbox_items(
+        event_type=NOTEBOOK_COMPLETED,
+        subject=notebook,
+        data=NotebookCompletedData(
+            summary="Investigation completed", seer_run_id=seer_run.seer_run_state_id
+        ),
+        recipients=[Actor(id=notebook.created_by_id, actor_type=ActorType.USER)],
+        actor=SYSTEM_ACTOR,
+    )
 
 
 def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
