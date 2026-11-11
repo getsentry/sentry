@@ -2743,7 +2743,7 @@ class Factories:
             project = Factories.create_project()
         defaults: dict[str, Any] = {
             "name": petname.generate(2, " ", letters=10).title(),
-            "result_attribute": "sentry.classifier.result",
+            "result_attribute": "result",
             "dataset": TelemetryClassifierDataset.CONVERSATION,
             "filter_query": "",
             "natural_language_prompt": "Is the user frustrated?",
