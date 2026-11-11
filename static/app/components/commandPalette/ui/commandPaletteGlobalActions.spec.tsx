@@ -32,11 +32,12 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
-import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {CommandPaletteProvider} from './cmdk';
+import {CommandPalette} from './commandPalette';
+import {CommandPaletteSlot} from './commandPaletteSlot';
 
 function makeRenderProps(closeModal: jest.Mock) {
   return {

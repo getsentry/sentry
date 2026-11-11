@@ -230,6 +230,8 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
+from sentry.telemetry_classifiers import types as telemetry_classifier_types
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
@@ -428,9 +430,7 @@ DEFAULT_EVENT_DATA = {
     "platform": "python",
 }
 
-default_detector_config_data = {
-    MetricIssue.slug: {"threshold_period": 1, "detection_type": "static"}
-}
+default_detector_config_data = {MetricIssue.slug: {"detection_type": "static"}}
 
 
 def _patch_artifact_manifest(
@@ -2733,6 +2733,24 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_telemetry_classifier(
+        project: Project | None = None, **kwargs: Any
+    ) -> TelemetryClassifier:
+        if project is None:
+            project = Factories.create_project()
+        defaults: dict[str, Any] = {
+            "name": petname.generate(2, " ", letters=10).title(),
+            "result_attribute": "result",
+            "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
+            "filter_query": "",
+            "natural_language_prompt": "Is the user frustrated?",
+            "compiled_prompt": "Return yes when the user is frustrated.",
+            "output_type": telemetry_classifier_types.TelemetryClassifierOutputType.BINARY,
+        }
+        return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_dashboard(
         organization: Organization | None = None,
         title: str | None = None,
@@ -3093,7 +3111,9 @@ class Factories:
         import uuid
 
         return ActionInvocation(
-            event_data=WorkflowEventData(event=event, group=group),
+            event_data=WorkflowEventData(
+                event=event, group=group, organization=event.project.organization
+            ),
             action=action,
             detector=detector,
             notification_uuid=notification_uuid or str(uuid.uuid4()),
@@ -3612,9 +3632,11 @@ class Factories:
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
         if monitors:
-            BreachedMetricWorkflow(
+            workflow = BreachedMetricWorkflow(
                 config_id=config.id, organization_id=config.organization_id
-            ).set_monitor_selection([monitor.id for monitor in monitors])
+            )
+            with workflow.update_config() as update:
+                update.set_monitor_selection([monitor.id for monitor in monitors])
             config.refresh_from_db()
         return config
 

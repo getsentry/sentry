@@ -18,6 +18,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,14 @@ class GroupOpenPeriod(DefaultFieldsModel):
         if self.date_ended is not None:
             logger.warning("Open period is already closed", extra={"group_id": self.group.id})
             return
+
+        if resolution_time < self.date_started:
+            metrics.incr(
+                "group_open_period.close.resolution_time_before_start",
+                tags={"group_type": get_group_type_by_type_id(self.group.type).slug},
+            )
+
+            resolution_time = self.date_started
 
         self.update(date_ended=resolution_time)
 

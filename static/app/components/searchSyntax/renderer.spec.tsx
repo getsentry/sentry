@@ -1,13 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {
-  FilterType,
-  parseSearch,
-  TermOperator,
-  Token,
-} from 'sentry/components/searchSyntax/parser';
-
+import type {ParseResult, TokenResult} from './parser';
+import {FilterType, parseSearch, TermOperator, Token} from './parser';
 import {HighlightQuery} from './renderer';
 
 const query: ParseResult = [

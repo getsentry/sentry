@@ -5,26 +5,24 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   buildHandoffPayload,
   knownAgentIntegrationsQueryOptions,
   parseAgentOption,
-} from 'sentry/utils/seer/preferredAgent';
-import {getSeerProjectReposInfiniteQueryOptions} from 'sentry/utils/seer/seerProjectRepos';
+} from './preferredAgent';
+import {getSeerProjectReposInfiniteQueryOptions} from './seerProjectRepos';
 import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getSeerProjectSettingsQueryOptions,
-} from 'sentry/utils/seer/seerProjectSettings';
-import {
-  getTuningFromStoppingPoint,
-  resolveStoppingPoint,
-} from 'sentry/utils/seer/stoppingPoint';
+} from './seerProjectSettings';
+import {getTuningFromStoppingPoint, resolveStoppingPoint} from './stoppingPoint';
 import type {
   AutofixAgentSelectOption,
   SeerProjectSettingResponse,
   UserFacingStoppingPoint,
-} from 'sentry/utils/seer/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './types';
 
 type TVariables = {
   agentOption: AutofixAgentSelectOption;

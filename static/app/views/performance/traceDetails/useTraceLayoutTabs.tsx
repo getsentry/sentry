@@ -3,11 +3,12 @@ import {useQueryState} from 'nuqs';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {useTraceContextSections} from 'sentry/views/performance/traceDetails/useTraceContextSections';
-import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
+
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceTree} from './traceModels/traceTree';
+import {traceAnalytics} from './traceAnalytics';
+import {useTraceContextSections} from './useTraceContextSections';
+import type {TraceOverviewData} from './useTraceOverviewData';
 
 export enum TraceLayoutTabKeys {
   WATERFALL = 'waterfall',

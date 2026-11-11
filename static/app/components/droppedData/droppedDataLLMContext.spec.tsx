@@ -5,11 +5,12 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+
+import {DroppedDataLLMContext} from './droppedDataLLMContext';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],

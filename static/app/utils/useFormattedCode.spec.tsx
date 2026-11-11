@@ -1,6 +1,6 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useFormattedCode} from 'sentry/utils/useFormattedCode';
+import {useFormattedCode} from './useFormattedCode';
 
 describe('useFormattedCode', () => {
   it('returns trimmed code without loading a formatter when disabled', () => {

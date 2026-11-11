@@ -23,7 +23,7 @@ type Result = State;
 
 /**
  * @deprecated due to its reliance on EventView which is unpleasant to work with
- * Use useApiQuery instead
+ * Use apiOptions with useQuery instead
  */
 export function useReplayList({
   enabled,

@@ -10,6 +10,7 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
   FractionUnit,
+  parseFunction,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -19,25 +20,26 @@ import {
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-  type TraceMetric,
-  type BaseMetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
-import {
-  isTraceMetricTypeValue,
-  TraceMetricKnownFieldKey,
-  type SampleTableColumnKey,
-} from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   parseVisualize,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from './constants';
+import {
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type TraceMetric,
+  type BaseMetricQuery,
+} from './metricQuery';
+import {normalizeFunctionToken} from './parseAggregateExpression';
+import {parseMetricAggregate} from './parseMetricsAggregate';
+import {
+  isTraceMetricTypeValue,
+  TraceMetricKnownFieldKey,
+  type SampleTableColumnKey,
+} from './types';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -388,10 +390,30 @@ export function getEquationMetricsTotalFilter(equation: string) {
     .filter(isTokenFunction)
     .map(token => normalizeFunctionToken(token).plainAggregate);
 
-  const traceMetricsUsed = aggregatesUsed.map(aggregate => {
-    const {traceMetric} = parseMetricAggregate(aggregate);
-    return traceMetric;
-  });
+  return getAggregatesMetricsTotalFilter(aggregatesUsed);
+}
 
-  return createTraceMetricEventsFilter(traceMetricsUsed);
+export function getAggregatesMetricsTotalFilter(aggregates: string[]) {
+  const filters = aggregates
+    .map(aggregate => {
+      const {traceMetric} = parseMetricAggregate(aggregate);
+      if (!traceMetric.name || !traceMetric.type) {
+        return null;
+      }
+
+      // The backend reads a '-' unit in an aggregate as any unit, so the total must not filter by unit.
+      if (parseFunction(aggregate)?.arguments.at(-1) === '-') {
+        const search = new MutableSearch('');
+        search.addOp('(');
+        search.addFilterValue('metric.name', traceMetric.name);
+        search.addFilterValue('metric.type', traceMetric.type);
+        search.addOp(')');
+        return search.toString();
+      }
+
+      return createTraceMetricEventsFilter([traceMetric]);
+    })
+    .filter(defined);
+
+  return [...new Set(filters)].join(' OR ');
 }

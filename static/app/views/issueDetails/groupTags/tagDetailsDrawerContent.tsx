@@ -30,6 +30,7 @@ import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -38,11 +39,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
-import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue, TAG_DRAWER_PARSERS} from 'sentry/views/issueDetails/utils';
 
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
+import {TagBar} from './tagDistribution';
 
 const DEFAULT_SORT: TagSort = 'count';
 
@@ -136,7 +137,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
             setTagDrawerQuery({tagDrawerCursor: cursor ?? null}, {history: 'push'})
           }
           size="xs"
-          pageLinks={tagValuesResponse?.headers.Link}
+          {...getPaginationProps(tagValuesResponse?.headers.Link)}
         />
       )}
     </Fragment>

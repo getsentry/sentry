@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {SourceMapsList} from 'sentry/views/settings/projectSourceMaps/sourceMapsList';
+import {SourceMapsList} from './sourceMapsList';
 
 function renderReleaseBundlesMockRequests({
   orgSlug,
@@ -196,6 +196,39 @@ describe('ProjectSourceMaps', () => {
       });
 
       expect(await screen.findByText('No source maps uploaded')).toBeInTheDocument();
+    });
+
+    it('pushes the search and drops the cursor when searching', async () => {
+      const {organization, project} = initializeOrg();
+      renderReleaseBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+      renderDebugIdBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
+      const {router} = render(<SourceMapsList project={project} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/projects/${project.slug}/source-maps/`,
+            query: {cursor: '0:100:0'},
+          },
+        },
+      });
+      const searchBar = screen.getByPlaceholderText('Filter by Debug ID or Upload ID');
+
+      await userEvent.type(searchBar, 'abc{enter}');
+      await waitFor(() => expect(router.location.query).toEqual({query: 'abc'}));
+      expect(router.historyAction).toBe('PUSH');
+
+      await userEvent.clear(searchBar);
+      await userEvent.keyboard('{enter}');
+      await waitFor(() => expect(router.location.query).toEqual({query: ''}));
     });
   });
 });

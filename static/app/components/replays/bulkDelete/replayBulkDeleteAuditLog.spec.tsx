@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLog';
-import type {ReplayBulkDeleteAuditLog as ReplayBulkDeleteAuditLogJob} from 'sentry/components/replays/bulkDelete/types';
+import {ReplayBulkDeleteAuditLog} from './replayBulkDeleteAuditLog';
+import type {ReplayBulkDeleteAuditLog as ReplayBulkDeleteAuditLogJob} from './types';
 
 describe('ReplayBulkDeleteAuditLog', () => {
   const organization = OrganizationFixture();

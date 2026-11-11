@@ -5,7 +5,8 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
+
+import ScreenDetailsPage from './screenDetailsPage';
 
 jest.mock('sentry/views/dashboards/prebuiltDashboardRenderer', () => ({
   PrebuiltDashboardRenderer: () => <div data-test-id="prebuilt-dashboard" />,

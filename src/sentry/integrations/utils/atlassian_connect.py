@@ -109,16 +109,20 @@ def get_integration_from_jwt(
     if not key_id and alg != EXPECTED_ALG_FORMAT:
         raise AtlassianConnectValidationError("Invalid algorithm in JWT header")
 
+    shared_secret = integration.metadata.get("shared_secret")
+
     try:
         # We only authenticate asymmetrically (through the CDN) if the event provides a key ID
         # in its JWT headers. This should only appear for install/uninstall events.
         # authenticate_asymmetric_jwt hardcodes algorithms=["RS256"], so the algorithm-confusion
         # attack (forcing an asymmetric public key to be used as an HMAC secret) is not possible.
-        decoded_claims = (
-            authenticate_asymmetric_jwt(token, key_id)
-            if key_id
-            else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
-        )
+        if key_id:
+            decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+        elif shared_secret:
+            decoded_claims = jwt.decode(token, shared_secret, audience=False)
+        else:
+            # Forge-only integrations have no Connect secret, so no Connect JWT can name them.
+            raise AtlassianConnectValidationError("No Connect secret for this integration")
     except InvalidSignatureError as e:
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:

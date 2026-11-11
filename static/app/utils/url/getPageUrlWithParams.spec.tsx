@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
+import {getPageUrlWithParams} from './getPageUrlWithParams';
 
 describe('getPageUrlWithParams', () => {
   it('returns an absolute URL with the edited params when given a location', () => {

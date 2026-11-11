@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLoadReplayReader} from './useLoadReplayReader';
 
 jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
   useReplayData: () => jest.fn().mockReturnValue({}),

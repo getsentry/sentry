@@ -4,18 +4,24 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import * as modal from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import {handleEnroll} from 'sentry/components/webAuthn/handlers';
-import {ModalStore} from 'sentry/stores/modalStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
 
-jest.mock('sentry/actionCreators/indicator');
+import AccountSecurityEnroll from './accountSecurityEnroll';
+
 jest.mock('sentry/components/webAuthn/handlers');
 
 const ENDPOINT = '/users/me/authenticators/';
-const mockAddErrorMessage = jest.mocked(addErrorMessage);
+const mockAddErrorMessage = jest.spyOn(toast, 'error');
+
+afterEach(() => {
+  mockAddErrorMessage.mockClear();
+});
+
 const mockHandleEnroll = jest.mocked(handleEnroll);
 const usorg = OrganizationFixture({
   slug: 'us-org',
@@ -41,6 +47,7 @@ describe('AccountSecurityEnroll', () => {
     });
 
     beforeEach(() => {
+      jest.spyOn(toast, 'error').mockClear();
       setWindowLocation('https://example.test');
       window.__initialData = {
         ...window.__initialData,
@@ -123,7 +130,7 @@ describe('AccountSecurityEnroll', () => {
     });
 
     it('asks the user to verify their primary email when enrollment requires it', async () => {
-      const openModalSpy = jest.spyOn(ModalStore, 'openModal');
+      const openModalSpy = jest.spyOn(modal, 'openModal');
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.id}/enroll/`,
         method: 'POST',

@@ -6,15 +6,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
+import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
-import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {
@@ -24,7 +20,6 @@ import {
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -86,10 +81,10 @@ export function SeerRepoTableRow({
           disabled={!canWrite}
           checked={repository.settings?.enabledCodeReview ?? false}
           onChange={e => {
-            const queryKey = getRepositoryWithSettingsQueryKey(
+            const queryKey = repositoryWithSettingsApiOptions(
               organization,
               repository.id
-            );
+            ).queryKey;
             const optimisticData = {
               ...repository,
               settings: {
@@ -98,12 +93,11 @@ export function SeerRepoTableRow({
                 enabledCodeReview: e.target.checked,
               },
             };
-            setApiQueryData<RepositoryWithSettings>(
-              queryClient,
-              getRepositoryWithSettingsQueryKey(organization, repository.id),
-              optimisticData
-            );
-            addLoadingMessage(t('Updating code review for %s', repository.name));
+            queryClient.setQueryData(queryKey, previous => ({
+              json: optimisticData,
+              headers: previous?.headers ?? {},
+            }));
+            toast.loading(t('Updating code review for %s', repository.name));
             mutateRepositorySettings(
               {
                 codeReviewTriggers:
@@ -113,17 +107,14 @@ export function SeerRepoTableRow({
               },
               {
                 onError: () => {
-                  setApiQueryData<RepositoryWithSettings>(
-                    queryClient,
-                    queryKey,
-                    repository
-                  );
-                  addErrorMessage(
-                    t('Failed to update code review for %s', repository.name)
-                  );
+                  queryClient.setQueryData(queryKey, previous => ({
+                    json: repository,
+                    headers: previous?.headers ?? {},
+                  }));
+                  toast.error(t('Failed to update code review for %s', repository.name));
                 },
                 onSuccess: () => {
-                  addSuccessMessage(t('Code review updated for %s', repository.name));
+                  toast.success(t('Code review updated for %s', repository.name));
                 },
                 onSettled: () => {
                   queryClient.invalidateQueries({queryKey});

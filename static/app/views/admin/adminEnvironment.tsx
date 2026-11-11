@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconUpgrade} from '@sentry/icons/upgrade';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -9,8 +10,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Data = {
@@ -32,11 +32,8 @@ export default function AdminEnvironment() {
 }
 
 function AdminEnvironmentContent() {
-  const {data, isPending, isError} = useApiQuery<Data>(
-    [getApiUrl('/internal/environment/')],
-    {
-      staleTime: 0,
-    }
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<Data>()('/internal/environment/', {staleTime: 0})
   );
 
   if (isError) {

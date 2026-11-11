@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
+
+import {useReplayCount} from './useReplayCount';
 
 describe('useReplayCount', () => {
   const organization = OrganizationFixture();

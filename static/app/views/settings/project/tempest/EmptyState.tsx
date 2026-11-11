@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsInteger, useQueryState} from 'nuqs';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -13,17 +14,16 @@ import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStarted
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {decodeInteger} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
+
+import {AddCredentialsButton} from './addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
   AllowListIPAddresses,
-} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
-import {CredentialRow} from 'sentry/views/settings/project/tempest/CredentialRow';
-import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
+} from './allowListIPAddresses';
+import {CredentialRow} from './CredentialRow';
+import type {TempestCredentials} from './types';
 
 interface EmptyStateProps {
   hasWriteAccess: boolean;
@@ -51,7 +51,7 @@ export function EmptyState({
   removingCredentialId,
 }: EmptyStateProps) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
   const organization = useOrganization();
 
   return (
@@ -75,14 +75,9 @@ export function EmptyState({
             </Alert>
           </Alert.Container>
           <GuidedSteps
-            initialStep={decodeInteger(location.query.guidedStep)}
+            initialStep={guidedStep ?? undefined}
             onStepChange={step => {
-              navigate({
-                query: {
-                  ...location.query,
-                  guidedStep: step,
-                },
-              });
+              setGuidedStep(step, {history: 'push'});
             }}
           >
             <GuidedSteps.Step

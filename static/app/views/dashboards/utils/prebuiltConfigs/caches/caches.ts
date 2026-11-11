@@ -5,15 +5,13 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const BASE_CONDITION = `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`;
 

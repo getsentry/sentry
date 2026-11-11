@@ -1,11 +1,12 @@
 import {matchRoutes, type RouteObject} from 'react-router';
 
 import * as constants from 'sentry/constants';
-import {buildRoutes} from 'sentry/router/routes';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
 import type {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+
+import {buildRoutes} from './routes';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.

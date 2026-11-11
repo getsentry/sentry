@@ -1,8 +1,8 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
-import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {useArithmeticBuilderAction} from './action';
+import {Expression} from './expression';
+import {tokenizeExpression} from './tokenizer';
 
 describe('useArithmeticBuilderAction', () => {
   it('returns initial state', () => {

@@ -5,9 +5,10 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
@@ -17,6 +18,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -84,6 +86,9 @@ export function ConnectedAutomationsList({
   const {data, isLoading, isError, isSuccess} = useQuery({
     ...automationsApiOptions(organization, {
       ids: automationIds ?? undefined,
+      // Without a project filter the API only returns alerts in the user's member
+      // projects and leaves out alerts that aren't connected to any monitor.
+      projects: automationIds === null ? [ALL_ACCESS_PROJECTS] : undefined,
       limit: limit ?? undefined,
       cursor,
       query,
@@ -174,7 +179,7 @@ export function ConnectedAutomationsList({
       {limit && (
         <Pagination
           onCursor={onCursor}
-          pageLinks={pageLinks}
+          {...getPaginationProps(pageLinks)}
           caption={paginationCaption}
         />
       )}

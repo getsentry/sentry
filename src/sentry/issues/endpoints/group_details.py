@@ -26,7 +26,12 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
-from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
+from sentry.api.serializers.models.group import (
+    BaseGroupSerializerResponse,
+    GroupDetailsResponse,
+    GroupParticipantResponse,
+    GroupSeenByResponse,
+)
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -132,7 +137,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def _get_seen_by_and_participants(
         self, request: Request, group: Group
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    ) -> tuple[list[GroupSeenByResponse], list[GroupParticipantResponse]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         participant_ids = set(GroupSubscriptionManager.get_participating_user_ids(group))
         user_ids = {seen.user_id for seen in seen_by} | participant_ids
@@ -147,11 +152,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
         users_by_id = {int(user["id"]): user for user in users}
         return (
             [
-                {**users_by_id[seen.user_id], "lastSeen": seen.last_seen}
+                cast(GroupSeenByResponse, {**users_by_id[seen.user_id], "lastSeen": seen.last_seen})
                 for seen in seen_by
                 if seen.user_id in users_by_id
             ],
-            [{**user, "type": "user"} for user in users if int(user["id"]) in participant_ids],
+            [
+                cast(GroupParticipantResponse, {**user, "type": "user"})
+                for user in users
+                if int(user["id"]) in participant_ids
+            ],
         )
 
     def _report_status_inconsistency(self, group: Group) -> None:
@@ -243,8 +252,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
     )
     def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
-        Return details on an individual issue, including its basic stats, comment
-        and user-report counts, and a summary of the latest event.
+        Return details on an individual issue, including its basic stats, comment count, and
+        user-report count.
         """
         from sentry.utils import snuba
 
@@ -315,8 +324,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     data.update(
                         {
                             "forecast": {
-                                "data": fetched_forecast_dict.get("forecast"),
-                                "date_added": fetched_forecast_dict.get("date_added"),
+                                "data": fetched_forecast_dict["forecast"],
+                                "date_added": fetched_forecast_dict["date_added"],
                             }
                         }
                     )
@@ -367,7 +376,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
             activity_items = get_serialized_activity_items(
-                group, request.user, endpoint=activity_read_endpoint(request)
+                group,
+                request.user,
+                access=request.access,
+                endpoint=activity_read_endpoint(request),
             )
             if activity_items is None:
                 activity = Activity.objects.get_activities_for_group(group, 100)

@@ -3,9 +3,11 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
+  assertEAPSpanNode,
   makeEAPError,
   makeEAPOccurrence,
   makeEAPSpan,
+  makeEAPTrace,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import type {BaseNode, TraceTreeNodeExtra} from './baseNode';
@@ -669,6 +671,37 @@ describe('EapSpanNode', () => {
       list: [] as BaseNode[],
     });
 
+    it('can explicitly collapse the initial transaction summary', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'parent',
+            is_transaction: true,
+            children: [makeEAPSpan({event_id: 'child', is_transaction: true})],
+          }),
+          makeEAPSpan({event_id: 'sibling', is_transaction: true}),
+        ]),
+        {organization: OrganizationFixture(), replay: null}
+      ).build();
+      const parent = tree.root.findChild(node => node.id === 'parent');
+      const child = tree.root.findChild(node => node.id === 'child');
+      const sibling = tree.root.findChild(node => node.id === 'sibling');
+      assertEAPSpanNode(parent);
+      assertEAPSpanNode(child);
+      const parentIndex = tree.list.indexOf(parent);
+
+      expect(parent.expanded).toBe(false);
+      expect(tree.list.slice(parentIndex)).toEqual([parent, child, sibling]);
+
+      expect(parent.expand(false, tree)).toBe(true);
+      expect(tree.list.slice(parentIndex)).toEqual([parent, sibling]);
+      expect(parent.expand(false, tree)).toBe(false);
+      expect(tree.build().list.slice(parentIndex)).toEqual([parent, sibling]);
+
+      expect(parent.expand(true, tree)).toBe(true);
+      expect(tree.list.slice(parentIndex)).toEqual([parent, child, sibling]);
+    });
+
     it('should handle expanding transaction with reparenting', () => {
       const extra = createMockExtra();
       const transactionValue = makeEAPSpan({
@@ -755,7 +788,7 @@ describe('EapSpanNode', () => {
       transaction.expand(false, tree as any);
       expect(childTransaction.parent).toBe(span);
       expect(siblingTransaction.parent).toBe(siblingSpan);
-      expect(tree.list).toEqual([transaction, childTransaction, siblingTransaction]);
+      expect(tree.list).toEqual([transaction]);
     });
 
     it('should handle collapsing transaction with reparenting', () => {

@@ -3,7 +3,7 @@ import {AiTraceSpanNodeFixture} from 'sentry-fixture/aiTraceSpanNode';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import {AiSpanTimeline} from './aiSpanTimeline';
 
 describe('AiSpanTimeline', () => {
   it.snapshot(

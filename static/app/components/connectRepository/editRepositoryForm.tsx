@@ -4,29 +4,30 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {
-  ConnectionModalFrame,
-  LockedProjectField,
-  LockedRepoField,
-  getApiErrorMessage,
-} from 'sentry/components/connectRepository/connectionModalFrame';
-import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import {
-  editProjectRepoMappings,
-  projectCodeMappingsOptions,
-  useEditRepoInfo,
-  useInvalidateRepoQueries,
-} from 'sentry/components/connectRepository/queries';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {
+  ConnectionModalFrame,
+  LockedProjectField,
+  LockedRepoField,
+  getApiErrorMessage,
+} from './connectionModalFrame';
+import {DEFAULT_BRANCH} from './normalization';
+import {PathMappingList} from './pathMappingList';
+import {
+  editProjectRepoMappings,
+  projectCodeMappingsOptions,
+  useEditRepoInfo,
+  useInvalidateRepoQueries,
+} from './queries';
+import type {PathMappingValue} from './type';
+import {hasExactDuplicate} from './warnings';
 
 export type EditFormProps = ModalRenderProps & {
   externalId: string | null;

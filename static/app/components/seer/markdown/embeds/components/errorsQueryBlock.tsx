@@ -1,24 +1,20 @@
 import {IconSearch} from '@sentry/icons/search';
 
-import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
-import {
-  QueryEmbedChart,
-  seriesFromEventsStats,
-  toChartUnit,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedChart';
-import {
-  useQueryEmbedEventsStats,
-  useQueryEmbedEventsTable,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedQueries';
-import {
-  eventColumns,
-  eventRowKey,
-  QueryEmbedTable,
-} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {t} from 'sentry/locale';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {QueryEmbedCard} from './queryEmbed/queryEmbedCard';
+import {
+  QueryEmbedChart,
+  seriesFromEventsStats,
+  toChartUnit,
+} from './queryEmbed/queryEmbedChart';
+import {
+  useQueryEmbedEventsStats,
+  useQueryEmbedEventsTable,
+} from './queryEmbed/queryEmbedQueries';
+import {eventColumns, eventRowKey, QueryEmbedTable} from './queryEmbed/queryEmbedTable';
 import {getErrorsQueryTitle} from './errorsQueryLink';
 import {
   buildErrorsChartQuery,

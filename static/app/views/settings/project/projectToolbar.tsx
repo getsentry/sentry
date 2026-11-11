@@ -7,8 +7,8 @@ import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -16,8 +16,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectPermissionAlert} from './projectPermissionAlert';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const toolbarSchema = z.object({
   'sentry:toolbar_allowed_origins': z.string(),
@@ -82,7 +83,7 @@ export default function ProjectToolbarSettings() {
                   data: {options: data},
                 }),
               onSuccess: () => {
-                addSuccessMessage(t('Saved'));
+                toast.success(t('Saved'));
               },
             }}
           >

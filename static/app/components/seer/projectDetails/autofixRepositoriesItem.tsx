@@ -7,6 +7,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {
   AutoSaveContextProvider,
   AutoSaveForm,
@@ -17,17 +18,18 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Confirm} from 'sentry/components/confirm';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
-import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {getMutateSeerProjectRepoOptions} from 'sentry/utils/seer/seerProjectRepos';
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {overrideHasAllValues} from './overrideHasAllValues';
+import {overrideHasAnyValue} from './overrideHasAnyValue';
 
 interface Props {
   canWrite: boolean;
@@ -138,42 +140,44 @@ export function AutofixRepositoriesItem({
           </Flex>
         </SimpleTable.RowCell>
 
-        <SimpleTable.RowCell>
-          <Confirm
-            disabled={!canWrite}
-            onConfirm={() => onRemoveRepo({repoId: repository.repositoryId})}
-            header={
-              <Heading as="h4">
-                {tct('Are you sure you want to remove [repo] from Autofix?', {
-                  repo: <code>{repository.name}</code>,
-                })}
-              </Heading>
-            }
-            message={
-              repositories.length > 1
-                ? tn(
-                    'There will still be %s other repository connected to this project for Autofix to use.',
-                    'There will still be %s other repositories connected to this project for Autofix to use.',
-                    repositories.length - 1
-                  )
-                : t('Autofix will be disabled for issues in this project.')
-            }
-            confirmText={
-              <Flex align="center" gap="md">
-                <IconDelete size="sm" />
-                {t('Disconnect')}
-              </Flex>
-            }
-            priority="danger"
-          >
-            <Button
-              aria-label={t('Disconnect Repository')}
-              icon={<IconDelete />}
-              size="xs"
-              variant="transparent"
-            />
-          </Confirm>
-        </SimpleTable.RowCell>
+        {!isSeerTokenBasedBillingOnboardingEnabled(organization) && (
+          <SimpleTable.RowCell>
+            <Confirm
+              disabled={!canWrite}
+              onConfirm={() => onRemoveRepo({repoId: repository.repositoryId})}
+              header={
+                <Heading as="h4">
+                  {tct('Are you sure you want to remove [repo] from Autofix?', {
+                    repo: <code>{repository.name}</code>,
+                  })}
+                </Heading>
+              }
+              message={
+                repositories.length > 1
+                  ? tn(
+                      'There will still be %s other repository connected to this project for Autofix to use.',
+                      'There will still be %s other repositories connected to this project for Autofix to use.',
+                      repositories.length - 1
+                    )
+                  : t('Autofix will be disabled for issues in this project.')
+              }
+              confirmText={
+                <Flex align="center" gap="md">
+                  <IconDelete size="sm" />
+                  {t('Disconnect')}
+                </Flex>
+              }
+              priority="danger"
+            >
+              <Button
+                aria-label={t('Disconnect Repository')}
+                icon={<IconDelete />}
+                size="xs"
+                variant="transparent"
+              />
+            </Confirm>
+          </SimpleTable.RowCell>
+        )}
       </SimpleTable.Row>
 
       {isExpanded && (

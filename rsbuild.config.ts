@@ -1019,11 +1019,24 @@ if (IS_PRODUCTION) {
 if (env.WEBPACK_CACHE_PATH) {
   appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'filesystem',
+    type: 'persistent',
     // Keep clear of the old persistent cache's `app-production` directory,
     // the new cache fails to open when both share a location
     name: `app-${WEBPACK_MODE}-new`,
-    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    storage: {
+      type: 'filesystem',
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    },
+    // Older snapshots did not track the resolver inputs listed below.
+    version: '1',
+    // Component moves change which Scraps alias root resolves an import. Restored
+    // caches must re-resolve those imports when the package boundary changes.
+    buildDependencies: [
+      import.meta.filename,
+      path.join(import.meta.dirname, 'tsconfig.json'),
+      path.join(import.meta.dirname, 'tsconfig.base.json'),
+      path.join(import.meta.dirname, 'static/packages/scraps/package.json'),
+    ],
     // Read entries from disk instead of holding the whole cache in memory
     maxMemoryGenerations: 0,
     // Only master deploys write the cache, preview deploys restore it from

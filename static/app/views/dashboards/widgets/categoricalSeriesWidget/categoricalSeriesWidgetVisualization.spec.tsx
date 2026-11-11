@@ -2,11 +2,11 @@ import {CategoricalSeriesFixture} from 'sentry-fixture/categoricalSeries';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
-import {sampleCountCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/countCategorical';
-import {sampleDurationCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/durationCategorical';
-import {sampleStackedCategoricalData} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/fixtures/stackedCategorical';
-import {Bars} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/plottables/bars';
+import {sampleCountCategoricalData} from './fixtures/countCategorical';
+import {sampleDurationCategoricalData} from './fixtures/durationCategorical';
+import {sampleStackedCategoricalData} from './fixtures/stackedCategorical';
+import {Bars} from './plottables/bars';
+import {CategoricalSeriesWidgetVisualization} from './categoricalSeriesWidgetVisualization';
 
 describe('BarChartWidgetVisualization', () => {
   afterEach(() => {

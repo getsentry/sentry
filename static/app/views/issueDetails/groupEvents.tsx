@@ -1,8 +1,9 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {EventList} from 'sentry/views/issueDetails/eventList';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {EventList} from './eventList';
+import {useGroupId} from './groupIdContext';
+import {useGroup} from './useGroup';
 
 function IssueEventsList() {
   const groupId = useGroupId();

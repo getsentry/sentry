@@ -3,9 +3,10 @@ import {IconStack} from '@sentry/icons/stack';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {datasetNoun, droppedDataLabel} from 'sentry/components/droppedData/outcomes';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {datasetNoun, droppedDataLabel} from './outcomes';
 
 const DROPPED_DATA_LAYER = 'dropped-data';
 

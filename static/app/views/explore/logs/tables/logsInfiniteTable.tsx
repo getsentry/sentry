@@ -15,8 +15,8 @@ import type {Virtualizer} from '@tanstack/react-virtual';
 import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -63,11 +63,6 @@ import {
   LogTableBody,
   LogTableHeadCell,
 } from 'sentry/views/explore/logs/styles';
-import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
-import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
-import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -94,6 +89,12 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
+
+import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
+import {LogsEmptyResults} from './logsEmptyResults';
+import {LogsRateLimitError} from './logsRateLimitError';
+import {LogRowContent} from './logsTableRow';
+import {useLogsTableColumnWidths} from './useLogsTableColumnWidths';
 
 /**
  * This sentinel value means the pseudo row sits after every loaded row.
@@ -542,7 +543,7 @@ export function LogsInfiniteTable({
         log_id: anchorId,
         organization,
       });
-      addErrorMessage(t('This log is not in the current results'));
+      toast.error(t('This log is not in the current results'));
       clearAnchor();
       return;
     }

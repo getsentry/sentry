@@ -17,13 +17,13 @@ import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTime
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {useCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/hooks/utils/useCustomReleaseSorting';
 import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 import {getReleasesRequestData} from './utils/releases';
+import {useCustomReleaseSorting} from './utils/useCustomReleaseSorting';
 
 const EMPTY_ARRAY: any[] = [];
 

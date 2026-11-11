@@ -7,8 +7,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, within, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {getShortEventId} from 'sentry/utils/events';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import GroupOpenPeriods from 'sentry/views/issueDetails/groupOpenPeriods';
+
+import {GroupIdProvider} from './groupIdContext';
+import GroupOpenPeriods from './groupOpenPeriods';
 
 describe('GroupOpenPeriods', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});

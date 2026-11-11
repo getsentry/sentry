@@ -2,26 +2,26 @@ import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
 
-import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
-import {openSudo} from 'sentry/actionCreators/sudoModal';
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
+import {redirectToProject} from './actionCreators/redirectToProject';
+import {openSudo} from './actionCreators/sudoModal';
 import {
   PRIMARY_EMAIL_VERIFICATION_REQUIRED,
   PROJECT_MOVED,
   STAFF_REQUIRED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
-} from 'sentry/constants/apiErrorCodes';
-import type {ApiResult, ResponseMeta} from 'sentry/types/api';
-import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
-import {resolveHostname} from 'sentry/utils/api/resolveHostname';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {getCsrfToken} from 'sentry/utils/getCsrfToken';
-import {uniqueId} from 'sentry/utils/guid';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+} from './constants/apiErrorCodes';
+import type {ApiResult, ResponseMeta} from './types/api';
+import {isSimilarOrigin} from './utils/api/isSimilarOrigin';
+import {resolveHostname} from './utils/api/resolveHostname';
+import {isDemoModeActive} from './utils/demoMode';
+import {getCsrfToken} from './utils/getCsrfToken';
+import {uniqueId} from './utils/guid';
+import {RequestError} from './utils/requestError/requestError';
+import {sanitizePath} from './utils/requestError/sanitizePath';
+import {testableWindowLocation} from './utils/testableWindowLocation';
+import type {ReactRouter3Navigate} from './utils/useNavigate';
+import {EXPERIMENTAL_SPA} from './constants';
 
 /**
  * `api.tsx` is consumed outside React, so it can't use the `useNavigate` hook.
@@ -413,7 +413,7 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * @deprecated Use `useQuery` with `apiOptions`, or `useMutation` with `fetchMutation` instead.
    * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
@@ -667,7 +667,7 @@ export class Client {
   /**
    * Initiate a request to the backend API.
    *
-   * @deprecated Use `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation` instead.
+   * @deprecated Use `useQuery` with `apiOptions`, or `useMutation` with `fetchMutation` instead.
    * See https://develop.sentry.dev/frontend/network-requests/ for more.
    */
   requestPromise<IncludeAllArgsType extends boolean>(

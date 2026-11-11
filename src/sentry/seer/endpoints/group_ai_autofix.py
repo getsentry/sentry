@@ -32,6 +32,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import acting_user, acting_user_id
 from sentry.issues.action_log import (
     action_context_scope,
@@ -58,11 +59,16 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_user
-from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
+from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
 from sentry.seer.autofix.pr_iteration.manual_trigger import handle_ui_feedback
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
+from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
+from sentry.seer.autofix.single_run import is_single_run, is_single_run_record
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
@@ -77,7 +83,15 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
 )
-from sentry.seer.endpoints.utils import SEER_PERMISSION_DENIED, get_seer_run, resolve_seer_run
+from sentry.seer.endpoints.utils import (
+    SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+    SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL,
+    SEER_OUT_OF_CREDITS_CODE,
+    SEER_OUT_OF_QUOTA_CODE,
+    SEER_PERMISSION_DENIED,
+    get_seer_run,
+    resolve_seer_run,
+)
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -118,7 +132,6 @@ class GroupAutofixPermission(GroupAiPermission):
 # Sentry: pushing a branch, opening or iterating on a pull request, or handing the run to
 # an external coding agent.
 PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
-PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
 
 
 # If an autofix can be handed off we want to use these stopping points to require user approval
@@ -348,7 +361,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        _require_publish_scope(request, group, step, {stopping_point})
+        stopping_points = {stopping_point}
+        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
+        if (
+            stopping_point is None
+            and is_new_run
+            and should_use_single_run(group, step)
+            and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
+        ):
+            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
+        _require_publish_scope(request, group, step, stopping_points)
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
@@ -386,6 +408,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         run_id: int | None
         sentry_run_id: str | None
 
+        feature_id = AUTOFIX_FEATURE_ID
         match step:
             case "coding_agent_handoff":
                 integration_id = data.get("integration_id")
@@ -441,6 +464,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             referrer="autofix_open_pr",
                         ),
                         user=acting_user(request.user),
+                    )
+                except SeerOutOfCreditsException:
+                    return Response(
+                        {
+                            "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
+                            "code": SEER_OUT_OF_CREDITS_CODE,
+                        },
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -570,7 +601,20 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     )
                 except NoSeerQuotaException:
                     return Response(
-                        "No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED
+                        {"detail": "No budget for Seer Autofix.", "code": SEER_OUT_OF_QUOTA_CODE},
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
+                    )
+                except SeerOutOfCreditsException:
+                    return Response(
+                        {
+                            "detail": (
+                                SEER_AUTOFIX_START_OUT_OF_CREDITS_DETAIL
+                                if resolved_run_id is None
+                                else SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL
+                            ),
+                            "code": SEER_OUT_OF_CREDITS_CODE,
+                        },
+                        status=status.HTTP_402_PAYMENT_REQUIRED,
                     )
                 except SeerPermissionError as e:
                     if _is_unknown_run_id_error(e):
@@ -578,6 +622,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 run_id = run.seer_run_state_id
+                if is_single_run_record(run):
+                    feature_id = SINGLE_RUN_FEATURE_ID
 
                 if is_autofix_kickoff:
                     sentry_run_id = str(run.uuid)
@@ -587,6 +633,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         kickoff_body = {
             "run_id": run_id,
             "sentry_run_id": sentry_run_id,
+            "feature_id": feature_id,
         }
         return Response(kickoff_body, status=status.HTTP_202_ACCEPTED)
 
@@ -656,12 +703,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 )
 
         run = get_seer_run(state.run_id, group.organization)
-        blocks = [block.dict() for block in state.blocks]
+        visible = state if has_elevated_mode(request) else redact_autofix_prompts(state)
+        blocks = [block.dict() for block in visible.blocks]
         return Response(
             {
                 "autofix": {
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
+                    "feature_id": SINGLE_RUN_FEATURE_ID
+                    if is_single_run(state)
+                    else AUTOFIX_FEATURE_ID,
                     "status": state.status,
                     "failure_reason": state.failure_reason,
                     "blocks": blocks,

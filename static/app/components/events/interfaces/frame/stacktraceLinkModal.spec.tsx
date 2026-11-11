@@ -13,9 +13,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {StacktraceLinkModal} from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
+import {openModal} from '@sentry/scraps/modal';
+
 import * as analytics from 'sentry/utils/analytics';
+
+import {StacktraceLinkModal} from './stacktraceLinkModal';
 
 jest.mock('sentry/utils/analytics');
 

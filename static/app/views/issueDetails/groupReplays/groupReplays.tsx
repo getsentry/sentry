@@ -45,8 +45,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 
+import {GroupReplaysPlayer} from './groupReplaysPlayer';
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 
 type Props = {

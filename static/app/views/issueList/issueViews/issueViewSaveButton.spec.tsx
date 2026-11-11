@@ -14,8 +14,9 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueViewSaveButton} from './issueViewSaveButton';
 
 const organization = OrganizationFixture({
   features: ['issue-views'],

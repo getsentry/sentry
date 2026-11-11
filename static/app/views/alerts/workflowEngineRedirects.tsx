@@ -8,19 +8,12 @@ import {Redirect} from 'sentry/components/redirect';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {
-  AlertWizardRuleTemplates,
-  type MetricAlertType,
-} from 'sentry/views/alerts/wizard/options';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -34,6 +27,9 @@ import {
 } from 'sentry/views/detectors/pathnames';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
+
+import {Dataset, EventTypes} from './rules/metric/types';
+import {AlertWizardRuleTemplates, type MetricAlertType} from './wizard/options';
 
 const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
   'workflow-engine-disable-legacy-alert-rule-redirects';
@@ -276,20 +272,18 @@ function RedirectToIssue({
   const organization = useOrganization();
   const location = useLocation();
 
-  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
-    useApiQuery<IncidentGroupOpenPeriod>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {incident_identifier: alertId}},
-      ],
+  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} = useQuery({
+    ...apiOptions.as<IncidentGroupOpenPeriod>()(
+      '/organizations/$organizationIdOrSlug/incident-groupopenperiod/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {incident_identifier: alertId},
         staleTime: 0,
-        enabled: !!alertId,
-        retry: false,
       }
-    );
+    ),
+    enabled: !!alertId,
+    retry: false,
+  });
 
   if (isOpenPeriodPending) {
     return <LoadingIndicator />;
@@ -319,19 +313,17 @@ function RedirectToDetector({
   ruleId: string;
 }) {
   const organization = useOrganization();
-  const {data: alertRuleDetector, isPending: isDetectorPending} =
-    useApiQuery<AlertRuleDetector>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {alert_rule_id: ruleId}},
-      ],
+  const {data: alertRuleDetector, isPending: isDetectorPending} = useQuery({
+    ...apiOptions.as<AlertRuleDetector>()(
+      '/organizations/$organizationIdOrSlug/alert-rule-detector/',
       {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {alert_rule_id: ruleId},
         staleTime: 0,
-        retry: false,
       }
-    );
+    ),
+    retry: false,
+  });
 
   if (isDetectorPending) {
     return <LoadingIndicator />;
@@ -501,20 +493,18 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
     const location = useLocation();
     const {alertId} = useParams();
 
-    const {data: incidentGroupOpenPeriod, isPending} =
-      useApiQuery<IncidentGroupOpenPeriod>(
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {incident_identifier: alertId}},
-        ],
+    const {data: incidentGroupOpenPeriod, isPending} = useQuery({
+      ...apiOptions.as<IncidentGroupOpenPeriod>()(
+        '/organizations/$organizationIdOrSlug/incident-groupopenperiod/',
         {
+          path: {organizationIdOrSlug: organization.slug},
+          query: {incident_identifier: alertId},
           staleTime: 0,
-          enabled: !!alertId,
-          retry: false,
         }
-      );
+      ),
+      enabled: !!alertId,
+      retry: false,
+    });
 
     if (isPending) {
       return <LoadingIndicator />;
