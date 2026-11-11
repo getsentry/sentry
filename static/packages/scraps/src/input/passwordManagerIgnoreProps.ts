@@ -1,7 +1,6 @@
 /**
- * Spread onto inputs that never hold credentials (search boxes, filters) so
- * password manager extensions do not offer to fill them. There is no standard
- * attribute, so each manager needs its own.
+ * Stops password manager extensions from offering to fill an input. There is
+ * no standard attribute, so each manager needs its own.
  */
 export const passwordManagerIgnoreProps = {
   'data-1p-ignore': true,

@@ -11,7 +11,6 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
-import {passwordManagerIgnoreProps} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Footer, Header, Search, Title, ControlContext} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
@@ -568,7 +567,6 @@ export function Control<Value extends SelectKey>({
                 {searchEnabled && (
                   <Search
                     ref={searchRef}
-                    {...passwordManagerIgnoreProps}
                     placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                     value={searchInputValue}
                     onFocus={onSearchFocus}
