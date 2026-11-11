@@ -10,8 +10,8 @@ from django.views.generic import View
 
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
-    NotificationLink,
     PullRequestRedirect,
+    classify_link,
     is_tracking_enabled,
     parse_pull_request_redirect,
     record_engagement,
@@ -80,6 +80,6 @@ def _record_click(request: HttpRequest, redirect: PullRequestRedirect) -> None:
     record_engagement(
         context,
         mechanism=NotificationEngagementMechanism.REDIRECT,
-        link=NotificationLink.PULL_REQUEST,
+        link=classify_link(redirect.url),
         user_id=user_id,
     )

@@ -190,21 +190,20 @@ class NotificationLinkDecorator:
                 "notifications.tracking.pull-request-redirect-sources"
             ):
                 decorated = self._build_pull_request_redirect_url(url)
-                self.links.add(NotificationLink.PULL_REQUEST)
-                return decorated
-            parsed = urlsplit(url)
-            if not _is_sentry_url(parsed):
-                return url
-            query = [
-                (key, value)
-                for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-                if key not in ("referrer", "notification_uuid")
-            ]
-            query += [
-                ("referrer", f"{self.data.source}-{self.provider}"),
-                ("notification_uuid", self.data.notification_uuid),
-            ]
-            decorated = urlunsplit(parsed._replace(query=urlencode(query)))
+            else:
+                parsed = urlsplit(url)
+                if not _is_sentry_url(parsed):
+                    return url
+                query = [
+                    (key, value)
+                    for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+                    if key not in ("referrer", "notification_uuid")
+                ]
+                query += [
+                    ("referrer", f"{self.data.source}-{self.provider}"),
+                    ("notification_uuid", self.data.notification_uuid),
+                ]
+                decorated = urlunsplit(parsed._replace(query=urlencode(query)))
         except Exception:
             logger.exception("notifications.tracking.decorate_link.failed", extra={"url": url})
             return url
@@ -267,9 +266,12 @@ class NotificationLinkDecorator:
 
 def classify_link(url: str) -> NotificationLink:
     """
-    Works with both path styles: `/organizations/<slug>/issues/1/` and, on an organization's own
-    subdomain, `/issues/1/`.
+    Classifies Sentry pages and the GitHub pull requests that notifications redirect to. Sentry
+    pages work with both path styles: `/organizations/<slug>/issues/1/` and, on an organization's
+    own subdomain, `/issues/1/`.
     """
+    if is_trackable_pull_request_url(url):
+        return NotificationLink.PULL_REQUEST
     parsed = urlsplit(url)
     path = re.sub(r"^/organizations/[^/]+", "", parsed.path)
     query = parse_qs(parsed.query)

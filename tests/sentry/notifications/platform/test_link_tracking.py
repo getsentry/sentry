@@ -115,7 +115,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
                             assert redirect.context.source == source, link
                             assert redirect.context.provider == provider.key, link
                             assert redirect.context.notification_uuid == data.notification_uuid
-                            tracked.add(NotificationLink.PULL_REQUEST)
+                            tracked.add(classify_link(redirect.url))
                         else:
                             query = parse_qs(urlsplit(link).query)
                             assert query["referrer"] == [f"{source}-{provider.key}"], link
