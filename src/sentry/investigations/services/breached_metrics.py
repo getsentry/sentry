@@ -198,11 +198,6 @@ def resolve_breached_metric_sources(
             detection_type = AlertRuleDetectionType(detector.config.get("detection_type"))
         except (TypeError, ValueError):
             continue
-        if (
-            detection_type == AlertRuleDetectionType.STATIC
-            and detector.config.get("comparison_delta") is not None
-        ):
-            detection_type = AlertRuleDetectionType.PERCENT
         data_source_link = data_source_links.get(detector.id)
         if data_source_link is None:
             continue

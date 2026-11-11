@@ -151,8 +151,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         detector_trigger: DataCondition,
         priority: DetectorPriorityLevel,
     ) -> str:
-        comparison_delta = self.detector.config.get("comparison_delta")
         detection_type = self.detector.config.get("detection_type")
+        is_percent_detector = detection_type == AlertRuleDetectionType.PERCENT
         metric = describe_query_metric(snuba_query)
 
         if detection_type == "dynamic":
@@ -161,19 +161,20 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         # Determine the higher or lower comparison
         higher_or_lower = ""
         if detector_trigger.type == Condition.GREATER:
-            higher_or_lower = "greater than" if comparison_delta else "above"
+            higher_or_lower = "greater than" if is_percent_detector else "above"
         else:
-            higher_or_lower = "less than" if comparison_delta else "below"
+            higher_or_lower = "less than" if is_percent_detector else "below"
 
         label = "Warning" if priority == DetectorPriorityLevel.MEDIUM else "Critical"
 
         # Format the time window for the threshold
         time_window = format_duration_idiomatic(snuba_query.time_window // 60)
 
-        # If the detector_trigger has a comparison delta, format the comparison string
+        # For percent detectors, format the comparison string
         comparison: str | int | float = "threshold"
-        if comparison_delta:
-            comparison_delta_minutes = comparison_delta // 60
+        if is_percent_detector:
+            comparison_delta_sec = self.detector.config.get("comparison_delta")
+            comparison_delta_minutes = comparison_delta_sec // 60
             comparison = TEXT_COMPARISON_DELTA.get(
                 comparison_delta_minutes, f"same time {comparison_delta_minutes} minutes ago "
             )
