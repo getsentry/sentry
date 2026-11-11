@@ -2701,4 +2701,70 @@ describe('ActivitySection', () => {
       await screen.findByText('The request failed before order creation.')
     ).toBeInTheDocument();
   });
+
+  it('renders Investigation linked activity', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-linked-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: {id: '42', title: 'Checkout outage', status: 'active'},
+            hypothesisId: 'hypothesis-1',
+            hypothesisStatement: 'A bad deploy broke checkout.',
+            reason: 'The error started right after the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Linked by investigation Checkout outage');
+    expect(timeline).toHaveTextContent('The error started right after the deploy.');
+    expect(screen.getByRole('link', {name: 'Checkout outage'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/investigations/42/'
+    );
+  });
+
+  it('renders Investigation linked activity for a deleted investigation', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-linked-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: null,
+            hypothesisId: 'hypothesis-1',
+            hypothesisStatement: 'A bad deploy broke checkout.',
+            reason: null,
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Linked by a deleted investigation');
+    expect(timeline).toHaveTextContent('A bad deploy broke checkout.');
+  });
 });

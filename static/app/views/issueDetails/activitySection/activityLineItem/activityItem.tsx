@@ -649,6 +649,23 @@ function getActivityItemContent({
         }),
       };
     }
+    case GroupActivityType.INVESTIGATION_LINKED: {
+      const {investigation, hypothesisStatement, reason} = activity.data;
+      return {
+        title: investigation
+          ? tct('Linked by investigation [investigation]', {
+              investigation: (
+                <Link
+                  to={`/organizations/${organization.slug}/investigations/${investigation.id}/`}
+                >
+                  {investigation.title}
+                </Link>
+              ),
+            })
+          : t('Linked by a deleted investigation'),
+        details: reason ?? hypothesisStatement,
+      };
+    }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
