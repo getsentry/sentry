@@ -116,6 +116,7 @@ export default function OrganizationDataForwardingSetup() {
                     {PROVIDER_TAB_ORDER.map(key => (
                       <TabList.Item
                         key={key}
+                        textValue={ProviderLabels[key]}
                         disabled={disabledProviders.has(key) || !hasFeature}
                         tooltip={
                           disabledProviders.has(key)
