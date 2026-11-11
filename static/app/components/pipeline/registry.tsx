@@ -1,4 +1,5 @@
 import {dummyIntegrationPipeline} from './dummyProvider';
+import {awsIntegrationPipeline} from './integrationAws';
 import {awsLambdaIntegrationPipeline} from './integrationAwsLambda';
 import {bitbucketIntegrationPipeline} from './integrationBitbucket';
 import {bitbucketServerIntegrationPipeline} from './integrationBitbucketServer';
@@ -30,6 +31,7 @@ import {vstsIntegrationPipeline} from './integrationVsts';
  * All registered pipeline definitions.
  */
 export const PIPELINE_REGISTRY = [
+  awsIntegrationPipeline,
   awsLambdaIntegrationPipeline,
   bitbucketIntegrationPipeline,
   bitbucketServerIntegrationPipeline,
