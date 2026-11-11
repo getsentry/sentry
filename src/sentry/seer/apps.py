@@ -8,4 +8,4 @@ class SeerConfig(AppConfig):
         # Register all the entrypoints for the operator to use
         import sentry.seer.entrypoints.slack.entrypoint  # noqa: F401
         import sentry.seer.workflows.metric_alert  # noqa: F401
-        import sentry.seer.workflows.schedule  # noqa: F401
+        import sentry.seer.workflows.scheduled  # noqa: F401
