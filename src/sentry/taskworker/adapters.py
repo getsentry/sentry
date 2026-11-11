@@ -186,7 +186,6 @@ class DatabaseConnectionResetHook:
 
     This hook makes it so that when a task raises any error, or leaves a connection mid-transaction,
     it closes all open database connections to prevent this class of bugs from happening
-    ContextHook that closes every open database connection when a task raises.
     """
 
     def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
