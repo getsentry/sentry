@@ -1,4 +1,10 @@
-import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  skipToken,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {apiOptions, selectJson} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -62,6 +68,17 @@ export function useCreateConfig() {
   });
 }
 
+function getUpdateConfigMutationKey(configId: string) {
+  return ['seer-workflow-config-update', configId];
+}
+
+/**
+ * Whether any update to the automation's config is in flight.
+ */
+export function useIsUpdatingConfig({configId}: {configId: string}) {
+  return useIsMutating({mutationKey: getUpdateConfigMutationKey(configId)}) > 0;
+}
+
 /**
  * Updates an automation's config and refetches the organization's configs.
  */
@@ -70,6 +87,7 @@ export function useUpdateConfig({configId}: {configId: string}) {
   const {configsUrl, configUrl} = useConfigUrls(configId);
 
   return useMutation({
+    mutationKey: getUpdateConfigMutationKey(configId),
     mutationFn: (data: SeerWorkflowConfigUpdateRequest) =>
       fetchMutation<SeerWorkflowConfigResponse>({url: configUrl, method: 'PUT', data}),
     onSuccess: () => queryClient.invalidateQueries({queryKey: [configsUrl]}),

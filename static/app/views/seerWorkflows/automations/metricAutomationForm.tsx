@@ -1,3 +1,4 @@
+import {useImperativeHandle, type RefObject} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
@@ -64,7 +65,27 @@ const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
   'team:read',
 ];
 
-type Props = {mode: 'create'} | {config: SeerWorkflowConfigResponse; mode: 'edit'};
+export type MetricAutomationFormHandle = {reset: () => void};
+
+type Props =
+  | {mode: 'create'}
+  | {
+      config: SeerWorkflowConfigResponse;
+      /**
+       * Lets a submit button outside the form target it
+       */
+      formId: string;
+      /**
+       * Exposes the form's reset so callers outside the form can discard changes
+       */
+      formRef: RefObject<MetricAutomationFormHandle | null>;
+      mode: 'edit';
+      onSaved: () => void;
+      /**
+       * Prevents editing until the user starts configuring
+       */
+      readOnly: boolean;
+    };
 
 export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
@@ -79,6 +100,7 @@ export function MetricAutomationForm(props: Props) {
       scope !== 'org:superuser' &&
       scope !== 'org:billing'
   );
+  const readOnly = props.mode === 'edit' && props.readOnly;
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
@@ -111,10 +133,12 @@ export function MetricAutomationForm(props: Props) {
     }
     const config = await updateConfig.mutateAsync(fields);
     toast.success(t('Automation saved.'));
+    props.onSaved();
     return config;
   };
   const form = useScrapsForm({
     ...defaultFormOptions,
+    ...(props.mode === 'edit' ? {formId: props.formId} : {}),
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
       name:
@@ -150,6 +174,8 @@ export function MetricAutomationForm(props: Props) {
       }
     },
   });
+  const formRef = props.mode === 'edit' ? props.formRef : undefined;
+  useImperativeHandle(formRef, () => ({reset: () => form.reset()}), [form]);
   // Fetch connected monitors by ID so they resolve regardless of the picker's filters
   const queryClient = useQueryClient();
   const monitorIds = useStore(form.store, state => state.values.monitorIds);
@@ -247,6 +273,7 @@ export function MetricAutomationForm(props: Props) {
                         monitors={monitors}
                         isPending={monitorsQuery.isLoading}
                         isError={hasMonitorsError}
+                        disabled={readOnly}
                         onChange={field.handleChange}
                       />
                     )}
@@ -266,6 +293,7 @@ export function MetricAutomationForm(props: Props) {
                   )}
                 >
                   <field.Switch
+                    disabled={readOnly}
                     checked={field.state.value}
                     onChange={field.handleChange}
                   />
@@ -294,7 +322,7 @@ export function MetricAutomationForm(props: Props) {
                         multiple
                         clearable
                         searchable
-                        disabled={field.state.value.mode === 'all'}
+                        disabled={readOnly || field.state.value.mode === 'all'}
                         value={resolveServiceAccountProjects(
                           field.state.value,
                           monitorIds,
@@ -322,6 +350,7 @@ export function MetricAutomationForm(props: Props) {
                         {field.state.value.mode !== 'monitors' && (
                           <Button
                             size="xs"
+                            disabled={readOnly}
                             onClick={() => field.handleChange({mode: 'monitors'})}
                           >
                             {t('Use monitor projects')}
@@ -345,6 +374,7 @@ export function MetricAutomationForm(props: Props) {
                       multiple
                       clearable
                       searchable
+                      disabled={readOnly}
                       value={field.state.value}
                       onChange={field.handleChange}
                       options={[...new Set([...availableScopes, ...field.state.value])]
@@ -361,21 +391,19 @@ export function MetricAutomationForm(props: Props) {
             <Text variant="muted" size="sm">
               {t('Changes apply when you save.')}
             </Text>
-            <Flex gap="md">
-              {props.mode === 'create' ? (
+            {props.mode === 'create' && (
+              <Flex gap="md">
                 <LinkButton to={getAutomationsPath(organization.slug)}>
                   {t('Cancel')}
                 </LinkButton>
-              ) : (
-                <form.ResetButton>{t('Discard changes')}</form.ResetButton>
-              )}
-              <form.SubmitButton
-                variant="primary"
-                disabled={isResolvingMonitors || hasMonitorsError}
-              >
-                {props.mode === 'create' ? t('Create automation') : t('Save changes')}
-              </form.SubmitButton>
-            </Flex>
+                <form.SubmitButton
+                  variant="primary"
+                  disabled={isResolvingMonitors || hasMonitorsError}
+                >
+                  {t('Create automation')}
+                </form.SubmitButton>
+              </Flex>
+            )}
           </Flex>
         </Stack>
       </form.AppForm>
@@ -388,8 +416,10 @@ function ConnectedMonitors({
   monitors,
   isPending,
   isError,
+  disabled,
   onChange,
 }: {
+  disabled: boolean;
   isError: boolean;
   isPending: boolean;
   monitorIds: string[];
@@ -411,6 +441,7 @@ function ConnectedMonitors({
         <Button
           size="sm"
           icon={<IconAdd />}
+          disabled={disabled}
           onClick={() =>
             openDrawer(
               () => (
@@ -443,6 +474,7 @@ function ConnectedMonitors({
             variant="transparent"
             icon={<IconClose />}
             aria-label={t('Disconnect %s', monitor.name)}
+            disabled={disabled}
             onClick={() => onChange(monitorIds.filter(id => id !== monitor.id))}
           />
         )}

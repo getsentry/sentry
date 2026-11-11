@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, type RefObject} from 'react';
 import {useOutletContext} from 'react-router';
 import {useTheme} from '@emotion/react';
 
@@ -14,7 +14,10 @@ import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
+import {
+  MetricAutomationForm,
+  type MetricAutomationFormHandle,
+} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
@@ -88,11 +91,28 @@ function ConfigRow({
   );
 }
 
-export default function AutomationConfiguration() {
-  const config = useOutletContext<SeerWorkflowConfigResponse | undefined>();
+export type AutomationDetailOutletContext = {
+  config: SeerWorkflowConfigResponse;
+  formId: string;
+  formRef: RefObject<MetricAutomationFormHandle | null>;
+  isConfiguring: boolean;
+  onSaved: () => void;
+};
 
-  if (config?.strategy === 'breached_metric_investigation') {
-    return <MetricAutomationForm mode="edit" config={config} />;
+export default function AutomationConfiguration() {
+  const context = useOutletContext<AutomationDetailOutletContext | undefined>();
+
+  if (context?.config.strategy === 'breached_metric_investigation') {
+    return (
+      <MetricAutomationForm
+        mode="edit"
+        config={context.config}
+        formId={context.formId}
+        formRef={context.formRef}
+        onSaved={context.onSaved}
+        readOnly={!context.isConfiguring}
+      />
+    );
   }
 
   return <ScheduledAutomationConfiguration />;

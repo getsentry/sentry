@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {
   ActionFilterFixture,
   ActionFixture,
@@ -39,6 +40,26 @@ describe('MetricAutomationForm', () => {
     serviceAccount: {...serviceAccount, serviceAccountId: '5'},
   });
   let requestSpy: jest.SpyInstance;
+
+  // The edit form's save button lives in the page header, so render one that targets it
+  function renderEditForm(editConfig: typeof config) {
+    render(
+      <Fragment>
+        <MetricAutomationForm
+          mode="edit"
+          config={editConfig}
+          formId="automation-form"
+          formRef={{current: null}}
+          onSaved={jest.fn()}
+          readOnly={false}
+        />
+        <button type="submit" form="automation-form">
+          Save changes
+        </button>
+      </Fragment>,
+      {organization}
+    );
+  }
 
   function expectNoServiceAccountRequests() {
     expect(requestSpy).not.toHaveBeenCalledWith(
@@ -165,9 +186,7 @@ describe('MetricAutomationForm', () => {
       method: 'PUT',
       body: allProjectsConfig,
     });
-    render(<MetricAutomationForm mode="edit" config={allProjectsConfig} />, {
-      organization,
-    });
+    renderEditForm(allProjectsConfig);
 
     await screen.findByText('Checkout error rate');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
@@ -192,12 +211,7 @@ describe('MetricAutomationForm', () => {
       method: 'PUT',
       body: config,
     });
-    render(
-      <MetricAutomationForm mode="edit" config={{...config, serviceAccount: null}} />,
-      {
-        organization,
-      }
-    );
+    renderEditForm({...config, serviceAccount: null});
 
     await screen.findByText('Checkout error rate');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
@@ -235,6 +249,7 @@ describe('MetricAutomationForm', () => {
       },
     });
 
+    await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
     await userEvent.click(
       await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
     );
@@ -244,7 +259,7 @@ describe('MetricAutomationForm', () => {
     );
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(screen.getByRole('checkbox', {name: 'Start investigations'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
@@ -262,13 +277,14 @@ describe('MetricAutomationForm', () => {
       statusCode: 400,
       body: {detail: 'Selected monitors must be active metric monitors.'},
     });
-    render(<MetricAutomationForm mode="edit" config={config} />, {organization});
+    renderEditForm(config);
 
     await screen.findByText('Checkout error rate');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
+    // Shown in both the inline alert and the toast
     expect(
-      await screen.findByText('Selected monitors must be active metric monitors.')
-    ).toBeInTheDocument();
+      await screen.findAllByText('Selected monitors must be active metric monitors.')
+    ).toHaveLength(2);
   });
 });
