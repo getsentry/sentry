@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
-import noop from 'lodash/noop';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -246,7 +245,7 @@ export function ReleaseHeader({
       </TopBar.Slot>
       <Stack column="1 / -1">
         {tabsRootProps => (
-          <Tabs onChange={noop} value={getActiveTabTo()} {...tabsRootProps}>
+          <LinkTabs value={getActiveTabTo()} {...tabsRootProps}>
             {({TabList}) => (
               <TabList>
                 {tabs.map(tab => (
@@ -260,7 +259,7 @@ export function ReleaseHeader({
                 ))}
               </TabList>
             )}
-          </Tabs>
+          </LinkTabs>
         )}
       </Stack>
     </Layout.Header>

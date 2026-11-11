@@ -10,7 +10,7 @@ import {
 import {userEvent} from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs, Tabs} from '@sentry/scraps/tabs';
 import {lightTheme} from '@sentry/scraps/theme';
 
 const TABS = [
@@ -34,6 +34,87 @@ const TABS = [
 ] as const;
 
 describe('Tabs', () => {
+  it('requires destinations only for link tabs and infers their key union', () => {
+    const value = 'details' as 'details' | 'activity';
+    const linked = (
+      <LinkTabs
+        value={value}
+        onActivate={key => {
+          expectTypeOf(key).toEqualTypeOf<'details' | 'activity'>();
+        }}
+      >
+        {({TabList, TabPanels}) => (
+          <Fragment>
+            <TabList>
+              <TabList.Item key="details" to="/details/">
+                Details
+              </TabList.Item>
+              {/* @ts-expect-error Every link tab needs a destination. */}
+              <TabList.Item key="activity">Activity</TabList.Item>
+              {/* @ts-expect-error Item keys cannot widen the union from value. */}
+              <TabList.Item key="unknown" to="/unknown/">
+                Unknown
+              </TabList.Item>
+            </TabList>
+            <TabPanels>
+              <TabPanels.Item key="activity">Activity content</TabPanels.Item>
+              {/* @ts-expect-error Panel keys must belong to the value union. */}
+              <TabPanels.Item key="unknown">Unknown content</TabPanels.Item>
+            </TabPanels>
+          </Fragment>
+        )}
+      </LinkTabs>
+    );
+    const selection = (
+      <Tabs defaultValue="details">
+        {({TabList}) => (
+          <TabList>
+            {/* @ts-expect-error State tabs cannot navigate. */}
+            <TabList.Item key="details" to="/details/">
+              Details
+            </TabList.Item>
+          </TabList>
+        )}
+      </Tabs>
+    );
+    expectTypeOf(linked).not.toBeAny();
+    expectTypeOf(selection).not.toBeAny();
+  });
+
+  it('requires an observed value without selection props for link tabs', () => {
+    // @ts-expect-error The URL controls selection; value is required.
+    const missingValue = <LinkTabs>{() => null}</LinkTabs>;
+    const defaultValue = (
+      // @ts-expect-error Link tabs cannot have independent default selection.
+      <LinkTabs value="details" defaultValue="activity">
+        {() => null}
+      </LinkTabs>
+    );
+    const onChange = (
+      // @ts-expect-error Link activation is not a state selection callback.
+      <LinkTabs value="details" onChange={() => {}}>
+        {() => null}
+      </LinkTabs>
+    );
+    const automatic = (
+      // @ts-expect-error Keyboard focus cannot automatically select a URL-backed panel.
+      <LinkTabs value="details" keyboardActivation="automatic">
+        {() => null}
+      </LinkTabs>
+    );
+    const disabledKeys = (
+      // @ts-expect-error Disabled keys cannot widen the inferred union.
+      <LinkTabs value={'details' as 'details' | 'activity'} disabledKeys={['unknown']}>
+        {() => null}
+      </LinkTabs>
+    );
+    expectTypeOf(missingValue).not.toBeAny();
+    expectTypeOf(defaultValue).not.toBeAny();
+    expectTypeOf(onChange).not.toBeAny();
+    expectTypeOf(automatic).not.toBeAny();
+    expectTypeOf(disabledKeys).not.toBeAny();
+  });
+
   it('infers the same key union for selection, list items, and panels', async () => {
     const onChange = jest.fn();
     render(
@@ -98,8 +179,8 @@ describe('Tabs', () => {
 
     const narrowCallback = (
       <Tabs
-        // @ts-expect-error The callback must accept the whole selected key union.
         value={'details' as 'details' | 'activity'}
+        // @ts-expect-error The callback must accept the whole selected key union.
         onChange={(_key: 'details') => {}}
       >
         {() => null}
@@ -569,7 +650,7 @@ describe('Tabs', () => {
 
   it('renders tab links', async () => {
     render(
-      <Tabs defaultValue="details">
+      <LinkTabs value={'details' as (typeof TABS)[number]['key']}>
         {({TabList, TabPanels}) => (
           <Fragment>
             <TabList>
@@ -586,7 +667,7 @@ describe('Tabs', () => {
             </TabPanels>
           </Fragment>
         )}
-      </Tabs>,
+      </LinkTabs>,
       {wrapper: ThemeWrapper}
     );
 
@@ -623,7 +704,7 @@ describe('Tabs', () => {
 
   it('should not allow disabled tabs to be links', () => {
     render(
-      <Tabs defaultValue="details">
+      <LinkTabs value={'details' as (typeof TABS)[number]['key']}>
         {({TabList, TabPanels}) => (
           <Fragment>
             <TabList>
@@ -640,7 +721,7 @@ describe('Tabs', () => {
             </TabPanels>
           </Fragment>
         )}
-      </Tabs>,
+      </LinkTabs>,
       {wrapper: ThemeWrapper}
     );
 

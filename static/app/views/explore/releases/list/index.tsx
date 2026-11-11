@@ -4,7 +4,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {DocumentationHint} from 'sentry/components/documentationHint';
@@ -488,7 +488,7 @@ function ReleasesListInnerPage() {
                     </PageFilterBar>
                   )}
                 </Container>
-                <Tabs value={selectedTab} onChange={handleTabChange}>
+                <LinkTabs value={selectedTab} onActivate={handleTabChange}>
                   {({TabList}) => (
                     <TabList aria-label={t('Releases tab selector')}>
                       <TabList.Item
@@ -542,7 +542,7 @@ function ReleasesListInnerPage() {
                       </TabList.Item>
                     </TabList>
                   )}
-                </Tabs>
+                </LinkTabs>
               </Stack>
             </Layout.Main>
           </ReleasesBodySearch>

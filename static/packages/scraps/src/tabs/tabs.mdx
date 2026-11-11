@@ -17,7 +17,7 @@ import {useLocation} from 'react-router';
 import {createSerializer, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -47,7 +47,7 @@ Use `<Tabs>` to organize related content into separate views that users can swit
 
 ## Compound Components
 
-Import only `Tabs`. Get `TabList` and `TabPanels` from its child function. These components share the string key type of that `Tabs` instance. Use matching string keys for each tab and its panel. Numeric keys are not supported.
+Import `Tabs` for state or `LinkTabs` for navigation. Get `TabList` and `TabPanels` from its child function. These components share the string key type of that `Tabs` instance. Use matching string keys for each tab and its panel. Numeric keys are not supported.
 
 - **`<Tabs>`**: Root component that manages state, provides context, and renders the tab layout
 - **`<TabList>`**: Container for tab buttons
@@ -437,9 +437,9 @@ Resize the demo to see tabs move into and out of the overflow menu.
 
 ## Linked tabs
 
-Set `to` on `TabList.Item` to render a link. Derive `Tabs.value` from the current route so navigation selects the matching tab, including links in the overflow menu.
+Use `LinkTabs` for navigation. Every `TabList.Item` requires `to`; regular `Tabs` items forbid it. Derive `LinkTabs.value` from the current route so navigation selects the matching tab, including links in the overflow menu.
 
-Arrow keys move focus between links. Press Enter or Space, or click a link, to navigate. Automatic selection does not navigate to a link.
+Arrow keys move focus between links. Press Enter or Space, or click a link, to navigate. Links do not have independent selection state: `value` is required, and `onChange` and `defaultValue` are not allowed. Use optional `onActivate` for activation analytics; it fires for visible and overflow link clicks, including modified clicks, but not focus or URL changes.
 
 This demo uses `nuqs` to read the `linkedTab` query parameter and build link URLs that keep navigation on this page. Resize the demo to test overflow. Ctrl-click or Command-click a link to open it in a new browser tab.
 
@@ -456,7 +456,7 @@ export function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs onChange={() => {}} value={value}>
+    <LinkTabs value={value}>
       {({TabList, TabPanels}) => (
         <Fragment>
           <TabList aria-label="Linked tabs">
@@ -479,7 +479,7 @@ export function LinkedTabsDemo() {
           </TabPanels>
         </Fragment>
       )}
-    </Tabs>
+    </LinkTabs>
   );
 }
 
@@ -507,7 +507,7 @@ function LinkedTabsDemo() {
   const [value] = useQueryState('linkedTab', parser);
   const serialize = createSerializer({linkedTab: parser});
   return (
-    <Tabs onChange={() => {}} value={value}>
+    <LinkTabs value={value}>
       {({TabList, TabPanels}) => (
         <Fragment>
           <TabList aria-label="Linked tabs">
@@ -530,7 +530,7 @@ function LinkedTabsDemo() {
           </TabPanels>
         </Fragment>
       )}
-    </Tabs>
+    </LinkTabs>
   );
 }
 ```
