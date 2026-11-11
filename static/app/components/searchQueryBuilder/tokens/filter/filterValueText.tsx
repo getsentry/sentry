@@ -150,10 +150,14 @@ function TruncatedFilterDisplayValue({
     // That can make consecutive fits alternate between the full and truncated
     // value forever (each committed value re-triggering the next fit), which
     // React aborts with "Maximum update depth exceeded". Track the last two
-    // results so we can detect that A -> B -> A flip and pin the shorter value
-    // until the observed container actually grows.
+    // results (and the observed container width each was measured at) so we can
+    // detect an A -> B -> A flip that happens without the container resizing,
+    // and pin the shorter value until the observed container actually grows.
+    // A flip that follows a genuine resize (shrink then grow) is not pinned.
     let previousResult: string | undefined;
+    let previousObservedWidth: number | undefined;
     let lastResult: string | undefined;
+    let lastObservedWidth: number | undefined;
     let pinned: {observedWidth: number; result: string} | undefined;
 
     const update = () => {
@@ -168,7 +172,9 @@ function TruncatedFilterDisplayValue({
           // The container genuinely grew, so allow re-fitting from scratch.
           pinned = undefined;
           previousResult = undefined;
+          previousObservedWidth = undefined;
           lastResult = undefined;
+          lastObservedWidth = undefined;
         }
 
         let next = fitMiddleEllipsisToElement(value, fallbackMaxLength, element, multi);
@@ -183,7 +189,9 @@ function TruncatedFilterDisplayValue({
           previousResult !== undefined &&
           lastResult !== undefined &&
           next === previousResult &&
-          next !== lastResult
+          next !== lastResult &&
+          observedWidth === previousObservedWidth &&
+          observedWidth === lastObservedWidth
         ) {
           const shorter = next.length <= lastResult.length ? next : lastResult;
           pinned = {observedWidth, result: shorter};
@@ -191,7 +199,9 @@ function TruncatedFilterDisplayValue({
         }
 
         previousResult = lastResult;
+        previousObservedWidth = lastObservedWidth;
         lastResult = next;
+        lastObservedWidth = observedWidth;
         setDisplayValue(prev => (prev === next ? prev : next));
       } finally {
         isFitting = false;
