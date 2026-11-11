@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
-import {useSearchParams} from 'react-router';
 import {IconSettings} from '@sentry/icons/settings';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -28,8 +28,8 @@ export function AppSizeInsights({
   platform,
   projectType,
 }: AppSizeInsightsProps) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const isSidebarOpen = searchParams.get('insights') === 'open';
+  const [insights, setInsights] = useQueryState('insights', parseAsString);
+  const isSidebarOpen = insights === 'open';
   const organization = useOrganization();
 
   const openSidebar = () => {
@@ -39,16 +39,12 @@ export function AppSizeInsights({
       source: 'insight_table',
       project_type: projectType,
     });
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('insights', 'open');
-    setSearchParams(newParams);
+    setInsights('open', {history: 'push'});
   };
 
   const closeSidebar = useCallback(() => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('insights');
-    setSearchParams(newParams);
-  }, [searchParams, setSearchParams]);
+    setInsights(null, {history: 'push'});
+  }, [setInsights]);
 
   const hasInsights = processedInsights.length > 0;
   // Only show top 5 insights, show the rest in the sidebar

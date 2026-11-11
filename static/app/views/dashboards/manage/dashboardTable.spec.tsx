@@ -187,6 +187,28 @@ describe('Dashboards - DashboardTable', () => {
     );
   });
 
+  it('links the name header to the descending sort when the URL sorts by name ascending', async () => {
+    const sortedLocationConfig = {
+      pathname: '/organizations/org-slug/dashboards/',
+      query: {sort: 'title'},
+    };
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={LocationFixture(sortedLocationConfig)}
+        isOnlyPrebuilt={false}
+      />,
+      {initialRouterConfig: {location: sortedLocationConfig}}
+    );
+
+    expect(await screen.findByRole('link', {name: 'Name'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboards/?sort=-title'
+    );
+  });
+
   it('can delete dashboards', async () => {
     render(
       <DashboardTable

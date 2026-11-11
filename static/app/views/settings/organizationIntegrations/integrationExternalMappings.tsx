@@ -4,6 +4,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconDelete} from '@sentry/icons/delete';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
@@ -25,7 +26,6 @@ import type {
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -56,10 +56,6 @@ type Props = Pick<
   type: 'team' | 'user';
   onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
-};
-
-type LocationQuery = {
-  cursor?: string;
 };
 
 function MappingName({
@@ -145,8 +141,7 @@ export function IntegrationExternalMappings(props: Props) {
   >([]);
 
   const organization = useOrganization();
-  const location = useLocation<LocationQuery>();
-  const {cursor} = location.query;
+  const [cursor] = useQueryState('cursor', parseAsString);
   const isFirstPage = cursor ? cursor.split(':')[1] === '0' : true;
 
   const {

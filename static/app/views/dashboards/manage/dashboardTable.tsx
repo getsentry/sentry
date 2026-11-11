@@ -8,6 +8,7 @@ import {IconStar} from '@sentry/icons/star';
 import {useMutation} from '@tanstack/react-query';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
+import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -35,7 +36,6 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
@@ -50,6 +50,12 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
+import {
+  applyQueryParamsUpdates,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+const dashboardTableParsers = {sort: parseAsScalar};
 
 type Props = {
   dashboards: DashboardListItem[] | undefined;
@@ -221,6 +227,7 @@ export function DashboardTable({
   isLoading,
   isOnlyPrebuilt,
 }: Props) {
+  const [sort] = useQueryState('sort', parseAsScalar);
   const {mutate: updateEditAccess} = useMutation({
     mutationFn: (dashboard: DashboardListItem) =>
       fetchMutation({
@@ -297,10 +304,7 @@ export function DashboardTable({
     }
 
     const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-    const urlSort = decodeScalar(
-      location.query.sort,
-      hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
-    );
+    const urlSort = sort ?? (hasUserLastVisited ? 'recentlyViewed' : 'mydashboards');
     const currentDirection =
       urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
     const isCurrentSort = currentDirection !== undefined;
@@ -309,13 +313,9 @@ export function DashboardTable({
       align: 'left',
       direction:
         !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection,
-      to: {
-        ...location,
-        query: {
-          ...location.query,
-          sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
-        },
-      },
+      to: applyQueryParamsUpdates(dashboardTableParsers, location, {
+        sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
+      }),
     };
   }
 

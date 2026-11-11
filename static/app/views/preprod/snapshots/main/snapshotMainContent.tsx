@@ -10,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DiffStatus,
@@ -110,6 +111,7 @@ export function SnapshotMainContent({
   navButtonRefs,
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const showSplit = useResponsivePropValue({zero: false, xl: true});
   const selectedImage = useMemo(() => {
     if (!selectedItem) {
@@ -306,7 +308,7 @@ export function SnapshotMainContent({
           status: isChanged ? DiffStatus.CHANGED : DiffStatus.ERRORED,
           diffPercent: currentPair.diff,
           copyData: currentPair,
-          copyUrl: buildSnapshotLink(image.image_file_name),
+          copyUrl: buildSnapshotLink(location, image.image_file_name),
 
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
@@ -362,7 +364,7 @@ export function SnapshotMainContent({
           tags: image.tags,
           status: DiffStatus.RENAMED,
           copyData: currentPair,
-          copyUrl: buildSnapshotLink(image.image_file_name),
+          copyUrl: buildSnapshotLink(location, image.image_file_name),
 
           onCopyLink: () =>
             trackAnalytics('preprod.snapshots.details.image_link_copied', {
@@ -423,7 +425,7 @@ export function SnapshotMainContent({
         tags: currentImage.tags,
         status,
         copyData: currentImage,
-        copyUrl: buildSnapshotLink(currentImage.image_file_name),
+        copyUrl: buildSnapshotLink(location, currentImage.image_file_name),
         onCopyLink: () =>
           trackAnalytics('preprod.snapshots.details.image_link_copied', {
             organization,

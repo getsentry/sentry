@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
-import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import {
@@ -81,6 +80,7 @@ type DetectorSettingsOptions = {
   hasAccess: boolean;
   hasWebVitalsSeerSuggestions: boolean;
   isResetting: boolean;
+  issueType: string | null;
   performanceIssueSettings: ProjectPerformanceSettings;
   projectSlug: string;
   resetVersion: number;
@@ -253,6 +253,7 @@ export function getProjectDetectorSettings({
   hasAIIssueDetection,
   hasWebVitalsSeerSuggestions,
   isResetting,
+  issueType,
   performanceIssueSettings,
   projectSlug,
   resetVersion,
@@ -260,7 +261,6 @@ export function getProjectDetectorSettings({
   const disabledReason = hasAccess
     ? t('Detection of this issue has been disabled.')
     : null;
-  const issueType = safeGetQsParam('issueType');
   const fieldSettings = {
     isResetting,
     performanceIssueSettings,

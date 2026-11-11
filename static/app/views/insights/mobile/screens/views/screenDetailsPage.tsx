@@ -1,6 +1,6 @@
 import type React from 'react';
 import {useState} from 'react';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
@@ -11,9 +11,6 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
@@ -23,10 +20,15 @@ import {PlatformizedAppStartsOverview} from './platformizedAppStartsOverview';
 import {PlatformizedScreenLoadsOverview} from './platformizedScreenLoadsOverview';
 import {PlatformizedScreenRenderingOverview} from './platformizedScreenRenderingOverview';
 
-type Query = {
-  project: string;
-  tab: string | undefined;
-  transaction: string;
+const screenDetailsParsers = {
+  tab: parseAsString,
+  transaction: parseAsString.withDefault(''),
+  field: parseAsString,
+  query: parseAsString,
+  referrer: parseAsString,
+  sampling: parseAsString,
+  sort: parseAsString,
+  'span.op': parseAsString,
 };
 
 export type TabKey = 'app_start' | 'screen_load' | 'screen_rendering';
@@ -39,11 +41,10 @@ type Tab = {
 };
 
 function ScreenDetailsPage() {
-  const navigate = useNavigate();
-  const location = useLocation<Query>();
+  const [{tab: queryTab, transaction: transactionName}, setQueryParams] =
+    useQueryStates(screenDetailsParsers);
   const organization = useOrganization();
 
-  const {transaction: transactionName} = location.query;
   const moduleName = ModuleName.MOBILE_VITALS;
 
   const tabs: Tab[] = [
@@ -66,7 +67,6 @@ function ScreenDetailsPage() {
   ];
 
   const getTabKeyFromQuery = () => {
-    const queryTab = decodeScalar(location?.query?.tab);
     const selectedTab = tabs.find((tab: Tab) => tab.key === queryTab);
     return selectedTab?.key ?? tabs[0]!.key;
   };
@@ -77,12 +77,18 @@ function ScreenDetailsPage() {
   function handleTabChange(tabKey: string) {
     setSelectedTabKey(tabKey as TabKey);
 
-    const newQuery = {...location.query, tab: tabKey};
-
-    navigate({
-      pathname: location.pathname,
-      query: omit(newQuery, 'field', 'query', 'referrer', 'sampling', 'sort', 'span.op'),
-    });
+    setQueryParams(
+      {
+        tab: tabKey,
+        field: null,
+        query: null,
+        referrer: null,
+        sampling: null,
+        sort: null,
+        'span.op': null,
+      },
+      {history: 'push'}
+    );
   }
 
   const tabList = (

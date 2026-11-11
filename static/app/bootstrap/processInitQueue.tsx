@@ -6,6 +6,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
@@ -53,15 +54,17 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
           <QueryClientProvider client={queryClient}>
             <DocumentTitleManager>
               <ThemeAndStyleProvider>
-                <CommandPaletteProvider>
-                  <SimpleRouter
-                    element={
-                      <ScrapsProviders>
-                        <Component {...props} />
-                      </ScrapsProviders>
-                    }
-                  />
-                </CommandPaletteProvider>
+                <NuqsAdapter defaultOptions={{shallow: false}}>
+                  <CommandPaletteProvider>
+                    <SimpleRouter
+                      element={
+                        <ScrapsProviders>
+                          <Component {...props} />
+                        </ScrapsProviders>
+                      }
+                    />
+                  </CommandPaletteProvider>
+                </NuqsAdapter>
               </ThemeAndStyleProvider>
             </DocumentTitleManager>
           </QueryClientProvider>

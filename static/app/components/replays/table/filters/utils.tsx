@@ -1,36 +1,24 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {useNavigate} from 'sentry/utils/useNavigate';
 
-export function generateAction({
-  key,
-  value,
-  location,
-  navigate,
-}: {
-  key: string;
-  location: Location;
-  navigate: ReturnType<typeof useNavigate>;
-  value: string;
-}) {
-  const search = new MutableSearch(decodeScalar(location.query.query) || '');
+export function useGenerateAction() {
+  const [, setQuery] = useQueryState('query', parseAsString.withDefault(''));
 
-  const onAction = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: search.setFilterValues(key, [value]).formatString(),
+  return useCallback(
+    ({key, value}: {key: string; value: string}) =>
+      () => {
+        setQuery(
+          query => new MutableSearch(query).setFilterValues(key, [value]).formatString(),
+          {history: 'push'}
+        );
       },
-    });
-  };
-
-  return onAction;
+    [setQuery]
+  );
 }
 
 export const ActionMenuTrigger = styled(OverlayTrigger.IconButton)`

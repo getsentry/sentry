@@ -1,18 +1,18 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 function useSetupWizardAnalyticsParams(organizations: OrganizationSummary[]) {
-  const urlParams = new URLSearchParams(location.search);
-  const projectPlatform = urlParams.get('project_platform') ?? undefined;
+  const [projectPlatform] = useQueryState('project_platform', parseAsString);
 
   // if we have exactly one organization, we can use it for analytics
   // otherwise we don't know which org the user is in
   return useMemo(
     () => ({
       organization: organizations.length === 1 ? organizations[0]!.slug : null,
-      project_platform: projectPlatform,
+      project_platform: projectPlatform ?? undefined,
     }),
     [organizations, projectPlatform]
   );

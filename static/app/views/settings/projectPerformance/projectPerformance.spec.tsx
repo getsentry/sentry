@@ -12,7 +12,7 @@ import {
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {IssueTitle} from 'sentry/types/group';
+import {IssueTitle, IssueType} from 'sentry/types/group';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import * as utils from 'sentry/utils/isActiveSuperuser';
@@ -782,6 +782,26 @@ describe('projectPerformance', () => {
     await expandAllDetectorSettings();
 
     expect(screen.getByRole('slider', {name: 'Request Delay'})).toHaveValue('11');
+  });
+
+  it('expands only the detector group for the issue type in the URL', async () => {
+    render(<ProjectPerformance />, {
+      organization: org,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {issueType: IssueType.PERFORMANCE_SLOW_DB_QUERY},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: IssueTitle.PERFORMANCE_SLOW_DB_QUERY})
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByRole('button', {name: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES})
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('resets configurable detector settings', async () => {

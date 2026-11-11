@@ -1,5 +1,5 @@
 import {useCallback, useEffect} from 'react';
-import type {Location} from 'history';
+import {useQueryState} from 'nuqs';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,7 +18,7 @@ import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import {Repository} from './repository';
 import type {RepositoryConfig} from './updateCustomRepositoriesMutation';
@@ -27,7 +27,6 @@ import {dropDownItems} from './utils';
 
 type Props = {
   customRepositories: CustomRepo[];
-  location: Location;
   organization: Organization;
   project: Project;
 };
@@ -36,9 +35,11 @@ export function CustomRepositories({
   organization,
   customRepositories: repositories,
   project,
-  location,
 }: Props) {
-  const navigate = useNavigate();
+  const [customRepository, setCustomRepository] = useQueryState(
+    'customRepository',
+    parseAsScalar
+  );
   const {mutateAsync: updateCustomRepositories} = useUpdateCustomRepositoriesMutation(
     project,
     repositories.length
@@ -67,18 +68,10 @@ export function CustomRepositories({
   );
 
   const handleCloseModal = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: undefined,
-      },
-    });
-  }, [location, navigate]);
+    setCustomRepository(null, {history: 'push'});
+  }, [setCustomRepository]);
 
   const openDebugFileSourceDialog = useCallback(() => {
-    const {customRepository} = location.query;
-
     if (!customRepository) {
       return;
     }
@@ -100,12 +93,11 @@ export function CustomRepositories({
       onSave: updatedItem => persistData({updatedItem, index: itemIndex}),
       onClose: handleCloseModal,
     });
-  }, [handleCloseModal, location.query, organization, persistData, repositories]);
+  }, [customRepository, handleCloseModal, organization, persistData, repositories]);
 
   useEffect(() => {
     openDebugFileSourceDialog();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [location.query, openDebugFileSourceDialog]);
+  }, [openDebugFileSourceDialog]);
 
   function handleAddRepository(repoType: CustomRepoType) {
     openDebugFileSourceModal({
@@ -123,13 +115,7 @@ export function CustomRepositories({
   }
 
   function handleEditRepository(repoId: CustomRepo['id']) {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        customRepository: repoId,
-      },
-    });
+    setCustomRepository(repoId, {history: 'push'});
   }
 
   return (

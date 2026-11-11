@@ -2,7 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 
@@ -68,6 +74,36 @@ describe('ScreenDetailsPage', () => {
           await within(await screen.findByRole('tablist')).findByText(tab)
         ).toBeVisible();
       }
+    });
+
+    it('pushes the selected tab and drops tab-specific params when a tab is clicked', async () => {
+      const {router} = render(<ScreenDetailsPage />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/insights/mobile/mobile-vitals/details/',
+            query: {
+              transaction: 'MainActivity',
+              tab: 'app_start',
+              sort: '-count()',
+              'span.op': 'ui.load',
+              project: '1',
+            },
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('tab', {name: 'Screen Load'}));
+      await waitFor(() => expect(router.location.query.tab).toBe('screen_load'));
+      const queryAfterClick = router.location.query;
+      router.navigate(-1);
+
+      expect(queryAfterClick).toEqual({
+        transaction: 'MainActivity',
+        tab: 'screen_load',
+        project: '1',
+      });
+      await waitFor(() => expect(router.location.query.tab).toBe('app_start'));
     });
   });
 });

@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
 import {useCallback, useReducer} from 'react';
 import type {Location} from 'history';
+import {parseAsString, useQueryState} from 'nuqs';
 
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MEPDataProvider} from './metricsEnhancedPerformanceDataContext';
@@ -26,14 +25,15 @@ export function MEPSettingProvider({
   location?: Location;
 }) {
   const organization = useOrganization();
-  const navigate = useNavigate();
+  const [metricSettingParam, setMetricSettingParam] = useQueryState(
+    METRIC_SETTING_PARAM,
+    parseAsString
+  );
 
   const canUseMEP = canUseMetricsData(organization);
 
   const allowedStates = [MEPState.METRICS_ONLY, MEPState.TRANSACTIONS_ONLY];
-  const _metricSettingFromParam = location
-    ? decodeScalar(location.query[METRIC_SETTING_PARAM])
-    : MEPState.METRICS_ONLY;
+  const _metricSettingFromParam = location ? metricSettingParam : MEPState.METRICS_ONLY;
   let defaultMetricsState = MEPState.METRICS_ONLY;
 
   if (forceTransactions) {
@@ -53,19 +53,10 @@ export function MEPSettingProvider({
       if (!location) {
         return;
       }
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            [METRIC_SETTING_PARAM]: settingState,
-          },
-        },
-        {replace: true}
-      );
+      setMetricSettingParam(settingState);
       _setMetricSettingState(settingState);
     },
-    [location, navigate, _setMetricSettingState]
+    [location, setMetricSettingParam, _setMetricSettingState]
   );
 
   const [autoSampleState, setAutoSampleState] = useReducer(

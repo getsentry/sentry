@@ -9,6 +9,7 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -213,10 +214,12 @@ function findLongestMatchingFrame(
   return longestFrame;
 }
 
-function decodeConfigSpace(): [number, number] {
-  const qs = new URLSearchParams(window.location.search);
-  const startedAt = qs.get('start');
-  const endedAt = qs.get('end');
+const configSpaceParsers = {start: parseAsString, end: parseAsString};
+
+function decodeConfigSpace(
+  startedAt: string | null,
+  endedAt: string | null
+): [number, number] {
   if (!startedAt || !endedAt) {
     return [0, 0];
   }
@@ -253,10 +256,11 @@ export function ContinuousFlamegraph(): ReactElement {
     );
   }, [profileGroup]);
 
+  const [{start, end}] = useQueryStates(configSpaceParsers);
   const configSpaceQueryParam = useMemo(() => {
-    const [startedAtMs, endedAtMs] = decodeConfigSpace();
+    const [startedAtMs, endedAtMs] = decodeConfigSpace(start, end);
     return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp] as const;
-  }, [profileTimestamp]);
+  }, [start, end, profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();

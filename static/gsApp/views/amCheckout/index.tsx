@@ -6,6 +6,7 @@ import {loadStripe} from '@stripe/stripe-js';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -103,12 +104,8 @@ function AMCheckout(props: Props) {
   const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [previewData, setPreviewData] = useState<PreviewData | undefined>(undefined);
 
-  const referrer = useMemo(() => {
-    if (Array.isArray(location?.query?.referrer)) {
-      return location?.query?.referrer[0];
-    }
-    return location?.query?.referrer ?? undefined;
-  }, [location]);
+  const [referrerParam] = useQueryState('referrer', parseAsString);
+  const referrer = referrerParam ?? undefined;
 
   const checkoutSteps = useMemo(() => {
     // Do not include Payment Method and Billing Details sections for subscriptions billed through partners

@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useId, useState} from 'react';
-import type {Location} from 'history';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -8,8 +8,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import {CreditCardSetup} from 'getsentry/components/creditCardEdit/setup';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -21,7 +21,6 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 interface CreditCardPanelProps {
   budgetTerm: string;
   ftcLocation: FTCConsentLocation;
-  location: Location;
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
@@ -35,7 +34,6 @@ interface CreditCardPanelProps {
 export function CreditCardPanel({
   organization,
   subscription,
-  location,
   budgetTerm,
   ftcLocation,
   analyticsEvent,
@@ -49,6 +47,7 @@ export function CreditCardPanel({
     shouldExpandInitially && !subscription.paymentSource
   );
   const headingId = useId();
+  const [urlReferrer] = useQueryState('referrer', parseAsScalar);
 
   const handleCardUpdated = (data: Subscription) => {
     // if the card was successfully updated, reset the billing failure state
@@ -70,8 +69,8 @@ export function CreditCardPanel({
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
     // oxlint-disable-next-line react/set-state-in-effect
-    setReferrer(decodeScalar(location.query?.referrer));
-  }, [location.query?.referrer]);
+    setReferrer(urlReferrer ?? undefined);
+  }, [urlReferrer]);
 
   useEffect(() => {
     // There are multiple billing failure referrals and each should have analytics tracking

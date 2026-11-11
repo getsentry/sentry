@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {Location} from 'history';
 
 import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
@@ -12,7 +11,6 @@ type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   customRepositories: CustomRepo[];
-  location: Location;
   organization: Organization;
   project: Project;
 };
@@ -23,7 +21,6 @@ export function Sources({
   builtinSymbolSources,
   builtinSymbolSourceOptions,
   project,
-  location,
 }: Props) {
   return (
     <Fragment>
@@ -34,7 +31,6 @@ export function Sources({
         project={project}
       />
       <CustomRepositories
-        location={location}
         organization={organization}
         customRepositories={customRepositories}
         project={project}

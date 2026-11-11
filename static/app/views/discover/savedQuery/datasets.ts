@@ -1,17 +1,28 @@
 import type {Location} from 'history';
 
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+const datasetParsers = {dataset: parseAsScalar, queryDataset: parseAsScalar};
+
+function loadDatasetParams(location: Location | undefined) {
+  return location
+    ? loadQueryParamsFromLocation(datasetParsers, location)
+    : {dataset: null, queryDataset: null};
+}
 
 export function getDatasetFromLocationOrSavedQueryDataset(
   location: Location | undefined,
   queryDataset: SavedQueryDatasets | undefined
 ): DiscoverDatasets | undefined {
-  const dataset = decodeScalar(location?.query?.dataset);
-  if (dataset) {
-    return dataset as DiscoverDatasets;
+  const params = loadDatasetParams(location);
+  if (params.dataset) {
+    return params.dataset as DiscoverDatasets;
   }
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
+  const savedQueryDataset = params.queryDataset ?? queryDataset;
   switch (savedQueryDataset) {
     case SavedQueryDatasets.ERRORS:
       return DiscoverDatasets.ERRORS;
@@ -28,11 +39,11 @@ export function getSavedQueryDatasetFromLocationOrDataset(
   location: Location | undefined,
   dataset: DiscoverDatasets | undefined
 ): SavedQueryDatasets | undefined {
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
-  if (savedQueryDataset) {
-    return savedQueryDataset as SavedQueryDatasets;
+  const params = loadDatasetParams(location);
+  if (params.queryDataset) {
+    return params.queryDataset as SavedQueryDatasets;
   }
-  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
+  const discoverDataset = params.dataset ?? dataset;
   switch (discoverDataset) {
     case DiscoverDatasets.ERRORS:
       return SavedQueryDatasets.ERRORS;

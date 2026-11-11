@@ -20,7 +20,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -33,7 +32,6 @@ import {Sources} from './sources';
 export default function ProjectDebugSymbols() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const location = useLocation();
   const api = useApi();
   const queryClient = useQueryClient();
   const [showDetails, setShowDetails] = useState(false);
@@ -150,7 +148,6 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Sources
-          location={location}
           project={project}
           organization={organization}
           customRepositories={

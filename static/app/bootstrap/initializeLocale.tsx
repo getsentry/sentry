@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import * as moment from 'moment-timezone';
-import * as qs from 'query-string';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
@@ -48,20 +48,9 @@ async function getTranslations(language: string) {
  * - "en" as default
  */
 export async function initializeLocale(config: Config) {
-  let queryString: qs.ParsedQuery = {};
-
-  // Parse query string for `lang`
-  try {
-    queryString = qs.parse(window.location.search) || {};
-  } catch {
-    // ignore if this fails to parse
-    // this can happen if we have an invalid query string
-    // e.g. unencoded "%"
-  }
-
-  const queryStringLang = Array.isArray(queryString.lang)
-    ? queryString.lang[0]
-    : queryString.lang;
+  const {lang: queryStringLang} = createLoader({lang: parseAsString})(
+    window.location.search
+  );
   const languageCode =
     queryStringLang || config.user?.options?.language || config.languageCode || 'en';
 

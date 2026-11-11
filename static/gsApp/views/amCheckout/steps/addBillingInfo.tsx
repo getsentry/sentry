@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 
 import {BillingDetailsPanel} from 'getsentry/components/billingDetails/panel';
 import {CreditCardPanel} from 'getsentry/components/creditCardEdit/panel';
@@ -21,7 +20,6 @@ export function AddBillingInformation({
   organization,
   activePlan,
 }: StepProps) {
-  const location = useLocation();
   const {
     data: billingDetails,
     isLoading: billingDetailsLoading,
@@ -54,7 +52,6 @@ export function AddBillingInformation({
           <CreditCardPanel
             organization={organization}
             subscription={subscription}
-            location={location}
             ftcLocation={FTCConsentLocation.CHECKOUT}
             budgetTerm={activePlan.budgetTerm}
             analyticsEvent="checkout.updated_cc"

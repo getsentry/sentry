@@ -36,8 +36,9 @@ jest.mock('./imageDisplay/useD3Zoom', () => ({
   useSyncedD3Zoom: () => [mockZoom, mockZoom],
 }));
 
+const mockCopy = jest.fn();
 jest.mock('sentry/utils/useCopyToClipboard', () => ({
-  useCopyToClipboard: () => ({copy: jest.fn()}),
+  useCopyToClipboard: () => ({copy: mockCopy}),
 }));
 
 function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
@@ -106,6 +107,29 @@ describe('SnapshotListView', () => {
     render(<ExampleSnapshotListView items={[erroredItem]} />);
 
     expect(screen.getByText('Failed to compare')).toBeInTheDocument();
+  });
+
+  it('copies a snapshot link built from the current URL when the URL changes after mount', async () => {
+    const {router} = render(<ExampleSnapshotListView items={[erroredItem]} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/preprod/snapshots/1/',
+          query: {query: 'old'},
+        },
+      },
+    });
+    act(() =>
+      router.navigate('/organizations/org-slug/preprod/snapshots/1/?query=new&sort=name')
+    );
+
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Copy link to this snapshot'})[0]!
+    );
+
+    expect(mockCopy).toHaveBeenCalledWith(
+      `${window.location.origin}/organizations/org-slug/preprod/snapshots/1/?query=new&sort=name&selectedSnapshot=login.png`,
+      {successMessage: 'Copied link to this snapshot'}
+    );
   });
 
   it('renders errored pairs side-by-side even when the diff mode is onion', () => {

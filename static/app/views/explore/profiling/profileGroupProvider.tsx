@@ -1,5 +1,6 @@
-import {createContext, useContext, useMemo} from 'react';
+import {createContext, useContext, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import type {Frame} from 'sentry/utils/profiling/frame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -36,18 +37,18 @@ interface ProfileGroupProviderProps {
 }
 
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
+  const [tid] = useQueryState('tid', parseAsString);
+  const [initialThreadId] = useState(tid);
   const profileGroup = useMemo(() => {
     if (!props.input) {
       return LOADING_PROFILE_GROUP;
     }
-    const qs = new URLSearchParams(window.location.search);
-    const threadId = qs.get('tid');
 
     try {
       return importProfile(
         props.input,
         props.traceID,
-        threadId,
+        initialThreadId,
         props.type,
         props.frameFilter
       );
@@ -55,7 +56,7 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
       Sentry.captureException(err);
       return LOADING_PROFILE_GROUP;
     }
-  }, [props.input, props.traceID, props.type, props.frameFilter]);
+  }, [initialThreadId, props.input, props.traceID, props.type, props.frameFilter]);
 
   return <ProfileGroupContext value={profileGroup}>{props.children}</ProfileGroupContext>;
 }

@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {createLoader, parseAsString} from 'nuqs';
 import * as qs from 'query-string';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -37,6 +38,15 @@ function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
   }, [view?.id, updateViewLastVisited]);
 }
 
+const loadViewOverrideParams = createLoader(
+  Object.fromEntries(
+    [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT, ...DATE_TIME_KEYS, 'sort'].map(key => [
+      key,
+      parseAsString,
+    ])
+  )
+);
+
 // If loading `/issues/views/:viewId/` without any query params, append the
 // ones from the view to the URL. It's important that we only do this when
 // necessary because the URL params are used to override the view data.
@@ -46,21 +56,16 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
   const previousViewData = usePrevious(view);
 
   useEffect(() => {
-    const query = qs.parse(window.location.search);
-
     if (
       view &&
-      !query[URL_PARAM.PROJECT] &&
-      !query[URL_PARAM.ENVIRONMENT] &&
-      !DATE_TIME_KEYS.some(key => query[key]) &&
-      !query.sort
+      !Object.values(loadViewOverrideParams(window.location.search)).some(Boolean)
     ) {
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/views/${view.id}/`,
           query: {
             ...getIssueViewQueryParams({view}),
-            ...query,
+            ...qs.parse(window.location.search),
           },
         }),
         {replace: true}

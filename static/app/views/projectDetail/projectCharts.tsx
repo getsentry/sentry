@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
+import {useQueryStates} from 'nuqs';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -30,10 +31,9 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -49,6 +49,12 @@ import {
   isPlatformANRCompatible,
   isPlatformForegroundANRCompatible,
 } from './utils';
+
+const periodParsers = {
+  start: parseAsScalar,
+  end: parseAsScalar,
+  statsPeriod: parseAsScalar,
+};
 
 type Props = {
   chartId: string;
@@ -78,8 +84,13 @@ export function ProjectCharts({
   const api = useApi();
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const navigate = useNavigate();
   const [totalValues, setTotalValues] = useState<number | null>(null);
+  const chartParsers = useMemo(
+    () => Object.fromEntries(visibleCharts.map(key => [key, parseAsScalar])),
+    [visibleCharts]
+  );
+  const [chartParams, setChartParams] = useQueryStates(chartParsers);
+  const [{start, end, statsPeriod}] = useQueryStates(periodParsers);
 
   const defaultDisplayModes = (() => {
     if (!hasSessions && !hasTransactions) {
@@ -107,14 +118,11 @@ export function ProjectCharts({
   const otherActiveDisplayModes = visibleCharts
     .filter(visibleChartId => visibleChartId !== chartId)
     .map(urlKey => {
-      return decodeScalar(
-        location.query[urlKey],
-        defaultDisplayModes[visibleCharts.indexOf(urlKey)]!
-      );
+      return chartParams[urlKey] ?? defaultDisplayModes[visibleCharts.indexOf(urlKey)]!;
     });
 
   const displayMode = (() => {
-    const mode = decodeScalar(location.query[chartId]) || defaultDisplayModes[chartIndex];
+    const mode = chartParams[chartId] || defaultDisplayModes[chartIndex];
 
     if (!Object.values(DisplayModes).includes(mode as DisplayModes)) {
       return defaultDisplayModes[chartIndex];
@@ -252,10 +260,7 @@ export function ProjectCharts({
   })();
 
   const barChartInterval = (() => {
-    const diffInMinutes = getDiffInMinutes({
-      ...location.query,
-      period: decodeScalar(location.query.statsPeriod),
-    });
+    const diffInMinutes = getDiffInMinutes({start, end, period: statsPeriod});
 
     if (diffInMinutes >= TWO_WEEKS) {
       return '1d';
@@ -287,10 +292,7 @@ export function ProjectCharts({
       chart_index: chartIndex,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, [chartId]: value},
-    });
+    setChartParams({[chartId]: value}, {history: 'push'});
   };
 
   // Keep this handler referentially stable. It is passed as `onTotalValuesChange`

@@ -1,5 +1,5 @@
-import {useSearchParams} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Badge} from '@sentry/scraps/badge';
 import {DrawerHeader} from '@sentry/scraps/drawer';
@@ -26,8 +26,7 @@ import {useGroup} from 'sentry/views/issueDetails/useGroup';
 const GROUP_ACTIVITY_LIMIT = 100;
 
 export function ActivityDrawer() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const filter = searchParams.get('filter') ?? 'all';
+  const [filter, setFilter] = useQueryState('filter', parseAsString.withDefault('all'));
   const organization = useOrganization();
   const groupId = useGroupId();
 
@@ -77,17 +76,7 @@ export function ActivityDrawer() {
                 organization,
                 filter: value,
               });
-              setSearchParams(
-                params => {
-                  if (value === 'comments') {
-                    params.set('filter', 'comments');
-                  } else {
-                    params.delete('filter');
-                  }
-                  return params;
-                },
-                {replace: true}
-              );
+              setFilter(value);
             }}
           >
             <SegmentedControl.Item key="comments" textValue={t('Comments')}>

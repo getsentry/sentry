@@ -2,8 +2,12 @@ import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {decodeList} from 'sentry/utils/queryString';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+} from 'sentry/views/explore/queryParams/parsers';
 
 import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
 import {DisplayType, type DashboardDetails, type Widget} from './types';
@@ -22,6 +26,8 @@ const SERIES_LIST_DELIMITER = ',';
 const WIDGET_ID_DELIMITER = ':';
 
 const SERIES_NAME_DELIMITER = '|~|';
+
+const legendQueryParsers = {unselectedSeries: parseAsStringArray};
 
 export class WidgetLegendSelectionState {
   dashboard: DashboardDetails | null;
@@ -44,9 +50,18 @@ export class WidgetLegendSelectionState {
       this.navigate,
     ];
     const widgets = dashboard ? dashboard.widgets : [];
-    let newLegendQuery: string[];
-    if (!location.query.unselectedSeries && widgets) {
-      newLegendQuery = widgets
+    const currentUnselectedSeries = this.getUnselectedSeries();
+    const navigateWithUnselectedSeries = (unselectedSeries: string[]) =>
+      navigate(
+        applyQueryParamsUpdates(legendQueryParsers, location, {unselectedSeries}),
+        {
+          replace: true,
+          preventScrollReset: true,
+        }
+      );
+
+    if (!currentUnselectedSeries.length && widgets) {
+      const newLegendQuery = widgets
         .filter(dashboardWidget => this.widgetIsChart(dashboardWidget))
         .map(dashboardWidget => {
           return dashboardWidget.id === widget.id
@@ -74,20 +89,11 @@ export class WidgetLegendSelectionState {
         thisWidgetWithoutReleasesWasSelected ||
         !this.widgetRequiresLegendUnselection(widget)
       ) {
-        navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              unselectedSeries: newLegendQuery,
-            },
-          },
-          {replace: true, preventScrollReset: true}
-        );
+        navigateWithUnselectedSeries(newLegendQuery);
       }
-    } else if (Array.isArray(location.query.unselectedSeries)) {
+    } else {
       let isInQuery = false;
-      newLegendQuery = location.query.unselectedSeries.map(widgetLegend => {
+      const newLegendQuery = currentUnselectedSeries.map(widgetLegend => {
         if (widgetLegend.includes(widget.id!)) {
           isInQuery = true;
           // names of legend options are stored as seriesName:widgetId and are stored in
@@ -97,57 +103,17 @@ export class WidgetLegendSelectionState {
         return widgetLegend;
       });
 
-      const unselectedSeries = isInQuery
-        ? newLegendQuery
-        : [
-            ...location.query.unselectedSeries,
-            this.encodeLegendQueryParam(widget, selected),
-          ];
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            unselectedSeries,
-          },
-        },
-        {replace: true, preventScrollReset: true}
+      navigateWithUnselectedSeries(
+        isInQuery
+          ? newLegendQuery
+          : [...currentUnselectedSeries, this.encodeLegendQueryParam(widget, selected)]
       );
-    } else {
-      if (location.query.unselectedSeries?.includes(widget.id!)) {
-        navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              unselectedSeries: [this.encodeLegendQueryParam(widget, selected)],
-            },
-          },
-          {replace: true, preventScrollReset: true}
-        );
-      } else {
-        navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              unselectedSeries: [
-                location.query.unselectedSeries,
-                this.encodeLegendQueryParam(widget, selected),
-              ],
-            },
-          },
-          {replace: true, preventScrollReset: true}
-        );
-      }
     }
   }
 
   // sets unselected legend options by the legend query param
   getWidgetSelectionState(widget: Widget): LegendSelection {
-    const location = this.location;
-
-    return location.query.unselectedSeries
+    return this.getUnselectedSeries().length
       ? this.decodeLegendQueryParam(widget)
       : this.widgetRequiresLegendUnselection(widget)
         ? {
@@ -204,10 +170,8 @@ export class WidgetLegendSelectionState {
 
   // going from query param to selected
   decodeLegendQueryParam(widget: Widget) {
-    const location = this.location;
-
-    const widgetLegendString = decodeList(location.query.unselectedSeries).find(
-      widgetLegend => widgetLegend.includes(widget.id!)
+    const widgetLegendString = this.getUnselectedSeries().find(widgetLegend =>
+      widgetLegend.includes(widget.id!)
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
@@ -230,28 +194,28 @@ export class WidgetLegendSelectionState {
 
   // when a widget has been changed/added/deleted update legend to incorporate that
   setMultipleWidgetSelectionStateURL(newDashboard: DashboardDetails) {
-    const location = this.location;
-    if (!location.query.unselectedSeries) {
-      return location.query.unselectedSeries;
+    const currentUnselectedSeries = this.getUnselectedSeries();
+    if (!currentUnselectedSeries.length) {
+      return;
     }
 
     // widget added (since added widgets don't have an id until submitted), it sets selection state based on all widgets
     const unselectedSeries = newDashboard.widgets
       .map(widget => {
-        if (Array.isArray(location.query.unselectedSeries)) {
-          const widgetLegendQuery = location.query.unselectedSeries.find(legend =>
-            legend.includes(widget.id!)
-          );
-          if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
-            return this.formatLegendDefaultQuery(widget);
-          }
-          return widgetLegendQuery;
+        const widgetLegendQuery = currentUnselectedSeries.find(legend =>
+          legend.includes(widget.id!)
+        );
+        if (!widgetLegendQuery && this.widgetRequiresLegendUnselection(widget)) {
+          return this.formatLegendDefaultQuery(widget);
         }
-        return location.query.unselectedSeries?.includes(widget.id!)
-          ? location.query.unselectedSeries
-          : this.formatLegendDefaultQuery(widget);
+        return widgetLegendQuery;
       })
       .filter(Boolean);
     return unselectedSeries;
+  }
+
+  getUnselectedSeries() {
+    return loadQueryParamsFromLocation(legendQueryParsers, this.location)
+      .unselectedSeries;
   }
 }

@@ -1,11 +1,20 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import {useQueryState} from 'nuqs';
 
 import {Link} from '@sentry/scraps/link';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
+import {
+  applyQueryParamsUpdates,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+const healthStatsPeriodParsers = {
+  healthStatsPeriod: parseAsScalar.withDefault(HealthStatsPeriodOption.AUTO),
+};
 
 type Props = {
   location: Location;
@@ -13,21 +22,23 @@ type Props = {
 
 export function ReleaseCardStatsPeriod({location}: Props) {
   const {selection} = usePageFilters();
-  const activePeriod = location.query.healthStatsPeriod || HealthStatsPeriodOption.AUTO;
-  const {pathname, query} = location;
+  const [activePeriod] = useQueryState(
+    'healthStatsPeriod',
+    healthStatsPeriodParsers.healthStatsPeriod
+  );
+  const getPeriodTarget = (healthStatsPeriod: HealthStatsPeriodOption) => ({
+    pathname: location.pathname,
+    query: applyQueryParamsUpdates(healthStatsPeriodParsers, location, {
+      healthStatsPeriod,
+    }).query,
+  });
 
   return (
     <Wrapper>
       {/* don't show duplicate 24h options */}
       {selection.datetime.period !== HealthStatsPeriodOption.TWENTY_FOUR_HOURS && (
         <Period
-          to={{
-            pathname,
-            query: {
-              ...query,
-              healthStatsPeriod: HealthStatsPeriodOption.TWENTY_FOUR_HOURS,
-            },
-          }}
+          to={getPeriodTarget(HealthStatsPeriodOption.TWENTY_FOUR_HOURS)}
           selected={activePeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS}
         >
           {t('24h')}
@@ -35,10 +46,7 @@ export function ReleaseCardStatsPeriod({location}: Props) {
       )}
 
       <Period
-        to={{
-          pathname,
-          query: {...query, healthStatsPeriod: HealthStatsPeriodOption.AUTO},
-        }}
+        to={getPeriodTarget(HealthStatsPeriodOption.AUTO)}
         selected={activePeriod === HealthStatsPeriodOption.AUTO}
       >
         {selection.datetime.start ? t('Custom') : (selection.datetime.period ?? t('14d'))}

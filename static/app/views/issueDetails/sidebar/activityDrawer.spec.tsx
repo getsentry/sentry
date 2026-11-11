@@ -49,6 +49,21 @@ describe('ActivityDrawer', () => {
     );
   }
 
+  it('replaces the comments filter in the URL and removes it for all activity', async () => {
+    const {router} = renderDrawer();
+    router.navigate('/organizations/org-slug/issues/1337/activity/?project=1');
+
+    await userEvent.click(await screen.findByRole('radio', {name: 'Comments'}));
+    await waitFor(() =>
+      expect(router.location.query).toEqual({project: '1', filter: 'comments'})
+    );
+    await userEvent.click(screen.getByRole('radio', {name: 'All activity'}));
+    await waitFor(() => expect(router.location.query).toEqual({project: '1'}));
+    router.navigate(-1);
+
+    await waitFor(() => expect(router.location.query).toEqual({}));
+  });
+
   it('creates, edits, and deletes a comment by reference in the cached activity', async () => {
     const comment = 'A comment from the drawer';
     const note = ActivityFeedFixture({
