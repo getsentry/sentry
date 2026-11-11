@@ -7,11 +7,12 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
@@ -122,7 +123,7 @@ export function ConnectMonitorsDrawer({initialMonitorIds, onChange}: Props) {
             />
             <Pagination
               onCursor={setCursor}
-              pageLinks={data?.headers.Link}
+              {...getPaginationProps(data?.headers.Link)}
               caption={
                 data
                   ? getPaginationCaption({

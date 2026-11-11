@@ -21,6 +21,7 @@ import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery'
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -499,8 +500,10 @@ export function Table({
                       />
                     </VisuallyCompleteWithData>
                     <Pagination
-                      pageLinks={pageLinks}
-                      paginationAnalyticsEvent={paginationAnalyticsEvent}
+                      {...getPaginationProps(pageLinks)}
+                      onPageChange={(_cursor, delta) =>
+                        paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+                      }
                     />
                   </TrackHasDataAnalytics>
                 );

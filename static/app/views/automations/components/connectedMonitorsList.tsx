@@ -4,7 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -15,6 +15,7 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -212,7 +213,7 @@ export function ConnectedMonitorsList({
       {limit && (
         <Pagination
           onCursor={onCursor}
-          pageLinks={pageLinks}
+          {...getPaginationProps(pageLinks)}
           caption={paginationCaption}
         />
       )}
