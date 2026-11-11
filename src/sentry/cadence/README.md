@@ -175,31 +175,6 @@ that type's firings.
   parses) is logged and unscheduled, so it can't block other rows.
 - The `cadence.tick.enabled` option is the kill switch, and is **off by default**. While it's
   off, nothing fires.
-
-## Measuring load
-
-Use these signals together to compare throughput, timing, and saturation:
-
-| Metric                               | Meaning                                                                                                                                  |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `cadence.trigger.dispatch_lag`       | Seconds after the stored due time, excluding spreading; tagged by trigger type.                                                          |
-| `cadence.trigger.dispatched`         | Number of firings whose action returned successfully; tagged by trigger type. This counts hand-offs, not completed downstream work.      |
-| `cadence.trigger.dispatch_failed`    | Number of firings in action batches that raised; a batch may already have handed off some firings before raising.                        |
-| `cadence.trigger.dispatch_duration`  | Time spent in an action, per batch and trigger type.                                                                                     |
-| `cadence.tick.claim_batch_duration`  | Time spent claiming and advancing one batch.                                                                                             |
-| `cadence.tick.duration`              | Total time spent in an enabled tick, including claims and actions.                                                                       |
-| `cadence.tick.claimed`               | Distribution of the number of firings claimed per enabled tick.                                                                          |
-| `cadence.tick.time_limit_reached`    | Count of ticks that stopped claiming because they exhausted their time budget.                                                           |
-| `cadence.backlog.oldest_overdue_age` | Age in seconds of the oldest overdue row, sampled once a minute on the primary using the firing-time index. Zero means none are overdue. |
-| `cadence.backlog.query_failed`       | Failed backlog samples, including query timeouts. These leave a gap rather than reporting zero.                                          |
-
-Backlog sampling continues while `cadence.tick.enabled` is off. Its task shares the issues
-queue with the tick, so missing samples can also indicate that the worker or queue is behind.
-
-For LOG tests, compare expected hourly volume with distinct
-(`organization_id`, `target_id`, `scheduled_for`) tuples in `cadence.log_trigger.fired` logs.
-Repeated tuples identify duplicates. Each record includes the stored due time (`fire_at`),
-observation time (`fired_at`), and spread-adjusted delay (`seconds_since_due`). The existing
-`seconds_since_scheduled` includes spreading. Due-time fields are null for manually
-constructed firings that omit `TriggerFiring.fire_at`; Cadence supplies it when claiming.
-IDs stay in logs, not metric tags. These measurements cover scheduling and hand-off only.
+- Metrics: `cadence.trigger.dispatch_lag` (how late firings are),
+  `cadence.trigger.dispatch_duration`, `cadence.trigger.dispatch_failed`, and
+  `cadence.tick.claimed`.
