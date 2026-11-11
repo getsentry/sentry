@@ -32,6 +32,7 @@ def resolve_example_source(
 
 EXAMPLE_SOURCE_TYPE = ProducerSourceType(
     name="example_issue",
+    producer="example",
     validator=ExampleSourceValidator,
     resolve=resolve_example_source,
 )

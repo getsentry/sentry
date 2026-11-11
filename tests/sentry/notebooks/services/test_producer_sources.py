@@ -39,6 +39,12 @@ class ProducerSourceTypeRegistryTest(TestCase):
             register_producer_source_type(replace(EXAMPLE_SOURCE_TYPE, name="example:issue"))
         assert "example:issue" not in PRODUCER_SOURCE_TYPES
 
+    def test_producer_is_checked_like_the_type(self) -> None:
+        for producer in ("example:writer", "x" * 33):
+            with pytest.raises(ValueError):
+                register_producer_source_type(replace(EXAMPLE_SOURCE_TYPE, producer=producer))
+        assert EXAMPLE_SOURCE_TYPE.name not in PRODUCER_SOURCE_TYPES
+
     def test_key_and_source_carry_the_type(self) -> None:
         resolved = ResolvedProducerSource(
             key="42", source={"type": "other", "ref": {"issueId": 42}}, project_ids=[]

@@ -25,6 +25,8 @@ class ProducerSourceType:
     """A kind of thing a producer writes notebooks about, such as an issue."""
 
     name: str
+    # Who writes these notebooks, such as "autofix".
+    producer: str
     # Validates the `source` object a producer sends, without its `type` field.
     validator: type[serializers.Serializer[Any]]
     resolve: Callable[[Organization, dict[str, Any]], ResolvedProducerSource]
@@ -39,16 +41,21 @@ class ProducerSourceType:
 PRODUCER_SOURCE_TYPES: dict[str, ProducerSourceType] = {}
 
 
+def _check_name(name: str) -> None:
+    max_length = Notebook._meta.get_field("source_type").max_length
+    if max_length is not None and len(name) > max_length:
+        raise ValueError(f"{name} is longer than {max_length} characters.")
+    # Names prefix keys as "<name>:<key>", so a ":" in one would let two keys collide.
+    if ":" in name:
+        raise ValueError(f"{name} can't contain ':'.")
+
+
 def register_producer_source_type(source_type: ProducerSourceType) -> None:
     # The engine and manual notebooks have their own create paths.
     if source_type.name in NotebookSourceType.values:
         raise ValueError(f"{source_type.name} is not a producer source type.")
-    max_length = Notebook._meta.get_field("source_type").max_length
-    if max_length is not None and len(source_type.name) > max_length:
-        raise ValueError(f"{source_type.name} is longer than {max_length} characters.")
-    # source_key is "<type>:<key>", so a ":" in the type would let two sources share a key.
-    if ":" in source_type.name:
-        raise ValueError(f"{source_type.name} can't contain ':'.")
+    _check_name(source_type.name)
+    _check_name(source_type.producer)
     PRODUCER_SOURCE_TYPES[source_type.name] = source_type
 
 
