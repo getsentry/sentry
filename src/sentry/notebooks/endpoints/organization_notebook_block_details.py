@@ -55,7 +55,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 2, "version": 1, "content": "Revised observations"},
+                value={"notebookVersion": 2, "version": 1, "content": "Revised observations"},
                 request_only=True,
             )
         ],
@@ -82,7 +82,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
 
         values = dict(validator.validated_data)
-        expected_notebook_version = values.pop("investigation_version")
+        expected_notebook_version = values.pop("notebook_version")
         expected_block_version = values.pop("version")
         if "generation_prompt" in values:
             values["prompt"] = values.pop("generation_prompt")
@@ -127,7 +127,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 2, "version": 1},
+                value={"notebookVersion": 2, "version": 1},
                 request_only=True,
             )
         ],
@@ -154,7 +154,7 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         try:
             delete_block(
                 block=block,
-                expected_notebook_version=validator.validated_data["investigation_version"],
+                expected_notebook_version=validator.validated_data["notebook_version"],
                 expected_block_version=validator.validated_data["version"],
             )
         except Exception as error:

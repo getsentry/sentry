@@ -13,7 +13,10 @@ from sentry.notebooks.contracts import (
     VisualizationSerializer,
     validate_query_result,
 )
-from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.endpoints.validators.base import (
+    NotebookVersionValidator,
+    StrictCamelSnakeValidator,
+)
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
 from sentry.notebooks.services.notebooks import create_block
 from sentry.notebooks.services.producer_sources import get_producer_source_type
@@ -140,21 +143,18 @@ def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any
         raise serializers.ValidationError({"display": error.detail})
 
 
-class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]):
+class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]]):
     """Append a user's block, or write a producer's block by key and revision.
 
     Needs notebook, user_id and producer_writer in its context.
     """
 
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        required=False,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409. Send this, or key and revision.",
-    )
+    notebook_version_required = False
+
     key = serializers.CharField(
         max_length=128,
         required=False,
-        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of investigationVersion. Only service accounts and Seer agents can send it.",
+        help_text="The producer's stable key for the block. Writing the same key again updates the block, even if a user edited or deleted it. Send with revision instead of notebookVersion. Only service accounts and Seer agents can send it.",
     )
     revision = serializers.IntegerField(
         min_value=1,
@@ -195,14 +195,14 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         producer_fields = {"key", "revision", "position"}.intersection(attrs)
-        if "investigation_version" in attrs:
+        if "notebook_version" in attrs:
             if producer_fields:
                 raise serializers.ValidationError(
-                    {"detail": "Send investigationVersion, or key and revision, not both."}
+                    {"detail": "Send notebookVersion, or key and revision, not both."}
                 )
         elif not {"key", "revision"}.issubset(attrs):
             raise serializers.ValidationError(
-                {"investigation_version": "Send investigationVersion, or key and revision."}
+                {"notebook_version": "Send notebookVersion, or key and revision."}
             )
         elif not self.context["producer_writer"]:
             raise PermissionDenied("Only service accounts and Seer agents write by key.")
@@ -249,7 +249,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
     def create(self, validated_data: dict[str, Any]) -> tuple[NotebookBlock, bool]:
         notebook: Notebook = self.context["notebook"]
         values = dict(validated_data)
-        if "investigation_version" not in values:
+        if "notebook_version" not in values:
             return write_api_producer_block(
                 notebook,
                 key=values["key"],
@@ -262,7 +262,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
                 config=values.get("config", UNSET),
                 display=values["display"],
             )
-        notebook_version = values.pop("investigation_version")
+        notebook_version = values.pop("notebook_version")
         values["prompt"] = values.pop("generation_prompt", "")
         block = create_block(
             notebook=notebook,
@@ -273,11 +273,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator[tuple[NotebookBlock, bool]]
         return block, True
 
 
-class BlockUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockUpdateValidator(NotebookVersionValidator):
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
@@ -320,22 +316,14 @@ class BlockUpdateValidator(StrictCamelSnakeValidator):
         return attrs
 
 
-class BlockDeleteValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockDeleteValidator(NotebookVersionValidator):
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
     )
 
 
-class BlockExecutionStartValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockExecutionStartValidator(NotebookVersionValidator):
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
@@ -361,11 +349,7 @@ class BlockExecutionResumeValidator(StrictCamelSnakeValidator):
     )
 
 
-class BlockOrderValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(
-        min_value=1,
-        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
-    )
+class BlockOrderValidator(NotebookVersionValidator):
     block_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         help_text="Every active block ID exactly once, in the desired order.",

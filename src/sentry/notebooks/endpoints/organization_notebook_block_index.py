@@ -55,7 +55,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
             OpenApiExample(
                 "Example request",
                 value={
-                    "investigationVersion": 1,
+                    "notebookVersion": 1,
                     "kind": "text",
                     "content": "Initial observations",
                 },
@@ -75,7 +75,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
     )
     def post(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """
-        Append a text or query block to an active investigation, using investigationVersion for
+        Append a text or query block to an active investigation, using notebookVersion for
         concurrency. A producer sends key and revision instead to write its text block: the
         same key updates the block, overwriting user edits and bringing back a deleted block,
         and a block with a newer revision returns 409. Returns 201 with the new block, or 200

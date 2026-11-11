@@ -50,7 +50,7 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         examples=[
             OpenApiExample(
                 "Example request",
-                value={"investigationVersion": 3, "blockIds": [2, 1]},
+                value={"notebookVersion": 3, "blockIds": [2, 1]},
                 request_only=True,
             )
         ],
@@ -69,7 +69,7 @@ class OrganizationNotebookBlockOrderEndpoint(OrganizationNotebookEndpoint):
         try:
             updated = reorder_blocks(
                 notebook=notebook,
-                expected_version=validator.validated_data["investigation_version"],
+                expected_version=validator.validated_data["notebook_version"],
                 block_ids=validator.validated_data["block_ids"],
             )
         except Exception as error:

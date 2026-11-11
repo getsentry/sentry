@@ -85,6 +85,34 @@ class OrganizationNotebookDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["status"] == "active"
 
+    def test_update_takes_notebook_version(self) -> None:
+        notebook = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Versioned"
+        )
+
+        mismatched = self.client.put(
+            self.details_url(notebook),
+            data={"notebookVersion": 1, "investigationVersion": 2, "title": "Renamed"},
+            format="json",
+        )
+        assert mismatched.status_code == 400
+        assert "notebookVersion" in mismatched.data
+
+        renamed = self.client.put(
+            self.details_url(notebook),
+            data={"notebookVersion": 1, "title": "Renamed"},
+            format="json",
+        )
+        assert renamed.status_code == 200, renamed.data
+        assert renamed.data["version"] == 2
+
+        stale = self.client.put(
+            self.details_url(notebook),
+            data={"notebookVersion": 1, "title": "Again"},
+            format="json",
+        )
+        assert stale.status_code == 409
+
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(
             self.collection_url, data={"title": "Running investigation"}, format="json"
