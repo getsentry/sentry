@@ -169,6 +169,98 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 404, response.content
 
+    def test_returns_prefixed_span_attribute_when_requested_by_its_span_details_name(
+        self,
+    ) -> None:
+        self._store_span({"sentry.dsc.environment": "production"})
+
+        response = self.do_request(
+            query={"attributeName": "dsc.environment", "attributeType": "string"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "sentry.dsc.environment"
+        assert response.data["datasets"] == ["spans"]
+
+    def test_returns_404_when_only_a_log_attribute_has_the_prefixed_name(self) -> None:
+        self._store_log({"sentry.custom": {"string_value": "a"}})
+
+        response = self.do_request(query={"attributeName": "custom", "attributeType": "string"})
+
+        assert response.status_code == 404, response.content
+
+    def test_returns_sentry_column_when_it_is_not_stored_as_an_attribute(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span(timestamp=timestamp)
+
+        response = self.do_request(
+            query={"attributeName": "trace", "attributeType": "string", "statsPeriod": "14d"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "trace"
+        assert response.data["attributeSource"] == {"source_type": "sentry"}
+        assert response.data["datasets"] == ["spans"]
+        assert response.data["lastSeen"] == timestamp.isoformat()
+        assert list(response.data["stats"]) == ["spans"]
+
+    def test_returns_exact_attribute_when_a_prefixed_span_attribute_shares_its_name(
+        self,
+    ) -> None:
+        self._store_span({"cart": "plain", "sentry.cart": "prefixed"})
+
+        response = self.do_request(query={"attributeName": "cart", "attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "cart"
+
+    def test_returns_number_sentry_column_when_it_is_not_stored_as_an_attribute(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span(timestamp=timestamp)
+
+        response = self.do_request(
+            query={"attributeName": "precise.start_ts", "attributeType": "number"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "precise.start_ts"
+        assert response.data["stats"] == {
+            "spans": {
+                "lastSeen": timestamp.isoformat(),
+                "cardinality": None,
+                "modifiedCount": 0,
+            }
+        }
+
+    def test_returns_each_dataset_with_a_sentry_column_when_several_datasets_have_it(
+        self,
+    ) -> None:
+        self._store_span()
+        self._store_log()
+
+        response = self.do_request(query={"attributeName": "trace", "attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["datasets"] == ["spans", "logs"]
+        assert list(response.data["stats"]) == ["spans", "logs"]
+
+    def test_returns_sentry_column_without_last_seen_when_its_existence_query_fails(
+        self,
+    ) -> None:
+        self._store_span()
+
+        with mock.patch(
+            f"{STATS_MODULE}._query_last_seen_from_table",
+            side_effect=snuba_rpc.SnubaRPCError("boom"),
+        ):
+            response = self.do_request(
+                query={"attributeName": "trace", "attributeType": "string", "dataset": "spans"}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] is None
+        assert response.data["lastSeen"] is None
+
     def test_returns_404_when_sentry_defined_attribute_was_not_stored(self) -> None:
         self._store_span()
 
