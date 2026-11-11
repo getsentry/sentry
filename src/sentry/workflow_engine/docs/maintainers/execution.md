@@ -1,15 +1,17 @@
 # Workflow Engine Execution
 
 This document traces data through the Workflow Engine processors and asynchronous
-boundaries. For persistent relationships, see [Data model](data-model.md). For an
-implementation checklist, see [Adding detectors](adding-detectors.md).
+boundaries. For persistent relationships, see [Data Model](data-model.md). For
+implementation checklists, see the guides for [detectors](../implementers/detectors.md),
+[conditions](../implementers/conditions.md), and [workflows](../implementers/workflows.md).
 
 ## Two Pipelines
 
-Detection and workflow processing are connected through Issue Platform, not by a direct
-function call. Detector output is published to Issue Platform; the resulting issue event
-later enters Workflow processing through post-processing or an activity. The overview
-diagram is in the [module README](../README.md).
+In the default outcome path, detection and workflow processing are connected through
+Issue Platform, not by a direct function call. Detector output is published there; the
+resulting issue event later enters workflow processing through post-processing or an
+activity. Custom `on_complete` callbacks can choose a different output path. The overview
+diagram and component tour are in the [maintainer guide](README.md#architecture-tour).
 
 Existing issue events can enter at post-processing without first running a Workflow
 Engine detector. This is how error and issue-stream workflows participate in the same
@@ -17,9 +19,9 @@ workflow pipeline.
 
 ## Detection Pipeline
 
-### 1. Build a packet
+### 1. Build a Packet
 
-A producer creates a typed [`DataPacket`](../models/data_source.py):
+A producer creates a typed [`DataPacket`](../../models/data_source.py):
 
 ```python
 DataPacket(source_id=str(source.id), packet=product_payload)
@@ -28,10 +30,10 @@ DataPacket(source_id=str(source.id), packet=product_payload)
 The packet's payload remains product-specific. The producer also supplies the source
 type used to resolve `source_id`.
 
-### 2. Resolve detectors
+### 2. Resolve Detectors
 
-[`process_data_packet`](../processors/data_packet.py) is the generic entry point. It
-calls [`process_data_source`](../processors/data_source.py), which resolves:
+[`process_data_packet`](../../processors/data_packet.py) is the generic entry point. It
+calls [`process_data_source`](../../processors/data_source.py), which resolves:
 
 ```text
 (source type, source_id)
@@ -48,10 +50,10 @@ path does not exclude every non-active status such as plan-level `DISABLED`.
 
 Not every producer uses this generic lookup. Uptime, processing errors, and preprod
 paths can identify detectors through product-specific data and call
-[`process_detectors`](../processors/detector.py) directly. The handler contract is the
+[`process_detectors`](../../processors/detector.py) directly. The handler contract is the
 same after detector selection.
 
-### 3. Evaluate each detector
+### 3. Evaluate Each Detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
 registered for the detector's type in the `detector_settings_registry`. Then, it calls the `_evaluate` method on the handler.
@@ -67,16 +69,17 @@ One packet can produce:
 
 `evaluate` returns `DetectorEvaluations`, whose `evaluations` map group keys to `DetectorEvaluation`
 objects. `_evaluate` returns only the evaluations that have a result, either an `IssueOccurrence` or a
-`StatusChangeMessage`. `process_detectors` routes those results according to the handler's `outcome`.
+`StatusChangeMessage`. `process_detectors` passes each retained evaluation to the
+handler's `on_complete` callback; the default dispatches to Issue Platform.
 
-### 4. Detector orchestration
+### 4. Detector Orchestration
 
-Every detector handler inherits [`BaseDetectorHandler`](../handlers/detector/base.py), which owns
-the `_evaluate` lifecycle and occurrence decoration. [`DetectorHandler`](../handlers/detector/condition.py)
+Every detector handler inherits [`BaseDetectorHandler`](../../handlers/detector/base.py), which owns
+the `_evaluate` lifecycle and occurrence decoration. [`DetectorHandler`](../../handlers/detector/condition.py)
 adds a default stateless `evaluate` over the trigger condition group; `StatefulDetectorHandler`
 layers durable state and thresholds over that evaluation by calling `super().evaluate()`.
 
-#### Stateless (default)
+#### Stateless (Default)
 
 ```mermaid
 flowchart TD
@@ -98,7 +101,7 @@ Important semantics:
 #### Stateful
 
 Most threshold-based detectors inherit
-[`StatefulDetectorHandler`](../handlers/detector/stateful.py):
+[`StatefulDetectorHandler`](../../handlers/detector/stateful.py):
 
 ```mermaid
 flowchart TD
@@ -145,13 +148,13 @@ Detectors that decide without the trigger condition group inherit `BaseDetectorH
 implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
 call `super().evaluate()`, then own the orchestration they add.
 
-### 5. Produce detector output
+### 5. Produce Detector Output
 
 `process_detectors` invokes the detector handler's `on_complete` lifecycle callback with
 the detector and each evaluation. The default callback is
 `DetectorOutcome.ISSUE_PLATFORM.dispatch`; it resolves the registered outcome handler,
 whose `handle` method ignores evaluations without a result and passes the others to Issue
-Platform via [`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can
+Platform via [`produce_occurrence_to_kafka`](../../../issues/producer.py). A detector can
 assign another supported outcome dispatcher or override `on_complete` for custom processing.
 
 Supported outcome implementations register their `DetectorOutcomeHandler` class with
@@ -160,29 +163,31 @@ lives in `supported_outcomes.py`; the registry maps each key to its handler impl
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a
-[`DetectorGroup`](../models/detector_group.py) association. Resolution uses the stable
-issue fingerprint to find the same group.
+[`DetectorGroup`](../../models/detector_group.py) association. Resolution uses the stable
+handler's occurrence fingerprint to find the same group. For a stateful handler with
+`regression_timeout`, this can include an activation ID rather than one permanently
+stable fingerprint; see [DetectorState](data-model.md#detectorstate).
 
 The Kafka boundary means detector evaluation succeeding does not imply that group
 creation, workflow processing, or action dispatch has completed.
 
 ## Workflow Ingress
 
-### Event post-processing
+### Event Post-Processing
 
-[`process_workflow_engine`](../../tasks/post_process.py) schedules the
-[`process_workflows_event`](../tasks/workflows.py) task only for non-reprocessed jobs
+[`process_workflow_engine`](../../../tasks/post_process.py) schedules the
+[`process_workflows_event`](../../tasks/workflows.py) task only for non-reprocessed jobs
 with an event whose group is currently unresolved. The task rebuilds a
-[`WorkflowEventData`](../types.py) from EventStore and Issue Platform data using
-[`tasks/utils.py`](../tasks/utils.py). Resolution-driven processing enters through
+[`WorkflowEventData`](../../types.py) from EventStore and Issue Platform data using
+[`tasks/utils.py`](../../tasks/utils.py). Resolution-driven processing enters through
 supported issue activities instead.
 
-### Issue activities
+### Issue Activities
 
 Issue activities invoke handlers through
-[`invoke_workflow_activity_handlers`](../handlers/registry/invoke_activities.py).
+[`invoke_workflow_activity_handlers`](../../handlers/registry/invoke_activities.py).
 Registered handlers receive an optional detector ID. A handler that schedules
-[`process_workflow_activity`](../tasks/workflows.py) must first resolve a concrete
+[`process_workflow_activity`](../../tasks/workflows.py) must first resolve a concrete
 detector and pass its required detector ID with the activity and group.
 
 Event and activity paths use `WorkflowEventData`, which contains:
@@ -193,14 +198,17 @@ Event and activity paths use `WorkflowEventData`, which contains:
 - Optional workflow environment
 - A per-event local cache for repeated lookups
 
-They do not have identical scheduling. Activity processing has no workflow environment,
-so it considers only global workflows. Activities do not enter batched condition data
-acquisition; an activity whose WHEN or IF result still needs a slow query does not
-continue through delayed processing.
+They do not have identical scheduling. Activities carry no environment of their own.
+[`get_environment_by_event`](../../processors/workflow.py) infers the issue's environment
+only when it has exactly one `GroupEnvironment` pointing to an existing environment,
+and caches that result in `WorkflowEventData`. Otherwise the environment is `None` and
+only global workflows qualify. Activities do not enter batched condition data acquisition;
+an activity whose WHEN or IF result still needs a slow query does not continue through
+delayed processing.
 
 ## Workflow Pipeline
 
-[`process_workflows`](../processors/workflow.py) is the main synchronous orchestrator
+[`process_workflows`](../../processors/workflow.py) is the main synchronous orchestrator
 inside the workflow task.
 
 ```mermaid
@@ -219,9 +227,9 @@ flowchart TD
     Dedup --> Tasks[Dispatch action tasks]
 ```
 
-### 1. Resolve event detectors
+### 1. Resolve Event Detectors
 
-[`get_detectors_for_event_data`](../processors/detector.py) builds `EventDetectors`:
+[`get_detectors_for_event_data`](../../processors/detector.py) builds `EventDetectors`:
 
 - For a `GroupEvent` with an occurrence, `event_detector` is resolved only from the
   occurrence's `detector_id` evidence; a missing or deleted ID yields no event detector.
@@ -236,25 +244,26 @@ The preferred detector is later supplied to actions that need detector context.
 Detector deletion and older groups can leave associations missing, so lookup paths are
 expected to degrade safely.
 
-### 2. Resolve environment and workflows
+### 2. Resolve Environment and Workflows
 
 The processor resolves the event environment, then
-[`get_workflows_by_detectors`](../caches/workflow.py) loads workflows connected to any
+[`get_workflows_by_detectors`](../../caches/workflow.py) loads workflows connected to any
 selected detector. Eligible workflows must be enabled and either global
 (`environment=None`) or connected to the event's environment.
 
 The workflow cache is keyed by detector and environment. Relationship receivers
 invalidate it after committed changes.
 
-### 3. Evaluate WHEN conditions
+### 3. Evaluate WHEN Conditions
 
-[`evaluate_workflow_triggers`](../processors/workflow.py) evaluates each workflow's WHEN
-group. A Workflow with no group passes. A conclusively false WHEN stops processing and
-reports metrics/context; the returned per-Workflow result map can remain empty.
+[`evaluate_workflow_triggers`](../../processors/workflow.py) evaluates each workflow's WHEN
+group. A Workflow with no group passes. A conclusively false WHEN stops that workflow
+and reports metrics/context. Completed evaluation results include its non-triggered
+WHEN evaluation, even when no workflow reaches IF evaluation.
 
-### 4. Evaluate IF groups
+### 4. Evaluate IF Groups
 
-[`evaluate_workflows_action_filters`](../processors/workflow.py) loads IF groups from the
+[`evaluate_workflows_action_filters`](../../processors/workflow.py) loads IF groups from the
 action-filter cache for workflows whose WHEN group passed or remains pending slow
 evaluation. Fast IF results and remaining slow IF groups are retained with a pending
 WHEN result so the combined work can be buffered.
@@ -292,7 +301,7 @@ sequenceDiagram
 
 ### Buffering
 
-[`DelayedWorkflowClient`](../buffer/batch_client.py) stores project IDs in sharded sorted
+[`DelayedWorkflowClient`](../../buffer/batch_client.py) stores project IDs in sharded sorted
 sets and each project's work in a hash. A hash field is keyed by workflow, issue group,
 delayed WHEN and IF groups, and IF groups that already passed. Its value retains the
 event or occurrence ID and original evaluation timestamp. Re-enqueuing the same field
@@ -301,14 +310,14 @@ event.
 
 ### Scheduling
 
-The [`schedule_delayed_workflows`](../tasks/workflows.py) task acquires a global
-scheduler lock around [`process_buffered_workflows`](../processors/schedule.py), which
+The [`schedule_delayed_workflows`](../../tasks/workflows.py) task acquires a global
+scheduler lock around [`process_buffered_workflows`](../../processors/schedule.py), which
 divides projects into cohorts and schedules due work. Large project hashes are split into
 batches so asynchronous task messages contain identifiers rather than large payloads.
 
 ### Evaluation
 
-[`process_delayed_workflows`](../processors/delayed_workflow.py):
+[`process_delayed_workflows`](../../processors/delayed_workflow.py):
 
 1. Parses buffered items.
 2. Drops references to deleted workflows.
@@ -342,17 +351,17 @@ normal successful cleanup. They remain until expiry or manual cleanup.
 
 ## Action Selection and Dispatch
 
-[`processors/action.py`](../processors/action.py) applies two different controls:
+[`processors/action.py`](../../processors/action.py) applies two different controls:
 
-### Repeat frequency
+### Repeat Frequency
 
-[`WorkflowActionGroupStatus`](../models/workflow_action_group_status.py) tracks when each
+[`WorkflowActionGroupStatus`](../../models/workflow_action_group_status.py) tracks when each
 workflow, action, and issue group tuple last passed the frequency check. It is updated
 before event-level deduplication and task execution. A tuple is suppressed when it
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
 
-### Event-level deduplication
+### Event-Level Deduplication
 
 `get_unique_active_actions` first removes actions whose status is not active, then keeps
 one concrete action for each `Action.get_dedup_key()`. This is an implementation key,
@@ -360,13 +369,14 @@ not a guarantee that every semantically equivalent external side effect is recog
 Invocation attribution comes from the concrete action retained for the key and does not
 imply Workflow execution order.
 
-### History and task dispatch
+### History and Task Dispatch
 
 The processor updates frequency statuses and creates
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
+[`WorkflowFireHistory`](../../models/workflow_fire_history.py) rows before `fire_actions`
 removes inactive actions and deduplicates by key. It then schedules
-[`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
-scheduling, not successful external delivery, and can exist for actions that are later
+[`trigger_action`](../../tasks/actions.py) for retained actions. Fire-history rows describe
+pre-dispatch intent, not task scheduling or successful external delivery, and can exist
+for actions that are later
 filtered or deduplicated.
 
 The action task:
@@ -374,7 +384,7 @@ The action task:
 1. Requires exactly one event ID or activity ID.
 2. Rebuilds `WorkflowEventData`.
 3. Loads the action and preferred detector.
-4. Creates an [`ActionInvocation`](../types.py).
+4. Creates an [`ActionInvocation`](../../types.py).
 5. Calls the handler registered for the action type.
 
 External integration calls therefore run outside the workflow evaluation task. Action
@@ -382,15 +392,19 @@ handlers must handle deleted integrations and other expected external-state chan
 
 ## Processor Reference
 
-| Processor                      | Input                      | Output                         | Side effects                                              | Async boundary             |
-| ------------------------------ | -------------------------- | ------------------------------ | --------------------------------------------------------- | -------------------------- |
-| `process_data_packet`          | Packet and source type     | Detector evaluations           | Source cache reads, detector state, Kafka payloads        | Called by product producer |
-| `process_data_source`          | Packet and source type     | Packet and detectors           | Detector-source cache reads                               | None                       |
-| `process_detectors`            | Packet and detector list   | Detector evaluations           | PostgreSQL/Redis state and Issue Platform Kafka           | Kafka after evaluation     |
-| `process_data_condition_group` | Group and event/value      | Evaluation and slow conditions | Metrics and logs                                          | None                       |
-| `process_workflows`            | `WorkflowEventData`        | Workflow evaluations           | Buffer writes, fire history, status updates, action tasks | Asynchronous action tasks  |
-| `process_buffered_workflows`   | Delayed client             | None                           | Cohort metadata and delayed tasks                         | Asynchronous delayed tasks |
-| `process_delayed_workflows`    | Project and optional batch | None                           | Snuba queries, action state/history, buffer cleanup       | Snuba and action tasks     |
+Product producers control when they invoke packet or detector processing. The table's
+async boundary column identifies downstream Kafka/task handoffs; a Snuba query within
+delayed processing is synchronous I/O, not a separate queued stage.
+
+| Processor                      | Input                      | Output                         | Side effects                                                   | Async boundary             |
+| ------------------------------ | -------------------------- | ------------------------------ | -------------------------------------------------------------- | -------------------------- |
+| `process_data_packet`          | Packet and source type     | Detector evaluations           | Source cache reads, detector state, default output publication | Via detector outcome       |
+| `process_data_source`          | Packet and source type     | Packet and detectors           | Detector-source cache reads                                    | None                       |
+| `process_detectors`            | Packet and detector list   | Detector evaluations           | PostgreSQL/Redis state and output dispatch                     | Default outcome: Kafka     |
+| `process_data_condition_group` | Group and event/value      | Evaluation and slow conditions | Metrics and logs                                               | None                       |
+| `process_workflows`            | `WorkflowEventData`        | Workflow evaluations           | Buffer writes, fire history, status updates, action tasks      | Asynchronous action tasks  |
+| `process_buffered_workflows`   | Delayed client             | None                           | Cohort metadata and delayed tasks                              | Asynchronous delayed tasks |
+| `process_delayed_workflows`    | Project and optional batch | None                           | Snuba queries, action state/history, buffer cleanup            | Asynchronous action tasks  |
 
 ## Failure and Consistency Model
 
@@ -411,12 +425,12 @@ handlers must handle deleted integrations and other expected external-state chan
 
 ## Caches
 
-| Cache                                                         | Purpose                                     | Approximate TTL |
-| ------------------------------------------------------------- | ------------------------------------------- | --------------- |
-| [`caches/detector.py`](../caches/detector.py)                 | Detectors connected to a data source        | 20 minutes      |
-| [`caches/workflow.py`](../caches/workflow.py)                 | Workflows connected to detector/environment | 1 minute        |
-| [`caches/action_filters.py`](../caches/action_filters.py)     | IF groups and actions for workflows         | 5 minutes       |
-| Default detector cache in [`Detector`](../models/detector.py) | Default project/type lookup                 | 10 minutes      |
+| Cache                                                            | Purpose                                     | Approximate TTL |
+| ---------------------------------------------------------------- | ------------------------------------------- | --------------- |
+| [`caches/detector.py`](../../caches/detector.py)                 | Detectors connected to a data source        | 20 minutes      |
+| [`caches/workflow.py`](../../caches/workflow.py)                 | Workflows connected to detector/environment | 1 minute        |
+| [`caches/action_filters.py`](../../caches/action_filters.py)     | IF groups and actions for workflows         | 5 minutes       |
+| Default detector cache in [`Detector`](../../models/detector.py) | Default project/type lookup                 | 10 minutes      |
 
 Treat receivers as part of the model mutation contract. A new relationship that affects
 processing usually needs explicit invalidation coverage.
@@ -429,14 +443,14 @@ invalidate every old cache key; stale entries can therefore survive until TTL ex
 
 The engine emits metrics for detector lookup/evaluation, condition evaluation, workflow
 processing, delayed scheduling, caches, and actions. Logging helpers in
-[`utils/log_context.py`](../utils/log_context.py) attach workflow and event context.
+[`utils/log_context.py`](../../utils/log_context.py) attach workflow and event context.
 
-[`emit_evaluations`](../processors/evaluations/tracking.py) records detector and workflow
+[`emit_evaluations`](../../processors/evaluations/tracking.py) records detector and workflow
 evaluations through each `EvaluationEmitter`, which filters artifacts for its destination.
 Runtime options and feature flags control sampling and direct logging.
 
 When `organizations:workflow-engine-evaluation-artifacts-eap` is enabled,
-[`EAPEmitter`](../processors/evaluations/eap.py) publishes artifacts to
+[`EAPEmitter`](../../processors/evaluations/eap.py) publishes artifacts to
 `SNUBA_ITEMS` as `TRACE_ITEM_TYPE_WORKFLOW_ENGINE_EVALUATION` trace items. These are not
 log trace items and do not include log body or severity attributes.
 
@@ -448,34 +462,43 @@ The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attribut
 JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
 attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
-When tracing a missing action, check the boundaries in order:
+When tracing a missing action, identify its ingress first:
 
-1. Was the source mapped to an enabled detector?
-2. Did detector state transition and publish an Issue Platform message?
-3. Was the resulting issue associated with the expected detector?
-4. Did post-processing or activity handling schedule workflow evaluation?
-5. Was the workflow connected, enabled, and valid for the environment?
-6. Did WHEN and at least one IF group pass?
-7. Was a slow condition buffered and later processed?
-8. Was the action suppressed by frequency or event-level deduplication?
-9. Was fire history created and the action task scheduled?
-10. Did the action handler reject missing or invalid external configuration?
+- **Product packet:** for generic source lookup, check the source mapping and enabled
+  detector; for direct selection, check the producer's detector eligibility rules.
+  Check the handler result and stateful transition. For the default outcome, confirm
+  Issue Platform ingestion and the issue-to-detector association.
+- **Existing issue event:** check that the event was not reprocessed, its issue was
+  unresolved, and post-processing scheduled workflow evaluation. No packet/source
+  mapping or new detector output is required.
+- **Issue activity:** check that a registered handler supports that activity, resolves
+  its concrete detector, and schedules the workflow task after commit.
+
+Then check the shared workflow/action boundaries in order:
+
+1. Did the task reconstruct its input and resolve the expected detectors and environment?
+2. Was the workflow connected, enabled, and valid for that environment?
+3. Did WHEN and at least one IF group pass?
+4. If a slow condition remained, was it buffered and later processed?
+5. Was the action suppressed by frequency, inactive status, or event-level deduplication?
+6. After fire history was created, did the retained action actually get an action task?
+7. Did that task run, and did the handler reject missing or invalid external configuration?
 
 ## Recommended Tests
 
-- [`test_integration.py`](../../../../tests/sentry/workflow_engine/test_integration.py)
+- [`test_integration.py`](../../../../../tests/sentry/workflow_engine/test_integration.py)
   covers the full detector and workflow paths.
-- [`test_stateful.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
+- [`test_stateful.py`](../../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
   covers state transitions and Redis behavior.
-- [`test_detector.py`](../../../../tests/sentry/workflow_engine/processors/test_detector.py)
+- [`test_detector.py`](../../../../../tests/sentry/workflow_engine/processors/test_detector.py)
   covers detector output and event detector selection.
-- [`test_workflow.py`](../../../../tests/sentry/workflow_engine/processors/test_workflow.py)
+- [`test_workflow.py`](../../../../../tests/sentry/workflow_engine/processors/test_workflow.py)
   covers workflow evaluation.
-- [`test_data_condition_group.py`](../../../../tests/sentry/workflow_engine/processors/test_data_condition_group.py)
+- [`test_data_condition_group.py`](../../../../../tests/sentry/workflow_engine/processors/test_data_condition_group.py)
   covers condition logic and fast/slow splitting.
-- [`test_delayed_workflow.py`](../../../../tests/sentry/workflow_engine/processors/test_delayed_workflow.py)
+- [`test_delayed_workflow.py`](../../../../../tests/sentry/workflow_engine/processors/test_delayed_workflow.py)
   covers delayed queries and action firing.
-- [`test_schedule.py`](../../../../tests/sentry/workflow_engine/processors/test_schedule.py)
+- [`test_schedule.py`](../../../../../tests/sentry/workflow_engine/processors/test_schedule.py)
   covers cohort scheduling and batches.
-- [`test_actions.py`](../../../../tests/sentry/workflow_engine/tasks/test_actions.py)
+- [`test_actions.py`](../../../../../tests/sentry/workflow_engine/tasks/test_actions.py)
   covers action task reconstruction and dispatch.

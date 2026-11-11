@@ -1,28 +1,74 @@
-# Adding a Workflow Engine Detector
+# Add a Detector
 
-This guide is a code-oriented checklist for adding a detector that evaluates typed data
-and emits Issue Platform occurrences or resolutions. Read the
-[architecture overview](../README.md), [data model](data-model.md), and
-[condition contract](conditions.md), then use the [execution guide](execution.md) to
-trace the surrounding pipelines.
+[Workflow Engine](../../README.md) · [Implementer Guide](README.md) ·
+[Condition Handlers](conditions.md) · [Maintainer Guide](../maintainers/README.md)
 
-Detector implementations normally live in the product module that owns the data and
-Issue Platform group type. Only shared abstractions, processors, and generic source or
-condition handling belong in `sentry.workflow_engine`.
+Use this guide when a product needs to turn its own data into issues, update their
+priority, or resolve them. A detector answers **"Is there a problem?"** A workflow
+answers **"What should happen to this issue?"** Add a
+[workflow](workflows.md) instead when the issue already exists and you only need to
+choose actions.
+
+## What You Build and What the Engine Provides
+
+Product code owns the meaning of the input, the detection rules, and the issue's
+identity and evidence. Workflow Engine supplies a shared path from that input to the
+Issue Platform, so each product does not need its own detector configuration,
+condition evaluation, source-to-detector lookup, or stateful trigger/recovery loop.
+
+| Product Code Provides                                        | Shared Engine Provides                                    |
+| ------------------------------------------------------------ | --------------------------------------------------------- |
+| A producer and typed packet payload                          | Source lookup and detector dispatch                       |
+| Value extraction and built-in or product-specific conditions | Condition groups and evaluation                           |
+| Stable group keys, fingerprints, and recovery policy         | Optional dedupe, counters, and durable priority state     |
+| Issue type, occurrence evidence, and event fields            | Standard evidence and Issue Platform publication          |
+| Detector settings, config schema, and product validation     | Registry lookup and transactional detector graph creation |
+
+Implement the handler in the product module that owns the data and Issue Platform
+issue type. Put only reusable abstractions, processors, and generic source or condition
+handling in `sentry.workflow_engine`.
+
+The steps below follow the generic source-lookup path. If the producer already selects
+its detectors, use the [direct-dispatch guidance](#produce-packets) instead.
+
+A detector does not call a workflow directly. Start with the steps below; the
+[model](../maintainers/data-model.md) and
+[execution](../maintainers/execution.md) references are for tracing the surrounding
+system, not prerequisites for writing a handler.
+
+## On This Page
+
+1. [Choose a Handler Abstraction](#1-choose-a-handler-abstraction)
+2. [Design the Packet and Evaluation Value](#2-design-the-packet-and-evaluation-value)
+3. [Build the Occurrence and Issue Identity](#3-build-the-occurrence-and-issue-identity)
+4. [Configure Stateful Transitions](#4-configure-stateful-transitions)
+5. [Define and Register the Issue and Detector Type](#5-define-and-register-the-issue-and-detector-type)
+6. [Implement API Validation](#6-implement-api-validation)
+7. [Connect the Producer and Detector](#7-connect-the-producer-and-detector)
+8. [Configure Trigger Conditions](#8-configure-trigger-conditions)
+9. [Plan Rollout and Operational Safety](#9-plan-rollout-and-operational-safety)
+
+Finish with the [implementation checklist](#implementation-checklist),
+[test matrix](#test-matrix), and [product examples](#recommended-implementations).
+For settings rollout details, jump to [API Availability Details](#api-availability-details).
+
+## Plan the Behavior
 
 Before coding, identify:
 
-- The owning product module
-- The detector implementation type and output issue type
-- The packet payload type
-- The source of packet ordering
-- Whether one packet contains one value or grouped values
-- Trigger and recovery semantics
-- The stable issue fingerprint
-- The API creation/update requirements
+- The owning product module and detector implementation type
+- The output issue type and stable issue fingerprint
+- The packet payload type and source of packet ordering
+- Whether one packet contains one value or independent grouped values
+- Trigger, escalation, and recovery semantics
+- API creation/update requirements
 - Expected packet volume and state cardinality
 
-## Choose a Handler Abstraction
+Follow Steps 1–4 to design the runtime behavior, Steps 5–8 to wire configuration and
+input, and Step 9 plus the test matrix before enabling issue creation. Stateless
+implementations can skip the stateful parts of Steps 2–4.
+
+## 1. Choose a Handler Abstraction
 
 ```mermaid
 flowchart TD
@@ -36,17 +82,17 @@ flowchart TD
     Base --> Full[Implement extract_value, evaluate, and create_occurrence]
 ```
 
-### Handler hierarchy
+### Handler Hierarchy
 
-| Class                                                         | Role                                                                                                                                                                                                                       |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`BaseDetectorHandler`](../handlers/detector/base.py)         | The detector lifecycle: value extraction and grouping, evaluation metrics, and building the `IssueOccurrence`, evidence, and event data for every triggered evaluation.                                                    |
-| [`DetectorHandler`](../handlers/detector/condition.py)        | `BaseDetectorHandler` plus condition-group loading and a default stateless `evaluate` over the trigger condition group. The recommended base: add detection logic by registering conditions, not by overriding `evaluate`. |
-| [`StatefulDetectorHandler`](../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution, layered over `super().evaluate()`.                                                                                                      |
+| Class                                                            | Role                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`BaseDetectorHandler`](../../handlers/detector/base.py)         | The detector lifecycle: value extraction and grouping, evaluation metrics, and building the `IssueOccurrence`, evidence, and event data for every triggered evaluation.                                                    |
+| [`DetectorHandler`](../../handlers/detector/condition.py)        | `BaseDetectorHandler` plus condition-group loading and a default stateless `evaluate` over the trigger condition group. The recommended base: add detection logic by registering conditions, not by overriding `evaluate`. |
+| [`StatefulDetectorHandler`](../../handlers/detector/stateful.py) | `DetectorHandler` plus dedupe, priority thresholds, durable state, and resolution, layered over `super().evaluate()`.                                                                                                      |
 
 ### `BaseDetectorHandler`
 
-[`BaseDetectorHandler`](../handlers/detector/base.py) runs every detector through `_evaluate`:
+[`BaseDetectorHandler`](../../handlers/detector/base.py) runs every detector through `_evaluate`:
 
 1. `extract_value` returns one value, or `DetectorGroupValues` mapping group key to value. An
    empty `DetectorGroupValues` means there is nothing to evaluate, and `evaluate` is skipped.
@@ -73,17 +119,17 @@ flowchart TD
 Inherit it directly for detectors that do not decide with a data condition group. Their
 evidence has empty `conditions`; omit `trigger_group_evaluation` from the constructor.
 
-[`ErrorDetectorHandler`](../../grouping/grouptype.py) is a placeholder that associates error issues
+[`ErrorDetectorHandler`](../../../grouping/grouptype.py) is a placeholder that associates error issues
 with a detector. Its `extract_value` returns an empty `DetectorGroupValues`, so it never evaluates or creates occurrences.
 
 ### `DetectorHandler`
 
-[`DetectorHandler`](../handlers/detector/condition.py) is the base class for detectors
+[`DetectorHandler`](../../handlers/detector/condition.py) is the base class for detectors
 that decide with the detector's trigger condition group and do not need persisted state. It
 loads the condition group and provides a default stateless `evaluate`. A concrete subclass
 implements `extract_value` and `create_occurrence`.
 
-#### Default stateless evaluation
+#### Default Stateless Evaluation
 
 ```mermaid
 flowchart TD
@@ -118,7 +164,7 @@ returned evaluations include `OK` priorities, so a subclass can decide to resolv
 
 ### `StatefulDetectorHandler`
 
-Prefer [`StatefulDetectorHandler`](../handlers/detector/stateful.py) for detectors that
+Prefer [`StatefulDetectorHandler`](../../handlers/detector/stateful.py) for detectors that
 evaluate ordered samples and transition among `OK`, `LOW`, `MEDIUM`, and `HIGH`.
 
 It provides:
@@ -134,9 +180,9 @@ It provides:
 
 Uptime and metric issues are canonical examples.
 
-## Design the Packet and Evaluation Value
+## 2. Design the Packet and Evaluation Value
 
-[`DataPacket[T]`](../models/data_source.py) separates source identity from payload:
+[`DataPacket[T]`](../../models/data_source.py) separates source identity from payload:
 
 ```python
 @dataclass
@@ -184,7 +230,7 @@ value is committed even when no condition matches. Detectors that need independe
 ordering per group or replay of previously non-matching packets require custom
 orchestration.
 
-### Group-key requirements
+### Group-Key Requirements
 
 A `DetectorGroupKey` is `str | None`:
 
@@ -200,7 +246,7 @@ A `DetectorGroupKey` is `str | None`:
 - Return an empty `DetectorGroupValues` when a packet has no groups to evaluate, e.g. when
   the detector's query filters the packet out.
 
-## Implement Occurrence Creation
+## 3. Build the Occurrence and Issue Identity
 
 Every handler implements `create_occurrence` with this contract:
 
@@ -218,7 +264,7 @@ def create_occurrence(
 `evaluation.data["trigger_group_evaluation"]` is the condition group evaluation, or `None` for
 detectors that do not evaluate one.
 
-The [`DetectorOccurrence`](../handlers/detector/base.py) describes the Issue Platform
+The [`DetectorOccurrence`](../../handlers/detector/base.py) describes the Issue Platform
 occurrence. `EventData` supplies event fields associated with it.
 
 An abbreviated implementation looks like:
@@ -244,12 +290,11 @@ def create_occurrence(
 ```
 
 Use an existing product implementation for the exact event shape. The snippet is
-illustrative and omits product-specific evidence. The returned dictionary must be
-mutable.
+illustrative and omits product-specific evidence. Return a dictionary for the event fields.
 
-The default evaluations supply defaults for `environment`, `platform`, `received`, and `tags`
-
-The default evaluations overwrite `timestamp` and `project_id`.
+The base handler supplies defaults for `environment`, `platform`, `received`, and
+`tags`; product event data can override them. It always sets `event_id` from the
+occurrence and overwrites `timestamp` and `project_id`.
 
 Stateless and stateful handlers differ on the `event_id` field:
 
@@ -270,7 +315,7 @@ evidence should be serializable, bounded in size, and avoid sensitive data.
 
 ### Fingerprints
 
-#### Default evaluation
+#### Default Evaluation
 
 The default evaluation uses `get_issue_fingerprint(group_key)`:
 
@@ -282,7 +327,7 @@ detector:<detector_id>:<group_key>
 Overriding `get_issue_fingerprint` replaces the whole fingerprint.
 
 For handlers that emit several issue types, use
-[`build_detector_issue_fingerprint`](../utils/fingerprinting.py) to separate detector
+[`build_detector_issue_fingerprint`](../../utils/fingerprinting.py) to separate detector
 instances, issue types, and recurring problems. Return its result from
 `get_issue_fingerprint` after identifying the issue type and problem key for that group:
 
@@ -300,9 +345,9 @@ components combined into one identity.
 Custom fingerprints must separate distinct detector instances, issue types, and
 problems. Keep them stable across evaluations so recurring findings reach the same issue.
 
-#### Stateful evaluation
+#### Stateful Evaluation
 
-The stateful implementation always includes its detector state key:
+By default (`regression_timeout=None`), the stateful implementation includes its detector state key:
 
 ```text
 detector:<detector_id>
@@ -320,103 +365,69 @@ issue types: the state key would still be a shared hash. Custom stateful fingerp
 must match between triggers and resolutions. Fingerprint changes can split or merge
 production issues and can break recovery.
 
-Test the exact trigger and resolution fingerprints. For grouped detectors, explicitly
-test that one key cannot resolve another key's issue.
+Stateful handlers also support a `regression_timeout` policy: `None` reuses the issue;
+zero rotates issue identity on each new activation; a positive duration rotates it only
+when the detector has stayed `OK` for that duration. Rotation is gated by
+`organizations:workflow-engine-rotate-activation-id`. The durable `activation_id` then
+produces a single `detector:<id>[:<group_key>]:activation:<activation_id>` fingerprint;
+records without an activation ID retain their previous stable fingerprint. Do not
+combine `build_issue_fingerprint` overrides with a configured `regression_timeout`;
+the handler rejects that combination.
 
-## Configure Threshold Semantics
+Test the exact trigger and resolution fingerprints, including activation rotation if
+used. For grouped detectors, explicitly test that one key cannot resolve another key's
+issue. The [execution reference](../maintainers/execution.md) describes the state and
+publication boundaries around these transitions.
 
-`StatefulDetectorHandler.thresholds` maps priority to the number of qualifying
-evaluations required before transition:
+## 4. Configure Stateful Transitions
+
+Skip this step for stateless handlers. `StatefulDetectorHandler.thresholds` maps each
+priority to the number of qualifying evaluations required before a transition:
 
 ```python
 @property
 def thresholds(self) -> DetectorThresholds:
     return {
-        DetectorPriorityLevel.: self.detector.config["failure_threshold"],
+        DetectorPriorityLevel.HIGH: self.detector.config["failure_threshold"],
         DetectorPriorityLevel.OK: self.detector.config["recovery_threshold"],
     }
 ```
 
-The default threshold is one. For a detectors evaluation, the threshold will say we needs
-to see X number of a non-OK evaluations to trigger the detector. An OK
-evaluation clears non-OK counters before advancing the OK counter. An evaluation equal
-to the current durable state clears accumulated counters. These rules are not simply an
-independent consecutive-sample counter for every priority.
+The default threshold is one. Plan for these counter rules:
 
-A detector that can trigger but never produce `OK` evaluations will not resolve through
-the stateful handler.
+- A non-`OK` evaluation increments every configured non-`OK` counter at or below
+  that priority. A `HIGH` sample can therefore count toward a `LOW` threshold too.
+- An `OK` evaluation clears non-`OK` counters before advancing the `OK` counter.
+- An evaluation equal to the current durable state clears accumulated counters.
+- If several thresholds are reached, the highest breached priority wins.
 
-For the StatefulDetectorHandler implementation, failing a non-OK condition does not resolve
-the detector. To have the detector be considered resolved, the trigger group must resolve
-to `DetectorPriorityLevel.OK`. This normally uses a passing condition with an `OK` result,
-but an empty or passing `NONE` group can also trigger with no priority-bearing result and
-use the default `OK` priority. A missing detector trigger group is invalid and produces no
-state transition.
+These are not independent consecutive-sample counters for every priority. A detector
+that never produces an `OK` evaluation cannot resolve through this handler. Configure
+an explicit recovery condition; a failed non-`OK` condition is not a recovery signal.
+For missing, empty, and `NONE` groups and exact priority selection, use the canonical
+[detector condition contract](../maintainers/conditions.md#detectors).
 
-### Example Threshold Evaluation
+### Threshold Examples
 
-Here's an illustration of how a threshold works; specifically how the `OK` result will
-reset the threshold counts. Note that if it the priority is de-escalating, it does _not_
-reset the threshold counts. See
+Assume each sequence starts with fresh state at `OK`, with thresholds `HIGH=2`,
+`LOW=2`, and `OK=1`. The table shows the transition after each sample; `—` means no
+transition.
 
-#### Detector Threshold Settings
+| Case                                                  | Evaluated Priorities                       | Transitions After Each Sample   |
+| ----------------------------------------------------- | ------------------------------------------ | ------------------------------- |
+| Consecutive triggers                                  | `HIGH`, `HIGH`                             | `—`, `HIGH`                     |
+| `OK` resets thresholds                                | `HIGH`, `OK`, `HIGH`, `OK`, `HIGH`, `HIGH` | `—`, `—`, `—`, `—`, `—`, `HIGH` |
+| De-escalating samples preserve higher-priority counts | `HIGH`, `LOW`, `HIGH`                      | `—`, `LOW`, `HIGH`              |
+| Higher-priority samples count toward lower thresholds | `LOW`, `HIGH`, `LOW`, `HIGH`               | `—`, `LOW`, `—`, `—`            |
 
-```python
-@property
-def thresholds(self) -> DetectorThresholds:
-    return {
-        DetectorPriorityLevel.HIGH: 2,
-        DetectorPriorityLevel.LOW: 2,
-        DetectorPriorityLevel.OK: 1
-    }
-```
+In the last row, the second sample reaches the `LOW` threshold. The next `LOW` sample
+matches durable state and resets the outstanding `HIGH` count, so the final `HIGH`
+sample does not yet escalate. Include this distinction in tests; mixing priorities
+is not equivalent to counting each priority independently.
 
-#### Example Evaluation Results
+## 5. Define and Register the Issue and Detector Type
 
-##### Example 1 - Consecutive Triggers
-
-```python
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.HIGH
-===> Detector is triggered at HIGH
-```
-
-##### Example 2 - OK resets thresholds
-
-```python
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.OK
-- DetectorPriorityLevel.HIGH   # Note that the Detector does *not* trigger here
-- DetectorPriorityLevel.OK
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.HIGH
-===> Detector is triggered at HIGH
-```
-
-##### Example 3 - De-escalation does _not_ reset thresholds
-
-```python
-- DetectorPriorityLevel.OK
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.LOW
-- DetectorPriorityLevel.HIGH
-===> Detector is triggered at HIGH
-```
-
-##### Example 4 - Escalating detectors do _not_ reset thresholds
-
-```python
-- DetectorPriorityLevel.LOW
-- DetectorPriorityLevel.HIGH
-- DetectorPriorityLevel.LOW
-===> Detector is triggered at LOW
-- DetectorPriorityLevel.HIGH
-===> Detector is triggered at HIGH
-```
-
-## Define the Issue and Detector Type
-
-Add a member to [`DetectorType`](../types.py) for the detector implementation:
+Add a member to [`DetectorType`](../../types.py) for the detector implementation:
 
 ```python
 # In DetectorType:
@@ -427,7 +438,7 @@ The string value is stored in `Detector.type` and used by APIs. Keep existing va
 unchanged when renaming an enum member. Settings registrations require an enum member;
 passing its string value to `register` is rejected.
 
-Create or extend a concrete [`GroupType`](../../issues/grouptype.py) in the owning
+Create or extend a concrete [`GroupType`](../../../issues/grouptype.py) in the owning
 product's `grouptype.py`:
 
 ```python
@@ -441,20 +452,20 @@ class ExampleGroupType(GroupType):
     default_priority = PriorityLevel.HIGH
 ```
 
-Use the Issue Platform documentation and existing group types to choose the type ID,
-category, release controls, priority, auto-resolution, escalation behavior, and
-notification configuration.
+Use the [Issue Platform issue-type guide](https://develop.sentry.dev/backend/issue-platform/issue-types/)
+and existing group types to choose the type ID, category, release controls, priority,
+auto-resolution, escalation behavior, and notification configuration.
 
 These are separate identities: `DetectorType` selects the implementation, and `GroupType`
 classifies its output. Their string values do not need to match. API validation and
 handler lookup use the detector settings registry; the handler chooses the occurrence's
 issue type.
 
-### Register detector settings
+### Register Detector Settings
 
 The group type describes the issue. The detector components live in a
-[`DetectorSettings`](../types.py) subclass registered in
-[`detector_settings_registry`](../registry.py) under the detector's enum member:
+[`DetectorSettings`](../../types.py) subclass registered in
+[`detector_settings_registry`](../../registry.py) under the detector's enum member:
 
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
@@ -485,12 +496,12 @@ class ExampleDetectorSettings(DetectorSettings):
 Register the class, not an instance. The settings can also live in their own module, as long as that module is
 imported during application startup.
 
-[`DetectorSettings`](../types.py) fields are:
+[`DetectorSettings`](../../types.py) fields are:
 
 | Field              | Purpose                                                                       |
 | ------------------ | ----------------------------------------------------------------------------- |
 | `api_availability` | Operation-to-`bool`/`FeatureGate` overrides; all operations default to `True` |
-| `handler`          | Runtime `DetectorHandler` class                                               |
+| `handler`          | Runtime `BaseDetectorHandler` subclass                                        |
 | `validator`        | Native detector API validator                                                 |
 | `config_schema`    | Save-time JSON schema for `Detector.config`                                   |
 | `filter`           | Optional `Q` filter controlling user-visible detector rows of this type       |
@@ -509,7 +520,9 @@ requests explicitly naming a type, or access to detector rows; those operations 
 their own gates.
 
 Only implementations provisioned by the default-detector path need a label in
-`DEFAULT_DETECTOR_NAMES` in [`defaults/detectors.py`](../defaults/detectors.py).
+`DEFAULT_DETECTOR_NAMES` in [`defaults/detectors.py`](../../defaults/detectors.py).
+
+### API Availability Details
 
 Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
 `api_availability`. This shared mapping is immutable. All operations, including `DISCOVER`,
@@ -574,22 +587,24 @@ detectors if an excluded ID was requested.
 Read exclusions do not restrict creation, updates, or deletion. Write exclusions do not
 affect listing, and API exclusions never change detector evaluation.
 
+### Make Startup Import the Registrations
+
 Both registrations happen at import time. The `GroupType` subclass registers itself
 with the global Issue Platform registry when the class is created. The settings class
 registers itself when its decorator runs. Sentry startup imports the root
 `grouptype.py` of every installed Django app through
-[`import_grouptype`](../../issues/grouptype.py). Put both classes there, or import a
+[`import_grouptype`](../../../issues/grouptype.py). Put both classes there, or import a
 nested implementation from that file, as
-[`sentry.preprod.grouptype`](../../preprod/grouptype.py) does. Add a test that checks
+[`sentry.preprod.grouptype`](../../../preprod/grouptype.py) does. Add a test that checks
 the issue type resolves through the GroupType registry and settings resolve through
 `detector_settings_registry.get(DetectorType.EXAMPLE_DETECTOR)` after normal application
 startup. Every `DetectorType` member must have registered settings; a startup test checks
 this contract.
 
-## Implement API Validation
+## 6. Implement API Validation
 
 Subclass
-[`BaseDetectorTypeValidator`](../endpoints/validators/base/detector.py) in the owning
+[`BaseDetectorTypeValidator`](../../endpoints/validators/base/detector.py) in the owning
 product or under `workflow_engine/endpoints/validators` when the behavior is shared.
 
 The base validator provides:
@@ -610,25 +625,72 @@ Detector-specific validators commonly provide:
 - Quota calculation
 - Detector-specific cleanup
 
-If for some reason there's not a consistent data_source or you need to opt-out of the data_source
-to detector connections, then set `data_source_required = False`. This should only be when the detector
-is intentionally created and resolved outside the generic data-source graph. Set `enforce_single_datasource = True`
-when multiple sources would make the handler ambiguous.
+Set `data_source_required = False` only when the detector is intentionally created and
+resolved outside the generic data-source graph and the producer has another reliable
+lookup. Set `enforce_single_datasource = True` when multiple sources would make the
+handler ambiguous.
 
 _Do not create the detector graph piecemeal in an endpoint._ The base validator's
 transaction coordinates condition groups, detector config validation, source mappings,
 workflow connections, and audit logging.
 
-## Connect a Data Source
+### Exercise the Native Creation API
+
+Create a detector through
+`POST /api/0/organizations/{organization_id_or_slug}/projects/{project_id_or_slug}/detectors/`.
+The [project detector endpoint](../../endpoints/organization_project_detector_index.py)
+uses the submitted `type` to select the registered settings' validator, validates the
+request, and saves the graph. Supply `name`, `type`, the product's `config`, and the
+`dataSources` and `conditionGroup` its validator requires. Optional `workflowIds`
+connect existing workflows; see [Add a Workflow](workflows.md) for notification policy.
+
+For a concrete existing integration, this request creates a static metric detector that
+triggers above ten unresolved events and recovers at ten or fewer:
+
+```json
+{
+  "name": "Unresolved event count",
+  "type": "metric_issue",
+  "config": {"detectionType": "static"},
+  "dataSources": [
+    {
+      "queryType": 0,
+      "dataset": "events",
+      "query": "is:unresolved",
+      "aggregate": "count()",
+      "timeWindow": 3600,
+      "environment": null,
+      "eventTypes": ["error", "default"]
+    }
+  ],
+  "conditionGroup": {
+    "logicType": "any",
+    "conditions": [
+      {"type": "gt", "comparison": 10, "conditionResult": 75},
+      {"type": "lte", "comparison": 10, "conditionResult": 0}
+    ]
+  }
+}
+```
+
+`75` is `DetectorPriorityLevel.HIGH`; `0` is `OK`. Recovery is an explicit matching
+condition, not the absence of a failing sample. Dataset access and quotas still apply.
+This is an example of the request shape, not a universal source schema: for your new
+detector, use its registered type, configuration, source validator, and extracted value.
+[`MetricIssueDetectorValidator`](../../../incidents/metric_issue_detector.py) shows the
+concrete `data_sources = serializers.ListField(child=SnubaQueryValidator(), required=False)`
+handoff described below.
+
+## 7. Connect the Producer and Detector
 
 Skip this section only when the validator intentionally sets
 `data_source_required = False` and the producer has another reliable detector lookup.
 
-### Reuse or register a source type
+### Reuse or Register a Source Type
 
 First determine whether an existing source type represents the producer object. If not,
 define a source type constant and implement
-[`DataSourceTypeHandler`](../types.py):
+[`DataSourceTypeHandler`](../../types.py):
 
 - `bulk_get_query_object`
 - `related_model`
@@ -636,16 +698,33 @@ define a source type constant and implement
 - `get_current_instance_count`
 - `get_relocation_model_name`
 
-Register the handler with [`data_source_type_registry`](../registry.py). Update
+Register the handler with [`data_source_type_registry`](../../registry.py). Update
 `DataSource.__relocation_dependencies__` when the source references a model not already
 listed. Add deletion, quota, relocation, and unknown-type tests appropriate to the new
 source.
 
-### Create the source graph
+### Create the Source Graph
 
-Native API creation expects validated source data to contain a product-specific creator.
-The base validator calls that creator, creates the generic `DataSource`, and creates the
-`DataSourceDetector` mapping in the detector transaction.
+The source validator creates a deferred source-creation object, not a `DataSource` row
+during ordinary field validation. Follow
+[`BaseDataSourceValidator` and `DataSourceCreator`](../../endpoints/validators/base/data_source.py):
+
+1. Subclass `BaseDataSourceValidator` for the product's source model. Define its input
+   fields, `data_source_type_handler`, and `create_source(validated_data)` implementation.
+2. Use that serializer as the detector validator's `data_sources` child. Its base
+   `validate` adds `_creator` (a `DataSourceCreator`) and `data_source_type` (the registered
+   source-handler key) to each validated source entry. These are internal values, not
+   fields clients put in `dataSources`.
+3. During detector creation,
+   [`BaseDetectorTypeValidator._create_data_source`](../../endpoints/validators/base/detector.py)
+   invokes `_creator.create()`. That calls the source validator's quota-aware
+   `validated_create_source`, then `create_source`, and retains the returned model instance.
+4. The base detector validator uses that instance's ID and the registered source type
+   to create `DataSource` and `DataSourceDetector` in the detector transaction.
+
+For a complete implementation, read
+[`SnubaQueryValidator`](../../../snuba/snuba_query_validator.py), which returns a
+`QuerySubscription`, together with the metric detector validator above.
 
 The resulting source identity must match the producer call:
 
@@ -657,9 +736,9 @@ DataSource.source_id == DataPacket.source_id
 Test this match end to end. A valid detector with a mismatched source type or stringified
 ID will never be selected.
 
-## Produce Packets
+### Produce Packets
 
-Use [`process_data_packet`](../processors/data_packet.py) when the producer has a generic
+Use [`process_data_packet`](../../processors/data_packet.py) when the producer has a generic
 source mapping:
 
 ```python
@@ -669,7 +748,7 @@ process_data_packet(
 )
 ```
 
-Use [`process_detectors`](../processors/detector.py) directly only when the product path
+Use [`process_detectors`](../../processors/detector.py) directly only when the product path
 already resolves the exact detector set and a generic lookup would add no value. Explain
 and test that ownership boundary in the producer module. `process_detectors` does not
 filter `enabled` or lifecycle status. Direct callers must define and test both
@@ -684,21 +763,23 @@ Producer requirements:
 - Record enough product metrics to distinguish missing input from detector rejection.
 - Decide whether detector exceptions should fail, retry, or isolate one item in a batch.
 
-## Configure Trigger Conditions
+## 8. Configure Trigger Conditions
 
 Detector trigger conditions return `DetectorPriorityLevel` values. The base API
 validator rejects results that are not valid priority integers.
 
 Prefer built-in operators when conditions compare the extracted value directly. Add a
-[`DataConditionHandler`](../types.py) only when evaluation needs a richer comparison or
+[`DataConditionHandler`](../../types.py) only when evaluation needs a richer comparison or
 event context.
 
-The complete shared evaluation contract and condition-handler extension path live in
-[Conditions](conditions.md). In particular, handler-group placement is not enforced by
-generic backend validation, and stateful Detector triggers do not participate in the
-Workflow batched data-acquisition phase.
+Use the [condition handler walkthrough](conditions.md) to add and register a custom
+handler. Match its input type to the value returned by `extract_value`, not the whole
+`DataPacket` unless that is deliberately your extracted value. Detector trigger inputs
+must be available inline; the Workflow-only batched query path is not a detector
+extension point. The canonical [condition reference](../maintainers/conditions.md)
+owns shared result, validation, placement, and fast/slow evaluation semantics.
 
-## Rollout and Operational Safety
+## 9. Plan Rollout and Operational Safety
 
 Before enabling production issue creation:
 
@@ -725,13 +806,13 @@ cause a producer to run.
 
 - [ ] Confirm Workflow Engine is the correct detection system.
 - [ ] Define the packet payload and evaluation value types.
-- [ ] Choose the handler: `StatefulDetectorHandler` or `DetectorHandler`.
+- [ ] Choose `StatefulDetectorHandler`, `DetectorHandler`, or `BaseDetectorHandler`.
 - [ ] For stateful detectors, choose an ordered, integer dedupe value.
 - [ ] Decide whether results are grouped and bound group-key cardinality.
 - [ ] Specify trigger, escalation, and recovery transitions.
 - [ ] Specify stable trigger and resolution fingerprints.
 
-### Issue type and handler
+### Issue Type and Handler
 
 - [ ] Add or update the product `GroupType`.
 - [ ] Add the implementation's `DetectorType` member with a stable stored value.
@@ -742,7 +823,7 @@ cause a producer to run.
 - [ ] Implement thresholds and recovery for stateful detectors.
 - [ ] Verify registry discovery at startup.
 
-### API and persistence
+### API and Persistence
 
 - [ ] Implement the detector-specific validator.
 - [ ] Validate condition comparisons and detector config.
@@ -786,22 +867,22 @@ cause a producer to run.
 Use existing factory methods rather than direct model creation in tests. The most useful
 shared references are:
 
-- [`test_base.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_base.py)
+- [`test_base.py`](../../../../../tests/sentry/workflow_engine/handlers/detector/test_base.py)
   for the default stateless evaluation
-- [`test_stateful.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
-- [`test_data_packet.py`](../../../../tests/sentry/workflow_engine/processors/test_data_packet.py)
-- [`test_detector.py`](../../../../tests/sentry/workflow_engine/processors/test_detector.py)
-- [`test_organization_project_detector_index.py`](../../../../tests/sentry/workflow_engine/endpoints/test_organization_project_detector_index.py)
-- [`test_integration.py`](../../../../tests/sentry/workflow_engine/test_integration.py)
+- [`test_stateful.py`](../../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
+- [`test_data_packet.py`](../../../../../tests/sentry/workflow_engine/processors/test_data_packet.py)
+- [`test_detector.py`](../../../../../tests/sentry/workflow_engine/processors/test_detector.py)
+- [`test_organization_project_detector_index.py`](../../../../../tests/sentry/workflow_engine/endpoints/test_organization_project_detector_index.py)
+- [`test_integration.py`](../../../../../tests/sentry/workflow_engine/test_integration.py)
 
 ## Recommended Implementations
 
-| Implementation                                                                                        | Why to read it                                                              |
-| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [`UptimeDetectorHandler`](../../uptime/grouptype.py)                                                  | Stateful trigger/recovery thresholds, source data, evidence, and API config |
-| [`MetricIssueDetectorHandler`](../../incidents/grouptype.py)                                          | Stateful metric thresholds, anomaly payloads, and metric evidence           |
-| Processing error handlers in [`processing_errors/grouptype.py`](../../processing_errors/grouptype.py) | Customized state transitions and asymmetric resolution                      |
-| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Stateless `DetectorHandler` with only hooks: query filtering, fingerprints  |
+| Implementation                                                                                           | Why to read it                                                              |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [`UptimeDetectorHandler`](../../../uptime/grouptype.py)                                                  | Stateful trigger/recovery thresholds, source data, evidence, and API config |
+| [`MetricIssueDetectorHandler`](../../../incidents/grouptype.py)                                          | Stateful metric thresholds, anomaly payloads, and metric evidence           |
+| Processing error handlers in [`processing_errors/grouptype.py`](../../../processing_errors/grouptype.py) | Customized state transitions and asymmetric resolution                      |
+| [`PreprodSizeAnalysisDetectorHandler`](../../../preprod/size_analysis/grouptype.py)                      | Stateless `DetectorHandler` with only hooks: query filtering, fingerprints  |
 
 Copy architecture, not product assumptions. Each example has specialized producer,
 state, and lifecycle behavior.
