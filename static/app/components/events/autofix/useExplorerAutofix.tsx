@@ -85,14 +85,12 @@ export interface SingleRunStop {
 }
 
 function isSingleRunStopArtifact(value: unknown): value is Artifact<SingleRunStop> {
-  if (!isArtifact(value) || value.key !== SINGLE_RUN_STOP_KEY) {
-    return false;
-  }
-  const data = value.data;
-  if (data === null || typeof data !== 'object') {
-    return false;
-  }
-  return isString(data.reason) && isString(data.next_step);
+  return (
+    isArtifact(value) &&
+    value.key === SINGLE_RUN_STOP_KEY &&
+    isString(value.data?.reason) &&
+    isString(value.data?.next_step)
+  );
 }
 
 export function getSingleRunStop(section: AutofixSection): SingleRunStop | null {
