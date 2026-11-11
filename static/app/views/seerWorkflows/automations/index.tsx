@@ -4,6 +4,7 @@ import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconSentry} from '@sentry/icons/sentry';
+import {IconSiren} from '@sentry/icons/siren';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -21,10 +22,12 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigResponse,
@@ -36,6 +39,7 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useFetchConfigs} from './hooks/configs';
+import {useMonitorsById} from './hooks/useMonitorsById';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
@@ -52,6 +56,12 @@ const DAILY_SCHEDULE_HOURS = [10, 22];
  * How many project avatars/slugs a card shows before collapsing the rest.
  */
 const MAX_VISIBLE_PROJECTS = 3;
+
+/**
+ * The most bullets the monitor tooltip shows. Lists that reach it show one
+ * fewer monitor and end with a "+N more" bullet.
+ */
+const MAX_TOOLTIP_MONITORS = 6;
 
 // TODO: Missing fields from backend - to add to configs API
 type AdditionalConfig = {
@@ -70,6 +80,9 @@ export default function AutomationsList() {
   const {data, isPending, isLoadingError, refetch} = useFetchConfigs();
 
   const configs = data ?? [];
+  const {data: monitorsById} = useMonitorsById(
+    configs.flatMap(config => config.monitorIds)
+  );
 
   if (!automationsEnabled) {
     return <NotFound />;
@@ -96,13 +109,19 @@ export default function AutomationsList() {
       padding="0"
     >
       {configs.map(config => (
-        <AutomationCard key={config.id} config={config} />
+        <AutomationCard key={config.id} config={config} monitorsById={monitorsById} />
       ))}
     </Grid>
   );
 }
 
-function AutomationCard({config}: {config: AutomationConfig}) {
+function AutomationCard({
+  config,
+  monitorsById,
+}: {
+  config: AutomationConfig;
+  monitorsById: Map<string, Detector> | undefined;
+}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {data: createdByUser} = useUserFromId({
@@ -113,10 +132,8 @@ function AutomationCard({config}: {config: AutomationConfig}) {
     : undefined;
 
   const {enabled} = config;
-  const trigger =
-    config.strategy === 'breached_metric_investigation'
-      ? t('Triggered by metric monitors')
-      : config.trigger;
+  const isMetricStrategy = config.strategy === 'breached_metric_investigation';
+  const trigger = isMetricStrategy ? t('Triggered by metric monitors') : config.trigger;
   const title = config.name ?? strategyMeta?.label ?? config.strategy;
   const description = strategyMeta?.description ?? t('No description');
   const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
@@ -182,7 +199,51 @@ function AutomationCard({config}: {config: AutomationConfig}) {
           <Text size="sm" variant="muted">
             {t('Total cost: $(mock) | (mock)m tokens')}
           </Text>
-          {projectSlugs[0] === 'all' ? (
+          {isMetricStrategy ? (
+            <Tooltip
+              disabled={!monitorsById || config.monitorIds.length === 0}
+              title={
+                <Text as="div" align="left">
+                  <Stack gap="xs" align="start">
+                    {(config.monitorIds.length >= MAX_TOOLTIP_MONITORS
+                      ? config.monitorIds.slice(0, MAX_TOOLTIP_MONITORS - 1)
+                      : config.monitorIds
+                    ).map(monitorId => {
+                      const id = String(monitorId);
+                      return (
+                        <Container key={id}>
+                          <MonitorLink
+                            to={makeMonitorDetailsPathname(organization.slug, id)}
+                            onClick={event => event.stopPropagation()}
+                          >
+                            {monitorsById?.get(id)?.name ?? id}
+                          </MonitorLink>
+                        </Container>
+                      );
+                    })}
+                    {config.monitorIds.length >= MAX_TOOLTIP_MONITORS && (
+                      <Container>
+                        {tn(
+                          '+%s more',
+                          '+%s more',
+                          config.monitorIds.length - (MAX_TOOLTIP_MONITORS - 1)
+                        )}
+                      </Container>
+                    )}
+                  </Stack>
+                </Text>
+              }
+            >
+              <Flex align="center" gap="sm">
+                <IconSiren size="sm" variant="muted" />
+                <Text size="sm" variant="muted">
+                  {config.monitorIds.length === 0
+                    ? t('No monitors')
+                    : tn('%s monitor', '%s monitors', config.monitorIds.length)}
+                </Text>
+              </Flex>
+            </Tooltip>
+          ) : projectSlugs[0] === 'all' ? (
             <Flex align="center" gap="sm">
               <IconAllProjects size="sm" variant="muted" />
               <Text size="sm" variant="muted">
@@ -226,6 +287,12 @@ function AutomationCard({config}: {config: AutomationConfig}) {
     </Container>
   );
 }
+
+const MonitorLink = styled(Link)`
+  &:hover {
+    text-decoration: underline;
+  }
+`;
 
 const CardLink = styled(Link)`
   display: grid;
