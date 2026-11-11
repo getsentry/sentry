@@ -27,6 +27,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useProfileEventsApiOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -358,9 +359,9 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
         sortableColumns={new Set(fields)}
       />
       <StyledPagination
-        pageLinks={
+        {...getPaginationProps(
           transactions.status === 'success' ? transactions.data.headers.Link : null
-        }
+        )}
       />
     </Stack>
   );

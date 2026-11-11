@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -356,8 +357,8 @@ function ManageDashboards() {
 
   const pagination = (
     <PaginationRow
-      pageLinks={dashboardsPageLinks}
-      onCursor={(cursor, _path, _query, direction) => {
+      {...getPaginationProps(dashboardsPageLinks)}
+      onCursor={(cursor, direction) => {
         const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
         const isPrevious = direction === -1;
 

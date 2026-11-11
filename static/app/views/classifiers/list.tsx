@@ -21,6 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -174,7 +175,7 @@ function ClassifiersTable() {
           ))
         )}
       </SimpleTable>
-      <Pagination pageLinks={data?.headers.Link} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} />
     </div>
   );
 }

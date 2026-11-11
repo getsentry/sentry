@@ -318,6 +318,10 @@
     "./pictureInPicture": {
       "types": "./dist/pictureInPicture/index.d.ts",
       "import": "./dist/pictureInPicture/index.js"
+    },
+    "./pagination": {
+      "types": "./dist/pagination/index.d.ts",
+      "import": "./dist/pagination/index.js"
     }
   },
   "publishConfig": {

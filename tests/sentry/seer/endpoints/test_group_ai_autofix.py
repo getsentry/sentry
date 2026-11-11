@@ -36,6 +36,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.credits import SeerFeature, SeerOperation
@@ -141,6 +142,47 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["run_id"] == 2
         assert response.data["autofix"]["feature_id"] == SINGLE_RUN_FEATURE_ID
+
+    def _step_prompt_state(self) -> SeerRunState:
+        state = self._state(1, single_run=False)
+        state.blocks = [
+            MemoryBlock(
+                id="b0",
+                message=Message(
+                    role="user", content="Analyze issue ABC-1 ...", metadata={"step": "root_cause"}
+                ),
+                timestamp="2023-07-18T12:00:00Z",
+            )
+        ]
+        return state
+
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_get_hides_the_autofix_prompt_from_customers(self, mock_get_run: MagicMock) -> None:
+        group = self.create_group()
+        self._create_run(group, state_id=1, source="autofix", minutes_ago=1)
+        mock_get_run.return_value = self._step_prompt_state()
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        content = response.data["autofix"]["blocks"][0]["message"]["content"]
+        assert content == AUTOFIX_PROMPT_PLACEHOLDER
+
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_get_shows_the_autofix_prompt_to_superusers(self, mock_get_run: MagicMock) -> None:
+        group = self.create_group()
+        self._create_run(group, state_id=1, source="autofix", minutes_ago=1)
+        mock_get_run.return_value = self._step_prompt_state()
+        superuser = self.create_user(is_superuser=True)
+        self.create_member(organization=self.organization, user=superuser, role="owner")
+
+        self.login_as(user=superuser, superuser=True)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        content = response.data["autofix"]["blocks"][0]["message"]["content"]
+        assert content == "Analyze issue ABC-1 ..."
 
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
     def test_get_returns_newer_step_run_with_autofix_feature_id(

@@ -18,6 +18,7 @@ import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -300,7 +301,10 @@ export function LogsAggregateTable({
           },
         }}
       />
-      <Pagination pageLinks={pageLinks} onCursor={cursor => setAggregateCursor(cursor)} />
+      <Pagination
+        {...getPaginationProps(pageLinks)}
+        onCursor={cursor => setAggregateCursor(cursor)}
+      />
     </Stack>
   );
 }
