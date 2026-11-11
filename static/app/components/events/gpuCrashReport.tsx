@@ -26,20 +26,33 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type Context = Record<string, any>;
+import type {
+  FaultCategory,
+  FaultedWarp,
+  GPUCrashContext,
+} from './contexts/knownContext/gpuCrash';
 
-type Stage = {code: string; name: string; role: string; shaderType?: string};
+type ShaderType =
+  | 'Vertex'
+  | 'Hull'
+  | 'Domain'
+  | 'Geometry'
+  | 'Pixel'
+  | 'Compute'
+  | 'Task'
+  | 'Mesh'
+  | 'RayGeneration'
+  | 'RayIntersection'
+  | 'RayAnyHit'
+  | 'RayClosestHit'
+  | 'RayMiss'
+  | 'RayCallable';
+
+type Stage = {code: string; name: string; role: string; shaderType?: ShaderType};
 
 type Lane = {label: string; stages: Stage[]};
 
-type FaultedWarp = {
-  fault_detail?: string;
-  fault_name?: string;
-  pc?: string;
-  shader_mapping?: {File?: string; Line?: number} | null;
-};
-
-type MarkerData = {Pipe?: string; Status?: string; Type?: string};
+type MarkerData = {Pipe?: string; Status?: string; Type?: string; frames?: string[]};
 
 type FlowStep = {
   detail: ReactNode;
@@ -48,10 +61,16 @@ type FlowStep = {
   variant: 'danger' | 'warning' | 'success';
 };
 
-const HANGS = new Set(['shader_hang', 'gpu_hang']);
-const MEMORY_FAULTS = new Set(['page_fault', 'dma_fault']);
+const HANGS: ReadonlySet<FaultCategory | undefined> = new Set([
+  'shader_hang',
+  'gpu_hang',
+]);
+const MEMORY_FAULTS: ReadonlySet<FaultCategory | undefined> = new Set([
+  'page_fault',
+  'dma_fault',
+]);
 
-function node(code: string, name: string, role: string, shaderType?: string): Stage {
+function node(code: string, name: string, role: string, shaderType?: ShaderType): Stage {
   return {code, name, role, shaderType};
 }
 
@@ -97,7 +116,7 @@ function getLanes(): Lane[] {
   ];
 }
 
-function getCategoryLabel(category: string | undefined): string {
+function getCategoryLabel(category: FaultCategory | undefined): string {
   switch (category) {
     case 'shader_hang':
       return t('Shader hang');
@@ -120,7 +139,7 @@ function getCategoryLabel(category: string | undefined): string {
   }
 }
 
-function getSummary(crash: Context, shader: string | null | undefined): string {
+function getSummary(crash: GPUCrashContext, shader: string | null | undefined): string {
   const kind = crash.shader_type
     ? t('%s shader', String(crash.shader_type).toLowerCase())
     : t('shader');
@@ -161,7 +180,7 @@ function getSummary(crash: Context, shader: string | null | undefined): string {
   return parts.join(' ');
 }
 
-function getFlow(crash: Context): FlowStep[] {
+function getFlow(crash: GPUCrashContext): FlowStep[] {
   const steps: FlowStep[] = [];
   if (crash.device_status) {
     steps.push({
@@ -227,10 +246,14 @@ function getFlow(crash: Context): FlowStep[] {
   return steps;
 }
 
-function rows(entries: Array<[string, string, unknown]>): KeyValueTableDataRowProps[] {
+function rows(entries: Array<[string, string, ReactNode]>): KeyValueTableDataRowProps[] {
   return entries
     .filter(([, , value]) => defined(value) && value !== '')
-    .map(([key, subject, value]) => ({item: {key, subject, value: value as ReactNode}}));
+    .map(([key, subject, value]) => ({item: {key, subject, value}}));
+}
+
+function getMarkerData(crumb: RawCrumb | undefined): MarkerData {
+  return (crumb?.data ?? {}) as MarkerData;
 }
 
 function yesNo(value: unknown): string | undefined {
@@ -252,7 +275,7 @@ function frameVariant(frame: string): 'accent' | 'success' | 'muted' {
   return lower.includes('.exe') ? 'success' : 'muted';
 }
 
-function StageTag({crash, stage}: {crash: Context; stage: Stage}) {
+function StageTag({crash, stage}: {crash: GPUCrashContext; stage: Stage}) {
   const faulting = defined(stage.shaderType) && stage.shaderType === crash.shader_type;
   const detail = [
     crash.shader_hash && t('shader %s', crash.shader_hash),
@@ -295,7 +318,7 @@ function StageTag({crash, stage}: {crash: Context; stage: Stage}) {
   );
 }
 
-function Pipeline({crash}: {crash: Context}) {
+function Pipeline({crash}: {crash: GPUCrashContext}) {
   const lanes = getLanes();
   const graphics = lanes[0]!;
   const lane = lanes.find(l => l.stages.some(s => s.shaderType === crash.shader_type));
@@ -364,12 +387,12 @@ function Flow({steps}: {steps: FlowStep[]}) {
   );
 }
 
-function FaultPanel({crash}: {crash: Context}) {
-  const warps: FaultedWarp[] = Array.isArray(crash.faulted_warps)
-    ? crash.faulted_warps
-    : crash.fault_name
+function FaultPanel({crash}: {crash: GPUCrashContext}) {
+  const warps: FaultedWarp[] =
+    crash.faulted_warps ??
+    (crash.fault_name
       ? [{fault_name: crash.fault_name, fault_detail: crash.fault_detail}]
-      : [];
+      : []);
   const isMemoryFault = MEMORY_FAULTS.has(crash.fault_category);
   if (!isMemoryFault && !warps.length) {
     return null;
@@ -439,7 +462,7 @@ function FaultPanel({crash}: {crash: Context}) {
 }
 
 function LastOperation({marker, operation}: {operation: string; marker?: RawCrumb}) {
-  const data = (marker?.data ?? {}) as MarkerData;
+  const data = getMarkerData(marker);
   const meta = [
     data.Status,
     data.Pipe && t('%s of pipe', data.Pipe),
@@ -478,8 +501,7 @@ function LastOperation({marker, operation}: {operation: string; marker?: RawCrum
 function Markers({crumbs}: {crumbs: RawCrumb[]}) {
   const markers = crumbs.filter(c => c.category === 'gpu.marker');
   const callstack =
-    (crumbs.find(c => c.category === 'gpu.marker.callstack')?.data as {frames?: string[]})
-      ?.frames ?? [];
+    getMarkerData(crumbs.find(c => c.category === 'gpu.marker.callstack')).frames ?? [];
   if (!markers.length && !callstack.length) {
     return null;
   }
@@ -500,7 +522,7 @@ function Markers({crumbs}: {crumbs: RawCrumb[]}) {
               />
             </Flex>
             {markers.map((marker, i) => {
-              const data = (marker.data ?? {}) as MarkerData;
+              const data = getMarkerData(marker);
               return (
                 <Flex key={i} gap="sm" align="center" wrap="wrap">
                   <Tag variant={markerVariant(data.Status)}>
@@ -548,8 +570,8 @@ function Markers({crumbs}: {crumbs: RawCrumb[]}) {
   );
 }
 
-function DecodeDetails({crash}: {crash: Context}) {
-  const warnings: unknown[] = Array.isArray(crash.warnings) ? crash.warnings : [];
+function DecodeDetails({crash}: {crash: GPUCrashContext}) {
+  const warnings = crash.warnings ?? [];
   const details = [
     (crash.sdk_version || crash.handler) &&
       t('Decoded by %s', crash.sdk_version ?? crash.handler),
@@ -561,7 +583,7 @@ function DecodeDetails({crash}: {crash: Context}) {
 
   return (
     <Stack gap="sm">
-      {crash.missing_dif_count > 0 ? (
+      {crash.missing_dif_count ? (
         <Alert variant="warning">
           {tn(
             '%s shader debug info file (.nvdbg) referenced by this crash was not uploaded, so shader names and source mapping may be incomplete.',
@@ -572,11 +594,7 @@ function DecodeDetails({crash}: {crash: Context}) {
       ) : null}
       {warnings.map((warning, i) => (
         <Alert key={i} variant="muted">
-          {typeof warning === 'string'
-            ? warning
-            : [(warning as Context)?.code, (warning as Context)?.message]
-                .filter(Boolean)
-                .join(': ')}
+          {[warning.code, warning.message].filter(Boolean).join(': ')}
         </Alert>
       ))}
       <Flex gap="sm" align="center" wrap="wrap">
@@ -596,26 +614,29 @@ function DecodeDetails({crash}: {crash: Context}) {
 }
 
 export function EventGpuCrashReport({event}: {event: Event}) {
-  const exceptions = event.entries?.find(entry => entry.type === EntryType.EXCEPTION)
-    ?.data?.values as ExceptionValue[] | undefined;
+  let exceptions: ExceptionValue[] | undefined;
+  let breadcrumbs: RawCrumb[] | undefined;
+  for (const entry of event.entries ?? []) {
+    if (entry.type === EntryType.EXCEPTION) {
+      exceptions = entry.data.values;
+    } else if (entry.type === EntryType.BREADCRUMBS) {
+      breadcrumbs = entry.data.values;
+    }
+  }
   const value = exceptions?.find(v => v.mechanism?.type === 'gpu_crash');
-  const contexts = (event.contexts ?? {}) as Record<string, Context | undefined>;
-  const crash = contexts.gpu_crash;
+  const {gpu_crash: crash, gpu, unreal, os, app} = event.contexts;
   if (!value || !crash) {
     return null;
   }
 
-  const {gpu, unreal, os, app} = contexts;
   const frame = value.stacktrace?.frames?.at(-1);
-  const breadcrumbs = event.entries?.find(entry => entry.type === EntryType.BREADCRUMBS)
-    ?.data?.values as RawCrumb[] | undefined;
   const crumbs = (breadcrumbs ?? []).filter(c => c.category?.startsWith('gpu.'));
-  const lastOperation: string | undefined = crash.last_gpu_operation;
+  const lastOperation = crash.last_gpu_operation;
   const operationMarkers = crumbs.filter(
     c => c.category === 'gpu.marker' && c.message === lastOperation
   );
   const lastMarker =
-    operationMarkers.findLast(c => (c.data as MarkerData)?.Status === 'Executing') ??
+    operationMarkers.findLast(c => getMarkerData(c).Status === 'Executing') ??
     operationMarkers.at(-1);
   const annotations = crumbs
     .filter(c => c.category === 'gpu.application' || c.category === 'gpu.user_defined')
