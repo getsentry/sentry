@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 
 import {getAssignedActivityItem} from './activityItem/assignment';
 import {getResolvedInCommitDetails} from './activityItem/commitDetails';
@@ -655,9 +656,7 @@ function getActivityItemContent({
         title: investigation
           ? tct('Linked by investigation [investigation]', {
               investigation: (
-                <Link
-                  to={`/organizations/${organization.slug}/investigations/${investigation.id}/`}
-                >
+                <Link to={getInvestigationPath(organization.slug, investigation.id)}>
                   {investigation.title}
                 </Link>
               ),

@@ -2733,7 +2733,7 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('The error started right after the deploy.');
     expect(screen.getByRole('link', {name: 'Checkout outage'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/investigations/42/'
+      '/organizations/org-slug/seer/investigations/42/'
     );
   });
 
