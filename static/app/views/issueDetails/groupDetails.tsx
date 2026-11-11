@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
@@ -573,9 +572,7 @@ function GroupDetailsContentError({
   switch (errorType) {
     case ERROR_TYPES.GROUP_NOT_FOUND:
       return (
-        <StyledLoadingError
-          message={t('The issue you were looking for was not found.')}
-        />
+        <GroupLoadingError message={t('The issue you were looking for was not found.')} />
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -585,7 +582,7 @@ function GroupDetailsContentError({
         </Container>
       );
     default:
-      return <StyledLoadingError onRetry={onRetry} />;
+      return <GroupLoadingError onRetry={onRetry} />;
   }
 }
 
@@ -844,12 +841,12 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   if (errorFetchingProjects) {
-    return <StyledLoadingError message={t('Error loading the specified project')} />;
+    return <GroupLoadingError message={t('Error loading the specified project')} />;
   }
 
   if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
     return (
-      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+      <GroupLoadingError message={t('The project %s does not exist', projectSlug)} />
     );
   }
 
@@ -931,6 +928,12 @@ function GroupDetailsContainer() {
 
 export default Sentry.withProfiler(GroupDetailsContainer);
 
-const StyledLoadingError = styled(LoadingError)`
-  margin: ${p => p.theme.space.xl};
-`;
+// Pad a wrapper instead of adding margin to the full-width Alert, which would
+// push it past the edge of the page and cause a horizontal scroll.
+function GroupLoadingError(props: React.ComponentProps<typeof LoadingError>) {
+  return (
+    <Container padding="xl">
+      <LoadingError {...props} />
+    </Container>
+  );
+}
