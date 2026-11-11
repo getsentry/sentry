@@ -65,6 +65,13 @@ def skills_installed(reporoot: str) -> bool:
     )
 
 
+def migrated_databases() -> tuple[str, ...]:
+    """The databases `sentry upgrade` migrates, per SILO_DEVSERVER in sentry/conf/server.py."""
+    if os.environ.get("SENTRY_SILO_DEVSERVER"):
+        return ("region", "control")
+    return ("sentry",)
+
+
 def migrations_applied(databases: tuple[str, ...], lockfiles: tuple[str, ...]) -> bool:
     """Whether each database has every app's latest migration from the lockfiles."""
     heads: list[tuple[str, ...]] = []
@@ -407,7 +414,7 @@ def main(context: dict[str, str]) -> int:
     # own apps, so a new uv.lock also migrates, for Django's and other packages' migrations.
     migrated_with = digest(f"{reporoot}/uv.lock")
     if stamped(reporoot, "migrations", migrated_with) and migrations_applied(
-        ("sentry",), (f"{reporoot}/migrations_lockfile.txt",)
+        migrated_databases(), (f"{reporoot}/migrations_lockfile.txt",)
     ):
         print("✅ python migrations (up to date)")
         return 0

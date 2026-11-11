@@ -103,3 +103,12 @@ def test_skills_need_a_lock_and_an_installed_skill(sync: ModuleType, tmp_path: P
 
     (tmp_path / ".agents/skills/commit").mkdir()
     assert sync.skills_installed(str(tmp_path))
+
+
+def test_the_silo_devserver_databases_are_the_ones_checked(sync: ModuleType) -> None:
+    with mock.patch.dict(os.environ):
+        os.environ.pop("SENTRY_SILO_DEVSERVER", None)
+        assert sync.migrated_databases() == ("sentry",)
+
+        os.environ["SENTRY_SILO_DEVSERVER"] = "1"
+        assert sync.migrated_databases() == ("region", "control")
