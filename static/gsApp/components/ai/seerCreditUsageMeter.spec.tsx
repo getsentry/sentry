@@ -125,7 +125,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(
       await screen.findByText(/You do not have any more reloads available\./)
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Configure auto-reload.'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Configure autoload.'})).toHaveAttribute(
       'href',
       settingsUrl
     );

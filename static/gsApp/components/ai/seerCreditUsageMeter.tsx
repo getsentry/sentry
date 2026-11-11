@@ -171,10 +171,9 @@ function AutoReloadStatus({
   if (!hasEnoughCredits) {
     return (
       <Text>
-        {tct(
-          'You do not have any more reloads available. [link:Configure auto-reload.]',
-          {link: <Link to={configureAutoReloadTo} />}
-        )}
+        {tct('You do not have any more reloads available. [link:Configure autoload.]', {
+          link: <Link to={configureAutoReloadTo} />,
+        })}
       </Text>
     );
   }
