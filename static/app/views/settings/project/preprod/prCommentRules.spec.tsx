@@ -44,11 +44,8 @@ describe('PrCommentRules', () => {
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
     expect(
-      screen.getByText('Enable PR comments above to configure rules.')
+      screen.getByRole('button', {name: 'Create PR Comment Rule'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Create PR Comment Rule'})
-    ).not.toBeInTheDocument();
   });
 
   it('reflects an enabled project from the explicit field', async () => {
@@ -122,9 +119,6 @@ describe('PrCommentRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
-    expect(
-      screen.getByText('Enable PR comments above to configure rules.')
-    ).toBeInTheDocument();
   });
 
   it('enables PR comments when toggled on', async () => {

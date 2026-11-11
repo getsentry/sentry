@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {IconSeer} from '@sentry/icons/seer';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   type AutofixSection,
+  explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -35,7 +37,10 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixSetupCard';
 import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
-import {useToggleSingleRunChat} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
+import {
+  useIsSingleRunChatOpen,
+  useToggleSingleRunChat,
+} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -45,6 +50,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -64,6 +70,7 @@ interface AutofixSectionProps {
 }
 
 export function AutofixSection({group, project}: AutofixSectionProps) {
+  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const isOnAutofixTab = useCurrentTab() === Tab.AUTOFIX;
 
@@ -71,6 +78,15 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   const issueTypeSupportsSeer =
     issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
+
+  const {data} = useQuery({
+    ...explorerAutofixApiOptions(organization.slug, group.id),
+    enabled: aiConfig.areAiFeaturesAllowed && issueTypeSupportsSeer,
+  });
+  const runState = data?.autofix ?? null;
+  const isAutofixChatOpen = useIsSingleRunChatOpen(
+    getAutofixRunId(isSingleRunAutofix(runState) ? runState : null)
+  );
 
   if (!aiConfig.areAiFeaturesAllowed || !issueTypeSupportsSeer) {
     if (!issueTypeConfig.resources) {
@@ -96,13 +112,15 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
     );
   }
 
+  const startCollapsed = isOnAutofixTab || isAutofixChatOpen;
+
   return (
     <SidebarFoldSection
       // The autofix tab already shows the full analysis, so start collapsed
       // there. Opening it on that tab shouldn't change the saved preference
       // for every other tab, and the key remounts it so each tab starts from
       // its own state.
-      key={isOnAutofixTab ? 'autofix-tab' : 'default'}
+      key={`${isOnAutofixTab}-${isAutofixChatOpen}`}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
@@ -111,8 +129,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       }
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
-      initialCollapse={isOnAutofixTab}
-      disableCollapsePersistence={isOnAutofixTab}
+      initialCollapse={startCollapsed}
+      disableCollapsePersistence={startCollapsed}
     >
       <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
