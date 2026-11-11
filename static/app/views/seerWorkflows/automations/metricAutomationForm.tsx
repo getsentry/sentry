@@ -95,10 +95,9 @@ type Props =
        */
       setFormHasChanges: (hasChanges: boolean) => void;
       /**
-       * Reports whether connected monitors are still loading or failed to load.
-       * Saving then could drop service account projects that follow the monitors.
+       * Disables save while monitors are loading
        */
-      setMonitorsUnavailable: (unavailable: boolean) => void;
+      setMonitorsPending: (pending: boolean) => void;
     };
 
 export function MetricAutomationForm(props: Props) {
@@ -145,8 +144,6 @@ export function MetricAutomationForm(props: Props) {
       navigate(getAutomationDetailPath(organization.slug, config.id));
       return config;
     }
-    // Pausing and resuming happen from the page header, so saving leaves `enabled`
-    // alone. Sending it would also require access to every project the automation covers.
     const config = await updateConfig.mutateAsync({...fields, name: props.name});
     toast.success(t('Automation saved.'));
     props.onSaved();
@@ -225,12 +222,10 @@ export function MetricAutomationForm(props: Props) {
   const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
   const isResolvingMonitors =
     monitorIds.length > 0 && (monitorsQuery.isLoading || monitorsQuery.isPlaceholderData);
-  const monitorsUnavailable = isResolvingMonitors || hasMonitorsError;
-  const setMonitorsUnavailable =
-    props.mode === 'edit' ? props.setMonitorsUnavailable : undefined;
+  const setMonitorsPending = props.mode === 'edit' ? props.setMonitorsPending : undefined;
   useEffect(
-    () => setMonitorsUnavailable?.(monitorsUnavailable),
-    [setMonitorsUnavailable, monitorsUnavailable]
+    () => setMonitorsPending?.(isResolvingMonitors),
+    [setMonitorsPending, isResolvingMonitors]
   );
   // For typing
   const monitors =

@@ -99,7 +99,7 @@ export type AutomationDetailOutletContext = {
   name: string;
   onSaved: () => void;
   setFormHasChanges: (hasChanges: boolean) => void;
-  setMonitorsUnavailable: (unavailable: boolean) => void;
+  setMonitorsPending: (pending: boolean) => void;
 };
 
 export default function AutomationConfiguration() {
@@ -116,7 +116,7 @@ export default function AutomationConfiguration() {
         readOnly={!context.isConfiguring}
         name={context.name}
         setFormHasChanges={context.setFormHasChanges}
-        setMonitorsUnavailable={context.setMonitorsUnavailable}
+        setMonitorsPending={context.setMonitorsPending}
       />
     );
   }

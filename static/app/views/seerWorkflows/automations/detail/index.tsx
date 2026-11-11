@@ -74,7 +74,7 @@ export default function AutomationDetail() {
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [formHasChanges, setFormHasChanges] = useState(false);
-  const [monitorsUnavailable, setMonitorsUnavailable] = useState(false);
+  const [monitorsPending, setMonitorsPending] = useState(false);
   const formRef = useRef<MetricAutomationFormHandle>(null);
   const formId = `automation-config-${automationId}`;
   // Leaving the configuration tab unmounts the form, discarding any unsaved changes
@@ -193,7 +193,7 @@ export default function AutomationDetail() {
         type="submit"
         form={formId}
         busy={isUpdatingConfig}
-        disabled={monitorsUnavailable || (!formHasChanges && draftName === title)}
+        disabled={monitorsPending || (!formHasChanges && draftName === title)}
       >
         {t('Save')}
       </Button>
@@ -361,7 +361,7 @@ export default function AutomationDetail() {
                 isConfiguring,
                 name: draftName,
                 setFormHasChanges,
-                setMonitorsUnavailable,
+                setMonitorsPending,
                 onSaved: () => setIsConfiguring(false),
               } satisfies AutomationDetailOutletContext
             }

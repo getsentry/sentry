@@ -60,7 +60,7 @@ describe('MetricAutomationForm', () => {
           readOnly={false}
           name={editConfig.name ?? ''}
           setFormHasChanges={jest.fn()}
-          setMonitorsUnavailable={jest.fn()}
+          setMonitorsPending={jest.fn()}
         />
         <button type="submit" form="automation-form">
           Save changes
@@ -510,6 +510,25 @@ describe('MetricAutomationForm', () => {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled()
       );
+    });
+
+    it('keeps save disabled while connected monitors are loading', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        body: [MetricDetectorFixture({id: '1', name: 'Checkout error rate'})],
+        // Never responds, so the monitors stay loading
+        asyncDelay: new Promise<void>(() => {}),
+      });
+      renderDetailPage();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+
+      // Renaming would normally enable save
+      await userEvent.click(screen.getByTestId('editable-text-label'));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Automation Name'}), '!');
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
     });
   });
 });
