@@ -103,6 +103,7 @@ describe('RunsTable', () => {
     expect(await screen.findByText('Succeeded')).toBeInTheDocument();
     expect(screen.getByText('Failed')).toBeInTheDocument();
     expect(screen.getByText('Boom')).toBeInTheDocument();
+    expect(screen.getByText('#12')).toBeInTheDocument();
     expect(screen.getAllByText('took 1min')).toHaveLength(2);
     expect(await screen.findByRole('link', {name: 'Checkout health'})).toHaveAttribute(
       'href',

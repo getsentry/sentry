@@ -7,17 +7,18 @@ import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
@@ -134,6 +135,8 @@ export function RunsTable({
               key={run.id}
               run={run}
               showAutomation={showStrategy}
+              isConfigPending={configs.isPending}
+              isMonitorPending={monitors.isPending}
               config={configsById.get(run.configId)}
               monitor={
                 run.trigger?.type === 'monitor'
@@ -178,9 +181,13 @@ function getErrorMessage(run: SeerAutomationRun): string | null {
 function RunRow({
   run,
   showAutomation,
+  isConfigPending,
+  isMonitorPending,
   config,
   monitor,
 }: {
+  isConfigPending: boolean;
+  isMonitorPending: boolean;
   run: SeerAutomationRun;
   showAutomation: boolean;
   config?: SeerWorkflowConfigResponse;
@@ -194,11 +201,11 @@ function RunRow({
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
-        <Tooltip title={t('Run %s', run.id)} skipWrapper>
+        <Stack gap="xs">
           <Flex gap="sm" align="center">
             {status ? (
               <Fragment>
-                <StatusIcon status={status} hideTooltip />
+                <StatusIcon status={status} />
                 <Text
                   variant={
                     status === 'running' || status === 'skipped' ? 'muted' : undefined
@@ -211,7 +218,8 @@ function RunRow({
               <Text variant="muted">{'—'}</Text>
             )}
           </Flex>
-        </Tooltip>
+          <Text variant="muted">{`#${run.id}`}</Text>
+        </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs" minWidth="0">
@@ -229,16 +237,24 @@ function RunRow({
       </SimpleTable.RowCell>
       {showAutomation && (
         <SimpleTable.RowCell>
-          <Text ellipsis>
-            <Link to={getAutomationDetailPath(organization.slug, run.configId)}>
-              {config?.name ?? getStrategyLabel(run.strategy)}
-            </Link>
-          </Text>
+          {isConfigPending ? (
+            <Placeholder height="20px" width="120px" />
+          ) : (
+            <Text ellipsis>
+              <Link to={getAutomationDetailPath(organization.slug, run.configId)}>
+                {config?.name ?? getStrategyLabel(run.strategy)}
+              </Link>
+            </Text>
+          )}
         </SimpleTable.RowCell>
       )}
       <SimpleTable.RowCell>
         {run.trigger?.type === 'monitor' ? (
-          <MonitorTriggerCell trigger={run.trigger} monitor={monitor} />
+          <MonitorTriggerCell
+            trigger={run.trigger}
+            monitor={monitor}
+            isMonitorPending={isMonitorPending}
+          />
         ) : run.trigger?.type === 'cron' ? (
           <Flex gap="xs" align="center">
             <IconClock size="xs" variant="muted" />
@@ -251,12 +267,7 @@ function RunRow({
         )}
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Stack gap="xs">
-          <Text wrap="nowrap">
-            <TimeSince date={run.dateAdded} />
-          </Text>
-          <RunDuration run={run} />
-        </Stack>
+        <RunTiming run={run} />
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
@@ -311,7 +322,9 @@ function RunOutputs({outputs}: {outputs: RunOutput[]}) {
 function MonitorTriggerCell({
   trigger,
   monitor,
+  isMonitorPending,
 }: {
+  isMonitorPending: boolean;
   trigger: MonitorTrigger;
   monitor?: Detector;
 }) {
@@ -322,15 +335,19 @@ function MonitorTriggerCell({
     <Stack gap="xs" minWidth="0">
       <Flex gap="xs" align="center" minWidth="0">
         <IconFire size="xs" variant="muted" />
-        <Text ellipsis>
-          {monitor ? (
-            <Link to={makeMonitorDetailsPathname(organization.slug, monitor.id)}>
-              {monitor.name}
-            </Link>
-          ) : (
-            t('Metric monitor breach')
-          )}
-        </Text>
+        {isMonitorPending ? (
+          <Placeholder height="20px" width="160px" />
+        ) : (
+          <Text ellipsis>
+            {monitor ? (
+              <Link to={makeMonitorDetailsPathname(organization.slug, monitor.id)}>
+                {monitor.name}
+              </Link>
+            ) : (
+              t('Metric monitor breach')
+            )}
+          </Text>
+        )}
       </Flex>
       <Flex gap="sm" align="center" wrap="wrap">
         {project && (
@@ -350,32 +367,59 @@ function MonitorTriggerCell({
   );
 }
 
-function RunDuration({run}: {run: SeerAutomationRun}) {
-  if (run.status === 'queued' || run.status === 'running') {
-    return (
-      <Text variant="muted" wrap="nowrap">
-        {tct('running for [duration]', {
-          duration: (
-            <TimeSince
-              date={run.dateAdded}
-              suffix=""
-              liveUpdateInterval="second"
-              disabledAbsoluteTooltip
-            />
-          ),
-        })}
-      </Text>
-    );
-  }
-  if (!run.dateCompleted) {
-    return null;
-  }
-  const seconds =
-    (new Date(run.dateCompleted).getTime() - new Date(run.dateAdded).getTime()) / 1000;
+function RunTiming({run}: {run: SeerAutomationRun}) {
+  const inProgress = run.status === 'queued' || run.status === 'running';
+  const duration = run.dateCompleted
+    ? getDuration(
+        (new Date(run.dateCompleted).getTime() - new Date(run.dateAdded).getTime()) /
+          1000,
+        0,
+        true
+      )
+    : null;
+
   return (
-    <Text variant="muted" wrap="nowrap">
-      {t('took %s', getDuration(seconds, 0, true))}
-    </Text>
+    <Stack gap="xs">
+      <Text wrap="nowrap">
+        <TimeSince
+          date={run.dateAdded}
+          tooltipBody={
+            <Grid columns="max-content max-content" gap="xs md" align="center">
+              <Text variant="muted">{t('Started')}</Text>
+              <DateTime date={run.dateAdded} seconds timeZone />
+              {run.dateCompleted && (
+                <Fragment>
+                  <Text variant="muted">{t('Finished')}</Text>
+                  <DateTime date={run.dateCompleted} seconds timeZone />
+                  <Text variant="muted">{t('Duration')}</Text>
+                  <Text>{duration}</Text>
+                </Fragment>
+              )}
+            </Grid>
+          }
+        />
+      </Text>
+      {inProgress ? (
+        <Text variant="muted" wrap="nowrap">
+          {tct('running for [duration]', {
+            duration: (
+              <TimeSince
+                date={run.dateAdded}
+                suffix=""
+                liveUpdateInterval="second"
+                disabledAbsoluteTooltip
+              />
+            ),
+          })}
+        </Text>
+      ) : (
+        duration && (
+          <Text variant="muted" wrap="nowrap">
+            {t('took %s', duration)}
+          </Text>
+        )
+      )}
+    </Stack>
   );
 }
 

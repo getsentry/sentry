@@ -50,16 +50,10 @@ export function getStatusLabel(status: WorkflowDisplayStatus): string {
   return status === 'running' ? t('Running') : STATUS_VARIANT[status].label;
 }
 
-export function StatusIcon({
-  status,
-  hideTooltip,
-}: {
-  status: WorkflowDisplayStatus;
-  hideTooltip?: boolean;
-}) {
+export function StatusIcon({status}: {status: WorkflowDisplayStatus}) {
   if (status === 'running') {
     return (
-      <Tooltip title={t('Running')} disabled={hideTooltip} skipWrapper>
+      <Tooltip title={t('Running')} skipWrapper>
         <Spinner role="status" aria-label={t('Running')} />
       </Tooltip>
     );
@@ -67,7 +61,7 @@ export function StatusIcon({
 
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
-    <Tooltip title={label} disabled={hideTooltip} skipWrapper>
+    <Tooltip title={label} skipWrapper>
       <Icon aria-label={label} variant={text} size="sm" />
     </Tooltip>
   );
