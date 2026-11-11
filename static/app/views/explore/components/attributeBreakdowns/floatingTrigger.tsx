@@ -9,6 +9,21 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Tab} from 'sentry/views/explore/hooks/useTab';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {
+  applyQueryParamsUpdates,
+  parseAsMode,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+import {parseAsChartSelection} from './chartSelectionContext';
+
+const COMPARE_QUERY_PARSERS = {
+  mode: parseAsMode,
+  table: parseAsScalar,
+  chartSelection: parseAsChartSelection,
+};
 
 type Props = {
   chartIndex: number;
@@ -74,19 +89,13 @@ export function FloatingTrigger({chartIndex, params}: Props) {
     // Using setChartSelection (nuqs) + setTab (navigate) separately causes a
     // race: setTab's navigate() builds its target from location.query which
     // doesn't yet include the queued nuqs update, clobbering chartSelection.
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        mode: 'samples',
-        table: 'attribute_breakdowns',
-        chartSelection: JSON.stringify({
-          chartIndex,
-          range: selectionState.selection.range,
-          panelId: selectionState.selection.panelId,
-        }),
-      },
-    });
+    navigate(
+      applyQueryParamsUpdates(COMPARE_QUERY_PARSERS, location, {
+        mode: Mode.SAMPLES,
+        table: Tab.ATTRIBUTE_BREAKDOWNS,
+        chartSelection: {chartIndex, selection: selectionState.selection},
+      })
+    );
   }, [selectionState, setSelectionState, chartIndex, navigate, location, organization]);
 
   return (

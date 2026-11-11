@@ -3,8 +3,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import {useQueryParamsCursor} from 'sentry/views/explore/queryParams/context';
 
 import {type TraceResults, useTracesApiOptions} from './useTraces';
 
@@ -29,8 +28,7 @@ export function useExploreTracesTableApiOptions({
   query,
   queryExtras,
 }: UseExploreTracesTableOptions) {
-  const location = useLocation();
-  const cursor = decodeScalar(location.query.cursor);
+  const cursor = useQueryParamsCursor() || undefined;
 
   return useTracesApiOptions({
     query,

@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SavedQueriesLandingContent} from './savedQueriesLandingContent';
 
@@ -94,6 +94,25 @@ describe('SavedQueriesTable', () => {
     await userEvent.keyboard('{enter}');
 
     expect(router.location.query).toEqual({query: 'My Query'});
+  });
+
+  it('pushes a history entry when searching', async () => {
+    const {router} = render(<SavedQueriesLandingContent />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/saved-queries/',
+          query: {ownedCursor: 'abc123'},
+        },
+      },
+    });
+    await screen.findByText('Created by Me');
+
+    await userEvent.type(screen.getByPlaceholderText('Search for a query'), 'My Query');
+    await userEvent.keyboard('{enter}');
+    await waitFor(() => expect(router.location.query).toEqual({query: 'My Query'}));
+    act(() => router.navigate(-1));
+
+    expect(router.location.query).toEqual({ownedCursor: 'abc123'});
   });
 
   it('hides owned queries table when there are no results', async () => {

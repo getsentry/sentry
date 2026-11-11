@@ -1,5 +1,6 @@
 import {useEffect, useEffectEvent, useMemo, useRef, type RefObject} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryState} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -10,9 +11,7 @@ import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalytics
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -36,6 +35,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isVisualizeEquation,
@@ -1138,8 +1138,7 @@ export function useMetricsAnalytics({
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const location = useLocation();
-  const title = decodeScalar(location.query.title);
+  const [title] = useQueryState('title', parseAsScalar);
 
   const {
     data: {hasExceededPerformanceUsageLimit},

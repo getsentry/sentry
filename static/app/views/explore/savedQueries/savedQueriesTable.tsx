@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container} from '@sentry/scraps/layout';
@@ -14,9 +15,6 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
@@ -30,6 +28,7 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
@@ -59,14 +58,15 @@ export function SavedQueriesTable({
   hideIfEmpty = false,
 }: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const cursor = decodeScalar(location.query[cursorKey]);
+  const [cursor, setCursor] = useQueryState(
+    cursorKey,
+    parseAsScalar.withOptions({history: 'push'})
+  );
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
-    cursor,
+    cursor: cursor ?? undefined,
     query: searchQuery,
   });
 
@@ -145,11 +145,8 @@ export function SavedQueriesTable({
     } as CombinedSavedQuery);
   };
 
-  const handleCursor: CursorHandler = (_cursor, pathname, query) => {
-    navigate({
-      pathname,
-      query: {...query, [cursorKey]: _cursor},
-    });
+  const handleCursor: CursorHandler = newCursor => {
+    void setCursor(newCursor ?? null);
   };
 
   const debouncedOnClick = useMemo(

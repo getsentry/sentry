@@ -1,9 +1,8 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
-import omit from 'lodash/omit';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
@@ -26,13 +25,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isEquation} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
 import {
   isVisualize,
   isVisualizeEquation,
@@ -57,13 +56,27 @@ import {
   stripTraceMetricTokens,
 } from './utils';
 
+const SEER_QUERY_PARSERS = {
+  metric: parseAsFieldList,
+  project: parseAsStringArray,
+  interval: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+  period: parseAsString,
+  utc: parseAsString,
+  statsPeriod: parseAsString,
+  pageStart: parseAsString,
+  pageEnd: parseAsString,
+  pageUtc: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
+
 interface MetricsTabSeerComboBoxProps {
   traceMetric: TraceMetric;
 }
 
 export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [, setSeerQueryParams] = useQueryStates(SEER_QUERY_PARSERS);
   const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const organization = useOrganization();
@@ -319,39 +332,33 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         setRunId(runId);
       }
 
-      // Single navigate with both metric params and datetime — previously
-      // setQueryParams and navigate were separate calls, and the second
-      // navigate overwrote the first with stale location.
-      navigate(
-        {
-          ...location,
-          query: {
-            ...omit(location.query, ALL_DATE_TIME_QUERY_KEYS),
-            ...(projectIds?.length ? {project: projectIds.map(String)} : {}),
-            metric: newEncodedMetrics,
-            start: seerQuery.datetime.start,
-            end: seerQuery.datetime.end,
-            statsPeriod: seerQuery.datetime.period,
-            utc: seerQuery.datetime.utc,
-            // Only override the interval when Seer suggested one, otherwise
-            // leave the user's current interval untouched.
-            ...(seerQuery.interval ? {interval: seerQuery.interval} : {}),
-          },
-        },
-        {replace: true, preventScrollReset: true}
-      );
+      void setSeerQueryParams({
+        metric: newEncodedMetrics,
+        project: projectIds?.length ? projectIds.map(String) : undefined,
+        // Only override the interval when Seer suggested one, otherwise
+        // leave the user's current interval untouched.
+        interval: seerQuery.interval || undefined,
+        start: seerQuery.datetime.start?.toString() ?? null,
+        end: seerQuery.datetime.end?.toString() ?? null,
+        period: null,
+        utc: seerQuery.datetime.utc?.toString() ?? null,
+        statsPeriod: seerQuery.datetime.period ?? null,
+        pageStart: null,
+        pageEnd: null,
+        pageUtc: null,
+        pageStatsPeriod: null,
+      });
     },
     [
       analyticsArea,
       askSeerSuggestedQueryRef,
-      location,
       metricQueries,
-      navigate,
       organization,
       pageFilters.selection,
       projects,
       queryParams,
       setRunId,
+      setSeerQueryParams,
       traceMetric,
     ]
   );

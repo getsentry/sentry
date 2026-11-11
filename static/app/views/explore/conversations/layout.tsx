@@ -1,4 +1,5 @@
 import {Outlet} from 'react-router';
+import {useQueryStates} from 'nuqs';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
@@ -10,11 +11,10 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {CONVERSATIONS_LANDING_TITLE, MAX_PICKABLE_DAYS} from './settings';
@@ -74,9 +74,10 @@ function ConversationsHeader() {
 }
 
 function ConversationsLandingHeader() {
-  const location = useLocation();
-  const savedQueryTitle = decodeScalar(location.query.title);
-  const savedQueryId = decodeScalar(location.query.id);
+  const [{title: savedQueryTitle, id: savedQueryId}] = useQueryStates({
+    title: parseAsScalar,
+    id: parseAsScalar,
+  });
   const hasSavedQuery =
     defined(savedQueryId) && defined(savedQueryTitle) && savedQueryTitle.length > 0;
 

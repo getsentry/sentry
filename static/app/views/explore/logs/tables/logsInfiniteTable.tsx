@@ -11,6 +11,7 @@ import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
+import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
@@ -32,11 +33,9 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefreshEnabled,
@@ -88,6 +87,7 @@ import {
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
 import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
@@ -150,8 +150,7 @@ export function LogsInfiniteTable({
   showExploreConnectedSpansLink,
   validatedFieldTypes = {},
 }: LogsTableProps) {
-  const location = useLocation();
-  const linkedRowId = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
+  const [linkedRowId] = useQueryState(LOGS_ROW_ID_KEY, parseAsScalar);
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsInteger, useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
 import {useShallow} from 'zustand/react/shallow';
 
@@ -40,10 +41,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {ExploreBodySearch} from 'sentry/views/explore/components/styles';
 
 import {FilterBarContainer, StyledPageFilterBar} from './styles';
@@ -114,8 +112,10 @@ const STEP_TITLES: Record<StepType, string> = {
 function Onboarding({organization, project}: OnboardingProps) {
   const theme = useTheme();
   const api = useApi();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [guidedStep, setGuidedStep] = useQueryState(
+    'guidedStep',
+    parseAsInteger.withOptions({history: 'push'})
+  );
   const {isSelfHosted, urlPrefix} = useStore(
     ConfigStore,
     useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
@@ -254,16 +254,8 @@ function Onboarding({organization, project}: OnboardingProps) {
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
       <GuidedSteps
-        initialStep={decodeInteger(location.query.guidedStep)}
-        onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
-        }}
+        initialStep={guidedStep ?? undefined}
+        onStepChange={step => void setGuidedStep(step)}
       >
         {steps.map((step, index) => {
           const title = step.title ?? STEP_TITLES[step.type];

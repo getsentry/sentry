@@ -1,6 +1,6 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 
@@ -70,5 +70,30 @@ describe('SavedFormulasTable', () => {
     expect(
       await screen.findByText('Edited by Editor (foo@example.com)')
     ).toBeInTheDocument();
+  });
+
+  it('pushes the next sort and clears the cursor when sorting by name', async () => {
+    const {router} = render(
+      <SavedFormulasTable
+        formulas={[SavedFormulaFixture()]}
+        isError={false}
+        isPending={false}
+        sort={{field: 'name', kind: 'asc'}}
+      />,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/saved-formulas/',
+            query: {cursor: '0:20:0', sort: 'name'},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByText('Name'));
+    await waitFor(() => expect(router.location.query).toEqual({sort: '-name'}));
+    act(() => router.navigate(-1));
+
+    expect(router.location.query).toEqual({cursor: '0:20:0', sort: 'name'});
   });
 });

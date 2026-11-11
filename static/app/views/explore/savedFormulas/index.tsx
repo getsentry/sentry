@@ -1,4 +1,5 @@
 import {IconAdd} from '@sentry/icons/add';
+import {useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -11,10 +12,11 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeScalar, decodeSorts, encodeSort} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import {encodeSort} from 'sentry/utils/queryString';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetSavedFormulas} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {makeSavedFormulasPathname} from './pathnames';
@@ -22,12 +24,14 @@ import {SavedFormulasTable} from './savedFormulasTable';
 
 export default function SavedFormulasView() {
   const organization = useOrganization();
-  const location = useLocation();
+  const [{cursor, sort: sortParam}] = useQueryStates({
+    cursor: parseAsScalar,
+    sort: parseAsSort,
+  });
 
-  const cursor = decodeScalar(location.query.cursor);
-  const sort: Sort = decodeSorts(location.query.sort)[0] ?? {field: 'name', kind: 'asc'};
+  const sort: Sort = sortParam ?? {field: 'name', kind: 'asc'};
   const {formulas, pageLinks, isPending, isError} = useGetSavedFormulas({
-    cursor,
+    cursor: cursor ?? undefined,
     sortBy: encodeSort(sort),
   });
 

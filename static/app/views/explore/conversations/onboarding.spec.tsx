@@ -3,7 +3,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
@@ -231,6 +231,25 @@ describe('ConversationOnboarding', () => {
     ).toBeGreaterThan(0);
     expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
+  });
+
+  it('pushes the guided step into the URL when advancing steps', async () => {
+    const {organization} = setupProject('node');
+
+    const {router} = render(<ConversationOnboarding onDismiss={jest.fn()} />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/conversations/'},
+      },
+    });
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+    await waitFor(() => expect(router.location.query.guidedStep).toBe('1'));
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'Next'})[0]!);
+    await waitFor(() => expect(router.location.query.guidedStep).toBe('2'));
+    act(() => router.navigate(-1));
+
+    expect(router.location.query.guidedStep).toBe('1');
   });
 
   it('hides only the conversation ID step for Eve, keeping the user step', async () => {
