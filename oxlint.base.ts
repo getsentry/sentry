@@ -952,9 +952,7 @@ const base = defineConfig({
     'typescript/non-nullable-type-assertion-style': 'error',
     'typescript/prefer-for-of': 'error',
     'typescript/prefer-function-type': 'error',
-    // Keep explicit guards when optional chaining can change runtime behavior,
-    // especially for undeclared globals such as webpack's `module`.
-    'typescript/prefer-optional-chain': 'off',
+    'typescript/prefer-optional-chain': 'error',
     'typescript/consistent-type-exports': 'error',
     'typescript/switch-exhaustiveness-check': [
       'error',
