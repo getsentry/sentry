@@ -9,6 +9,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -21,9 +22,7 @@ function useReminderData() {
   const canWrite = useCanWriteSettings();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const hasTokenBasedSeer =
-    organization.features.includes('seer-token-based-billing-onboarding') &&
-    organization.features.includes('token-billed-seer-enabled');
+  const hasTokenBasedSeer = isSeerTokenBasedBillingOnboardingEnabled(organization);
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
 

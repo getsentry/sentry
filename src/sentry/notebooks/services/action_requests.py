@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
-from uuid import UUID, uuid4, uuid5
 
 from django.db import router, transaction
 from django.db.models import Q, QuerySet
@@ -11,15 +10,15 @@ from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.investigations.contracts import ActionRequestItem
-from sentry.investigations.models import (
-    InvestigationOrchestrationCommand,
-    InvestigationOrchestrationCommandStatus,
-    InvestigationOrchestrationPhase,
-    InvestigationOrchestrationRun,
+from sentry.notebooks.contracts import ActionRequestItem
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookActionRequestAnchorType,
+    NotebookActionRequestState,
 )
-from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.services.action_kinds import get_action_kind, shared_cannot_apply_reason
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ActionRequestError,
@@ -29,29 +28,15 @@ from sentry.investigations.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
     CannotApplyReason,
-    FollowUpCommand,
     SettingValue,
 )
-from sentry.investigations.services.orchestration import (
-    accept_orchestration_command,
-    command_can_be_requeued,
-    command_can_be_resent,
-    rebuild_orchestration_source,
-)
-from sentry.investigations.telemetry import (
+from sentry.notebooks.services.producer import NotebookProducerRun, get_producer
+from sentry.notebooks.telemetry import (
     record_action_request_applied,
     record_action_request_suggested,
 )
-from sentry.notebooks.models import (
-    Notebook,
-    NotebookActionRequest,
-    NotebookActionRequestAnchorType,
-    NotebookActionRequestState,
-)
 
 logger = logging.getLogger(__name__)
-
-_OUTCOME_NAMESPACE = UUID("3d84e9e2-ed0b-4707-8dfc-8fce87c899ae")
 
 
 LIVE_STATES = (
@@ -138,7 +123,7 @@ def _after_upsert(rows: Sequence[NotebookActionRequest]) -> None:
 
 
 def upsert_action_request(
-    run: InvestigationOrchestrationRun, item: ActionRequestItem
+    investigation: Notebook, item: ActionRequestItem
 ) -> NotebookActionRequest:
     """Create or update the request with this key. Callers must hold the investigation and
     run locks.
@@ -147,20 +132,17 @@ def upsert_action_request(
     if Seer changes the action, so replaying an event can't bring them back.
     """
 
-    row, changed = _upsert(run, item)
+    row, changed = _upsert(investigation, item)
     if item["primary"]:
-        _replace_primary(run.investigation, row)
+        _replace_primary(investigation, row)
     if changed:
         _after_upsert([row])
     return row
 
 
-def _upsert(
-    run: InvestigationOrchestrationRun, item: ActionRequestItem
-) -> tuple[NotebookActionRequest, bool]:
+def _upsert(investigation: Notebook, item: ActionRequestItem) -> tuple[NotebookActionRequest, bool]:
     """Create or update the request with this key, and say whether Seer changed it."""
 
-    investigation = run.investigation
     anchor = item["anchor"]
     action = item["action"]
     display: dict[str, object] = {
@@ -230,7 +212,7 @@ def _upsert(
     return row, changed
 
 
-def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason: str) -> bool:
+def withdraw_action_request(investigation: Notebook, key: str, reason: str) -> bool:
     """Withdraw a suggested or stale request that Seer no longer stands behind. Applied and
     failed requests are left alone.
     """
@@ -238,7 +220,7 @@ def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason
     return bool(
         NotebookActionRequest.objects.filter(
             Q(state=NotebookActionRequestState.SUGGESTED) | STALE,
-            notebook=run.investigation,
+            notebook=investigation,
             key=key,
         ).update(
             state=NotebookActionRequestState.WITHDRAWN,
@@ -249,7 +231,7 @@ def withdraw_action_request(run: InvestigationOrchestrationRun, key: str, reason
 
 
 def sync_snapshot_action_requests(
-    run: InvestigationOrchestrationRun, items: Sequence[ActionRequestItem]
+    investigation: Notebook, items: Sequence[ActionRequestItem]
 ) -> None:
     """Treat the snapshot as the full list: any live request it leaves out is superseded, and
     any stale one stops being listed.
@@ -258,7 +240,7 @@ def sync_snapshot_action_requests(
     primaries: list[NotebookActionRequest] = []
     changed: list[NotebookActionRequest] = []
     for item in items:
-        row, row_changed = _upsert(run, item)
+        row, row_changed = _upsert(investigation, item)
         if item["primary"]:
             primaries.append(row)
         if row_changed:
@@ -267,7 +249,7 @@ def sync_snapshot_action_requests(
         # Pick the newest revision, then a suggested request over a failed one, then the key,
         # so the list order never decides which primary wins.
         _replace_primary(
-            run.investigation,
+            investigation,
             max(
                 primaries,
                 key=lambda row: (
@@ -278,7 +260,7 @@ def sync_snapshot_action_requests(
             ),
         )
     _supersede(
-        NotebookActionRequest.objects.filter(notebook=run.investigation).exclude(
+        NotebookActionRequest.objects.filter(notebook=investigation).exclude(
             key__in=[item["key"] for item in items]
         )
     )
@@ -330,7 +312,7 @@ def _check_can_apply(
     request: Request,
     *,
     retry: bool = False,
-) -> ActionKind:
+) -> ActionKind[Mapping[str, object]]:
     """Return the request's kind, or raise ApplyFailed if the viewer can't apply it. A retry is
     for a request that already went stale or was applied, so its state doesn't count.
     """
@@ -357,44 +339,8 @@ def _check_can_apply(
     )
 
 
-def _queue_follow_up(
-    investigation: Notebook,
-    run: InvestigationOrchestrationRun,
-    command: FollowUpCommand,
-    actor_id: int | None,
-) -> UUID:
-    """Send Seer a command for an action request, and return its request ID. Requests that
-    need the same command share it while it's queued.
-    """
-
-    queued = (
-        InvestigationOrchestrationCommand.objects.filter(
-            orchestration_run=run,
-            type=command["type"],
-            payload=command["payload"],
-            status__in=(
-                InvestigationOrchestrationCommandStatus.ACCEPTED,
-                InvestigationOrchestrationCommandStatus.DISPATCHED,
-            ),
-        )
-        .values_list("request_id", flat=True)
-        .first()
-    )
-    if queued is not None:
-        return queued
-    return accept_orchestration_command(
-        investigation=investigation,
-        request_id=uuid4(),
-        expected_workflow_version=run.workflow_version,
-        command_type=command["type"],
-        payload=command["payload"],
-        actor_id=actor_id,
-    ).request_id
-
-
 def _complete_action_request(
-    investigation: Notebook,
-    run: InvestigationOrchestrationRun,
+    run: NotebookProducerRun,
     action_request: NotebookActionRequest,
     *,
     applied_by: int | None,
@@ -404,20 +350,7 @@ def _complete_action_request(
     applied it for the user. Callers hold the investigation, run, and request locks.
     """
 
-    accept_orchestration_command(
-        investigation=investigation,
-        request_id=uuid5(_OUTCOME_NAMESPACE, f"{action_request.id}:applied"),
-        expected_workflow_version=run.workflow_version,
-        command_type="record_action_outcome",
-        payload={
-            "key": action_request.key,
-            "action": action_request.action_payload,
-            "reportRevision": action_request.producer_revision,
-            "outcome": "applied",
-            "appliedBy": applied_by,
-        },
-        actor_id=applied_by,
-    )
+    run.record_applied(action_request, applied_by=applied_by)
     kind = get_action_kind(action_request.action_kind)
     assert kind is not None
     command = kind.follow_up_command(action_request)
@@ -428,9 +361,7 @@ def _complete_action_request(
         applied_details=details,
         error=None,
         followup_request_id=(
-            _queue_follow_up(investigation, run, command, applied_by)
-            if command is not None
-            else None
+            run.queue_follow_up(command, applied_by) if command is not None else None
         ),
     )
     record_action_request_applied(action_request)
@@ -455,53 +386,13 @@ def complete_action_requests(
             )
             if investigation is None:
                 continue
-            run = InvestigationOrchestrationRun.objects.select_for_update().get(
-                investigation=investigation
-            )
+            producer = get_producer(investigation.source_type)
+            if producer is None:
+                continue
+            run = producer.lock_run(investigation, lock=True)
             for row in action_requests.filter(notebook=investigation).select_for_update():
                 if shared_cannot_apply_reason(investigation, row) is None:
-                    _complete_action_request(
-                        investigation, run, row, applied_by=applied_by, details=details
-                    )
-
-
-def _seer_can_recheck(
-    run: InvestigationOrchestrationRun, action_request: NotebookActionRequest
-) -> bool:
-    # Seer turns a re-check down unless it's for the current report, and that report is done.
-    report = run.projection.get("report")
-    return (
-        run.phase
-        in (InvestigationOrchestrationPhase.METADATA, InvestigationOrchestrationPhase.COMPLETED)
-        and isinstance(report, dict)
-        and report.get("status") == "completed"
-        and report.get("revision") == action_request.producer_revision
-    )
-
-
-def _queue_recheck(context: ApplyContext) -> UUID | None:
-    """Ask Seer to check its requests for this report again against the current source, and
-    return the command's request ID. None if Seer would turn it down or Sentry can't rebuild
-    the source.
-    """
-
-    if not _seer_can_recheck(context.run, context.action_request):
-        return None
-    source = rebuild_orchestration_source(context.investigation)
-    if source is None:
-        return None
-    return _queue_follow_up(
-        context.investigation,
-        context.run,
-        {
-            "type": "recheck_action_requests",
-            "payload": {
-                "reportRevision": context.action_request.producer_revision,
-                "source": source,
-            },
-        },
-        context.actor_id,
-    )
+                    _complete_action_request(run, row, applied_by=applied_by, details=details)
 
 
 def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> None:
@@ -510,48 +401,31 @@ def _record_stale(context: ApplyContext, current: dict[str, SettingValue]) -> No
     context.action_request.update(
         state=NotebookActionRequestState.SUPERSEDED,
         error=ActionRequestError(code=ApplyErrorCode.STALE, current=current),
-        followup_request_id=_queue_recheck(context),
+        followup_request_id=context.run.queue_recheck(context.action_request, context.actor_id),
     )
 
 
-def _failed_recheck(
-    action_request: NotebookActionRequest,
-) -> InvestigationOrchestrationCommand | None:
-    if not _is_stale(action_request) or action_request.followup_request_id is None:
-        return None
-    return InvestigationOrchestrationCommand.objects.filter(
-        orchestration_run__investigation_id=action_request.notebook_id,
-        request_id=action_request.followup_request_id,
-        status=InvestigationOrchestrationCommandStatus.FAILED,
-    ).first()
-
-
-def _undelivered_follow_up(
-    action_request: NotebookActionRequest,
-) -> InvestigationOrchestrationCommand | None:
-    """The applied request's follow-up, if Seer never got it and it can go out again. One Seer
-    turned down or dropped has a reason, and one that failed behind an undelivered command goes
-    out again when that command does.
-    """
-
-    if (
-        action_request.state != NotebookActionRequestState.APPLIED
-        or action_request.followup_request_id is None
-    ):
-        return None
-    command = InvestigationOrchestrationCommand.objects.filter(
-        orchestration_run__investigation_id=action_request.notebook_id,
-        request_id=action_request.followup_request_id,
-        status=InvestigationOrchestrationCommandStatus.FAILED,
-    ).first()
+def _failed_recheck(context: ApplyContext) -> bool:
+    action_request = context.action_request
     return (
-        command
-        if command is not None and command_can_be_resent(command.type, command.error)
-        else None
+        _is_stale(action_request)
+        and action_request.followup_request_id is not None
+        and context.run.follow_up_failed(action_request)
     )
 
 
-def _check_without_writes(kind: ActionKind, context: ApplyContext) -> None:
+def _undelivered_follow_up(context: ApplyContext) -> bool:
+    """Whether the applied request's follow-up never reached Seer and can go out again."""
+
+    action_request = context.action_request
+    return (
+        action_request.state == NotebookActionRequestState.APPLIED
+        and action_request.followup_request_id is not None
+        and context.run.can_resend_follow_up(action_request)
+    )
+
+
+def _check_without_writes(kind: ActionKind[Mapping[str, object]], context: ApplyContext) -> None:
     """Run the kind's check, and undo anything it writes."""
 
     using = router.db_for_write(NotebookActionRequest)
@@ -591,17 +465,19 @@ def _locked_context(
     lock: bool,
 ) -> ApplyContext:
     investigations = Notebook.objects.select_related("organization")
-    runs = InvestigationOrchestrationRun.objects.all()
     action_requests = NotebookActionRequest.objects.all()
     if lock:
         investigations = investigations.select_for_update(of=("self",))
-        runs = runs.select_for_update()
         action_requests = action_requests.select_for_update()
 
     locked = investigations.get(id=investigation.id)
+    producer = get_producer(locked.source_type)
+    if producer is None:
+        # Only a producer's requests can be acted on.
+        raise ResourceDoesNotExist
     return ApplyContext(
         investigation=locked,
-        run=runs.get(investigation=locked),
+        run=producer.lock_run(locked, lock=lock),
         action_request=action_requests.get(id=action_request.id),
         request=request,
         actor_id=actor_id,
@@ -638,7 +514,6 @@ def _apply(
     except ActionInvalid as invalid:
         raise ApplyFailed(_invalid_error(invalid))
     _complete_action_request(
-        context.investigation,
         context.run,
         context.action_request,
         applied_by=actor_id,
@@ -657,31 +532,10 @@ def _recheck(
 ) -> NotebookActionRequest:
     context = _locked_context(investigation, action_request, request, actor_id, lock=True)
     action_request = context.action_request
-    failed = _failed_recheck(action_request)
-    if failed is not None:
+    if _failed_recheck(context):
         _check_can_apply(context.investigation, action_request, request, retry=True)
         _check_action_unchanged(action_request, expected_action)
-        if command_can_be_requeued(failed):
-            # Seer never got it, and Sentry already moved the workflow version for it.
-            accept_orchestration_command(
-                investigation=context.investigation,
-                request_id=failed.request_id,
-                expected_workflow_version=failed.expected_workflow_version,
-                command_type=failed.type,
-                payload=failed.payload,
-                actor_id=context.actor_id,
-            )
-        elif (
-            isinstance(failed.error, dict) and failed.error.get("code") == "earlier_command_failed"
-        ):
-            # A new command would expect the version of a command Seer never got.
-            raise ApplyFailed(
-                {
-                    "detail": "This goes to Seer once the command ahead of it does.",
-                    "code": ApplyErrorCode.NOT_RETRYABLE,
-                }
-            )
-        else:
+        if not context.run.retry_recheck(action_request, context.actor_id):
             assert action_request.error is not None
             _record_stale(context, action_request.error["current"])
         return action_request
@@ -709,22 +563,13 @@ def _retry_follow_up(
 ) -> NotebookActionRequest:
     context = _locked_context(investigation, action_request, request, actor_id, lock=True)
     action_request = context.action_request
-    command = _undelivered_follow_up(action_request)
-    if command is None:
+    if not _undelivered_follow_up(context):
         raise ApplyFailed(
             {"detail": "There's nothing to send Seer again.", "code": ApplyErrorCode.NOT_RETRYABLE}
         )
     _check_can_apply(context.investigation, action_request, request, retry=True)
     _check_action_unchanged(action_request, expected_action)
-    # Seer never got it, so send the same command again.
-    accept_orchestration_command(
-        investigation=context.investigation,
-        request_id=command.request_id,
-        expected_workflow_version=command.expected_workflow_version,
-        command_type=command.type,
-        payload=command.payload,
-        actor_id=command.actor_id,
-    )
+    context.run.resend_follow_up(action_request)
     return action_request
 
 

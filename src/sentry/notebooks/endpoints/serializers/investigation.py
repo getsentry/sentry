@@ -10,12 +10,10 @@ from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.access import Access
-from sentry.investigations.endpoints.serializers.action_request import (
+from sentry.notebooks.endpoints.serializers.action_request import (
     InvestigationActionRequestSerializer,
     InvestigationActionRequestSerializerResponse,
 )
-from sentry.investigations.models import InvestigationOrchestrationRun
-from sentry.investigations.services.action_requests import STALE
 from sentry.notebooks.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
@@ -32,6 +30,8 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookSourceType,
 )
+from sentry.notebooks.services.action_requests import STALE
+from sentry.notebooks.services.producer import orchestration_summaries
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -66,30 +66,6 @@ class InvestigationOrchestrationSerializerResponse(TypedDict):
     status: str
     heartbeatAt: datetime | None
     notebookRevision: int
-
-
-def orchestration_summaries_by_investigation(
-    investigations: Sequence[Notebook],
-) -> dict[int, InvestigationOrchestrationSerializerResponse]:
-    return {
-        investigation_id: {
-            "phase": phase,
-            "status": status,
-            "heartbeatAt": heartbeat_at,
-            "notebookRevision": notebook_revision,
-        }
-        for investigation_id, phase, status, heartbeat_at, notebook_revision in (
-            InvestigationOrchestrationRun.objects.filter(
-                investigation_id__in=[investigation.id for investigation in investigations]
-            ).values_list(
-                "investigation_id",
-                "phase",
-                "status",
-                "heartbeat_at",
-                "notebook_revision",
-            )
-        )
-    }
 
 
 class InvestigationSerializerResponse(TypedDict):
@@ -157,7 +133,7 @@ class InvestigationSerializer(Serializer):
                 ).values_list("notebook_id", flat=True)
             )
 
-        orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
+        orchestration_by_investigation = orchestration_summaries(item_list)
 
         return {
             investigation: {

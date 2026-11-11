@@ -1,39 +1,43 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast, override
-from uuid import UUID
+from typing import Annotated, Any, TypedDict, cast, override
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiSchema
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.auth.access import Access
-from sentry.investigations.models import (
-    InvestigationOrchestrationCommand,
-    InvestigationOrchestrationCommandStatus,
-    InvestigationOrchestrationRerun,
-)
-from sentry.investigations.seer_client import CommandRejectionCode
-from sentry.investigations.services.action_kinds import (
-    AppliedDetails,
-    get_action_kind,
-    shared_cannot_apply_reason,
-)
-from sentry.investigations.services.action_kinds.base import ActionRequestError, CannotApplyReason
-from sentry.investigations.services.orchestration import follow_up_can_be_retried
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,
     NotebookActionRequestAnchorType,
     NotebookBlock,
 )
+from sentry.notebooks.services.action_kinds import (
+    applied_details_hint,
+    get_action_kind,
+    shared_cannot_apply_reason,
+)
+from sentry.notebooks.services.action_kinds.base import ActionRequestError, CannotApplyReason
+from sentry.notebooks.services.producer import (
+    follow_up_reason_hint,
+    follow_up_rerun_hint,
+    follow_up_status_hint,
+    follow_ups,
+)
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+
+
+def _schema_from(hint: Callable[[], object]) -> ApiSchema:
+    return ApiSchema(lambda: resolve_type_hint(hint()))
 
 
 class InvestigationActionRequestAnchorResponse(TypedDict):
@@ -52,9 +56,9 @@ class InvestigationActionRequestFollowUpResponse(TypedDict):
     re-check. `retryable` says whether the user can try it again.
     """
 
-    status: InvestigationOrchestrationCommandStatus
-    reason: CommandRejectionCode | None
-    rerun: InvestigationOrchestrationRerun | None
+    status: Annotated[str, _schema_from(follow_up_status_hint)]
+    reason: Annotated[str | None, _schema_from(follow_up_reason_hint)]
+    rerun: Annotated[str | None, _schema_from(follow_up_rerun_hint)]
     retryable: bool
 
 
@@ -82,7 +86,7 @@ class InvestigationActionRequestSerializerResponse(TypedDict):
     canApply: bool
     cannotApplyReason: CannotApplyReason | None
     appliedBy: UserSerializerResponse | None
-    appliedDetails: AppliedDetails | None
+    appliedDetails: Annotated[Mapping[str, object] | None, _schema_from(applied_details_hint)]
     dateApplied: datetime | None
     error: ActionRequestError | None
     followUp: InvestigationActionRequestFollowUpResponse | None
@@ -103,13 +107,9 @@ class InvestigationActionRequestSerializer(
         self.investigations = investigations
         super().__init__(**kwargs)
 
-    def _cannot_apply_reasons(
-        self,
-        item_list: Sequence[NotebookActionRequest],
-        user: User | RpcUser | AnonymousUser,
-    ) -> dict[int, CannotApplyReason | None]:
+    def _investigations(self, item_list: Sequence[NotebookActionRequest]) -> dict[int, Notebook]:
         investigation_ids = {item.notebook_id for item in item_list}
-        investigations = {
+        return {
             investigation.id: investigation
             for investigation in (
                 self.investigations
@@ -119,11 +119,19 @@ class InvestigationActionRequestSerializer(
                 )
             )
         }
+
+    def _cannot_apply_reasons(
+        self,
+        item_list: Sequence[NotebookActionRequest],
+        investigations: dict[int, Notebook],
+        user: User | RpcUser | AnonymousUser,
+    ) -> dict[int, CannotApplyReason | None]:
         access = self.access
         reasons: dict[int, CannotApplyReason | None] = {}
         by_kind: dict[str, list[NotebookActionRequest]] = defaultdict(list)
         for item in item_list:
-            reason = shared_cannot_apply_reason(investigations[item.notebook_id], item)
+            investigation = investigations[item.notebook_id]
+            reason = shared_cannot_apply_reason(investigation, item)
             if reason is not None:
                 reasons[item.id] = reason
             elif access is None:
@@ -162,39 +170,6 @@ class InvestigationActionRequestSerializer(
             if key is not None
         }
 
-    def _follow_ups(
-        self, item_list: Sequence[NotebookActionRequest]
-    ) -> dict[tuple[int, UUID], InvestigationActionRequestFollowUpResponse]:
-        request_ids = {
-            item.followup_request_id for item in item_list if item.followup_request_id is not None
-        }
-        if not request_ids:
-            return {}
-        return {
-            (investigation_id, request_id): {
-                "status": InvestigationOrchestrationCommandStatus(status),
-                "reason": (error or {}).get("reason"),
-                "rerun": InvestigationOrchestrationRerun(rerun) if rerun is not None else None,
-                "retryable": status == InvestigationOrchestrationCommandStatus.FAILED
-                and follow_up_can_be_retried(command_type, error),
-            }
-            for investigation_id, request_id, command_type, status, error, rerun in (
-                InvestigationOrchestrationCommand.objects.filter(
-                    orchestration_run__investigation_id__in={
-                        item.notebook_id for item in item_list
-                    },
-                    request_id__in=request_ids,
-                ).values_list(
-                    "orchestration_run__investigation_id",
-                    "request_id",
-                    "type",
-                    "status",
-                    "error",
-                    "rerun",
-                )
-            )
-        }
-
     @override
     def get_attrs(
         self,
@@ -202,9 +177,10 @@ class InvestigationActionRequestSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[NotebookActionRequest, dict[str, Any]]:
-        reasons = self._cannot_apply_reasons(item_list, user)
+        investigations = self._investigations(item_list)
+        reasons = self._cannot_apply_reasons(item_list, investigations, user)
         anchored_blocks = self._anchored_block_ids(item_list)
-        follow_ups = self._follow_ups(item_list)
+        item_follow_ups = follow_ups(item_list, investigations)
         applier_ids = {item.applied_by_id for item in item_list if item.applied_by_id is not None}
         appliers = (
             {
@@ -226,7 +202,7 @@ class InvestigationActionRequestSerializer(
                 ),
                 "applied_by": appliers.get(str(item.applied_by_id)),
                 "follow_up": (
-                    follow_ups.get((item.notebook_id, item.followup_request_id))
+                    item_follow_ups.get((item.notebook_id, item.followup_request_id))
                     if item.followup_request_id is not None
                     else None
                 ),
@@ -262,7 +238,7 @@ class InvestigationActionRequestSerializer(
             "cannotApplyReason": attrs["cannot_apply_reason"],
             "appliedBy": attrs["applied_by"],
             # Only the shared apply path writes these columns.
-            "appliedDetails": cast(AppliedDetails | None, obj.applied_details),
+            "appliedDetails": obj.applied_details,
             "dateApplied": obj.date_applied,
             "error": cast(ActionRequestError | None, obj.error),
             "followUp": attrs["follow_up"],

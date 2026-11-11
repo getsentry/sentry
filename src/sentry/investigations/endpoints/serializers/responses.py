@@ -1,10 +1,7 @@
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 
-from sentry.investigations.endpoints.serializers.action_request import (
-    InvestigationActionRequestSerializerResponse,
-)
-from sentry.investigations.endpoints.serializers.investigation import (
+from sentry.notebooks.endpoints.serializers.investigation import (
     InvestigationOrchestrationSerializerResponse,
 )
 
@@ -235,15 +232,3 @@ class InvestigationCandidateResponse(TypedDict):
 
 class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
-
-
-class InvestigationActionRequestApplyResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRecheckResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse
-
-
-class InvestigationActionRequestRetryFollowUpResponse(TypedDict):
-    actionRequest: InvestigationActionRequestSerializerResponse

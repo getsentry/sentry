@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, get_args
+from typing import Any
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
@@ -19,7 +19,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_kinds.base import FollowUpCommandType
 from sentry.investigations.services.actor_access import (
     resolve_investigation_service_account,
     user_can_investigate,
@@ -375,7 +374,7 @@ INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
 # Commands Seer runs whatever its workflow version is. Sentry still moves the version for them.
 UNVERSIONED_COMMAND_TYPES = frozenset({"rerun_after_connection"})
 # Commands Sentry sends for an action request, which shows how they went.
-FOLLOW_UP_COMMAND_TYPES: frozenset[str] = frozenset(get_args(FollowUpCommandType))
+FOLLOW_UP_COMMAND_TYPES = frozenset({"recheck_action_requests", "rerun_after_connection"})
 
 
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:

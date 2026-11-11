@@ -20,21 +20,23 @@ from sentry.investigations.models import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import (
-    ActionInvalid,
-    ActionStale,
-    CannotApplyReason,
-)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notebooks.models import (
+    Notebook,
     NotebookActionRequest,
     NotebookActionRequestState,
     NotebookBlock,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_kinds.base import (
+    ActionInvalid,
+    ActionStale,
+    CannotApplyReason,
+)
+from sentry.notebooks.services.action_requests import complete_action_requests
 from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
@@ -309,6 +311,42 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             False,
             "detector_not_found",
         )
+
+    def test_a_source_type_without_a_producer_cannot_apply(self) -> None:
+        action_request = self.suggest(
+            before={"highThreshold": 500}, changes={"highThreshold": 800.0}
+        )
+
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+
+        serialized = self.details_request()
+        response = self.apply(action_request)
+
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (
+            False,
+            "unsupported_action",
+        )
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "unsupported_action"
+        action_request.refresh_from_db()
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
+
+    def test_completing_skips_a_source_type_without_a_producer(self) -> None:
+        action_request = self.suggest()
+        Notebook.objects.filter(id=self.investigation.id).update(
+            source_type="unregistered", source_key="unregistered:1", source_revision=1
+        )
+
+        complete_action_requests(
+            NotebookActionRequest.objects.filter(id=action_request.id),
+            applied_by=self.user.id,
+            details={},
+        )
+
+        action_request.refresh_from_db()
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_requests_that_are_no_longer_suggested_conflict(self) -> None:
         action_request = self.suggest(state=NotebookActionRequestState.SUPERSEDED)

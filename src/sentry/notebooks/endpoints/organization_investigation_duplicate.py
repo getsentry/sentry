@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,82 +8,69 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-)
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationEndpoint,
     require_authenticated_user,
     service_error,
 )
-from sentry.notebooks.endpoints.validators import BlockOrderValidator
+from sentry.notebooks.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
+)
 from sentry.notebooks.models import Notebook
-from sentry.notebooks.services import reorder_blocks
+from sentry.notebooks.services import duplicate_investigation
 
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationEndpoint):
+class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"PUT": ApiPublishStatus.PRIVATE}
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
     @extend_schema(
-        operation_id="Reorder Investigation Blocks",
+        operation_id="Duplicate an Investigation",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, InvestigationParams.INVESTIGATION_ID],
-        request=BlockOrderValidator,
+        request=None,
         responses={
-            200: inline_sentry_response_serializer(
+            201: inline_sentry_response_serializer(
                 "InvestigationDetailsResponse", InvestigationDetailsSerializerResponse
             ),
             400: constants.RESPONSE_BAD_REQUEST,
             401: constants.RESPONSE_UNAUTHORIZED,
             403: constants.RESPONSE_FORBIDDEN,
             404: constants.RESPONSE_NOT_FOUND,
-            409: constants.RESPONSE_CONFLICT,
         },
-        examples=[
-            OpenApiExample(
-                "Example request",
-                value={"investigationVersion": 3, "blockIds": [2, 1]},
-                request_only=True,
-            )
-        ],
     )
-    def put(
+    def post(
         self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
-        Set the order of all active blocks. Supply every active block ID exactly once and the
-        current notebook version. Returns the updated notebook with ordered blocks. Requires an
-        authenticated user. Requires the organizations:investigations feature and open
-        organization membership.
+        Copy the notebook into a new manual investigation for the current user. Copies blocks
+        and parameter configuration; executions, comments, and viewer presence are not copied.
+        No request body is required. Returns the new notebook. Requires an authenticated user.
+        Requires the organizations:investigations feature and open organization membership.
         """
         require_authenticated_user(request)
-        validator = BlockOrderValidator(data=request.data)
-        if not validator.is_valid():
-            return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
-            updated = reorder_blocks(
-                investigation=investigation,
-                expected_version=validator.validated_data["investigation_version"],
-                block_ids=validator.validated_data["block_ids"],
+            duplicate = duplicate_investigation(
+                investigation=investigation, creator=get_creator_reference(request)
             )
         except Exception as error:
             response = service_error(error)
             if response is not None:
                 return response
             raise
-
         return Response(
             serialize(
-                updated,
+                duplicate,
                 request.user,
                 InvestigationDetailsSerializer(access=request.access),
-            )
+            ),
+            status=status.HTTP_201_CREATED,
         )
