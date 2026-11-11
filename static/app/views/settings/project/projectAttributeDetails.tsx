@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -46,7 +46,13 @@ function ProjectAttributeDetailsSettings() {
 
   return (
     <SentryDocumentTitle title={attributeName} projectSlug={project.slug}>
-      <SettingsPageHeader title={attributeName} />
+      <SettingsPageHeader
+        title={{
+          type: 'page-title',
+          label: attributeName,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
+        }}
+      />
       {isAttributeType(attributeType) ? (
         <AttributeDetails attributeName={attributeName} attributeType={attributeType} />
       ) : (

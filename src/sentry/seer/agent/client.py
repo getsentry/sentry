@@ -26,7 +26,7 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -375,7 +375,7 @@ class SeerAgentClient:
         self.enable_write_pull_request = enable_write_pull_request
         # The same gate the investigation endpoints apply, so Code Mode isn't handed
         # operations that would only 404.
-        self.enable_investigation_tools = enable_investigation_tools and has_investigations_access(
+        self.enable_investigation_tools = enable_investigation_tools and has_notebooks_access(
             organization, actor=user
         )
         # The inbox endpoints are personal, so they answer only with a user behind the run.

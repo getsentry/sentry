@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry import options
@@ -36,6 +37,14 @@ class _ClaimedFiring:
     fire_at: datetime
 
 
+@dataclass(frozen=True)
+class _Cursor:
+    """The (next_fire_at, id) of the last trigger a tick selected, before it was advanced."""
+
+    fire_at: datetime
+    id: int
+
+
 # TODO: Pick a more appropriate namespace. A backlog of unrelated issues tasks delays the
 # tick, and with it every trigger.
 @instrumented_task(
@@ -59,10 +68,11 @@ def cadence_tick() -> None:
     now = timezone.now()
     start = time.monotonic()
     claimed_count = 0
+    after: _Cursor | None = None
     try:
         while True:
             with metrics.timer("cadence.tick.claim_batch_duration", sample_rate=1.0):
-                claimed, selected = _claim_batch(now)
+                claimed, selected, after = _claim_batch(now, after)
             claimed_count += sum(len(firings) for firings in claimed.values())
             _dispatch(claimed)
             if selected < TICK_BATCH_SIZE:
@@ -74,19 +84,36 @@ def cadence_tick() -> None:
         metrics.distribution("cadence.tick.claimed", claimed_count)
 
 
-def _claim_batch(now: datetime) -> tuple[dict[ScheduledTriggerType, list[_ClaimedFiring]], int]:
+def _claim_batch(
+    now: datetime, after: _Cursor | None
+) -> tuple[dict[ScheduledTriggerType, list[_ClaimedFiring]], int, _Cursor | None]:
     """
-    Advance up to TICK_BATCH_SIZE due triggers to their next firing, returning the claimed
-    firings grouped by trigger type, and how many triggers were selected. Rows locked by a
-    concurrent tick are skipped, so overlapping ticks split the work.
+    Advance up to TICK_BATCH_SIZE due triggers after `after` to their next firing, returning
+    the claimed firings grouped by trigger type, how many triggers were selected, and the
+    cursor to claim the next batch from. Rows locked by a concurrent tick are skipped, so
+    overlapping ticks split the work.
+
+    Claiming moves a trigger's next_fire_at past `now`, but its old index entry stays until
+    vacuum removes it. Starting each batch after the previous one means a tick doesn't rescan
+    the entries it just made stale. A row the cursor passed over (because another tick had
+    it locked) is left for a later tick.
     """
     claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]] = defaultdict(list)
     with transaction.atomic(using=router.db_for_write(ScheduledTrigger)):
-        due = list(
-            ScheduledTrigger.objects.select_for_update(skip_locked=True)
-            .filter(next_fire_at__lte=now)
-            .order_by("next_fire_at")[:TICK_BATCH_SIZE]
-        )
+        query: QuerySet[ScheduledTrigger] = ScheduledTrigger.objects.select_for_update(
+            skip_locked=True
+        ).filter(next_fire_at__lte=now)
+        if after is not None:
+            query = query.extra(
+                where=['ROW("next_fire_at", "id") > ROW(%s, %s)'],
+                params=[after.fire_at, after.id],
+            )
+        due = list(query.order_by("next_fire_at", "id")[:TICK_BATCH_SIZE])
+        if not due:
+            return claimed, 0, after
+        last = due[-1]
+        assert last.next_fire_at is not None
+        cursor = _Cursor(fire_at=last.next_fire_at, id=last.id)
         for trigger in due:
             scheduled_for = trigger.next_scheduled_for
             fire_at = trigger.next_fire_at
@@ -125,7 +152,7 @@ def _claim_batch(now: datetime) -> tuple[dict[ScheduledTriggerType, list[_Claime
                 )
             )
         ScheduledTrigger.objects.bulk_update(due, ["next_scheduled_for", "next_fire_at"])
-    return claimed, len(due)
+    return claimed, len(due), cursor
 
 
 def _dispatch(claimed: dict[ScheduledTriggerType, list[_ClaimedFiring]]) -> None:
