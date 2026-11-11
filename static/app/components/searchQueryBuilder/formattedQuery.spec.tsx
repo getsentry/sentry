@@ -324,4 +324,40 @@ describe('FormattedQuery', () => {
 
     expect(screen.getByText(path)).toBeInTheDocument();
   });
+
+  it('settles on the truncated value when fitting oscillates without the container growing', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    const truncated = '…events/';
+    render(<FormattedQuery {...defaultProps} query={`transaction:${path}`} />);
+
+    const element = screen.getByText('/api/0…{organization_id_or_slug}/events/');
+    // Simulate content-sized ancestors that reflow between measurements, so
+    // alternating fits see a wide and then a narrow available width.
+    let clientWidth = 1000;
+    Object.defineProperty(element, 'clientWidth', {
+      configurable: true,
+      get() {
+        return clientWidth;
+      },
+    });
+    Object.defineProperty(element, 'scrollWidth', {
+      configurable: true,
+      get() {
+        return (this.textContent?.length ?? 0) * 10 + 2;
+      },
+    });
+
+    act(triggerResizeObservers);
+    expect(screen.getByText(path)).toBeInTheDocument();
+
+    clientWidth = 120;
+    act(triggerResizeObservers);
+    expect(screen.getByText(truncated)).toBeInTheDocument();
+
+    for (let i = 0; i < 6; i++) {
+      clientWidth = i % 2 === 0 ? 1000 : 120;
+      act(triggerResizeObservers);
+      expect(screen.getByText(truncated)).toHaveAttribute('data-overflowing', 'true');
+    }
+  });
 });
