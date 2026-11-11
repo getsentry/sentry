@@ -38,6 +38,18 @@ function makeExecution(
   } as SeerAutomationRun['executions'][number];
 }
 
+function investigation(id: string, title: string) {
+  return {type: 'investigation', id, title} as const;
+}
+
+function failedRun(message: string, overrides: Partial<SeerAutomationRun> = {}) {
+  return makeRun({
+    status: 'failed',
+    error: {code: 'internal_error', message},
+    ...overrides,
+  });
+}
+
 const MONITOR_TRIGGER = {
   detectorId: '5',
   environment: 'production',
@@ -62,25 +74,22 @@ describe('RunsTable', () => {
     MockApiClient.addMockResponse({url: monitorsUrl, body: []});
   });
 
+  function mockRuns(
+    runs: SeerAutomationRun[],
+    options: Partial<Parameters<typeof MockApiClient.addMockResponse>[0]> = {}
+  ) {
+    return MockApiClient.addMockResponse({url: runsUrl, body: {runs}, ...options});
+  }
+
   it('renders a row per run', async () => {
     MockApiClient.addMockResponse({
       url: configsUrl,
       body: {configs: [{id: '7', name: 'Checkout health'}]},
     });
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({id: '12', configId: '7', strategy: 'breached_metric_investigation'}),
-          makeRun({
-            id: '11',
-            configId: '8',
-            status: 'failed',
-            error: {code: 'internal_error', message: 'Boom'},
-          }),
-        ],
-      },
-    });
+    mockRuns([
+      makeRun({id: '12', configId: '7', strategy: 'breached_metric_investigation'}),
+      failedRun('Boom', {id: '11', configId: '8'}),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -99,20 +108,15 @@ describe('RunsTable', () => {
   });
 
   it('links a single investigation in the result column', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({
-            executions: [
-              makeExecution({
-                outputs: [{type: 'investigation', id: '2307', title: 'Latency spike'}],
-              }),
-            ],
+    mockRuns([
+      makeRun({
+        executions: [
+          makeExecution({
+            outputs: [investigation('2307', 'Latency spike')],
           }),
         ],
-      },
-    });
+      }),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -124,25 +128,20 @@ describe('RunsTable', () => {
   });
 
   it('collapses several investigations into a count that lists them on hover', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({
-            executions: [
-              makeExecution({
-                id: '1',
-                outputs: [{type: 'investigation', id: '2307', title: 'Latency spike'}],
-              }),
-              makeExecution({
-                id: '2',
-                outputs: [{type: 'investigation', id: '2308', title: 'Error burst'}],
-              }),
-            ],
+    mockRuns([
+      makeRun({
+        executions: [
+          makeExecution({
+            id: '1',
+            outputs: [investigation('2307', 'Latency spike')],
+          }),
+          makeExecution({
+            id: '2',
+            outputs: [investigation('2308', 'Error burst')],
           }),
         ],
-      },
-    });
+      }),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -162,15 +161,10 @@ describe('RunsTable', () => {
   });
 
   it('says when a run has no output', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({id: '1', executions: [makeExecution({outputs: []})]}),
-          makeRun({id: '2', status: 'running', dateCompleted: null}),
-        ],
-      },
-    });
+    mockRuns([
+      makeRun({id: '1', executions: [makeExecution({outputs: []})]}),
+      makeRun({id: '2', status: 'running', dateCompleted: null}),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -179,25 +173,20 @@ describe('RunsTable', () => {
   });
 
   it('shows a failed run with finished executions as incomplete', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({
+    mockRuns([
+      makeRun({
+        status: 'failed',
+        error: null,
+        executions: [
+          makeExecution({id: '1'}),
+          makeExecution({
+            id: '2',
             status: 'failed',
-            error: null,
-            executions: [
-              makeExecution({id: '1'}),
-              makeExecution({
-                id: '2',
-                status: 'failed',
-                error: {code: 'seer_timeout', message: 'Seer timed out'},
-              }),
-            ],
+            error: {code: 'seer_timeout', message: 'Seer timed out'},
           }),
         ],
-      },
-    });
+      }),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -211,25 +200,20 @@ describe('RunsTable', () => {
       url: monitorsUrl,
       body: [MetricDetectorFixture({id: '5', name: 'Checkout latency'})],
     });
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({id: '1', trigger: MONITOR_TRIGGER}),
-          // The monitor has since been deleted
-          makeRun({
-            id: '2',
-            trigger: {
-              ...MONITOR_TRIGGER,
-              detectorId: '6',
-              environment: null,
-              groupId: '4389',
-              groupShortId: 'CHECKOUT-2',
-            },
-          }),
-        ],
-      },
-    });
+    mockRuns([
+      makeRun({id: '1', trigger: MONITOR_TRIGGER}),
+      // The monitor has since been deleted
+      makeRun({
+        id: '2',
+        trigger: {
+          ...MONITOR_TRIGGER,
+          detectorId: '6',
+          environment: null,
+          groupId: '4389',
+          groupShortId: 'CHECKOUT-2',
+        },
+      }),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -250,21 +234,16 @@ describe('RunsTable', () => {
   });
 
   it('describes triggers without a monitor', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({id: '1', trigger: {type: 'cron'}}),
-          makeRun({
-            id: '2',
-            // A type the frontend doesn't know about yet
-            trigger: {
-              type: 'custom_trigger-type',
-            } as unknown as SeerAutomationRun['trigger'],
-          }),
-        ],
-      },
-    });
+    mockRuns([
+      makeRun({id: '1', trigger: {type: 'cron'}}),
+      makeRun({
+        id: '2',
+        // A type the frontend doesn't know about yet
+        trigger: {
+          type: 'custom_trigger-type',
+        } as unknown as SeerAutomationRun['trigger'],
+      }),
+    ]);
 
     render(<RunsTable />, {organization});
 
@@ -274,12 +253,7 @@ describe('RunsTable', () => {
   });
 
   it('leaves the automation out when showStrategy is false', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [makeRun({strategy: 'breached_metric_investigation', trigger: null})],
-      },
-    });
+    mockRuns([makeRun({strategy: 'breached_metric_investigation', trigger: null})]);
 
     render(<RunsTable showStrategy={false} />, {organization});
 
@@ -295,10 +269,7 @@ describe('RunsTable', () => {
   });
 
   it('shows a dash in the status cell for runs without a status', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {runs: [makeRun({id: '21', status: null})]},
-    });
+    mockRuns([makeRun({id: '21', status: null})]);
 
     render(<RunsTable />, {organization});
 
@@ -308,7 +279,7 @@ describe('RunsTable', () => {
   });
 
   it('shows an empty state when there are no runs', async () => {
-    MockApiClient.addMockResponse({url: runsUrl, body: {runs: []}});
+    mockRuns([]);
 
     render(<RunsTable />, {organization});
 
@@ -316,34 +287,14 @@ describe('RunsTable', () => {
   });
 
   it('pages through runs with the cursor', async () => {
-    MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({
-            id: '2',
-            status: 'failed',
-            error: {code: 'internal_error', message: 'Newer run'},
-          }),
-        ],
-      },
+    mockRuns([failedRun('Newer run', {id: '2'})], {
       headers: {
         Link:
           `<${runsUrl}?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ` +
           `<${runsUrl}?cursor=0:1:0>; rel="next"; results="true"; cursor="0:1:0"`,
       },
     });
-    const nextPageRequest = MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {
-        runs: [
-          makeRun({
-            id: '1',
-            status: 'failed',
-            error: {code: 'internal_error', message: 'Older run'},
-          }),
-        ],
-      },
+    const nextPageRequest = mockRuns([failedRun('Older run', {id: '1'})], {
       match: [MockApiClient.matchQuery({cursor: '0:1:0'})],
     });
 
@@ -361,9 +312,7 @@ describe('RunsTable', () => {
   });
 
   it('filters runs to a config', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: runsUrl,
-      body: {runs: [makeRun({id: '3', configId: '7'})]},
+    const request = mockRuns([makeRun({id: '3', configId: '7'})], {
       match: [MockApiClient.matchQuery({config: '7', per_page: 20})],
     });
 
@@ -397,10 +346,7 @@ describe('RunsTable', () => {
     });
 
     it('keeps showing runs when a poll fails', async () => {
-      MockApiClient.addMockResponse({
-        url: runsUrl,
-        body: {runs: [makeRun({id: '5', status: 'running', dateCompleted: null})]},
-      });
+      mockRuns([makeRun({id: '5', status: 'running', dateCompleted: null})]);
 
       render(<RunsTable />, {organization});
       expect(await screen.findByText('Investigating…')).toBeInTheDocument();
