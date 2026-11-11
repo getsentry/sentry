@@ -1,4 +1,7 @@
 import {InfoText} from '@sentry/scraps/info';
+import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   DEFAULT_TAG_DESCRIPTION,
@@ -38,6 +41,7 @@ export interface AttributeDetailsTooltipProps {
    * e.g. with a `sentry.` prefix or a `tags[…]` wrapper taken off.
    */
   name?: string;
+  to?: LinkProps['to'];
 }
 
 /**
@@ -51,6 +55,7 @@ export function AttributeDetailsTooltip({
   children,
   isScrubbed,
   name,
+  to,
 }: AttributeDetailsTooltipProps) {
   const user = useUser();
   // A typed tag key (e.g. `tags[message,string]`) is never looked up by its
@@ -64,27 +69,38 @@ export function AttributeDetailsTooltip({
       : getFieldDefinition(name, fieldDefinitionType));
   const attributeName = name ?? attributeKey;
 
-  return (
-    <InfoText
-      monospace
-      variant="muted"
-      title={
-        <AttributeDetails
-          description={fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION}
-          isAddedBySentry={Boolean(fieldDefinition)}
-          isInternal={
-            user.isStaff &&
-            getAttributeVisibility(attributeKey, attributeName) === 'internal'
-          }
-          isScrubbed={isScrubbed}
-          name={attributeName}
-          valueType={
-            fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING
-          }
-        />
+  const title = (
+    <AttributeDetails
+      description={fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION}
+      isAddedBySentry={Boolean(fieldDefinition)}
+      isInternal={
+        user.isStaff && getAttributeVisibility(attributeKey, attributeName) === 'internal'
       }
-    >
-      {children ?? attributeName}
+      isScrubbed={isScrubbed}
+      name={attributeName}
+      valueType={fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING}
+    />
+  );
+  const label = children ?? attributeName;
+
+  if (to) {
+    // Not InfoText, which would put a second tab stop inside the link.
+    return (
+      <Text monospace>
+        {styleProps => (
+          <Tooltip title={title} skipWrapper showUnderline>
+            <Link to={to} {...styleProps}>
+              {label}
+            </Link>
+          </Tooltip>
+        )}
+      </Text>
+    );
+  }
+
+  return (
+    <InfoText monospace variant="muted" title={title}>
+      {label}
     </InfoText>
   );
 }

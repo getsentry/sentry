@@ -264,6 +264,7 @@ export function AttributesContent({
               location,
               navigate,
               organization,
+              projectSlug: project?.slug,
             }}
             getCustomActions={content => {
               const actions = getTraceAttributesTreeActions({

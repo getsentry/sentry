@@ -33,6 +33,7 @@ import {
   ATTRIBUTE_VALUE_TYPES,
   ATTRIBUTES_STATS_PERIOD,
   DATASET_LABELS,
+  getAttributeDetailsTarget,
   type Attribute,
 } from './projectAttributesCommon';
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
@@ -259,10 +260,13 @@ function AttributeRow({attribute}: {attribute: Attribute}) {
       <SimpleTable.RowCell>
         <Flex align="center" gap="sm" wrap="wrap">
           <Link
-            to={{
-              pathname: `/settings/${organization.slug}/projects/${project.slug}/attributes/${attribute.attributeType}/${encodeURIComponent(attribute.name)}/`,
-              query: {source: attribute.attributeSource.source_type},
-            }}
+            to={getAttributeDetailsTarget({
+              attributeName: attribute.name,
+              attributeSource: attribute.attributeSource.source_type,
+              attributeType: attribute.attributeType,
+              organizationSlug: organization.slug,
+              projectSlug: project.slug,
+            })}
           >
             <Text monospace variant="inherit" wordBreak="break-all">
               {attribute.name}

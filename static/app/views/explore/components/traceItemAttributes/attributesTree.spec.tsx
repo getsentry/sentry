@@ -7,6 +7,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import type {GetFieldDefinitionType} from 'sentry/utils/fields';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 
 import {AttributesTree, type AttributesFieldRendererProps} from './attributesTree';
@@ -417,5 +418,100 @@ describe('attributesTree', () => {
     expect(screen.getByTitle('logger.name')).toContainElement(
       screen.getByTestId('tree-key-sentry.logger.name')
     );
+  });
+
+  it.each([
+    [
+      'a Sentry attribute',
+      {name: 'user.email', type: 'str', value: 'a@example.com'},
+      'user.email',
+      '/settings/org-slug/projects/project-slug/attributes/string/user.email/',
+    ],
+    [
+      'a typed number attribute',
+      {name: 'tags[cart.total,number]', type: 'float', value: 1},
+      'tags[cart.total,number]',
+      '/settings/org-slug/projects/project-slug/attributes/number/cart.total/',
+    ],
+    [
+      'a user attribute that collides with a Sentry alias',
+      {name: 'tags[message,string]', type: 'str', value: 'hi'},
+      'tags[message,string]',
+      '/settings/org-slug/projects/project-slug/attributes/string/message/?source=user',
+    ],
+  ] satisfies Array<[string, TraceItemResponseAttribute, string, string]>)(
+    'links the key to its details page when it is %s',
+    (_, attribute, testId, href) => {
+      render(
+        <AttributesTree
+          attributes={[attribute]}
+          config={{attributeDetailsType: 'log'}}
+          rendererExtra={{
+            theme,
+            location,
+            navigate: jest.fn(),
+            organization: OrganizationFixture({features: ['attribute-management']}),
+            projectSlug: 'project-slug',
+          }}
+        />
+      );
+
+      expect(
+        within(screen.getByTestId(`tree-key-${testId}`)).getByRole('link')
+      ).toHaveAttribute('href', href);
+    }
+  );
+
+  it.each([
+    ['the organization lacks attribute management', [], 'log', 'project-slug'],
+    ['the project is unknown', ['attribute-management'], 'log', undefined],
+    [
+      'the dataset has no details page',
+      ['attribute-management'],
+      'uptime',
+      'project-slug',
+    ],
+  ] satisfies Array<[string, string[], GetFieldDefinitionType, string | undefined]>)(
+    'does not link the key when %s',
+    (_, features, attributeDetailsType, projectSlug) => {
+      render(
+        <AttributesTree
+          attributes={[{name: 'user.email', type: 'str', value: 'a@example.com'}]}
+          config={{attributeDetailsType}}
+          rendererExtra={{
+            theme,
+            location,
+            navigate: jest.fn(),
+            organization: OrganizationFixture({features}),
+            projectSlug,
+          }}
+        />
+      );
+
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    }
+  );
+
+  it('describes a linked key when it is hovered', async () => {
+    render(
+      <AttributesTree
+        attributes={[{name: 'sentry.logger.name', type: 'str', value: 'sentry.python'}]}
+        config={{attributeDetailsType: 'log'}}
+        getAdjustedAttributeKey={() => 'logger.name'}
+        rendererExtra={{
+          theme,
+          location,
+          navigate: jest.fn(),
+          organization: OrganizationFixture({features: ['attribute-management']}),
+          projectSlug: 'project-slug',
+        }}
+      />
+    );
+
+    await userEvent.hover(screen.getByRole('link', {name: 'name'}));
+
+    expect(
+      await screen.findByText('The name of the logger that generated this event.')
+    ).toBeInTheDocument();
   });
 });

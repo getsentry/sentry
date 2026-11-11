@@ -22,10 +22,16 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {GetFieldDefinitionType} from 'sentry/utils/fields';
+import {
+  type GetFieldDefinitionType,
+  isTypedTagKey,
+  prettifyTagKey,
+} from 'sentry/utils/fields';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {ATTRIBUTE_VALUE_TYPES, hasScrubbedValue} from 'sentry/views/explore/utils';
+import type {TraceItemAttributeType} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+import {getAttributeDetailsTarget} from 'sentry/views/settings/project/projectAttributesCommon';
 
 import {AttributesTreeValue} from './attributesTreeValue';
 import {prettifyAttributeName} from './utils';
@@ -190,6 +196,17 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   }
 
   const attributeDetailsType = config?.attributeDetailsType;
+  const attributeDetailsTarget =
+    attributeDetailsType &&
+    ATTRIBUTE_DETAILS_PAGE_TYPES.has(attributeDetailsType) &&
+    rendererExtra.projectSlug &&
+    rendererExtra.organization.features.includes('attribute-management')
+      ? getAttributeDetailsTargetForAttribute(
+          originalAttribute,
+          rendererExtra.organization.slug,
+          rendererExtra.projectSlug
+        )
+      : undefined;
 
   return (
     <KeyValueTreeRow
@@ -217,6 +234,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
               name={originalAttribute.attribute_key}
               fieldDefinitionType={attributeDetailsType}
               defaultValueType={ATTRIBUTE_VALUE_TYPES[originalAttribute.type]}
+              to={attributeDetailsTarget}
               isScrubbed={hasScrubbedValue(
                 rendererExtra.traceItemMeta,
                 originalAttribute.original_attribute_key
@@ -278,6 +296,39 @@ function AttributesTreeRowDropdown({
 /**
  * Uses raw names when available, otherwise prettifies keys, and simplifies the value
  */
+const ATTRIBUTE_DETAILS_PAGE_TYPES: ReadonlySet<GetFieldDefinitionType> = new Set([
+  'log',
+  'span',
+  'tracemetric',
+]);
+
+const TRACE_ITEM_ATTRIBUTE_TYPES: Record<
+  TraceItemResponseAttribute['type'],
+  TraceItemAttributeType
+> = {
+  array: 'array',
+  bool: 'boolean',
+  float: 'number',
+  int: 'number',
+  str: 'string',
+};
+
+function getAttributeDetailsTargetForAttribute(
+  attribute: Attribute,
+  organizationSlug: string,
+  projectSlug: string
+) {
+  const key = attribute.original_attribute_key;
+  return getAttributeDetailsTarget({
+    attributeName: prettifyTagKey(key),
+    // A string key only comes back typed when a user attribute collides with a Sentry alias.
+    attributeSource: attribute.type === 'str' && isTypedTagKey(key) ? 'user' : undefined,
+    attributeType: TRACE_ITEM_ATTRIBUTE_TYPES[attribute.type],
+    organizationSlug,
+    projectSlug,
+  });
+}
+
 function getAttribute(
   attribute: TraceItemResponseAttribute,
   useRawAttributeNames: boolean,
