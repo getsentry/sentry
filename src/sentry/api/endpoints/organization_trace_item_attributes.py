@@ -394,12 +394,26 @@ def _search_type_to_context_type(search_type: str) -> ColumnType:
     return "number"
 
 
+def _lookup_convention_metadata(public_name: str, internal_name: str) -> AttributeMetadata | None:
+    public_metadata = ATTRIBUTE_METADATA.get(public_name)
+    internal_metadata = ATTRIBUTE_METADATA.get(internal_name)
+    # A stored replacement can surface under its deprecated name, e.g. `sentry.release` as `release`.
+    if (
+        public_metadata is not None
+        and internal_metadata is not None
+        and public_metadata.deprecation is not None
+        and public_metadata.deprecation.replacement == internal_name
+    ):
+        return internal_metadata
+    return public_metadata or internal_metadata
+
+
 def get_sentry_convention_metadata(
     public_name: str,
     internal_name: str,
     attribute_type: ColumnType | None = None,
 ) -> AttributeMetadata | None:
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
+    metadata = _lookup_convention_metadata(public_name, internal_name)
     if metadata is None:
         return None
 
@@ -425,7 +439,8 @@ def build_sentry_convention_context(
     alias or the internal name (see
     ``_update_attribute_definitions_with_deprecations`` in
     ``search/eap/spans/attributes.py``), so we try the public name first and
-    fall back to the internal name. The lookup is purely by name and does not
+    fall back to the internal name, unless the public name is a deprecated
+    convention whose replacement is the internal name. The lookup is purely by name and does not
     depend on the attribute's source, so conventions defined in
     ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
     still resolve.
@@ -617,7 +632,7 @@ def resolve_attribute_unit(
         if _is_trace_item_attribute_unit(column.search_type):
             return column.search_type
 
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(name)
+    metadata = _lookup_convention_metadata(public_name, name)
     if metadata is None or metadata.search_alias is None or metadata.search_alias.type is None:
         return None
     if _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value, "number") != "number":

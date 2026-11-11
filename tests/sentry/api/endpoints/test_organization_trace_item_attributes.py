@@ -1,5 +1,6 @@
 from sentry.api.endpoints.organization_trace_item_attributes import (
     build_sentry_attribute_context,
+    build_sentry_convention_context,
 )
 from sentry.search.eap.types import SupportedTraceItemType
 
@@ -50,3 +51,19 @@ def test_build_sentry_attribute_context_unknown_returns_none() -> None:
         )
         is None
     )
+
+
+def test_build_sentry_convention_context_uses_stored_replacement_under_deprecated_name() -> None:
+    context = build_sentry_convention_context("release", "sentry.release", "string")
+
+    assert context is not None
+    assert context["isDeprecated"] is False
+    assert "replacementAttribute" not in context
+
+
+def test_build_sentry_convention_context_keeps_deprecation_when_deprecated_name_is_stored() -> None:
+    context = build_sentry_convention_context("release", "release", "string")
+
+    assert context is not None
+    assert context["isDeprecated"] is True
+    assert context["replacementAttribute"] == "sentry.release"
