@@ -2168,7 +2168,7 @@ wheels = [
 [[package]]
 name = "sentry"
 version = "0.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "asyncpg" },
     { name = "avalara" },

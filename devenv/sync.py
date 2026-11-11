@@ -187,6 +187,9 @@ def main(context: dict[str, str]) -> int:
             cwd=reporoot,
         )
 
+    # Left behind by tools/fast_editable.py, which uv's editable install replaced.
+    shutil.rmtree(f"{reporoot}/src/sentry.egg-info", ignore_errors=True)
+
     if not shutil.which("uv"):
         print("\n\n\ndevenv is no longer managing uv; please run `brew install uv`.\n\n\n")
         return 1
@@ -249,7 +252,7 @@ def main(context: dict[str, str]) -> int:
                 "uv",
                 "sync",
                 "--frozen",
-                # don't uninstall sentry/getsentry fast_editable shims
+                # don't uninstall getsentry, which getsentry's sync installs into this venv
                 "--inexact",
                 "--quiet",
                 "--active",
@@ -261,14 +264,14 @@ def main(context: dict[str, str]) -> int:
     if not run_procs(reporoot, venv_dir, tuple(dependency_procs), verbose):
         return 1
 
-    setup_procs: list[Proc] = [
-        ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
-    ]
     # Worktrees share the main checkout's `.git/hooks` (`.git` is a file), so installing
     # from a worktree would point the hooks at that worktree's venv.
-    if not IN_GIT_WORKTREE:
-        setup_procs.append(("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}))
-    if not run_procs(reporoot, venv_dir, tuple(setup_procs), verbose):
+    if not IN_GIT_WORKTREE and not run_procs(
+        reporoot,
+        venv_dir,
+        (("prek dependencies", ("prek", "install", "--prepare-hooks", "-f"), {}),),
+        verbose,
+    ):
         return 1
 
     # Agent skills are non-fatal — private skill repos may not be accessible in CI
