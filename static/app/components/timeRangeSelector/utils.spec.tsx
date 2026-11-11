@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -53,9 +54,9 @@ describe('parseStatsPeriod', () => {
 describe('getAbsoluteSummary', () => {
   it('formats offset-less UTC page filters in UTC', () => {
     render(
-      <React.Fragment>
+      <Fragment>
         {getAbsoluteSummary('2025-01-01T01:00:00', '2025-01-02T02:00:00', true)}
-      </React.Fragment>
+      </Fragment>
     );
 
     expect(screen.getByText('Jan 1, 2025 1:00 AM UTC')).toBeInTheDocument();
