@@ -3,6 +3,7 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+    SEER_BILLING_FEATURE_UNSPECIFIED,
 )
 from taskbroker_client.retry import Retry
 
@@ -213,6 +214,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+        from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
@@ -305,6 +307,11 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        billing_feature=(
+                            get_run_billing_feature(existing_state)
+                            if existing_state and existing_state.run_id == run_id
+                            else SEER_BILLING_FEATURE_UNSPECIFIED
+                        ),
                         user=user,
                     )
             except NoSeerQuotaException:

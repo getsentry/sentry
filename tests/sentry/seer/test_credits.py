@@ -2,17 +2,16 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_WEB,
+    SEER_BILLING_FEATURE_SEER_AGENT,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsRequest,
     CheckSeerCreditsResponse,
 )
 
-from sentry.seer.credits import (
-    SEER_OPERATION_ESTIMATES,
-    SeerFeature,
-    SeerOperation,
-    can_run_seer_operation,
-)
+from sentry.seer.credits import SEER_OPERATION_ESTIMATES, SeerOperation, can_run_seer_operation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -31,7 +30,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SEER_BILLING_FEATURE_AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_not_called()
 
@@ -44,7 +43,7 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SEER_BILLING_FEATURE_AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_not_called()
 
@@ -57,12 +56,12 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert not can_run_seer_operation(
-            self.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_ROOT_CAUSE
+            self.organization, SEER_BILLING_FEATURE_AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
         )
         mock_check_seer_credits.assert_called_once_with(
             CheckSeerCreditsRequest(
                 organization_id=self.organization.id,
-                feature_id="autofix",
+                feature_id="autofix_web",
                 predicted_credit_usage=SEER_OPERATION_ESTIMATES[SeerOperation.AUTOFIX_ROOT_CAUSE](),
                 take_lease=False,
             )
@@ -77,5 +76,5 @@ class SeerCreditsTest(TestCase):
         self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(
-            self.organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+            self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         )

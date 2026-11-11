@@ -16,7 +16,11 @@ from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
+from sentry.seer.autofix.feature.dispatch import (
+    AutofixFeatureArgs,
+    get_run_billing_feature,
+    trigger_autofix_feature,
+)
 from sentry.seer.autofix.feature.models import PrIterationStepArgs
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.emit import (
@@ -582,6 +586,7 @@ def _retry_push_on_moved_branch(
                         pr.repo_name: pr.pr_url for pr in state.repo_pr_states.values() if pr.pr_url
                     },
                 ),
+                billing_feature=get_run_billing_feature(state),
             ),
         )
     except SeerOutOfCreditsException:

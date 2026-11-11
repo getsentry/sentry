@@ -4,6 +4,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import override_settings
 from rest_framework.exceptions import PermissionDenied
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsResponse,
 )
@@ -1618,6 +1621,7 @@ class TestTriggerPushChanges(TestCase):
         self,
         mock_post: MagicMock,
         features: dict[str, bool] | None = None,
+        billing_feature: int | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Push with a minimal run state and return the payload sent to Seer."""
@@ -1630,6 +1634,7 @@ class TestTriggerPushChanges(TestCase):
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={},
             metadata={"group_id": self.group.id},
+            billing_feature=billing_feature,
         )
 
         with self.feature(features or {}):
@@ -1677,13 +1682,29 @@ class TestTriggerPushChanges(TestCase):
         self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
         with pytest.raises(SeerOutOfCreditsException):
-            trigger_push_changes(
-                group=self.group,
-                run_id=123,
-                referrer=AutofixReferrer.UNKNOWN,
-            )
+            self._push(mock_post)
 
         mock_post.assert_not_called()
+
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_checks_credits_under_the_run_billing_feature(
+        self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        self._push(
+            mock_post,
+            features={
+                "organizations:seer-credit-checks": True,
+                "organizations:token-billed-seer-enabled": True,
+            },
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+        )
+
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
+        mock_post.assert_called_once()
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_pr_description_suffix_ready_state_and_author(

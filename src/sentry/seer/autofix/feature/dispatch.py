@@ -17,6 +17,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     collect_user_org_context,
@@ -43,7 +44,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_free_cohort_org,
 )
-from sentry.seer.credits import SeerFeature, SeerOperation, has_enough_seer_credits
+from sentry.seer.credits import SeerOperation, has_enough_seer_credits
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -86,6 +87,12 @@ def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
 
 def _mirror_matches_issue(group: Group) -> Q:
     return Q(group_id=group.id, project_id=group.project_id)
+
+
+def get_run_billing_feature(state: SeerRunState) -> int:
+    """The billable feature the run was started under. Runs from before Seer
+    stored it are unattributed."""
+    return state.billing_feature or billing.SEER_BILLING_FEATURE_UNSPECIFIED
 
 
 def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
@@ -162,6 +169,7 @@ def _org_allows_coding(group: Group) -> bool:
 
 def check_autofix_billing(
     organization: Organization,
+    billing_feature: int,
     operation: SeerOperation,
     *,
     is_new_run: bool,
@@ -169,14 +177,14 @@ def check_autofix_billing(
 ) -> bool:
     """
     Raise if the organization can't pay for the operation. Token-billed orgs are
-    checked for credits, and everyone else is checked for quota once per run.
-    Returns whether the operation uses quota.
+    checked for credits under the run's billing feature, and everyone else is checked for
+    quota once per run. Returns whether the operation uses quota.
     """
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
         if features.has(
             "organizations:seer-credit-checks", organization
-        ) and not has_enough_seer_credits(organization, SeerFeature.AUTOFIX, operation):
+        ) and not has_enough_seer_credits(organization, billing_feature, operation):
             raise SeerOutOfCreditsException()
         return False
 
@@ -198,14 +206,16 @@ def continue_single_run(
     group: Group,
     reply: str,
     *,
+    referrer: AutofixReferrer,
+    billing_feature: int,
     user: User | RpcUser,
     can_publish: bool,
-    referrer: AutofixReferrer,
 ) -> SeerRun:
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     check_autofix_billing(
         group.organization,
+        billing_feature,
         SeerOperation.AUTOFIX_SINGLE_RUN_REPLY,
         is_new_run=False,
     )
@@ -259,10 +269,26 @@ def trigger_autofix_feature(
     # Avoid a circular import through the legacy Autofix dispatcher.
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
-    is_new_run = args.existing_run_id is None
+    existing_agent_run: SeerAgentRun | None = None
+    if args.existing_run_id is not None:
+        existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
+    is_new_run = existing_agent_run is None
+
+    billing_feature = args.billing_feature
+    if billing_feature is None:
+        # Continuations without the stored feature are unattributed rather than guessed.
+        billing_feature = (
+            _BILLING_FEATURE_BY_REFERRER.get(
+                args.referrer, billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
+            )
+            if is_new_run
+            else billing.SEER_BILLING_FEATURE_UNSPECIFIED
+        )
+
     try:
         uses_quota = check_autofix_billing(
             group.organization,
+            billing_feature,
             args.step.seer_operation,
             is_new_run=is_new_run,
             # Free cohort orgs bypass quota only when called from agentic triage
@@ -382,10 +408,7 @@ def trigger_autofix_feature(
     if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
-            billing_feature=args.billing_feature
-            or _BILLING_FEATURE_BY_REFERRER.get(
-                args.referrer, billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
-            ),
+            billing_feature=billing_feature,
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,
@@ -395,9 +418,7 @@ def trigger_autofix_feature(
             flush=args.flush,
             extras=extras,
         )
-    elif args.existing_run_id is not None:
-        existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
-
+    elif existing_agent_run is not None:
         run = client.continue_feature_run(
             existing_agent_run=existing_agent_run,
             payload=payload.dict(),

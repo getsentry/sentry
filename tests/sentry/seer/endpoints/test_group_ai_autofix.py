@@ -7,8 +7,13 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 from django.test import override_settings
 from django.utils import timezone
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
     SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
     SEER_BILLING_FEATURE_AUTOFIX_WEB,
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+)
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
 )
 
 from sentry.integrations.services.integration import RpcIntegration
@@ -42,7 +47,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.seer.credits import SeerFeature, SeerOperation
+from sentry.seer.credits import SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -1264,7 +1269,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group=group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+            billing_feature=SEER_BILLING_FEATURE_UNSPECIFIED,
             stopping_point=None,
             run_id=42,
             user_context=None,
@@ -1706,9 +1711,49 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "code": "seer_out_of_credits",
         }
         mock_can_run.assert_called_once_with(
-            group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+            group.organization, SEER_BILLING_FEATURE_UNSPECIFIED, SeerOperation.AUTOFIX_PR_ITERATION
         )
         mock_enqueue.assert_not_called()
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
+    def test_pr_iteration_checks_credits_under_the_run_billing_feature(
+        self,
+        mock_run_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_consume: MagicMock,
+        mock_check_seer_credits: MagicMock,
+    ) -> None:
+        """Billing decides whether the run's feature is charged."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(run=run, source="autofix", group=group, project=group.project)
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
+        mock_enqueue.assert_called_once()
+        mock_consume.assert_called_once()
 
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")

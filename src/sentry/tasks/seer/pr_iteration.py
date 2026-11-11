@@ -53,6 +53,7 @@ from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.cap_exhausted import assign_user_for_exhausted_cap
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
@@ -835,6 +836,7 @@ def _drain_queued_autofix_feedback(
             step=AutofixStep.PR_ITERATION,
             referrer=referrer,
             run_id=run_id,
+            billing_feature=get_run_billing_feature(state),
             user_context="\n\n".join(item.text for item in feedback_items),
             feedback=feedback_items,
             actor_user_id=actor_user_id,
