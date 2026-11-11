@@ -590,7 +590,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
 
-    def test_token_billed_free_cohort_keeps_repository_configuration(self) -> None:
+    def test_token_billed_org_stays_in_free_cohort(self) -> None:
         repository = self.create_repo(project=self.project)
         seer_repository = self.create_seer_project_repository(
             project=self.project, repository=repository
@@ -606,7 +606,7 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
             configure_seer_for_existing_org(organization_id=self.organization.id)
 
         assert SeerProjectRepository.objects.filter(id=seer_repository.id).exists()
-        assert self.organization.get_option("agentic-triage-free-cohort", False) is False
+        assert self.organization.get_option("agentic-triage-free-cohort", False) is True
 
     def test_token_billed_does_not_set_seat_based_tier_cache(self) -> None:
         self.create_project(organization=self.organization)
