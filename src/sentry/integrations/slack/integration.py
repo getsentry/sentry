@@ -119,6 +119,7 @@ class SlackIntegration(
                 blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
                 text=payload["text"],
                 attachments=payload.get("attachments"),
+                # Tracked PR links are sentry.io redirects, which wouldn't get GitHub's unfurl.
                 unfurl_links=False,
                 unfurl_media=False,
             )
@@ -143,6 +144,7 @@ class SlackIntegration(
             blocks=payload["blocks"] if len(payload["blocks"]) > 0 else None,
             text=payload["text"],
             attachments=payload.get("attachments"),
+            # Tracked PR links are sentry.io redirects, which wouldn't get GitHub's unfurl.
             unfurl_links=False,
             unfurl_media=False,
         )

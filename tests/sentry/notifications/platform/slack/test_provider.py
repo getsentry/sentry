@@ -415,6 +415,21 @@ class SlackNotificationProviderSendTest(TestCase):
             unfurl_media=False,
         )
 
+    @patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_send_does_not_unfurl_links(self, mock_slack_client: Mock) -> None:
+        """
+        Tracked pull request links are sentry.io redirects, which wouldn't get GitHub's unfurl.
+        Leave pull request links in message text as plain GitHub URLs before turning unfurls on.
+        """
+        SlackNotificationProvider.send(
+            target=self._create_target(), renderable=self._create_renderable()
+        )
+
+        kwargs = mock_slack_client.return_value.chat_postMessage.call_args.kwargs
+        assert kwargs["unfurl_links"] is False
+        assert kwargs["unfurl_media"] is False
+        assert kwargs.get("unfurl_app_links") is not True
+
     def test_send_invalid_target_class(self) -> None:
         """Test send fails with invalid target class"""
 
