@@ -11,7 +11,7 @@ from sentry.notebooks.services.producer_sources import (
     register_producer_source_type,
 )
 from sentry.testutils.cases import TestCase
-from tests.sentry.notebooks.producer_source_fixture import (
+from sentry.testutils.helpers.notebook_producer_sources import (
     EXAMPLE_SOURCE_TYPE,
     register_example_source_type,
 )
