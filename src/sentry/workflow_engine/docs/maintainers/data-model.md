@@ -2,7 +2,8 @@
 
 This document describes the persistent graph used by the Workflow Engine. It focuses
 on relationships, ownership, and invariants rather than repeating every Django field.
-For runtime control flow, see [Execution](execution.md).
+For the architecture tour, start with the [maintainer guide](README.md). For runtime
+control flow, see [Execution](execution.md).
 
 ## Conceptual Graph
 
@@ -29,7 +30,7 @@ erDiagram
     ACTION ||--o{ DATA_CONDITION_GROUP_ACTION : executes
 
     DETECTOR ||--o{ DETECTOR_STATE : tracks
-    DETECTOR ||--o{ DETECTOR_GROUP : creates
+    DETECTOR |o--o{ DETECTOR_GROUP : creates
     GROUP ||--o| DETECTOR_GROUP : associates
 
     WORKFLOW ||--o{ WORKFLOW_ACTION_GROUP_STATUS : throttles
@@ -37,7 +38,7 @@ erDiagram
     GROUP ||--o{ WORKFLOW_ACTION_GROUP_STATUS : throttles
 
     WORKFLOW ||--o{ WORKFLOW_FIRE_HISTORY : records
-    GROUP ||--o{ WORKFLOW_FIRE_HISTORY : records
+    GROUP |o--o{ WORKFLOW_FIRE_HISTORY : records
     DETECTOR |o--o{ WORKFLOW_FIRE_HISTORY : attributes
 ```
 
@@ -52,12 +53,12 @@ the `DataConditionGroup`/`DataCondition` on `Workflow.when_condition_group`;
 
 ### `DataSource`
 
-[`DataSource`](../models/data_source.py) belongs to an organization and generically
+[`DataSource`](../../models/data_source.py) belongs to an organization and generically
 references a product model that emits detector input. The pair `(type, source_id)` is
 globally unique; the organization is not part of that database constraint.
 
 `type` selects a registered
-[`DataSourceTypeHandler`](../types.py). The handler provides behavior that cannot be
+[`DataSourceTypeHandler`](../../types.py). The handler provides behavior that cannot be
 expressed by the generic reference alone:
 
 - Bulk-loading the referenced product objects
@@ -73,7 +74,7 @@ monitors. Adding a source type requires both registration and startup import cov
 
 ### `DataSourceDetector`
 
-[`DataSourceDetector`](../models/data_source_detector.py) is the many-to-many mapping
+[`DataSourceDetector`](../../models/data_source_detector.py) is the many-to-many mapping
 between sources and detectors. `(data_source, detector)` is unique.
 
 One source can feed multiple detectors. One detector can also be connected to source
@@ -82,7 +83,7 @@ so mutations must preserve the receiver-driven invalidation path.
 
 ### `Detector`
 
-[`Detector`](../models/detector.py) is the configured unit of detection. Important
+[`Detector`](../../models/detector.py) is the configured unit of detection. Important
 relationships and fields are:
 
 | Field or relationship      | Meaning                                                                                    |
@@ -94,9 +95,9 @@ relationships and fields are:
 | `enabled`                  | User-controlled active/snoozed state                                                       |
 | `status`                   | Lifecycle state, including pending deletion and plan-level disabling                       |
 
-[`DetectorType`](../types.py) defines the valid detector implementation identities. A
-[`DetectorSettings`](../types.py) subclass is registered in
-[`detector_settings_registry`](../registry.py) using an enum member and can define:
+[`DetectorType`](../../types.py) defines the valid detector implementation identities. A
+[`DetectorSettings`](../../types.py) subclass is registered in
+[`detector_settings_registry`](../../registry.py) using an enum member and can define:
 
 - Runtime handler
 - API validator
@@ -106,7 +107,7 @@ relationships and fields are:
 - Type discovery visibility
 
 `Detector.settings` reads directly from this registry. Its handler, schema, and query
-filters do not require a matching [`GroupType`](../../issues/grouptype.py). A group type
+filters do not require a matching [`GroupType`](../../../issues/grouptype.py). A group type
 classifies the output issue; handlers select it through `DetectorOccurrence.type`.
 
 The model field is a `CharField`, and database reads return strings. Settings lookup
@@ -130,10 +131,10 @@ matching slugs; use the detector registry when implementing detector behavior.
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.
 
-### Detector trigger conditions
+### Detector Trigger Conditions
 
 The detector's `workflow_condition_group` points to a
-[`DataConditionGroup`](../models/data_condition_group.py). The relation is nullable and
+[`DataConditionGroup`](../../models/data_condition_group.py). The relation is nullable and
 unique independently of the Workflow condition relations.
 
 The field name is historical: this group belongs to detector evaluation even though it
@@ -143,7 +144,7 @@ is named `workflow_condition_group`.
 
 ### `DataCondition`
 
-[`DataCondition`](../models/data_condition.py) contains:
+[`DataCondition`](../../models/data_condition.py) contains:
 
 | Field              | Meaning                            |
 | ------------------ | ---------------------------------- |
@@ -154,7 +155,7 @@ is named `workflow_condition_group`.
 
 ### `DataConditionGroup`
 
-[`DataConditionGroup`](../models/data_condition_group.py) owns an organization and a
+[`DataConditionGroup`](../../models/data_condition_group.py) owns an organization and a
 stored logic type. Groups have three intended roles:
 
 - Detector trigger group
@@ -170,7 +171,7 @@ contracts.
 
 ### `DetectorWorkflow`
 
-[`DetectorWorkflow`](../models/detector_workflow.py) connects detectors to workflows.
+[`DetectorWorkflow`](../../models/detector_workflow.py) connects detectors to workflows.
 The connection determines which workflows are candidates for an issue event associated
 with that detector.
 
@@ -184,7 +185,7 @@ This allows workflows to target a product-specific detector or the broader issue
 
 ### `Workflow`
 
-[`Workflow`](../models/workflow.py) is organization-scoped. Important fields are:
+[`Workflow`](../../models/workflow.py) is organization-scoped. Important fields are:
 
 | Field or relationship  | Meaning                                                                                                                                |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -196,18 +197,18 @@ This allows workflows to target a product-specific detector or the broader issue
 
 ### `WorkflowDataConditionGroup`
 
-[`WorkflowDataConditionGroup`](../models/workflow_data_condition_group.py) connects one
+[`WorkflowDataConditionGroup`](../../models/workflow_data_condition_group.py) connects one
 workflow to one IF/action-filter condition group. A condition group can belong to only
 one workflow through this relationship.
 
 ### `DataConditionGroupAction` and `Action`
 
-[`DataConditionGroupAction`](../models/data_condition_group_action.py) connects actions
-to IF groups. [`Action`](../models/action.py) stores the action type and its handler-
+[`DataConditionGroupAction`](../../models/data_condition_group_action.py) connects actions
+to IF groups. [`Action`](../../models/action.py) stores the action type and its handler-
 specific configuration and data.
 
 The action type selects a handler from
-[`action_handler_registry`](../registry.py). Handlers are commonly implemented in the
+[`action_handler_registry`](../../registry.py). Handlers are commonly implemented in the
 owning integration or notification package rather than in `workflow_engine`.
 
 An action can be reachable from more than one Workflow. The data model does not define
@@ -222,10 +223,21 @@ the cell silo; owner and integration references must not introduce cross-silo jo
 
 ## Runtime State and History
 
+These stores answer different questions; none is an external-action delivery receipt.
+
+| State                                             | Storage    | Purpose                                                                                            |
+| ------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------- |
+| `DetectorState`                                   | PostgreSQL | Priority, triggered status, and optional activation ID per detector/group key                      |
+| Detector dedupe watermarks and threshold counters | Redis      | Ordered-packet suppression and qualifying-evaluation counts; expire after seven days               |
+| `DetectorGroup`                                   | PostgreSQL | Issue-to-detector association, independent of detector transition state                            |
+| `WorkflowActionGroupStatus`                       | PostgreSQL | Repeat-frequency suppression per workflow/action/issue group                                       |
+| `WorkflowFireHistory`                             | PostgreSQL | Pre-dispatch workflow/group/event intent, not delivery outcome                                     |
+| Delayed workflow items                            | Redis      | Coalesced work awaiting slow conditions; see [Execution](execution.md#delayed-workflow-processing) |
+
 ### `DetectorState`
 
-[`DetectorState`](../models/detector_state.py) stores durable detector status for a
-detector and optional [`DetectorGroupKey`](../types.py). The group key lets one detector
+[`DetectorState`](../../models/detector_state.py) stores durable detector status for a
+detector and optional [`DetectorGroupKey`](../../types.py). The group key lets one detector
 track independent state for multiple values in a packet, such as separate endpoints.
 
 The unique constraint treats a null group key as an empty value so that a non-grouped
@@ -233,7 +245,7 @@ detector has one state row.
 
 Detector state is split across stores:
 
-- PostgreSQL stores the durable priority and triggered status.
+- PostgreSQL stores the durable priority, triggered status, and optional activation ID.
 - Redis stores dedupe watermarks and priority threshold counters with a TTL.
 
 The split is part of the runtime contract. For `StatefulDetectorHandler`, dedupe values
@@ -241,10 +253,19 @@ must be positive integers that increase with source order. The watermark default
 zero when absent and expires from Redis after seven days, so duplicate suppression is
 not durable beyond that TTL.
 
+`DetectorState` is an immediately available transition record because Issue Platform
+open periods are created asynchronously. It is not the issue's `Group` or an action's
+frequency state. Its `activation_id` can rotate when a stateful handler leaves `OK` after
+its `regression_timeout`, subject to the activation-rotation feature gate. With that
+handler setting, occurrence and resolution fingerprints use the activation ID to separate
+new issues from regressions; an existing null activation retains the earlier stable
+fingerprint. See [`StatefulDetectorHandler`](../../handlers/detector/stateful.py) and
+[Execution](execution.md#stateful) for orchestration.
+
 ### `DetectorGroup`
 
-[`DetectorGroup`](../models/detector_group.py) associates an Issue Platform
-[`Group`](../../models/group.py) with the detector that produced or owns it. The detector
+[`DetectorGroup`](../../models/detector_group.py) associates an Issue Platform
+[`Group`](../../../models/group.py) with the detector that produced or owns it. The detector
 foreign key can become null after deletion so existing issue history remains valid.
 
 The association is normally created during Issue Platform ingestion. Compatibility
@@ -260,14 +281,14 @@ one per period; ID grouping does not change this selection policy.
 
 ### `WorkflowActionGroupStatus`
 
-[`WorkflowActionGroupStatus`](../models/workflow_action_group_status.py) records when a
+[`WorkflowActionGroupStatus`](../../models/workflow_action_group_status.py) records when a
 `(workflow, action, group)` tuple last passed repeat-frequency filtering. It is updated
 before event-level deduplication and task execution, so it does not prove that an
 external action completed.
 
 ### `WorkflowFireHistory`
 
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, optional issue
+[`WorkflowFireHistory`](../../models/workflow_fire_history.py) stores a Workflow, optional issue
 group, event ID, notification UUID, and optional detector. It has no action or delivery
 outcome field. Rows are created before inactive-action filtering and event-level
 deduplication, so they record pre-dispatch intent rather than a scheduled or successfully
@@ -275,32 +296,35 @@ delivered action.
 
 ## Compatibility Models
 
-Compatibility association models map legacy issue and metric alert records to Detector,
-Workflow, condition, action, and Issue Platform records. They are not part of normal
-Detector or Workflow evaluation. See [Legacy alert API compatibility](legacy_backport.md)
-for the model list and current mixed read/write behavior.
+Compatibility association models retain historical issue and metric alert IDs alongside
+Detector, Workflow, condition, action, and Issue Platform records. These scalar IDs do not
+require all native legacy records or tables to remain. The associations are not part of
+normal Detector or Workflow evaluation. Deprecated alert management routes are retired;
+see [Legacy Compatibility](legacy-compatibility.md) for remaining lookups, serializers,
+and manufactured-ID behavior.
 
 ## Lifecycle and Invalidation
 
 ### Creation
 
 Detector model API creation is coordinated by
-[`BaseDetectorTypeValidator`](../endpoints/validators/base/detector.py). In one
+[`BaseDetectorTypeValidator`](../../endpoints/validators/base/detector.py). In one
 transaction it creates or connects the detector's condition graph, product-specific
 source object, generic data source, source mapping, and workflows.
 
-Default detectors and workflows are created by [`defaults/`](../defaults) from project
+Default detectors and workflows are created by [`defaults/`](../../defaults) from project
 and organization signal receivers. These functions must remain idempotent.
 
 Workflows created through the public API go through
-[`WorkflowValidator`](../endpoints/validators/base/workflow.py), which never sets `type`,
+[`WorkflowValidator`](../../endpoints/validators/base/workflow.py), which never sets `type`,
 so they are always `alert`. Code that creates a hidden workflow type passes `type` to
-`Workflow.objects.create` directly.
+`Workflow.objects.create` directly. Runtime lookup does not filter by
+`VISIBLE_WORKFLOW_TYPES`: a connected, enabled hidden workflow can still run.
 
 ### Updates
 
 Updates to detectors, workflows, conditions, source mappings, or action mappings can
-invalidate cached processing graphs. Receivers in [`receivers/`](../receivers) generally
+invalidate cached processing graphs. Receivers in [`receivers/`](../../receivers) generally
 schedule invalidation with `transaction.on_commit()` so a cache cannot be repopulated
 from uncommitted data.
 
@@ -314,7 +338,7 @@ task. Related Issue Platform groups and historical fire records may outlive the 
 Runtime lookup must therefore tolerate missing records.
 
 Action cleanup for control-silo integration changes goes through the hybrid-cloud
-[`ActionService`](../service/action/service.py).
+[`ActionService`](../../service/action/service.py).
 
 ## Scope and Relocation
 
@@ -328,13 +352,13 @@ must be explicitly scoped to the organization and permitted projects.
 
 ## Recommended Tests
 
-- [`test_organization_project_detector_index.py`](../../../../tests/sentry/workflow_engine/endpoints/test_organization_project_detector_index.py)
+- [`test_organization_project_detector_index.py`](../../../../../tests/sentry/workflow_engine/endpoints/test_organization_project_detector_index.py)
   demonstrates transactional detector graph creation.
-- [`test_detectors.py`](../../../../tests/sentry/workflow_engine/defaults/test_detectors.py)
+- [`test_detectors.py`](../../../../../tests/sentry/workflow_engine/defaults/test_detectors.py)
   covers default creation and locking.
-- [`test_workflows.py`](../../../../tests/sentry/workflow_engine/defaults/test_workflows.py)
+- [`test_workflows.py`](../../../../../tests/sentry/workflow_engine/defaults/test_workflows.py)
   covers default workflow graphs.
-- [`receivers/`](../../../../tests/sentry/workflow_engine/receivers) covers validation and
+- [`receivers/`](../../../../../tests/sentry/workflow_engine/receivers) covers validation and
   cache invalidation.
-- [`project_transfer.py`](../processors/project_transfer.py) contains project-transfer
+- [`project_transfer.py`](../../processors/project_transfer.py) contains project-transfer
   cloning and reconnection helpers; these currently have no dedicated processor test.

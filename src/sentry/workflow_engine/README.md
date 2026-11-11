@@ -1,209 +1,105 @@
 # Workflow Engine
 
-The Workflow Engine evaluates detector data, creates or resolves issues, evaluates
-workflows for issue events, and dispatches actions. It owns the Detector and Workflow
-model graph and its execution paths while compatibility code continues to expose legacy
-Rule and AlertRule API shapes.
+Workflow Engine is Sentry's shared backend for **evaluating data and automating responses
+to events**. Detectors produce outcomes; workflows respond to events and take actions.
+What gets produced and what happens next are separate, product-specific decisions.
 
-This package contains two related pipelines:
+## Why Use It?
 
-1. **Detection** turns product-specific data into Issue Platform occurrences or status
-   changes.
-2. **Workflow processing** evaluates issue events against workflows and dispatches
-   notifications or other actions.
+A product needs to decide what its data means, what to produce from that evaluation,
+and how to respond when something happens. Combining those decisions in one integration
+couples detection to downstream behavior and duplicates infrastructure.
 
-These pipelines are asynchronous. `process_detectors` does not call
-`process_workflows` directly. Detector output goes through Issue Platform ingestion;
-the resulting issue event later enters workflow processing through event post-processing
-or an issue activity.
+Workflow Engine separates them. Product code supplies evaluation logic, outcome
+handling, event integration, and action behavior. The shared engine provides configured
+conditions, detector state transitions, workflow selection, action filtering, repeat
+suppression, and asynchronous dispatch. Changing the response should not require
+rewriting detection or changing the artifact being produced.
 
-The detection side below shows the common generic-source and stateful-handler path.
-Product-specific producers can select detectors directly, and custom handlers do not
-have to use durable transition state.
+For example, an issue regressing or an investigation finishing is an **event**. Sending
+a Slack message or starting an investigation is an **action**. A workflow expresses the
+policy connecting an event to actions; it is not limited to notification delivery.
+Several detectors can connect to the same workflow, and a detector can connect to
+several workflows.
+
+## The Mental Model
+
+- **Detector:** what does this input mean? Evaluate product data and produce an
+  evaluation for outcome handling. Not every evaluation needs to produce anything.
+- **Outcome:** what should the evaluation produce? An outcome handler decides how to
+  handle it, such as creating or updating a product artifact. Outcome dispatch is
+  separate from the detector's evaluation logic.
+- **Artifact:** what was produced or changed? A domain result, such as an issue, metric,
+  or investigation. This is a conceptual term, not a shared `Artifact` model or a list
+  of payload types already supported by every handler.
+- **Event:** what happened? A lifecycle change, such as an issue being created or
+  regressing, or an investigation starting or finishing. An artifact is not itself an
+  event; its owning integration must expose the events a workflow can consume.
+- **Workflow:** when should we react to an event? Its **WHEN** conditions determine
+  whether it triggers. Each **IF** condition group filters which actions become eligible.
+- **Condition:** a reusable check, grouped with other checks. Detector conditions
+  evaluate product data; workflow conditions evaluate event input. They share
+  evaluation machinery, not interchangeable inputs.
+- **Action:** what should happen next? A registered handler performs a side effect.
+  It can notify someone or create or change another artifact, which can have its own
+  lifecycle events. Passing conditions makes an action eligible; execution controls
+  still apply before dispatch.
 
 ```mermaid
 flowchart LR
-    subgraph Detection
-        Producer[Product producer] --> Packet[DataPacket]
-        Packet -->|DataSource lookup| Detector[DetectorHandler]
-        Packet -->|Direct selection| Detector
-        Detector --> Result{Detector result?}
-        Result -->|Triggered| Occurrence[IssueOccurrence]
-        Result -->|Resolved| Status[StatusChangeMessage]
-        Result -->|No change| Stop[No output]
-    end
-
-    Occurrence --> Kafka[Issue Platform]
-    Status --> Kafka
-
-    subgraph Workflow_processing[Workflow processing]
-        Kafka --> Event[Issue event or activity]
-        Event --> When[Evaluate WHEN conditions]
-        When --> If[Evaluate IF action filters]
-        If -->|Fast conditions pass| Actions[Select, dedupe, and dispatch actions]
-        If -->|Slow conditions remain| Buffer[(Delayed buffer)]
-        Buffer --> Delayed[Bulk delayed evaluation]
-        Delayed --> Actions
-    end
+    Data[Product data] --> Detector[Detector evaluation]
+    Detector --> Outcome[Outcome handling]
+    Outcome --> Artifact[Create, update, or publish artifact]
+    Artifact -->|Lifecycle change| Event[Event integration]
+    Existing[Events from existing artifacts] --> Event
+    Event --> Workflow[Workflow: WHEN and IF]
+    Workflow --> Action[Eligible actions]
+    Action -->|May create or change| Artifact
 ```
 
-A detector is the common way in, but existing issue events can enter Workflow
-processing directly through post-processing (error and issue-stream workflows).
+This is the conceptual model, not a direct call chain or an automatic subscription to
+every artifact. Outcome handling, event ingress, and action execution are distinct
+integration boundaries. A workflow can respond to an existing artifact's events without
+a new detector run.
 
-## Start Here
+## Current Implementation and Examples
 
-| You're working on…                  | Read                                                                                            |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Orienting / new to the system       | [Data model](docs/data-model.md), then [Execution](docs/execution.md) (skim)                    |
-| A **condition** or its handler      | [Conditions](docs/conditions.md) (full)                                                         |
-| A **detector**                      | [Adding detectors](docs/adding-detectors.md) (full), [Conditions](docs/conditions.md) as needed |
-| Tracing a missing action            | [Execution](docs/execution.md) → “Observability and Debugging” checklist                        |
-| Legacy alert endpoint compatibility | [Legacy API backport](docs/legacy_backport.md)                                                  |
+The task guides document the concrete APIs in this checkout. The registered
+[`DetectorOutcome`](handlers/detector_outcome/supported_outcomes.py) currently provides
+`ISSUE_PLATFORM`; [`DetectorResult` and `WorkflowEventData`](types.py) still use
+issue-specific payloads and context. The default outcome publishes occurrences or
+status changes to Issue Platform. Issue events and supported activities, including
+Seer stage changes, later enter workflow processing; `process_detectors` does **not**
+call `process_workflows` directly.
 
-## Core Concepts
+Issue Platform is one outcome integration, not the definition of the engine. Other
+artifact types need corresponding outcome/result support and event ingress; registering
+an outcome alone does not make arbitrary payloads consumable by workflows. The guides'
+issue-based examples describe those current contracts, not a requirement that every
+product model its output as an issue.
 
-### Data source and packet
+## Choose Your Path
 
-A [`DataPacket`](models/data_source.py) wraps a product-specific payload and the ID of
-the object that produced it. A [`DataSource`](models/data_source.py) stores a generic
-reference to that object. [`DataSourceDetector`](models/data_source_detector.py) maps
-the source to one or more detectors.
+| Your Goal                                                                                  | Start Here                                       |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| Implement a detector or workflow; understand what to build and what to reuse               | [Implementer Guide](docs/implementers/README.md) |
+| Maintain the engine; understand how models, processors, tasks, state, and caches cooperate | [Maintainer Guide](docs/maintainers/README.md)   |
 
-Data source behavior is registered by type in
-[`data_source_type_registry`](registry.py). The registered handler knows how to load
-the referenced model, enforce quotas, participate in deletion, and normalize IDs for
-relocation.
+Implementers do not need to read the maintainer reference first. The task guides link
+to the exact contracts needed along the way.
 
-### Detector
+## Scope and Boundaries
 
-A [`Detector`](models/detector.py) describes what data to evaluate and can reference an
-optional trigger [`DataConditionGroup`](models/data_condition_group.py). Its `type` stores a
-[`DetectorType`](types.py) value that selects a [`DetectorSettings`](types.py) class in
-[`detector_settings_registry`](registry.py). Settings provide the handler, configuration
-schema, API validator, and visibility rules for that implementation.
+- This is event-driven automation, not an ordered, multi-step job orchestrator.
+  Actions run asynchronously with no user-defined execution order.
+- A workflow is not necessarily a user-facing alert. Workflow types distinguish alerts
+  from hidden automation; visibility does not determine whether a connected workflow runs.
+- Workflow Engine detectors are distinct from performance detectors in
+  [`sentry.issue_detection`](../issue_detection/README.md), which use a separate runtime.
+  Some detector records associate existing issues with workflows rather than run a new
+  Workflow Engine detection pipeline.
+- New integrations use native detector and workflow APIs. Remaining legacy ID and model
+  compatibility is a [maintainer concern](docs/maintainers/legacy-compatibility.md), not
+  an implementation prerequisite.
 
-An Issue Platform [`GroupType`](../issues/grouptype.py) describes the resulting issue.
-Settings, API validation, and handler lookup use the detector type directly. A detector
-type identifies an implementation; an issue type classifies a finding. Their string
-values do not need to match, and one implementation can emit several issue types.
-Settings control detector type discovery, while issue types have their own release
-controls. See [Data model](docs/data-model.md#detector).
-
-Detector implementations usually live in the product module that owns the issue type,
-not in this package. For example, uptime and metric issue handlers live in
-[`sentry.uptime`](../uptime/grouptype.py) and
-[`sentry.incidents`](../incidents/grouptype.py).
-
-### Conditions and condition groups
-
-Detectors and Workflows both use [`DataCondition`](models/data_condition.py) and
-[`DataConditionGroup`](models/data_condition_group.py) and the same evaluation
-primitives. Their input values, result contracts, access to batched condition data, and
-missing-group behavior differ. [Conditions](docs/conditions.md) is the canonical source
-for this shared layer and its subsystem-specific touchpoints.
-
-### Workflow and action
-
-A [`Workflow`](models/workflow.py) belongs to an organization and connects to detectors
-through [`DetectorWorkflow`](models/detector_workflow.py). It can be global or limited
-to one environment.
-
-Every workflow has a `type` ([`Workflow.Type`](models/workflow.py)) indicating its use-case. The `VISIBLE_WORKFLOW_TYPES` constant lists the types that are exposed to users.
-For example, the `Workflow.Type.ALERT` type is the user-facing type for alerts (as seen on the Alerts page), while `Workflow.Type.INBOX` is a hidden automation type.
-
-Each workflow has zero or more IF groups through
-[`WorkflowDataConditionGroup`](models/workflow_data_condition_group.py). Actions are
-attached to those groups through
-[`DataConditionGroupAction`](models/data_condition_group_action.py). A passing IF group
-makes its actions eligible to run.
-
-Before dispatch, the engine applies the Workflow's repeat frequency and records fire
-history. It then removes inactive actions, deduplicates actions with the same
-`Action.get_dedup_key()`, and schedules one asynchronous task per retained action. The
-task invokes the handler registered for the [`Action.Type`](models/action.py).
-
-### State and history
-
-The engine stores different kinds of runtime state for different purposes:
-
-| State                                                                 | Storage    | Purpose                                                                  |
-| --------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
-| [`DetectorState`](models/detector_state.py)                           | PostgreSQL | Durable priority and triggered state per detector and optional group key |
-| Detector dedupe values and counters                                   | Redis      | Ordered-packet dedupe and priority threshold tracking                    |
-| [`DetectorGroup`](models/detector_group.py)                           | PostgreSQL | Association between an Issue Platform group and its detector             |
-| [`WorkflowActionGroupStatus`](models/workflow_action_group_status.py) | PostgreSQL | Last fire time for workflow/action/group repeat suppression              |
-| [`WorkflowFireHistory`](models/workflow_fire_history.py)              | PostgreSQL | Workflow/group/event scheduling history                                  |
-| Delayed workflow items                                                | Redis      | Work awaiting slow condition evaluation                                  |
-
-See [Data model](docs/data-model.md) for ownership, constraints, and lifecycle details.
-
-## Extension Points
-
-The package initializes registries and signal receivers from
-[`Config.ready`](apps.py). The primary extension points are:
-
-| Extension         | Registration                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Detector type     | Add a `DetectorType` member, then register a `DetectorSettings` class with `detector_settings_registry.register(DetectorType.MEMBER)` |
-| Issue type        | Define a concrete `GroupType` in the owning product module                                                                            |
-| Data source type  | `data_source_type_registry.register(...)`                                                                                             |
-| Condition type    | `condition_handler_registry.register(...)`                                                                                            |
-| Action type       | `action_handler_registry.register(...)`                                                                                               |
-| Workflow activity | `workflow_activity_registry.register(...)`                                                                                            |
-| Workflow type     | Add a `Workflow.Type` member; add it to `VISIBLE_WORKFLOW_TYPES` only if users should see it                                          |
-
-Import-time registration only works when the owning module is imported during
-application startup. Follow an existing product integration and add a focused test that
-proves registry discovery.
-
-## Package Map
-
-| Path                                        | Responsibility                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------------- |
-| [`models/`](models)                         | Persistent workflow graph, state, history, and compatibility associations |
-| [`handlers/detector/`](handlers/detector)   | Detector contracts and stateful detector orchestration                    |
-| [`handlers/condition/`](handlers/condition) | Registered condition implementations                                      |
-| [`handlers/workflow/`](handlers/workflow)   | Activity handlers that start workflow processing                          |
-| [`processors/`](processors)                 | Synchronous orchestration and evaluation logic                            |
-| [`tasks/`](tasks)                           | Asynchronous boundaries for workflows, delayed work, and actions          |
-| [`buffer/`](buffer)                         | Redis storage for delayed workflow evaluation                             |
-| [`caches/`](caches)                         | Detector, workflow, and action-filter caches                              |
-| [`endpoints/`](endpoints)                   | Native APIs, serializers, and validators                                  |
-| [`defaults/`](defaults)                     | Default detector and workflow creation                                    |
-| [`receivers/`](receivers)                   | Cache invalidation and project/organization lifecycle signals             |
-| [`service/`](service)                       | Hybrid-cloud action service                                               |
-| [`migration_helpers/`](migration_helpers)   | Legacy alert migration and dual-write support                             |
-
-## Boundaries and Common Confusion
-
-- Workflow Engine detectors are not the same as performance detectors in
-  [`sentry.issue_detection`](../issue_detection/README.md). Performance detectors scan
-  transaction spans through a separate runtime.
-- Registered detector settings do not require a Workflow Engine handler. Error, cron,
-  issue-stream, and legacy performance detectors have specialized execution or
-  association roles outside the common `process_detectors` path.
-- A detector can use the generic `DataSource` lookup or a product-specific producer
-  that calls `process_detectors` directly.
-- Actions are asynchronous and are not guaranteed to execute in a user-defined order.
-- Legacy alert models and APIs still coexist with Workflow Engine models. Do not infer
-  current execution behavior from compatibility association tables.
-- Not every `Workflow` is an alert. The alert APIs hide workflows whose `type` is not in
-  `VISIBLE_WORKFLOW_TYPES`, but `process_workflows` does not filter by type, so a hidden
-  workflow connected through `DetectorWorkflow` still runs.
-
-## Recommended Tests
-
-The most useful end-to-end references are:
-
-- [`test_integration.py`](../../../tests/sentry/workflow_engine/test_integration.py) for
-  detector, workflow, delayed-condition, and action integration.
-- [`test_stateful.py`](../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
-  for detector state, dedupe, grouping, and thresholds.
-- [`test_workflow.py`](../../../tests/sentry/workflow_engine/processors/test_workflow.py)
-  for workflow selection and evaluation.
-- [`test_delayed_workflow.py`](../../../tests/sentry/workflow_engine/processors/test_delayed_workflow.py)
-  for buffered condition evaluation.
-- [`test_organization_project_detector_index.py`](../../../tests/sentry/workflow_engine/endpoints/test_organization_project_detector_index.py)
-  for the detector API lifecycle.
-
-The code and tests are authoritative when this documentation and implementation differ.
+The implementation and tests are authoritative when they differ from these docs.
