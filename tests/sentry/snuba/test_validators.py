@@ -316,6 +316,28 @@ class SnubaQueryValidatorTest(TestCase):
         assert not validator.is_valid()
         assert "span.op is invalid for parameter 1 in sum" in str(validator.errors["aggregate"][0])
 
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_invalid_number_argument(self) -> None:
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data("equation|apdex(span.duration,foo) * 2"),
+            context=self.context,
+        )
+        assert not validator.is_valid()
+        assert validator.errors["aggregate"] == [
+            ErrorDetail(
+                string="Invalid Metric: could not convert string to float: 'foo'", code="invalid"
+            )
+        ]
+
+    @with_feature("organizations:spans-monitor-equations")
+    def test_eap_spans_equation_opportunity_score(self) -> None:
+        aggregate = "equation|opportunity_score(measurements.score.lcp) * 100"
+        validator = SnubaQueryValidator(
+            data=self._spans_equation_data(aggregate), context=self.context
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["aggregate"] == aggregate
+
     def test_eap_performance_score_aggregate(self) -> None:
         data = {
             "dataset": Dataset.EventsAnalyticsPlatform.value,
