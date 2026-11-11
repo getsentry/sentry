@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {
   DATA_TYPE as AGENT_MODELS_DATA_TYPE,
   DATA_TYPE_PLURAL as AGENT_MODELS_DATA_TYPE_PLURAL,

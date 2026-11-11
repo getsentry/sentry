@@ -78,22 +78,24 @@ describe('FeatureFlagCommandPaletteActions', () => {
   });
 
   it('persists an override and updates the active organization immediately', () => {
-    const organization = OrganizationFixture({features: ['dashboards-basic']});
+    const organization = OrganizationFixture({features: ['discover-query']});
 
     localStorageWrapper.setItem(
       LOCALSTORAGE_KEY,
-      '{"dashboards-basic":false,"other-local-feature":true}'
+      '{"discover-query":false,"other-local-feature":true}'
     );
 
     setLocalFeatureFlagOverride(organization, 'new-feature', true);
 
-    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
+    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
+      '{"discover-query":false,"other-local-feature":true,"new-feature":true}'
+    );
     const updatedFeatures = OrganizationStore.getState().organization?.features;
     expect(updatedFeatures).toHaveLength(2);
-    expect(updatedFeatures).not.toContain('dashboards-basic');
+    expect(updatedFeatures).not.toContain('discover-query');
     expect(updatedFeatures).toContain('other-local-feature');
     expect(updatedFeatures).toContain('new-feature');
-    expect(organization.features).toEqual(['dashboards-basic']);
+    expect(organization.features).toEqual(['discover-query']);
   });
 
   it('applies an override when local storage cannot persist it', () => {
@@ -105,7 +107,9 @@ describe('FeatureFlagCommandPaletteActions', () => {
     try {
       setLocalFeatureFlagOverride(organization, 'new-feature', true);
 
-      expect(OrganizationStore.get().organization?.features).toContain('new-feature');
+      expect(OrganizationStore.getState().organization?.features).toContain(
+        'new-feature'
+      );
       expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBeNull();
     } finally {
       setItem.mockRestore();
@@ -113,7 +117,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
   });
 
   it('toggles an existing feature flag without reloading', async () => {
-    const organization = OrganizationFixture({features: ['dashboards-basic']});
+    const organization = OrganizationFixture({features: ['discover-query']});
     render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
@@ -124,18 +128,18 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await userEvent.click(
       await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
     );
-    await userEvent.click(await screen.findByRole('option', {name: /dashboards-basic/}));
+    await userEvent.click(await screen.findByRole('option', {name: /discover-query/}));
 
     expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
-      '{"dashboards-basic":false}'
+      '{"discover-query":false}'
     );
     expect(OrganizationStore.getState().organization?.features).not.toContain(
-      'dashboards-basic'
+      'discover-query'
     );
   });
 
   it('keeps a disabled feature flag in the list after returning to it', async () => {
-    const organization = OrganizationFixture({features: ['dashboards-basic']});
+    const organization = OrganizationFixture({features: ['discover-query']});
     render(<ExampleFeatureFlagActions />, {organization});
 
     await openCommandPalette();
@@ -146,7 +150,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await userEvent.click(
       await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
     );
-    await userEvent.click(await screen.findByRole('option', {name: /dashboards-basic/}));
+    await userEvent.click(await screen.findByRole('option', {name: /discover-query/}));
 
     await waitFor(() =>
       expect(
@@ -164,7 +168,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     );
 
     const disabledFlag = await screen.findByRole('option', {
-      name: 'dashboards-basic',
+      name: 'discover-query',
     });
     expect(disabledFlag).toHaveTextContent('Disabled');
   });
@@ -188,7 +192,9 @@ describe('FeatureFlagCommandPaletteActions', () => {
     await waitFor(() =>
       expect(OrganizationStore.getState().organization?.features).toContain('new-feature')
     );
-    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe('{"new-feature":true}');
+    expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
+      '{"new-feature":true}'
+    );
   });
 
   it('does not offer to clear overrides when none are stored', async () => {
@@ -206,9 +212,9 @@ describe('FeatureFlagCommandPaletteActions', () => {
   });
 
   it('clears stored overrides from the command palette', async () => {
-    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"dashboards-basic":false}');
+    localStorageWrapper.setItem(LOCALSTORAGE_KEY, '{"discover-query":false}');
     render(<ExampleFeatureFlagActions />, {
-      organization: OrganizationFixture({features: ['dashboards-basic']}),
+      organization: OrganizationFixture({features: ['discover-query']}),
     });
     const reloadError = jest.spyOn(console, 'error').mockImplementation();
 

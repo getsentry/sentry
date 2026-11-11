@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {useExperiment} from './useExperiment';
 
 function TestComponent({feature}: {feature: OrganizationFeature}) {

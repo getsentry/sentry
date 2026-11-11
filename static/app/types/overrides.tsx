@@ -13,7 +13,6 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
-import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import type {
@@ -26,6 +25,7 @@ import type {OrganizationStatsProps} from 'sentry/views/organizationStats/types'
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
+import type {FeatureName} from './featureFlags.generated';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {Member, Organization, OrgRole} from './organization';
 import type {DetailedProject, Project} from './project';

@@ -10,7 +10,6 @@ import type {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as Storybook from 'sentry/stories';
-import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';

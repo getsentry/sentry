@@ -465,7 +465,7 @@ describe('FiltersBar', () => {
 
     it('shows the priority saved on the dashboard', () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       renderFilterBar({
         dashboard: DashboardFixture([], {queryPriority: 'faster'}),
@@ -478,7 +478,7 @@ describe('FiltersBar', () => {
 
     it('saves the selection on the dashboard', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
@@ -507,7 +507,7 @@ describe('FiltersBar', () => {
 
     it('does not save a prebuilt placeholder dashboard', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/prebuilt-dashboard-1/',
@@ -530,7 +530,7 @@ describe('FiltersBar', () => {
 
     it('saves the latest selection when the priority changes during a save', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       let releaseFirstSave = () => {};
       const firstSave = new Promise<void>(resolve => {
@@ -586,7 +586,7 @@ describe('FiltersBar', () => {
 
     it('saves a revert after the previous save settles and before props update', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       let releaseSave = () => {};
       const saveSettled = new Promise<void>(resolve => {
@@ -635,7 +635,7 @@ describe('FiltersBar', () => {
 
     it('does not apply a priority save after the bar unmounts', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       let releaseSave = () => {};
       const saveSettled = new Promise<void>(resolve => {
@@ -670,7 +670,7 @@ describe('FiltersBar', () => {
 
     it('persists a queued priority save after the bar unmounts', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['discover-query', 'dashboards-import', 'low-priority-queries'],
       });
       let releaseBlocker = () => {};
       const blocker = new Promise<void>(resolve => {

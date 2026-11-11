@@ -11,8 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import type {ConversationStats} from './hooks/useConversation';

@@ -30,7 +30,7 @@ describe('Feature', () => {
     >();
   });
   const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit', 'advanced-search'],
+    features: ['discover-query', 'discover-basic', 'advanced-search'],
   });
   const project = ProjectFixture({
     features: ['custom-inbound-filters', 'rate-limits'],
@@ -48,7 +48,7 @@ describe('Feature', () => {
 
     it('has features', () => {
       const features = [
-        'dashboards-basic',
+        'discover-query',
         'custom-inbound-filters',
       ] satisfies FeatureName[];
 
@@ -67,7 +67,7 @@ describe('Feature', () => {
 
     it('has features when requireAll is false', () => {
       const features = [
-        'dashboards-basic',
+        'discover-query',
         'custom-inbound-filters',
         'data-forwarding',
       ] satisfies FeatureName[];
@@ -162,7 +162,7 @@ describe('Feature', () => {
 
     it('handles no org/project', () => {
       const features = [
-        'dashboards-basic',
+        'discover-query',
         'custom-inbound-filters',
       ] satisfies FeatureName[];
       render(<WrappedFeature features={features}>{childrenMock}</WrappedFeature>, {
@@ -182,7 +182,7 @@ describe('Feature', () => {
 
     it('handles features prefixed with org/project', () => {
       render(
-        <WrappedFeature features="organizations:dashboards-edit">
+        <WrappedFeature features="organizations:discover-basic">
           {childrenMock}
         </WrappedFeature>,
         {
@@ -194,7 +194,7 @@ describe('Feature', () => {
         hasFeature: true,
         organization,
         project,
-        features: ['organizations:dashboards-edit'] satisfies FeatureName[],
+        features: ['organizations:discover-basic'] satisfies FeatureName[],
         renderDisabled: false,
       });
 
@@ -255,7 +255,7 @@ describe('Feature', () => {
     it('should display be empty when on', () => {
       render(
         <WrappedFeature
-          features="dashboards-edit"
+          features="discover-basic"
           renderDisabled={() => <span>disabled</span>}
         >
           <div>The Child</div>
@@ -269,7 +269,7 @@ describe('Feature', () => {
   describe('as React node', () => {
     it('has features', () => {
       render(
-        <WrappedFeature features="dashboards-edit">
+        <WrappedFeature features="discover-basic">
           <div>The Child</div>
         </WrappedFeature>,
         {organization}

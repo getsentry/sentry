@@ -72,10 +72,10 @@ describe('EventAttachments', () => {
   });
 
   describe('attachments quota exceeded', () => {
-    const quotaOrganization = {
+    const quotaOrganization = OrganizationFixture({
       ...organization,
       features: [...organization.features, 'attachments-quota-exceeded-notice'],
-    };
+    });
     const quotaExceededEvent = {...event, metadata: {attachments_quota_exceeded: true}};
 
     it('explains that no attachments were stored', async () => {

@@ -1,3 +1,5 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -67,7 +69,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
     expect(await screen.findByText('Start using Autofix')).toBeInTheDocument();
   });
 
-  it.each([
+  it.each<[string, OrganizationFeature[]]>([
     ['neither billing model', []],
     ['only the token billing onboarding flag', ['seer-token-based-billing-onboarding']],
     ['only the token-billed flag', ['token-billed-seer-enabled']],

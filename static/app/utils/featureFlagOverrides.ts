@@ -1,8 +1,8 @@
 import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
+import {isRecord} from './object/isRecord';
 import {localStorageWrapper} from './localStorage';
-import {isRecord} from 'sentry/utils/object/isRecord';
 
 type OverrideState = Record<string, boolean>;
 

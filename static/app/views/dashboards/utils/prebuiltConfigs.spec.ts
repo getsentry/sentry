@@ -52,13 +52,13 @@ describe('getPrebuiltDashboardConfig', () => {
   const variantConfig = {...defaultConfig, title: 'Web Vitals (variant)'};
   const variants: Parameters<typeof getPrebuiltDashboardConfig>[2] = {
     [PrebuiltDashboardId.WEB_VITALS]: {
-      feature: 'dashboards-basic' satisfies FeatureName,
+      feature: 'discover-query' satisfies FeatureName,
       config: variantConfig,
     },
   };
 
   it('returns the default config when there is no variant', () => {
-    const organization = OrganizationFixture({features: ['dashboards-basic']});
+    const organization = OrganizationFixture({features: ['discover-query']});
     expect(
       getPrebuiltDashboardConfig(PrebuiltDashboardId.HTTP, organization, variants)
     ).toBe(PREBUILT_DASHBOARDS[PrebuiltDashboardId.HTTP]);
@@ -72,7 +72,7 @@ describe('getPrebuiltDashboardConfig', () => {
   });
 
   it('returns the variant when the organization has the feature', () => {
-    const organization = OrganizationFixture({features: ['dashboards-basic']});
+    const organization = OrganizationFixture({features: ['discover-query']});
     expect(
       getPrebuiltDashboardConfig(PrebuiltDashboardId.WEB_VITALS, organization, variants)
     ).toBe(variantConfig);

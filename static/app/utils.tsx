@@ -1,4 +1,4 @@
-import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+import type {OrganizationFeature} from './types/featureFlags.generated';
 /**
  * Replaces slug special chars with a space
  */

@@ -1,7 +1,7 @@
 import type {Field} from 'sentry/components/forms/types';
-import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 import type {ControlSiloOrganization} from './controlSiloOrganization';
+import type {OrganizationFeature} from './featureFlags.generated';
 
 export type AuthenticatorDevice = {
   authId: string;

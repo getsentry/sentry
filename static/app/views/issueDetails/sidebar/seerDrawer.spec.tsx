@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
-import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 function makeExplorerBlock({
   id = 'block-1',

@@ -1,3 +1,5 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {Fragment, useState} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -134,7 +136,7 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
           'seer-explorer',
           ...(hasEnoughCredits === undefined
             ? []
-            : ['seer-credit-checks', 'token-billed-seer-enabled']),
+            : (['seer-credit-checks', 'token-billed-seer-enabled'] satisfies OrganizationFeature[])),
         ],
       }}
     >

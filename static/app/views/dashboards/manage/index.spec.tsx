@@ -10,7 +10,10 @@ import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-const FEATURES = ['discover-query', 'dashboards-prebuilt-insights-dashboards'] satisfies FeatureName[];
+const FEATURES = [
+  'discover-query',
+  'dashboards-prebuilt-insights-dashboards',
+] satisfies FeatureName[];
 
 describe('Dashboards > Detail', () => {
   const mockAuthorizedOrg = OrganizationFixture({

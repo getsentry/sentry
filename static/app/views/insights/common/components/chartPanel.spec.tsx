@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {FeatureName} from 'sentry/types/featureFlags.generated';
+
 import {ChartPanel} from './chartPanel';
 
 describe('chartPanel', () => {

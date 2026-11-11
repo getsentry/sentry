@@ -1,3 +1,5 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import qs from 'query-string';
 import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -928,7 +930,7 @@ describe('logsTableRow', () => {
     );
   });
 
-  it.each([
+  it.each<{features: OrganizationFeature[]; expectedKey: string}>([
     {features: ['ourlogs-enabled'], expectedKey: 'custom'},
     {
       features: ['ourlogs-enabled', 'trace-item-details-raw-attribute-names'],

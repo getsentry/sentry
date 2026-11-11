@@ -1,3 +1,5 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -51,7 +53,7 @@ describe('AttributesContent', () => {
     }
   );
 
-  it.each([
+  it.each<{features: OrganizationFeature[]; search: string}>([
     {features: [], search: 'span.op'},
     {features: ['trace-item-details-raw-attribute-names'], search: 'sentry.op'},
     {features: ['trace-item-details-raw-attribute-names'], search: 'span.op'},

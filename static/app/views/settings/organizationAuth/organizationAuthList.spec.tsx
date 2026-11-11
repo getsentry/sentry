@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {FeatureName} from 'sentry/types/featureFlags.generated';
+
 import {OrganizationAuthList} from './organizationAuthList';
 
 describe('OrganizationAuthList', () => {

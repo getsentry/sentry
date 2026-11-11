@@ -181,7 +181,7 @@ describe('useExperiment (gsApp)', () => {
     // The BE only fires auto-exposure for flags with experiment_mode set, so we
     // match that behavior here and skip both the Amplitude write and the POST.
     const org = OrganizationFixture({
-      features: ['dashboards-basic'],
+      features: ['discover-query'],
       experiments: {},
     });
     const mockExposure = MockApiClient.addMockResponse({
@@ -190,7 +190,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="dashboards-basic" reportExposure />, {
+    render(<TestComponent feature="discover-query" reportExposure />, {
       organization: org,
     });
 

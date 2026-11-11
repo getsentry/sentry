@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
+
 import {OnboardingLayout} from './onboardingLayout';
 import type {Docs, OnboardingConfig} from './types';
 import {StepType} from './types';
