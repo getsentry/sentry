@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from django.db import models
 
@@ -43,3 +44,16 @@ class ResolvedDefinition:
     key: str
     dataset: Dataset
     output_type: TelemetryClassifierOutputType
+
+
+# A JSON-serializable telemetry item to classify. Datasets decide what it contains.
+type Event = dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PreparedInput:
+    """Events to classify, oldest first."""
+
+    events: tuple[Event, ...]
+    # Older events were left out to fit MAX_INPUT_CHARS.
+    truncated: bool
