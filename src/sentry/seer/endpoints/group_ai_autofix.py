@@ -721,5 +721,5 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             },
             **get_pr_iteration_state_fields(group.organization, state, run),
         }
-        autofix["results"] = autofix_results(autofix)
+        autofix["results"] = autofix_results(state)
         return Response({"autofix": autofix})

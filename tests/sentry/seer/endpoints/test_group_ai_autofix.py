@@ -167,9 +167,13 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
 
         assert response.status_code == 200, response.data
-        (root_cause,) = response.data["autofix"]["results"]
-        assert root_cause["type"] == "root_cause"
-        assert root_cause["data"] == {"headline": "Regex rejects ids", "cause": "Too strict."}
+        assert response.data["autofix"]["results"] == [
+            {
+                "type": "root_cause",
+                "title": "Root Cause",
+                "markdown": "Regex rejects ids\nToo strict.",
+            }
+        ]
 
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
     def test_get_returns_newer_step_run_with_autofix_feature_id(

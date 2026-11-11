@@ -1,12 +1,25 @@
 from typing import Any
 
 from sentry.issues.formatting.autofix import autofix_results, format_autofix
+from sentry.seer.agent.client_models import SeerRunState
+
+
+def _block(**fields: Any) -> dict[str, Any]:
+    artifacts = [{"reason": "", **a} for a in fields.pop("artifacts", [])]
+    return {
+        "id": "b",
+        "message": {"role": "assistant"},
+        "timestamp": "t",
+        "artifacts": artifacts,
+        **fields,
+    }
 
 
 def _autofix_response(**overrides: Any) -> dict[str, Any]:
     autofix: dict[str, Any] = {
         "run_id": 1,
-        "status": "COMPLETED",
+        "status": "completed",
+        "updated_at": "2023-07-18T12:00:00Z",
         "blocks": [
             {
                 "artifacts": [
@@ -35,10 +48,14 @@ def _autofix_response(**overrides: Any) -> dict[str, Any]:
             },
         ],
         "repo_pr_states": {
-            "getsentry/sentry": {"pr_url": "https://github.com/getsentry/sentry/pull/1"}
+            "getsentry/sentry": {
+                "repo_name": "getsentry/sentry",
+                "pr_url": "https://github.com/getsentry/sentry/pull/1",
+            }
         },
     }
     autofix.update(overrides)
+    autofix["blocks"] = [_block(**block) for block in autofix["blocks"]]
     return {"autofix": autofix}
 
 
@@ -148,15 +165,28 @@ def test_markdown_renders_a_single_run_root_cause_and_its_code_changes() -> None
     assert "stale diff" not in out
 
 
-def test_results_list_each_section_with_a_title_markdown_and_data() -> None:
-    results = autofix_results(_single_run_response()["autofix"])
+def test_markdown_caps_a_single_huge_diff() -> None:
+    data = _autofix_response(
+        blocks=[
+            {
+                "merged_file_patches": [
+                    {
+                        "repo_name": "r",
+                        "patch": {"path": "a.py", "type": "M", "added": 1, "removed": 0},
+                        "diff": "+" * 50_000,
+                    }
+                ]
+            }
+        ]
+    )
+    assert len(format_autofix(data)) < 25_000
+
+
+def test_results_list_each_section_with_a_title_and_markdown() -> None:
+    state = SeerRunState.parse_obj(_single_run_response()["autofix"])
+
+    results = autofix_results(state)
 
     assert [r["type"] for r in results] == ["root_cause", "code_changes", "pull_requests"]
-    root_cause = results[0]
-    assert root_cause["title"] == "Root Cause"
-    assert root_cause["data"] == {
-        "headline": "Regex rejects ids",
-        "cause": "The regex is too strict.",
-    }
-    assert "The regex is too strict." in root_cause["markdown"]
-    assert not root_cause["markdown"].startswith("## ")
+    assert results[0]["title"] == "Root Cause"
+    assert results[0]["markdown"] == "Regex rejects ids\nThe regex is too strict."
