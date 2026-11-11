@@ -21,15 +21,21 @@ export const DocumentEditor = styled(Prose.withComponent(ComposerEditor))`
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
+  & > p,
+  & > blockquote,
   & > [data-document-atom='attachment'] {
-    margin-bottom: ${p => p.theme.space['2xl']};
+    margin-bottom: ${p => p.theme.space.md};
+
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   /* Lexical code blocks use bare code elements rather than pre > code. */
   && > code.language-block {
     display: block;
     overflow-x: auto;
-    margin: 0 0 ${p => p.theme.space['2xl']};
+    margin: 0 0 ${p => p.theme.space.md};
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
     border-radius: ${p => p.theme.radius.md};
     color: var(--prism-base);

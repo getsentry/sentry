@@ -322,7 +322,7 @@ export function DocumentComposerDemo() {
                         align="center"
                         height="1em"
                         css={css`
-                          vertical-align: text-bottom;
+                          vertical-align: -0.125em;
                         `}
                       >
                         <IconIssues size="xs" />
