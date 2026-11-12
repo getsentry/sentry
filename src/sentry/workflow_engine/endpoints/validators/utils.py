@@ -240,9 +240,9 @@ def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
 
     if request.access.has_scope("alerts:write"):
         return all(
-            request.access.has_project_access(detector_workflow.detector.project)
+            detector_workflow.detector.project is not None
+            and request.access.has_project_access(detector_workflow.detector.project)
             for detector_workflow in detector_workflows
-            if detector_workflow.detector.project
         )
 
     connected_workflow_ids = {
