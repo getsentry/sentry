@@ -368,7 +368,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
 
         artifact_bundle = ArtifactBundle.objects.get()
-        # The second upload writes no debug-ID rows, but links the bundle that has them.
+        # The second upload writes no debug-ID rows, but its archive has debug IDs.
         links = ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle)
         assert {(link.project_id, link.has_debug_ids) for link in links} == {
             (self.project.id, True),

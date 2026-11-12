@@ -619,14 +619,12 @@ class ArtifactBundlePostAssembler:
                         **release_link, defaults=new_date_added
                     )
 
-            # Debug-ID rows are only written for a new bundle, so the links of an existing bundle follow the rows
-            # of its first upload and not this archive.
-            has_debug_ids = (
-                self.archive.has_debug_ids()
-                if created
-                else DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
-            )
-            project_link_defaults = {**new_date_added, "has_debug_ids": has_debug_ids}
+            # From the archive even for an existing bundle, whose upload writes no debug-ID rows, so that linking
+            # never reads them.
+            project_link_defaults = {
+                **new_date_added,
+                "has_debug_ids": self.archive.has_debug_ids(),
+            }
             for project_id in self.project_ids:
                 project_link: dict[str, Any] = {
                     "organization_id": self.organization.id,
