@@ -2,6 +2,11 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {EmptyState} from './emptyState';
 
+// Use the real decode exports without loading the Markdown renderer's ESM lexer in SSR.
+jest.mock('@sentry/scraps/markdown', () =>
+  jest.requireActual('sentry/components/core/markdown/useStreamingAnimation')
+);
+
 describe('Seer empty state', () => {
   describe.each([false, true])('suggestions loading=%s', isLoading => {
     it.snapshot.each([320, 476, 800])(
