@@ -248,7 +248,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links, self.user)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -277,7 +277,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links, self.user)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -302,8 +302,33 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links, self.user)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
+
+    def test_unfurl_issues_without_user(self) -> None:
+        links = [
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{self.group.id}/",
+                args={"issue_id": self.group.id, "event_id": None},
+            ),
+        ]
+
+        assert link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links) == {}
+
+    def test_unfurl_issues_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        group = self.group
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        links = [
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group.id}/",
+                args={"issue_id": group.id, "event_id": None},
+            ),
+        ]
+
+        assert link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links, member) == {}
 
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
