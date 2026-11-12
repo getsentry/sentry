@@ -1236,7 +1236,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         },
       };
       initialDataForExplore = {
-        organization: OrganizationFixture({features: []}),
+        organization: OrganizationFixture(),
         projects,
         initialRouterConfig: {
           ...defaultInitialRouterConfig,

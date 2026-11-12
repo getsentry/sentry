@@ -132,7 +132,7 @@ afterEach(() => {
 describe('VisualizationWidget breakdown series labels', () => {
   it('renders series labels as Explore links', () => {
     render(<VisualizationWidget widget={spansBreakdownWidget} selection={selection} />, {
-      organization: OrganizationFixture({features: []}),
+      organization: OrganizationFixture(),
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
@@ -192,7 +192,7 @@ describe('VisualizationWidget breakdown series labels', () => {
     );
 
     render(<VisualizationWidget widget={modelWidget} selection={selection} />, {
-      organization: OrganizationFixture({features: []}),
+      organization: OrganizationFixture(),
     });
 
     expect(screen.getAllByText('gemini-3.7-flash')).toHaveLength(2);
