@@ -204,6 +204,7 @@ def test_create_project_preview_uses_project_wording() -> None:
     guide = render(flow_instructions=get_flow(HandoffFlow.CREATE_PROJECT).preview())
     assert "helping an existing Sentry user set up a new project" in guide
     assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
 
 
 @pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
@@ -256,6 +257,7 @@ def test_create_project_claim_issues_reporting_code() -> None:
     issue.assert_called_once_with(organization_id=2, user_id=1, run_id=context.run_id)
     assert "helping an existing Sentry user set up a new project" in guide
     assert "Your onboarding run code is `a1B2c3D4e5`" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
 
 
 def test_create_project_claim_rejects_unavailable_run() -> None:
