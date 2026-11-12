@@ -41,7 +41,6 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
-    ScopeSelection,
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
@@ -425,9 +424,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         project_ids: list[int] = data.get("projectIds") or []
         monitor_ids: list[int] = data.get("monitorIds") or []
-        scope: ScopeSelection
-        if get_definition(strategy).trigger.scoped_by == "monitors":
-            scope = SelectedMonitors(tuple(monitor_ids))
+        if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
             denied = _check_project_access(
                 get_monitor_project_ids(monitor_ids, organization),
                 request=request,
@@ -435,11 +432,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 endpoint=self,
             )
         else:
-            scope = (
-                AllProjects()
-                if set(project_ids) == ALL_ACCESS_PROJECTS
-                else SelectedProjects(tuple(project_ids))
-            )
             denied = _check_project_access(
                 project_ids, request=request, organization=organization, endpoint=self
             )
@@ -453,16 +445,33 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             created_by=acting_user_id(request.user),
         )
         try:
-            workflow = SeerWorkflow.create(
-                organization_id=organization.id,
-                strategy=strategy,
-                enabled=data["enabled"],
-                schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
-                scope=scope,
-                environments=data["environments"],
-                extras=extras,
-                service_account_grant=grant,
-            )
+            if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                workflow = SeerWorkflow.create(
+                    organization_id=organization.id,
+                    strategy=strategy,
+                    enabled=data["enabled"],
+                    scope=SelectedMonitors(tuple(monitor_ids)),
+                    environments=data["environments"],
+                    extras=extras,
+                    service_account_grant=grant,
+                )
+            elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
+                workflow = SeerWorkflow.create(
+                    organization_id=organization.id,
+                    strategy=strategy,
+                    enabled=data["enabled"],
+                    schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
+                    scope=(
+                        AllProjects()
+                        if set(project_ids) == ALL_ACCESS_PROJECTS
+                        else SelectedProjects(tuple(project_ids))
+                    ),
+                    environments=data["environments"],
+                    extras=extras,
+                    service_account_grant=grant,
+                )
+            else:
+                raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
         except ValueError as e:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
             if isinstance(e, WorkflowUpdateError):
