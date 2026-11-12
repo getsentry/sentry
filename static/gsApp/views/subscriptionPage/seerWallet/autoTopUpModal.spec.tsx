@@ -234,6 +234,30 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('turns back on with the preset and daily limit saved before turning off', async () => {
+    const saved = {topUpCredits: 5000, dailySpendCapCents: 20_000};
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, ...saved}),
+    });
+    openAutoTopUpModal({autoTopUp: AutoTopUpFixture({enabled: false, ...saved})});
+
+    expect(await screen.findByRole('radio', {name: '$50 5,000 credits'})).toBeChecked();
+    expect(screen.getByRole('textbox', {name: 'Daily usage limit'})).toHaveValue('200');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $50.00 + tax'})
+    );
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {enabled: true, thresholdCredits: 500, ...saved},
+      })
+    );
+  });
+
   it('switches a saved preset to another preset', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
