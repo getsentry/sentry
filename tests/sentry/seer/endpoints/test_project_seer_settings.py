@@ -13,7 +13,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @patch(
-    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
+    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_or_token_billed_enabled",
     return_value=True,
 )
 class ProjectSeerSettingsEndpointBaseTest(APITestCase):
@@ -473,7 +473,7 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 
 
 @patch(
-    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
+    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_or_token_billed_enabled",
     return_value=True,
 )
 class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):

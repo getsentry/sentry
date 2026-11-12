@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {
   render,
@@ -11,6 +12,25 @@ import {
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 
 import {AutofixRepositoriesList} from './autofixRepositoriesList';
+
+// jsdom has no layout, so the virtualizer would render zero rows in the repo modal.
+jest.mock('@tanstack/react-virtual', () => ({
+  ...jest.requireActual('@tanstack/react-virtual'),
+  useVirtualizer: ({count}: {count: number}) => ({
+    getVirtualItems: () =>
+      Array.from({length: count}, (_, index) => ({
+        key: index,
+        index,
+        start: index * 36,
+        end: (index + 1) * 36,
+        size: 36,
+        lane: 0,
+      })),
+    getTotalSize: () => count * 36,
+    measure: () => {},
+    measureElement: () => {},
+  }),
+}));
 
 describe('AutofixRepositoriesList', () => {
   const project = ProjectFixture();
@@ -38,6 +58,29 @@ describe('AutofixRepositoriesList', () => {
       url: `/projects/${slug}/${project.slug}/seer/repos/`,
       method: 'GET',
       body: repos,
+    });
+  }
+
+  const eightRepos = Array.from({length: 8}, (_, i) => ({
+    ...repo,
+    id: `${i + 1}`,
+    repositoryId: `${i + 1}`,
+    externalId: `${101 + i}`,
+    name: `repo-${i + 1}`,
+  }));
+
+  function mockUnlinkedOrgRepo(slug: string) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${slug}/repos/`,
+      method: 'GET',
+      body: [
+        RepositoryFixture({
+          id: '99',
+          externalId: '999',
+          name: 'getsentry/relay',
+          provider: {id: 'integrations:github', name: 'GitHub'},
+        }),
+      ],
     });
   }
 
@@ -84,9 +127,62 @@ describe('AutofixRepositoriesList', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Link Repositories'})).toBeInTheDocument();
     });
+
+    it('links another repo when the project has 8', async () => {
+      mockRepos(tokenBilledOrganization.slug, eightRepos);
+      mockUnlinkedOrgRepo(tokenBilledOrganization.slug);
+      const addRequest = MockApiClient.addMockResponse({
+        url: `/projects/${tokenBilledOrganization.slug}/${project.slug}/seer/repos/`,
+        method: 'POST',
+        body: {},
+      });
+
+      render(
+        <AutofixRepositoriesList
+          canWrite
+          includeInstructions={false}
+          project={project}
+        />,
+        {organization: tokenBilledOrganization}
+      );
+      renderGlobalModal({organization: tokenBilledOrganization});
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Link Repositories'})
+      );
+      await userEvent.click(await screen.findByText('getsentry/relay'));
+      await userEvent.click(screen.getByRole('button', {name: 'Add 1 Repository'}));
+
+      expect(addRequest).toHaveBeenCalled();
+    });
   });
 
   describe('seat-billed org', () => {
+    it('says the project is at the repo limit when it has 8', async () => {
+      mockRepos(seatBilledOrganization.slug, eightRepos);
+      mockUnlinkedOrgRepo(seatBilledOrganization.slug);
+
+      render(
+        <AutofixRepositoriesList
+          canWrite
+          includeInstructions={false}
+          project={project}
+        />,
+        {organization: seatBilledOrganization}
+      );
+      renderGlobalModal();
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Add Repositories to Project'})
+      );
+      expect(
+        await screen.findByText('Seer is currently limited to 8 repositories.')
+      ).toBeInTheDocument();
+
+      await userEvent.click(await screen.findByText('getsentry/relay'));
+      expect(screen.getByRole('button', {name: 'Done'})).toBeInTheDocument();
+    });
+
     it('removes a repo after confirming', async () => {
       mockRepos(seatBilledOrganization.slug, [repo]);
       const deleteRequest = MockApiClient.addMockResponse({

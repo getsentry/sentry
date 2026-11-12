@@ -1263,13 +1263,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. With this set, it only checks the project's
-# newest bundles, up to this many, instead of reading the organization's debug-ID rows until one
-# is in a bundle of the project. 0 keeps the unbounded check. Capped at 10,000.
+# project has uploaded any file with a debug ID. It checks only the project's newest bundles, up
+# to this many. 0 reads the organization's debug-ID rows instead, until one is in a bundle of the
+# project, which for a project without any means all of them. Capped at 10,000.
 register(
     "sourcemaps.source-map-debug.debug-id-check-max-bundles",
     type=Int,
-    default=0,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1363,14 +1363,14 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When a bundle is uploaded again, update its debug-ID rows by bundle alone instead of by bundle
-# and organization, so that Postgres doesn't also read the organization's slice of that table's
+# When a bundle is uploaded again, update its debug-ID rows by bundle alone. False filters them by
+# organization as well, which lets Postgres also read the organization's slice of that table's
 # organization index. Has no effect with `sourcemaps.artifact-bundles.date-only-on-bundle`,
 # which skips the update.
 register(
     "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4880,13 +4880,6 @@ register(
 
 register(
     "integrations.client.disable_retries",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "buffer.split-pending-set",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

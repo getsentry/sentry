@@ -74,7 +74,7 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from './navigationTour';
-import {usePrimaryNavigation} from './primaryNavigationContext';
+import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useCollapsedNavigation} from './useCollapsedNavigation';
 import {useSettingsNavigation} from './useSettingsNavigation';
@@ -126,6 +126,12 @@ function NavigationImpl() {
     [collapsedNavigation.view, secondarySidebarWidth]
   );
 
+  const secondarySidebar = (
+    <SecondaryNavigation.Sidebar>
+      <SecondaryNavigationContent />
+    </SecondaryNavigation.Sidebar>
+  );
+
   return (
     <Fragment>
       <PrimaryNavigation.Sidebar>
@@ -170,26 +176,23 @@ function NavigationImpl() {
         )}
       </PrimaryNavigation.Sidebar>
 
-      {isCollapsed ? (
-        <CollapsedSecondaryWrapper
-          data-visible={collapsedNavigation.view === 'peek'}
-          data-test-id="collapsed-secondary-sidebar"
-          height="100%"
-          left={`${PRIMARY_SIDEBAR_WIDTH}px`}
-          top={0}
-          position="absolute"
-          background="primary"
-          {...sidebarAnimationProps}
-        >
-          <SecondaryNavigation.Sidebar>
-            <SecondaryNavigationContent />
-          </SecondaryNavigation.Sidebar>
-        </CollapsedSecondaryWrapper>
-      ) : (
-        <SecondaryNavigation.Sidebar>
-          <SecondaryNavigationContent />
-        </SecondaryNavigation.Sidebar>
-      )}
+      {hasSecondaryNavigation(activeGroup) &&
+        (isCollapsed ? (
+          <CollapsedSecondaryWrapper
+            data-visible={collapsedNavigation.view === 'peek'}
+            data-test-id="collapsed-secondary-sidebar"
+            height="100%"
+            left={`${PRIMARY_SIDEBAR_WIDTH}px`}
+            top={0}
+            position="absolute"
+            background="primary"
+            {...sidebarAnimationProps}
+          >
+            {secondarySidebar}
+          </CollapsedSecondaryWrapper>
+        ) : (
+          secondarySidebar
+        ))}
     </Fragment>
   );
 }
@@ -201,7 +204,8 @@ export function SettingsNavigationBackButton({
 }: {
   organizationSlug: string;
 }) {
-  const {setActiveGroup} = usePrimaryNavigation();
+  const {setActiveGroup, layout} = usePrimaryNavigation();
+  const {setView} = useSecondaryNavigation();
   return (
     <LinkButton
       size="sm"
@@ -214,7 +218,12 @@ export function SettingsNavigationBackButton({
         getSettingsReturnPathKey(organizationSlug),
         `/organizations/${organizationSlug}/issues/`
       )}
-      onClick={() => setActiveGroup(null)}
+      onClick={() => {
+        setActiveGroup(null);
+        if (layout === 'mobile') {
+          setView('collapsed');
+        }
+      }}
     />
   );
 }
