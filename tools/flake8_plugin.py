@@ -1002,8 +1002,11 @@ class SentryVisitor(ast.NodeVisitor):
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
         # scope -> ctx for every top-level function and method in the file,
-        # i.e "Endpoint.get" or "build_query"; reported at the end of the module
+        # i.e "Endpoint.get" or "function_name()", used to look a function up by name.
+        # A scope defined twice (an if/else def, or @overload then the real def) keeps the last one
         self._functions: dict[str, _InputCtx] = {}
+        # every ctx in file order, duplicates included, so a scope defined twice is reported twice
+        self._function_ctxs: list[_InputCtx] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == _S030_LEGACY_MODULE and not node.level:
@@ -1294,6 +1297,7 @@ class SentryVisitor(ast.NodeVisitor):
             if pushed and ctx is not None:
                 self._input_stack.pop()
                 self._functions[ctx.scope] = ctx
+                self._function_ctxs.append(ctx)
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -1608,7 +1612,7 @@ class SentryVisitor(ast.NodeVisitor):
 
     def _report_public_inputs(self) -> None:
         """Report input reads and hand-offs for each public endpoint method after traversing through the complete file"""
-        for ctx in self._functions.values():
+        for ctx in self._function_ctxs:
             if not ctx.is_public:
                 continue
             for start_end, name in ctx.query_validators:

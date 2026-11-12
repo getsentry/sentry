@@ -2373,6 +2373,42 @@ class E(Endpoint):
     assert calls[0].name == "get"
 
 
+def test_method_defined_twice_reports_both_definitions() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    if FLAG:
+        def get(self, request) -> Response[X]:
+            return Response({"a": request.GET.get("a")})
+    else:
+        def get(self, request) -> Response[X]:
+            return Response({"b": request.GET.get("b")})
+"""
+    reported = []
+    for violation in _api_violations(src):
+        reported.append((violation.line, violation.scope, violation.key))
+    assert reported == [(6, "E.get", "query:a"), (9, "E.get", "query:b")]
+
+
+def test_overload_stub_and_real_def_are_both_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @overload
+    def get(self, request) -> Response[X]:
+        return Response({"a": request.GET.get("a")})
+
+    def get(self, request) -> Response[X]:
+        return Response({"b": request.GET.get("b")})
+"""
+    reported = []
+    for violation in _api_violations(src):
+        reported.append((violation.line, violation.key))
+    assert reported == [(6, "query:a"), (9, "query:b")]
+
+
 def test_api_violations_skip_private_methods() -> None:
     src = """\
 class E(Endpoint):
