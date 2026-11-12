@@ -29,7 +29,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notebooks: 0004_add_notebook_org_auth_token_creator
 
-notifications: 0017_add_notificationthread_integration_id
+notifications: 0018_inbox_event_idempotency
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
