@@ -931,6 +931,16 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tempest/                                       @getsentry/gdx
 /tests/sentry/tempest/                                     @getsentry/gdx
 
+# Teapot (GPU crash symbolication)
+/src/sentry/lang/native/gpu.py                                      @getsentry/gdx
+/src/sentry/lang/native/teapot.py                                   @getsentry/gdx
+/src/sentry/tasks/gpu_crash.py                                      @getsentry/gdx
+/tests/sentry/lang/native/test_teapot.py                            @getsentry/gdx
+/tests/sentry/tasks/test_gpu_crash.py                               @getsentry/gdx
+/static/app/components/events/gpuCrashReport*.tsx                   @getsentry/gdx
+/static/app/components/events/contexts/knownContext/gpuCrash.tsx    @getsentry/gdx
+/tests/js/fixtures/gpuCrashEvent.ts                                 @getsentry/gdx
+
 # Span buffer + process-segments are co-owned by streaming platform and vis for now.
 /src/sentry/spans/                                @getsentry/data-browsing @getsentry/streaming-platform
 /src/sentry/scripts/spans/                        @getsentry/data-browsing @getsentry/streaming-platform
