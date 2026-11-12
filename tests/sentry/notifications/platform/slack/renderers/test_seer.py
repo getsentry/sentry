@@ -45,6 +45,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
@@ -525,16 +526,16 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_link_button(self) -> None:
-        url = "https://acme.sentry.io/seer/investigations/1/"
-        data = SeerInvestigationStarted(
-            organization_id=1, slack_user_id="U0123456789", investigation_url=url
+        url = "https://example.sentry.io/seer/investigations/1/"
+        data = NotificationData(
+            organization_id=1, source=NotificationSource.SEER_INVESTIGATION_STARTED
         )
         link_decorator = NotificationLinkDecorator(
             data=data, provider=NotificationProviderKey.SLACK
         )
 
         button = SeerSlackRenderer.render_investigation_link_button(
-            data=data, link_decorator=link_decorator
+            investigation_url=url, link_decorator=link_decorator
         )
 
         assert button.text is not None

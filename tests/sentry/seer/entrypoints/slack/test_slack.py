@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
@@ -11,6 +12,7 @@ from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.routing import (
     SlackActionTracking,
     decode_action_id,
+    encode_action_id,
 )
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
@@ -70,8 +72,10 @@ from sentry.seer.entrypoints.slack.investigation_status import (
     MAX_SUMMARY_DESCRIPTION_LENGTH,
 )
 from sentry.seer.entrypoints.slack.messaging import (
+    InvalidInvestigationAlertMessage,
     edit_thread_message,
     process_thread_update,
+    replace_investigation_buttons,
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
@@ -1540,6 +1544,77 @@ def _hypothesis(**overrides: Any) -> dict[str, Any]:
         ],
         **overrides,
     }
+
+
+def test_replace_investigation_buttons_preserves_content() -> None:
+    start_button = {
+        "type": "button",
+        "action_id": encode_action_id(
+            action=SlackAction.SEER_INVESTIGATION_START,
+            organization_id=1,
+            project_id=2,
+            tracking=SlackActionTracking(notification_uuid="alert-uuid", source="metric-alert"),
+        ),
+        "text": {"type": "plain_text", "text": "Investigate with Seer"},
+        "value": "source-reference",
+    }
+    other_button = {**start_button, "action_id": "seer_investigation_start_other"}
+    chart = {"type": "image", "image_url": "https://example.com/chart.png", "alt_text": "Chart"}
+    message: dict[str, Any] = {
+        "text": "Critical alert",
+        "blocks": [{"type": "section", "text": {"type": "mrkdwn", "text": "Alert heading"}}],
+        "attachments": [
+            {
+                "color": "E03E2F",
+                "fallback": "Critical alert",
+                "blocks": [
+                    chart,
+                    {
+                        "type": "actions",
+                        "block_id": "actions",
+                        "elements": [other_button, start_button],
+                    },
+                    {
+                        "type": "context",
+                        "elements": [{"type": "mrkdwn", "text": "Workflow footer"}],
+                    },
+                ],
+            },
+            {"text": "Additional notes"},
+            {"blocks": [{"type": "actions", "elements": [start_button, other_button]}]},
+        ],
+    }
+    link_button = {
+        "type": "button",
+        "text": {"type": "plain_text", "text": "Open investigation"},
+        "url": "https://example.sentry.io/seer/investigations/1/",
+        "value": "link_clicked",
+    }
+    original_message = deepcopy(message)
+    original_button = deepcopy(link_button)
+    expected = deepcopy(message)
+    expected["attachments"][0]["blocks"][1]["elements"][1] = original_button
+    expected["attachments"][2]["blocks"][0]["elements"][0] = original_button
+
+    result = replace_investigation_buttons(message=message, link_button=link_button)
+
+    assert result == expected
+    assert message == original_message
+    assert link_button == original_button
+    assert result is not None
+    assert replace_investigation_buttons(message=result, link_button=link_button) is None
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        {"attachments": []},
+        {"text": "Alert", "attachments": [{"blocks": [{"type": "actions", "elements": None}]}]},
+    ],
+)
+def test_replace_investigation_buttons_rejects_malformed_content(message: dict[str, Any]) -> None:
+    with pytest.raises(InvalidInvestigationAlertMessage):
+        replace_investigation_buttons(message=message, link_button={})
 
 
 class SlackInvestigationEntrypointTest(TestCase):
