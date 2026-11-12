@@ -353,7 +353,7 @@ def assert_out_of_credits_renderable(
     button = blocks[1].elements[0]
     assert isinstance(button, LinkButtonElement)
     assert button.text is not None
-    assert button.text.text == "Configure autoreload"
+    assert button.text.text == "Configure auto-reload"
     assert button.url is not None
     assert f"/settings/{billing_slug}/billing/overview/" in button.url
     assert button.action_id is not None

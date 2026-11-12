@@ -82,7 +82,7 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
-AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your org does not have enough credits to continue your Autofix run. Set up auto top up to keep your flow uninterrupted."
+AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
 
 
 class SeerAutofixOutOfCredits(NotificationData):
@@ -239,7 +239,7 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
         )
 
 
-AGENT_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto top-ups remaining. Adjust your spend and turn on auto top-up."
+AGENT_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
 
 
 class SeerAgentOutOfCredits(NotificationData):
