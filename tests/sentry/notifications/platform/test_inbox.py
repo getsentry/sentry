@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.db import router, transaction
 
 from sentry.inbox.issue import (
+    ISSUE,
     ISSUE_PR_READY_FOR_REVIEW,
     ISSUE_USER_MENTIONED,
     IssueMentionedData,
@@ -77,6 +78,21 @@ class CreateInboxItemsTest(TestCase):
         self._create([Actor.from_object(outsider), Actor.from_object(other_team)])
 
         assert not InboxItemEvent.objects.exists()
+
+    def test_drops_recipients_the_item_type_filters_out(self) -> None:
+        other = self.create_user()
+        self.create_member(organization=self.organization, user=other)
+
+        with patch.object(
+            ISSUE, "filter_recipients", return_value=[other.id], autospec=True
+        ) as filter_recipients:
+            self._create([Actor.from_object(self.user), Actor.from_object(other)])
+
+        assert self._recorded_user_ids() == [other.id]
+        assert filter_recipients.call_args.kwargs["subject"] == self.subject
+        assert sorted(filter_recipients.call_args.kwargs["user_ids"]) == sorted(
+            [self.user.id, other.id]
+        )
 
     def test_excludes_actor(self) -> None:
         self._create([Actor.from_object(self.user)], actor=InboxActor.user(self.user.id))

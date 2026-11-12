@@ -67,8 +67,8 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
     """
     Records one inbox event for each user recipient and each member of each team recipient, then
     notifies the users who got a new event, per their personal settings, after the transaction
-    commits. Recipients outside the subject's organization are dropped, and a user reached more
-    than once gets one event.
+    commits. Recipients outside the subject's organization or not allowed to see the subject are
+    dropped, and a user reached more than once gets one event.
     """
     organization = Organization.objects.get_from_cache(
         id=event_type.item_type.get_organization_id(subject)
@@ -76,13 +76,12 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
     if not features.has("organizations:universal-inbox-recording", organization):
         return
 
-    events = event_type.record(
+    recipient_user_ids = event_type.item_type.filter_recipients(
         subject=subject,
-        data=data,
-        recipient_user_ids=_get_recipient_user_ids(
-            organization_id=organization.id, recipients=recipients
-        ),
-        actor=actor,
+        user_ids=_get_recipient_user_ids(organization_id=organization.id, recipients=recipients),
+    )
+    events = event_type.record(
+        subject=subject, data=data, recipient_user_ids=recipient_user_ids, actor=actor
     )
 
     notifier = INBOX_NOTIFIERS.get(event_type.event_type)

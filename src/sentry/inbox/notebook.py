@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.types import InboxEventData, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.models import Notebook
 
 
@@ -27,6 +29,18 @@ class NotebookItemType(InboxItemType[Notebook]):
         return organization.absolute_url(
             f"/organizations/{organization.slug}/seer/investigations/{subject_id}/"
         )
+
+    def filter_recipients(self, *, subject: Notebook, user_ids: Sequence[int]) -> list[int]:
+        if not user_ids or not has_investigations_access(subject.organization):
+            return []
+        members = OrganizationMember.objects.filter(
+            organization_id=subject.organization_id, user_id__in=user_ids, user_is_active=True
+        )
+        return [
+            member.user_id
+            for member in members
+            if member.user_id is not None and member.get_scopes() & INVESTIGATION_SCOPES
+        ]
 
 
 @dataclass(frozen=True, kw_only=True)

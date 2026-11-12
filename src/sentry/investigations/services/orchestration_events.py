@@ -43,8 +43,6 @@ from sentry.investigations.services.orchestration import (
     requeue_commands_behind,
     schedule_orchestration_commands,
 )
-from sentry.models.organizationmember import OrganizationMember
-from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -311,14 +309,7 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     control["inboxCompletedGeneration"] = run.generation
 
     notebook = run.investigation
-    if notebook.created_by_id is None or not has_investigations_access(notebook.organization):
-        return
-    creator = OrganizationMember.objects.filter(
-        organization_id=notebook.organization_id,
-        user_id=notebook.created_by_id,
-        user_is_active=True,
-    ).first()
-    if creator is None or not creator.get_scopes() & INVESTIGATION_SCOPES:
+    if notebook.created_by_id is None:
         return
     create_inbox_items(
         event_type=NOTEBOOK_COMPLETED,
