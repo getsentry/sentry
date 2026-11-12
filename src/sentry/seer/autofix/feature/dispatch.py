@@ -237,7 +237,7 @@ def continue_single_run_from_pr_feedback(
     referrer: AutofixReferrer,
 ) -> SeerRun:
     from sentry.seer.autofix.pr_iteration.display import pr_feedback_display
-    from sentry.seer.autofix.pr_iteration.feedback import serialize_feedback
+    from sentry.seer.autofix.pr_iteration.feedback import feedback_text, serialize_feedback
 
     check_autofix_billing(
         group.organization,
@@ -248,7 +248,7 @@ def continue_single_run_from_pr_feedback(
     return _continue_single_run(
         agent_run,
         group,
-        reply="\n\n".join(item.text for item in feedback),
+        reply=feedback_text(feedback),
         user=None,
         enable_coding=enable_coding,
         pr_internal_settings=(

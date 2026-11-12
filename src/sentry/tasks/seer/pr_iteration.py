@@ -76,6 +76,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
     automated_iteration_allowed,
     feedback_kind,
+    feedback_text,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -867,7 +868,7 @@ def _drain_queued_autofix_feedback(
                 step=AutofixStep.PR_ITERATION,
                 referrer=referrer,
                 run_id=run_id,
-                user_context="\n\n".join(item.text for item in feedback_items),
+                user_context=feedback_text(feedback_items),
                 feedback=feedback_items,
                 actor_user_id=actor_user_id,
                 commit_author=commit_author,
