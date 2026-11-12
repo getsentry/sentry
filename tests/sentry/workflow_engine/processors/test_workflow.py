@@ -1448,6 +1448,14 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(self.workflow)
 
     def test_evaluates_without_issue_context(self) -> None:
+        trigger_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=trigger_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.workflow.update(when_condition_group=trigger_group)
         previous_context = WorkflowEventContext.get()
         with (
             patch(
@@ -1505,15 +1513,15 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         assert evaluation.evaluated_workflow_ids() == {self.workflow.id}
         assert action_groups == {self.action_group}
 
-    def test_evaluates_opted_in_condition(self) -> None:
+    def test_evaluates_event_condition(self) -> None:
         class OrganizationEventCondition(WorkflowTriggerDataConditionHandler):
-            supports_group_less = True
             comparison_json_schema = {"type": "string"}
 
             @staticmethod
             def evaluate_value(event_data: WorkflowEventData, comparison: object) -> bool:
                 return event_data.event_id == comparison
 
+        # Reuse an enum member because Condition cannot be extended in tests.
         with patch.dict(
             condition_handler_registry.registrations, {Condition.LEVEL: OrganizationEventCondition}
         ):
@@ -1539,7 +1547,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             assert not nonmatching.evaluations[self.workflow.id].triggered
             assert nonmatching.evaluations[self.workflow.id].error is None
 
-    def test_rejects_issue_only_trigger_in_none_group(self) -> None:
+    def test_issue_only_trigger_in_none_group_preserves_tainted_match(self) -> None:
         condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.NONE)
         self.create_data_condition(
             condition_group=condition_group,
@@ -1551,10 +1559,16 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         evaluation, action_groups, _ = _evaluate_workflows(
             {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
         )
-        assert action_groups == set()
-        assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
+        # NONE still matches when its condition fails to evaluate; the error is retained.
+        assert action_groups == {self.action_group}
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        assert workflow_evaluation.triggered
+        assert workflow_evaluation.error == ConditionError(
+            msg="This operation requires an issue group"
+        )
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
 
-    def test_rejects_issue_only_slow_conditions(self) -> None:
+    def test_slow_trigger_requires_group_event_unless_fast_result_is_conclusive(self) -> None:
         condition_group = self.create_data_condition_group(logic_type=DataConditionGroup.Type.ANY)
         self.create_data_condition(
             condition_group=condition_group,
@@ -1568,10 +1582,29 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         )
         assert action_groups == set()
         assert delayed_items == {}
-        assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        assert not workflow_evaluation.triggered
+        assert workflow_evaluation.error == ConditionError(
+            msg="Slow conditions require a GroupEvent"
+        )
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
 
-    def test_rejects_issue_only_action_filter(self) -> None:
-        self.action_group.update(logic_type=DataConditionGroup.Type.NONE)
+        self.create_data_condition(
+            condition_group=condition_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        assert evaluation.evaluations[self.workflow.id].triggered
+        assert evaluation.evaluations[self.workflow.id].error is None
+
+    def test_issue_only_action_filter_records_missing_group_error(self) -> None:
+        self.action_group.update(logic_type=DataConditionGroup.Type.ANY)
         self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.ISSUE_PRIORITY_EQUALS,
@@ -1582,7 +1615,45 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
         )
         assert action_groups == set()
-        assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        filter_evaluation = workflow_evaluation.data["filter_group_evals"][0]
+        assert not filter_evaluation.triggered
+        assert filter_evaluation.error == ConditionError(
+            msg="This operation requires an issue group"
+        )
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+
+    def test_slow_filter_requires_group_event_unless_fast_result_is_conclusive(self) -> None:
+        self.action_group.update(logic_type=DataConditionGroup.Type.ANY)
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1h", "value": 100},
+            condition_result=True,
+        )
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == set()
+        assert delayed_items == {}
+        workflow_evaluation = evaluation.evaluations[self.workflow.id]
+        filter_evaluation = workflow_evaluation.data["filter_group_evals"][0]
+        assert not filter_evaluation.triggered
+        assert filter_evaluation.error == ConditionError(msg="Slow conditions require a GroupEvent")
+        assert workflow_evaluation.outcome == WorkflowEvaluationOutcome.ERROR
+
+        self.create_data_condition(
+            condition_group=self.action_group,
+            type=Condition.EVERY_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
+        )
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+        assert evaluation.evaluations[self.workflow.id].error is None
 
     def test_requires_matching_explicit_organization(self) -> None:
         previous_context = WorkflowEventContext.get()

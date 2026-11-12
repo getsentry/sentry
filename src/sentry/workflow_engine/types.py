@@ -350,8 +350,6 @@ class DataConditionHandler(Generic[T]):
     comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
-    # Existing conditions assume issue context.
-    supports_group_less: ClassVar[bool] = False
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:

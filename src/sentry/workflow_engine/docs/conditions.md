@@ -295,10 +295,9 @@ run later from the resulting issue event; they are not part of the detector stat
 
 ## Workflows
 
-Conditions must declare `supports_group_less = True` to accept `WorkflowEventData`
-without an issue group. Otherwise the entire condition group is rejected before
-Boolean evaluation or delayed processing. Delayed processing currently requires a
-`GroupEvent`; opting in does not add support for group-less slow conditions.
+Handlers define their input requirements: use `require_group()` when issue context is
+needed. Organization events with unresolved slow conditions produce an evaluation error;
+delayed processing requires a `GroupEvent`.
 
 A [`Workflow`](../models/workflow.py) is connected to detectors through
 [`DetectorWorkflow`](../models/detector_workflow.py). Its conditions have two stages:

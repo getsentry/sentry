@@ -36,7 +36,7 @@ from sentry.workflow_engine.processors.evaluations.workflow import (
     WorkflowEvaluationResult,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
+from sentry.workflow_engine.types import ConditionError, WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
@@ -198,7 +198,7 @@ def evaluate_workflow_triggers(
                     passing_if_group_ids=[],
                     timestamp=event_start_time,
                 )
-            else:
+            elif isinstance(event_data.event, Activity):
                 # Activity updates with slow conditions are not enqueued because an activity
                 # update is meant to respond to a previous event.
                 metrics_incr("process_workflows.enqueue_workflow.activity")
@@ -209,6 +209,15 @@ def evaluate_workflow_triggers(
                         "workflow_id": workflow.id,
                     },
                 )
+            else:
+                trigger_evals[workflow] = replace(
+                    evaluation,
+                    result=False,
+                    triggered=False,
+                    error=evaluation.error
+                    or ConditionError(msg="Slow conditions require a GroupEvent"),
+                )
+                tainted_untriggered += 1
         else:
             if evaluation.triggered:
                 triggered_workflows[workflow] = evaluation
@@ -314,8 +323,6 @@ def evaluate_workflows_action_filters(
                 workflow_event_data,
                 data_conditions_by_dcg_id.get(action_condition_group.id),
             )
-            filter_evals_by_workflow[workflow].append(group_evaluation)
-
             if slow_conditions:
                 # If there are remaining conditions for the action filter to evaluate,
                 # then return the list of conditions to enqueue.
@@ -332,7 +339,7 @@ def evaluate_workflows_action_filters(
                             passing_if_group_ids=[],
                             timestamp=event_start_time,
                         )
-                else:
+                elif isinstance(event_data.event, Activity):
                     # We should not include activity updates in delayed conditions,
                     # this is because the actions should always be triggered if this condition is met.
                     # The original snuba queries would have to be over threshold to create this event
@@ -343,6 +350,20 @@ def evaluate_workflows_action_filters(
                             "event_id": event_data.event_id,
                         },
                     )
+                else:
+                    group_evaluation = replace(
+                        group_evaluation,
+                        result=False,
+                        triggered=False,
+                        error=group_evaluation.error
+                        or ConditionError(msg="Slow conditions require a GroupEvent"),
+                    )
+                    if workflow.id in workflow_to_result:
+                        workflow_to_result[workflow.id] = (
+                            DataConditionGroupEvaluation.choose_tainted(
+                                workflow_to_result[workflow.id], group_evaluation
+                            )
+                        )
             else:
                 # Only accumulate taint for triggered workflows (not those with slow WHEN conditions)
                 if workflow.id in workflow_to_result:
@@ -361,6 +382,8 @@ def evaluate_workflows_action_filters(
                             )
                     else:
                         filtered_action_groups.add(action_condition_group)
+
+            filter_evals_by_workflow[workflow].append(group_evaluation)
 
     # Count tainted/untainted only for fully-evaluated workflows (not delayed)
     fully_evaluated_workflows = triggered_workflows.keys() - queue_items_by_workflow.keys()
