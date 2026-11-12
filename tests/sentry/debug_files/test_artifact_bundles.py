@@ -119,6 +119,15 @@ def get_indexed_files(
     return list(query)
 
 
+def test_normalize_debug_id_rejects_non_strings() -> None:
+    assert ArtifactBundleArchive.normalize_debug_id(None) is None
+    assert ArtifactBundleArchive.normalize_debug_id(123) is None
+    assert (
+        ArtifactBundleArchive.normalize_debug_id("aaaaaaaa-0000-0000-0000-000000000000")
+        == "aaaaaaaa-0000-0000-0000-000000000000"
+    )
+
+
 class ArtifactLookupTest(TestCase):
     def clear_cache(self) -> None:
         redis_client = get_redis_cluster_for_artifact_bundles()
