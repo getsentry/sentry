@@ -307,11 +307,10 @@ class DeletionModelBadDeleteDoublePendingTest(BaseSafeMigrationTest):
     migrate_to = "0003"
 
     def test(self) -> None:
-        # The app's only model is already pending deletion, so the freshly rendered
-        # state doesn't contain the app at all.
+        # The model is already pending deletion, so it's no longer in the state.
         with pytest.raises(
             LookupError,
-            match="No installed app with label 'bad_flow_delete_model_double_pending_app'",
+            match="App 'bad_flow_delete_model_double_pending_app' doesn't have a 'TestTable' model",
         ):
             self.run_migration()
 

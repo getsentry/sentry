@@ -1,5 +1,6 @@
 from django.db import router
 from django.db.migrations import DeleteModel
+from django.db.models import ManyToManyField
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 from sentry.db.postgres.schema import SafePostgresDatabaseSchemaEditor
@@ -14,9 +15,11 @@ class SafeDeleteModel(DeleteModel):
 
     def state_forwards(self, app_label: str, state: SentryProjectState) -> None:  # type: ignore[override]
         if self.deletion_action == DeletionAction.MOVE_TO_PENDING:
-            model = state.apps.get_model(app_label, self.name)
+            model_state = state.get_model_state(app_label, self.name)
             fields_with_constraints = [
-                f.name for f in model._meta.fields if getattr(f, "db_constraint", False)
+                name
+                for name, f in model_state.fields.items()
+                if not isinstance(f, ManyToManyField) and getattr(f, "db_constraint", False)
             ]
             if fields_with_constraints:
                 raise UnsafeOperationException(

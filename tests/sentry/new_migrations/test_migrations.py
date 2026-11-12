@@ -134,13 +134,12 @@ def _state_with_m2m_through() -> SentryProjectState:
 def test_mutate_state_m2m_through_model_dangles_between_operations() -> None:
     # Mirrors `investigations/0003`: the through model goes to pending before the model that
     # declares the M2M, so between the two operations `Parent.children` points at a model that
-    # is no longer in the state. Rendered state may only be dropped at the migration boundary.
+    # is no longer in the state, and the state can't be rendered.
     first = SafeDeleteModel(name="Link", deletion_action=DeletionAction.MOVE_TO_PENDING)
     second = SafeDeleteModel(name="Parent", deletion_action=DeletionAction.MOVE_TO_PENDING)
 
     intermediate = _state_with_m2m_through()
     first.state_forwards("fakeapp", intermediate)
-    intermediate.__dict__.pop("apps")
     with pytest.raises(ValueError, match="lazy reference to fakeapp.link"):
         intermediate.apps
 
@@ -152,6 +151,52 @@ def test_mutate_state_m2m_through_model_dangles_between_operations() -> None:
         ("fakeapp", "parent"),
     }
     assert new_state.apps.get_model("fakeapp", "Child")
+
+    # Like `investigations/0008`, `Link` is deleted first, but the DELETE step for `Parent`
+    # still gets its M2M pointing at `Link`.
+    assert isinstance(new_state, SentryProjectState)
+    SafeDeleteModel(name="Link", deletion_action=DeletionAction.DELETE).state_forwards(
+        "fakeapp", new_state
+    )
+    parent = new_state.get_pending_deletion_model("fakeapp", "Parent")
+    children = parent._meta.get_field("children")
+    assert isinstance(children, models.ManyToManyField)
+    through = children.remote_field.through
+    assert through is not None
+    assert through._meta.db_table == "fakeapp_link"
+    with pytest.raises(LookupError):
+        new_state.apps.get_model("fakeapp", "Parent")
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        SafeDeleteModel(name="Thing", deletion_action=DeletionAction.MOVE_TO_PENDING),
+        SafeRemoveField(
+            model_name="thing", name="flag", deletion_action=DeletionAction.MOVE_TO_PENDING
+        ),
+    ],
+    ids=["model", "field"],
+)
+def test_move_to_pending_does_not_render(operation: Operation) -> None:
+    # Rendering here would make every later operation in the history re-render models.
+    state = _state_with_model()
+    operation.state_forwards("fakeapp", state)
+    assert "apps" not in state.__dict__
+
+
+def test_pending_field_of_model_that_went_pending_later() -> None:
+    state = _state_with_model()
+    _migration(
+        SafeRemoveField(
+            model_name="thing", name="flag", deletion_action=DeletionAction.MOVE_TO_PENDING
+        ),
+        SafeDeleteModel(name="Thing", deletion_action=DeletionAction.MOVE_TO_PENDING),
+    ).mutate_state(state, preserve=False)
+
+    field = state.get_pending_deletion_field("fakeapp", "thing", "flag")
+    assert field.column == "flag"
+    assert field.model._meta.db_table == "fakeapp_thing"
 
 
 @override_settings(

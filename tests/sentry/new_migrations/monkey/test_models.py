@@ -7,7 +7,8 @@ from typing import cast
 from unittest.mock import Mock
 
 import pytest
-from django.db import connection
+from django.db import connection, models
+from django.db.migrations.state import ModelState
 
 from sentry.db.postgres.schema import SafePostgresDatabaseSchemaEditor
 from sentry.new_migrations.monkey.models import SafeDeleteModel
@@ -27,21 +28,18 @@ class SafeDeleteModelTest(TestCase):
         cannot be found, SafeDeleteModel should raise a ValueError in test
         environments.
         """
-        fake_meta = Mock()
-        fake_meta.db_table = "sentry_fake_deleted_table_not_in_router"
-        fake_meta.app_label = "sentry"
-        fake_meta.model_name = "fakedeletedmodel"
-
-        FakeDeletedModel = Mock()
-        FakeDeletedModel._meta = fake_meta
-
         from_state = SentryProjectState()
         to_state = SentryProjectState()
 
         # Manually add the model to pending deletion in the from_state
         # This simulates what happens when a model was marked for pending deletion
         # and is now being deleted
-        from_state.pending_deletion_models[("sentry", "fakedeletedmodel")] = FakeDeletedModel
+        from_state.pending_deletion_models[("sentry", "fakedeletedmodel")] = ModelState(
+            "sentry",
+            "FakeDeletedModel",
+            [("id", models.BigAutoField(primary_key=True))],
+            options={"db_table": "sentry_fake_deleted_table_not_in_router"},
+        )
 
         operation = SafeDeleteModel(name="FakeDeletedModel", deletion_action=DeletionAction.DELETE)
 

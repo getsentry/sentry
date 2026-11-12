@@ -37,9 +37,7 @@ class SafeRemoveField(RemoveField):
 
     def state_forwards(self, app_label: str, state: SentryProjectState) -> None:  # type: ignore[override]
         if self.deletion_action == DeletionAction.MOVE_TO_PENDING:
-            field = state.apps.get_model(app_label, self.model_name_lower)._meta.get_field(
-                self.name_lower
-            )
+            field = state.get_field_state(app_label, self.model_name_lower, self.name_lower)
             if getattr(field, "db_constraint", False):
                 raise UnsafeOperationException(
                     f"Foreign key db constraint must be removed before dropping {app_label}.{self.model_name_lower}.{self.name}. "

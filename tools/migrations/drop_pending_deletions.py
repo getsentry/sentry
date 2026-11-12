@@ -8,11 +8,11 @@ migrations-drift check drops them from the migrated database first.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from django.db.backends.base.base import BaseDatabaseWrapper
-    from django.db.models import Field, ManyToManyField, Model
+    from django.db.models import ManyToManyField, Model
 
     from sentry.new_migrations.monkey.state import SentryProjectState
 
@@ -45,8 +45,7 @@ def pending_deletion_sql(state: SentryProjectState, connection: BaseDatabaseWrap
     through_tables: list[str | None] = []
     tables: list[str] = []
 
-    # The state annotates these as `type[Field]`, but they're field instances.
-    fields = cast("list[Field[Any, Any]]", list(state.pending_deletion_fields.values()))
+    fields, models = state.render_pending_deletions()
     for field in fields:
         if not allow_migrate(field.model):
             continue
@@ -55,7 +54,7 @@ def pending_deletion_sql(state: SentryProjectState, connection: BaseDatabaseWrap
         elif field.db_parameters(connection=connection)["type"] is not None:
             columns.append((field.model._meta.db_table, field.column))
 
-    for model in state.pending_deletion_models.values():
+    for model in models:
         if not allow_migrate(model):
             continue
         through_tables += [_auto_through_table(f) for f in model._meta.local_many_to_many]
