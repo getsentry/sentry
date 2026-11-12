@@ -6,7 +6,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {formatHandoffPrompt} from './handoffPrompt';
+import {getHandoffPrompt} from './handoffPrompt';
 
 export enum AgentHandoffFlow {
   CREATE_PROJECT = 'create_project',
@@ -98,7 +98,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
-      return formatHandoffPrompt(cachedHandoff.code);
+      return getHandoffPrompt().plaintext(cachedHandoff.code);
     }
 
     try {
@@ -115,7 +115,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      return formatHandoffPrompt(minted.code);
+      return getHandoffPrompt().plaintext(minted.code);
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }

@@ -1,5 +1,5 @@
 import {useState, type PointerEventHandler} from 'react';
-import {css, ThemeProvider, type Theme} from '@emotion/react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconOpen} from '@sentry/icons/open';
@@ -9,7 +9,6 @@ import {useStore} from 'zustand';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -21,7 +20,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
-import {buildHandoffPrompt} from './handoffPrompt';
+import {accentSelection, getHandoffPrompt} from './handoffPrompt';
 import {
   AgentHandoffFlow,
   type AgentHandoffContext,
@@ -50,16 +49,6 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   const copyDisabled = !context || handoff.isPending;
   const previewUrl = new URL(`/agent-handoff/?preview=1&flow=${flow}`, links.sentryUrl)
     .href;
-
-  const [promptStart, maskedCode, promptEnd] = buildHandoffPrompt(
-    <MaskedCode
-      monospace
-      variant="warning"
-      title={t('The secret code authorizes your agent on your behalf')}
-    >
-      sntryh_****
-    </MaskedCode>
-  );
 
   function copyPrompt() {
     if (handoff.isPending) {
@@ -112,9 +101,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 textWrap="wrap"
                 onPointerDown={handlePointerDown}
               >
-                {promptStart}
-                {maskedCode}
-                {promptEnd}
+                {getHandoffPrompt().styledPrompt}
               </PromptText>
               <Container position="absolute" top="8px" right="8px">
                 <Button
@@ -204,13 +191,6 @@ const PromptBox = styled('div')`
     ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
 `;
 
-const accentSelection = (p: {theme: Theme}) => css`
-  &::selection {
-    background: ${p.theme.tokens.background.accent.vibrant};
-    color: ${p.theme.tokens.content.onVibrant.light};
-  }
-`;
-
 const PromptText = styled(Text)`
   ${accentSelection}
 
@@ -218,12 +198,4 @@ const PromptText = styled(Text)`
   &:focus {
     outline: none;
   }
-`;
-
-const MaskedCode = styled(InfoText)`
-  background: ${p => p.theme.tokens.background.transparent.warning.muted};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: 0 ${p => p.theme.space['2xs']};
-  text-decoration: none;
-  ${accentSelection}
 `;
