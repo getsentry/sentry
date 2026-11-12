@@ -359,6 +359,34 @@ class CustomInboundFiltersTest(APITestCase):
                 f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
             )
 
+    def test_environment_condition_requires_feature(self) -> None:
+        conditions = [{"type": "environment", "operator": "equals", "value": ["staging"]}]
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=400,
+                name="Staging",
+                dataType="error",
+                conditions=conditions,
+            )
+        assert str(response.data["conditions"][0]) == (
+            "The environment condition is not enabled for this organization."
+        )
+
+        with self.feature([*self.features, "organizations:inbound-filters-environment-condition"]):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Staging",
+                dataType="error",
+                conditions=conditions,
+            )
+
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
@@ -380,7 +408,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
+                "It accepts error_type, error_message, release, environment, ip_address, geo_country_code.",
             ),
             (
                 "log",
@@ -389,7 +417,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release, ip_address.",
+                "It accepts log_message, release, environment, ip_address.",
             ),
             (
                 "span",
@@ -398,7 +426,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "metric_name", "operator": "starts_with", "value": ["counter."]},
                 ],
                 "A filter on span data cannot use the metric_name condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, environment, ip_address.",
             ),
             (
                 "all",
@@ -407,13 +435,13 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]},
                 ],
                 "A filter on all data cannot use the error_message condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, environment, ip_address.",
             ),
             (
                 "all",
                 [{"type": "geo_country_code", "operator": "equals", "value": ["US"]}],
                 "A filter on all data cannot use the geo_country_code condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, environment, ip_address.",
             ),
         ]
 
@@ -1046,7 +1074,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, ip_address, geo_country_code."
+            "It accepts error_type, error_message, release, environment, ip_address, geo_country_code."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -1108,7 +1136,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release, ip_address."
+            "It accepts release, environment, ip_address."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"

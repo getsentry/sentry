@@ -50,10 +50,16 @@ from sentry.notifications.platform.tracking import (
     NotificationTrackingContext,
 )
 from sentry.notifications.platform.types import (
+    BlockQuoteSection,
+    CodeSection,
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderedAction,
+    NotificationRenderedTemplate,
     NotificationSource,
     NotificationTargetResourceType,
+    ParagraphSection,
+    PlainTextBlock,
 )
 from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
@@ -117,6 +123,62 @@ class SlackRendererTest(TestCase):
                 "type": "context",
             },
         ]
+
+    def test_default_renderer_truncates_text_to_slack_limits(self) -> None:
+        data = MockNotification(message="test")
+        long_text = "x" * 5000
+        rendered_template = NotificationRenderedTemplate(
+            subject=[PlainTextBlock(text=long_text)],
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=long_text)]),
+                CodeSection(blocks=[PlainTextBlock(text=long_text)]),
+                BlockQuoteSection(blocks=[PlainTextBlock(text=long_text)]),
+            ],
+        )
+
+        renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
+        # to_dict() runs slack_sdk's validation, which raises on over-length text
+        header, paragraph, code, quote = [block.to_dict() for block in renderable["blocks"]]
+
+        assert len(header["text"]["text"]) == 150
+        assert len(paragraph["text"]["text"]) == 3000
+        assert len(code["text"]["text"]) == 3000
+        assert code["text"]["text"].startswith("```")
+        assert code["text"]["text"].endswith("...```")
+        assert len(quote["text"]["text"]) == 3000
+        assert quote["text"]["text"].startswith(">")
+
+    def test_default_renderer_caps_block_count(self) -> None:
+        data = MockNotification(message="test")
+        rendered_template = NotificationRenderedTemplate(
+            subject=[PlainTextBlock(text="Subject")],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text=f"line {i}")]) for i in range(60)],
+            actions=[NotificationRenderedAction(label="Visit", link="https://sentry.io")],
+            footer=[PlainTextBlock(text="Footer")],
+        )
+
+        renderable = SlackRenderer.render(
+            data=data,
+            rendered_template=rendered_template,
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.SLACK
+            ),
+        )
+        blocks = renderable["blocks"]
+
+        assert len(blocks) == 50
+        assert isinstance(blocks[0], HeaderBlock)
+        # 47 body slots: 46 kept lines plus the omitted-count line for the other 14.
+        assert blocks[46].to_dict()["text"]["text"] == "line 45"
+        assert blocks[47].to_dict()["elements"][0]["text"] == "_…and 14 more_"
+        assert isinstance(blocks[-2], ActionsBlock)
+        assert blocks[-1].to_dict()["elements"][0]["text"] == "Footer"
 
 
 class SlackNotificationProviderTest(TestCase):
@@ -423,6 +485,20 @@ class SlackNotificationProviderSendTest(TestCase):
             match="Target 'GenericNotificationTarget' is not a valid dataclass for SlackNotificationProvider",
         ):
             SlackNotificationProvider.send(target=target, renderable=renderable)
+
+    def test_send_halts_when_integration_is_gone(self) -> None:
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_id="C1234567890",
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            integration_id=99999,
+            organization_id=self.organization.id,
+        )
+
+        result = SlackNotificationProvider.send(target=target, renderable=self._create_renderable())
+
+        assert isinstance(result, SendFailure)
+        assert result.status == SendFailureStatus.HALT
 
     @patch("sentry.integrations.slack.integration.SlackSdkClient")
     def test_send_to_direct_message(self, mock_slack_client: Mock) -> None:

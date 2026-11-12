@@ -969,6 +969,21 @@ top events are""",
 - `opportunity_score(field)` - Web Vitals opportunity score for the selected measurement.
 """,
     )
+    TRANSFORMATIONS = OpenApiParameter(
+        name="transformations[0]",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        style="form",
+        explode=True,
+        description="""Ordered transformations for a zero-based `yAxis` position. Replace `0` with the target axis index.
+Repeat the indexed key for each operation, for example
+`transformations[0]=fill(locf)&transformations[0]=smooth(sma,3)`.
+Each axis accepts at most one fill and one smooth operation, in execution order.
+Fill modes are `locf`, `zero`, and `linear`. Smoothing modes are `sma`, `ema`, and `asap`.
+Omit the indexed key to leave that axis unchanged. Requires the interpolation and smoothing feature.""",
+    )
     DISABLE_AGGREGATE_EXTRAPOLATION = OpenApiParameter(
         name="disableAggregateExtrapolation",
         location="query",
@@ -1563,7 +1578,7 @@ Available fields are:
     )
 
 
-class InvestigationParams:
+class NotebookParams:
     BLOCK_ID = OpenApiParameter(
         name="block_id",
         location="path",
@@ -1585,7 +1600,7 @@ class InvestigationParams:
         type=str,
         description="The ID of an execution belonging to this block.",
     )
-    INVESTIGATION_ID = OpenApiParameter(
+    NOTEBOOK_ID = OpenApiParameter(
         name="investigation_id",
         location="path",
         required=True,

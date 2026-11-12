@@ -1,14 +1,17 @@
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.rule import Rule
 from sentry.notifications.helpers import (
     collect_groups_by_project,
+    get_default_for_provider,
     get_subscription_from_attributes,
     validate,
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import (
+    INBOX_NOTIFICATION_SETTINGS,
     TEST_NOTIFICATION_ID,
     NotificationOrigin,
     NotificationSettingEnum,
@@ -84,6 +87,14 @@ class NotificationHelpersTest(TestCase):
                 NotificationSettingEnum.WORKFLOW, NotificationSettingsOptionEnum.COMMITTED_ONLY
             )
         )
+
+    def test_inbox_settings_default_to_email_and_slack(self) -> None:
+        for setting in INBOX_NOTIFICATION_SETTINGS:
+            for provider in (ExternalProviderEnum.EMAIL, ExternalProviderEnum.SLACK):
+                assert (
+                    get_default_for_provider(setting, provider)
+                    == NotificationSettingsOptionEnum.ALWAYS
+                )
 
     def test_get_subscription_from_attributes(self) -> None:
         attrs = {"subscription": (True, True, None)}

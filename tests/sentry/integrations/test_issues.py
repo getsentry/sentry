@@ -7,6 +7,9 @@ from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.integrations.example.integration import AliasedIntegrationProvider, ExampleIntegration
+from sentry.integrations.jira.integration import JiraIntegration
+from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.mixins.issues import IssueSyncIntegration as IssueSyncIntegrationBase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -28,6 +31,18 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
+
+
+@pytest.mark.parametrize(
+    "installation_type,expected",
+    [
+        (IssueBasicIntegration, "[Alert](https://sentry.example/alert)"),
+        (JiraIntegration, "[Alert|https://sentry.example/alert]"),
+        (JiraServerIntegration, "[Alert|https://sentry.example/alert]"),
+    ],
+)
+def test_format_link(installation_type: type[IssueBasicIntegration], expected: str) -> None:
+    assert installation_type.format_link("Alert", "https://sentry.example/alert") == expected
 
 
 @pytest.mark.parametrize(

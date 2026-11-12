@@ -69,7 +69,10 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
@@ -118,6 +121,8 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
+  // Group switches only animate to smooth over hover previews.
+  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -156,9 +161,9 @@ function SecondarySidebarPanel({
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={{x: -6, opacity: 0}}
+          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 6, opacity: 0}}
+          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -334,8 +339,12 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (!collapsible) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (
@@ -459,7 +468,9 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      // A Flex, not a Grid: the button label inherits the display but not the
+      // grid columns, so a Grid would stack the title and chevron.
+      <Flex justify="between" align="center" gap="sm" width="100%" padding="sm lg">
         {p => (
           <Button
             {...p}
@@ -479,7 +490,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Grid>
+      </Flex>
     );
   }
 

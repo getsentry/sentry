@@ -553,6 +553,7 @@ export const PrimaryNavigation = {
   ListItem: PrimaryNavigationListItem,
   Link: PrimaryNavigationLink,
   Button: PrimaryNavigationButton,
+  IconButton: NavigationButton,
   ButtonContainer: PrimaryNavigationButtonContainer,
   ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,

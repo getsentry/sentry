@@ -2,9 +2,8 @@ import styled from '@emotion/styled';
 import {IconMail} from '@sentry/icons/mail';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import type {
@@ -97,10 +96,6 @@ export interface SeerOutOfCreditsNoticeProps extends SeerOutOfCreditsCtaProps {
    */
   autoReloadEnabled?: boolean;
   /**
-   * Where the auto-reload button links when there is no in-place modal.
-   */
-  configureAutoReloadTo?: LinkProps['to'];
-  /**
    * The viewer already emailed their admins, so "Contact Admin" shows
    * "Admins emailed" instead.
    */
@@ -110,8 +105,7 @@ export interface SeerOutOfCreditsNoticeProps extends SeerOutOfCreditsCtaProps {
    */
   isRequestingCredits?: boolean;
   /**
-   * Opens the auto-reload settings in place. Takes precedence over
-   * `configureAutoReloadTo`.
+   * Opens the auto-reload settings in place.
    */
   onConfigureAutoReload?: () => void;
   onRequestCredits?: () => void;
@@ -175,7 +169,6 @@ function SeerOutOfCreditsAction({
   configureLabel,
   size,
   onConfigureAutoReload,
-  configureAutoReloadTo,
   onRequestCredits,
   isRequestingCredits,
   hasRequestedCredits,
@@ -186,27 +179,16 @@ function SeerOutOfCreditsAction({
   SeerOutOfCreditsNoticeProps,
   | 'escalation'
   | 'onConfigureAutoReload'
-  | 'configureAutoReloadTo'
   | 'onRequestCredits'
   | 'isRequestingCredits'
   | 'hasRequestedCredits'
 >) {
-  if (escalation === 'configure') {
-    if (onConfigureAutoReload) {
-      return (
-        <Button size={size} onClick={onConfigureAutoReload}>
-          {configureLabel}
-        </Button>
-      );
-    }
-    if (configureAutoReloadTo) {
-      return (
-        <LinkButton size={size} to={configureAutoReloadTo}>
-          {configureLabel}
-        </LinkButton>
-      );
-    }
-    return null;
+  if (escalation === 'configure' && onConfigureAutoReload) {
+    return (
+      <Button size={size} onClick={onConfigureAutoReload}>
+        {configureLabel}
+      </Button>
+    );
   }
 
   if (escalation === 'request' && hasRequestedCredits) {
