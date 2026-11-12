@@ -535,14 +535,13 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_all_valid_event_names(self, mock_delay: MagicMock) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.event_types import SentryAppEventType
+        from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 
         # Get all seer event types
         seer_events = [
             event_type.value.split(".", 1)[1]  # Remove "seer." prefix
             for event_type in SentryAppEventType
-            if event_type.value.startswith("seer.")
-            and event_type != SentryAppEventType.SEER_ERRORED
+            if event_type.value.startswith("seer.") and event_type not in INTERNAL_SEER_EVENT_TYPES
         ]
 
         for event_name in seer_events:

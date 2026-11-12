@@ -326,6 +326,7 @@ from sentry.issues.endpoints import (
     GroupEventDetailsEndpoint,
     GroupEventsEndpoint,
     GroupHashesEndpoint,
+    GroupImpactAssessmentEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
     GroupPullRequestsEndpoint,
@@ -612,6 +613,11 @@ from sentry.seer.endpoints.organization_seer_chat_suggestions import (
 )
 from sentry.seer.endpoints.organization_seer_credit_check import (
     OrganizationSeerCreditCheckEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_monitoring_providers import (
+    OrganizationSeerMonitoringConnectionsEndpoint,
+    OrganizationSeerMonitoringIdentityTokenEndpoint,
+    OrganizationSeerMonitoringIntegrationTokenEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -1073,6 +1079,11 @@ def create_group_urls(
 
     # Served only under `/organizations/{org}/issues/`.
     org_scoped_only: list[URLPattern | URLResolver] = [
+        re_path(
+            r"^(?P<issue_id>[^/]+)/impact/assess/$",
+            GroupImpactAssessmentEndpoint.as_view(),
+            name=f"{name_prefix}-group-impact-assessment",
+        ),
         re_path(
             r"^(?P<issue_id>[^/]+)/autofix/$",
             GroupAutofixEndpoint.as_view(),
@@ -2630,6 +2641,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/credit-check/$",
         OrganizationSeerCreditCheckEndpoint.as_view(),
         name="sentry-api-0-organization-seer-credit-check",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/monitoring-connections/$",
+        OrganizationSeerMonitoringConnectionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-monitoring-connections",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/monitoring-identities/(?P<identity_id>\d+)/token/$",
+        OrganizationSeerMonitoringIdentityTokenEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-monitoring-identity-token",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/monitoring-integrations/(?P<integration_id>\d+)/token/$",
+        OrganizationSeerMonitoringIntegrationTokenEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-monitoring-integration-token",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",

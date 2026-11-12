@@ -3,7 +3,6 @@ import {css, ThemeProvider, useTheme} from '@emotion/react';
 
 import {
   getOrganizationAvatarProps,
-  getUserAvatarProps,
   OrganizationAvatar,
   UserAvatar,
   type BaseAvatarProps,
@@ -17,16 +16,18 @@ import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 
+// The user menu takes its gradient from the organization's avatar, so both
+// menus match. Without an organization it uses the default gradient.
 type NavigationMenuHeaderProps =
   | {organization: OrganizationSummary; projectCount: number; user?: never}
-  | {user: User; organization?: never; projectCount?: never};
+  | {user: User; organization?: OrganizationSummary | null; projectCount?: never};
 
 export function NavigationMenuHeader({
   organization,
   projectCount,
   user,
 }: NavigationMenuHeaderProps) {
-  if (organization) {
+  if (!user) {
     return (
       <MenuHeader
         label={t('Organization')}
@@ -47,7 +48,7 @@ export function NavigationMenuHeader({
           : user.name || user.username || user.email
       }
       subtitle={user.email}
-      avatarProps={getUserAvatarProps(user)}
+      avatarProps={organization ? getOrganizationAvatarProps(organization) : undefined}
       avatar={
         <Flex
           position="relative"
@@ -93,7 +94,7 @@ function MenuHeader({
   avatarProps,
 }: {
   avatar: ReactNode;
-  avatarProps: BaseAvatarProps;
+  avatarProps: BaseAvatarProps | undefined;
   label: string;
   subtitle: string;
   title: string;
