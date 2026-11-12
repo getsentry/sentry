@@ -219,8 +219,22 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         message = data.message
         blocks: list[Block] = [SectionBlock(text=message)]
-        # TODO(alexsohn): give members a button that asks their admins for credits.
         if not data.has_billing_access:
+            # TODO(alexsohn): the click does nothing until the handler emails the admins.
+            blocks.append(
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="Contact Admin",
+                            action_id=encode_action_id(
+                                action=SlackAction.SEER_REQUEST_CREDITS.value,
+                                organization_id=data.organization_id,
+                                project_id=None,
+                            ),
+                        )
+                    ]
+                )
+            )
             return SlackRenderable(blocks=blocks, text=message)
 
         try:

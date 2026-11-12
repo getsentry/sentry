@@ -369,6 +369,22 @@ def assert_configure_auto_reload_button(
     assert routing.organization_id == organization_id
 
 
+def assert_contact_admin_button(renderable: SlackRenderable, *, organization_id: int) -> None:
+    blocks = renderable["blocks"]
+    assert len(blocks) == 2
+    assert isinstance(blocks[1], ActionsBlock)
+    assert len(blocks[1].elements) == 1
+    button = blocks[1].elements[0]
+    assert isinstance(button, ButtonElement)
+    assert not isinstance(button, LinkButtonElement)
+    assert button.text is not None
+    assert button.text.text == "Contact Admin"
+    assert button.action_id is not None
+    routing = decode_action_id(button.action_id)
+    assert routing.action == SlackAction.SEER_REQUEST_CREDITS.value
+    assert routing.organization_id == organization_id
+
+
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def _render(self, **kwargs: bool) -> SlackRenderable:
         data = SeerAutofixOutOfCredits(organization_id=self.organization.id, **kwargs)
@@ -376,10 +392,10 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
 
-    def test_member_gets_no_button(self) -> None:
+    def test_member_can_contact_admin(self) -> None:
         renderable = self._render()
         assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE)
-        assert len(renderable["blocks"]) == 1
+        assert_contact_admin_button(renderable, organization_id=self.organization.id)
 
     def test_billing_member_can_configure_auto_reload(self) -> None:
         renderable = self._render(has_billing_access=True)
@@ -415,10 +431,10 @@ class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
             data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
         )
 
-    def test_member_gets_no_button(self) -> None:
+    def test_member_can_contact_admin(self) -> None:
         renderable = self._render()
         assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE)
-        assert len(renderable["blocks"]) == 1
+        assert_contact_admin_button(renderable, organization_id=self.organization.id)
 
     def test_billing_member_can_configure_auto_reload(self) -> None:
         renderable = self._render(has_billing_access=True)
