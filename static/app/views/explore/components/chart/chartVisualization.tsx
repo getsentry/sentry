@@ -34,6 +34,7 @@ interface ChartVisualizationProps {
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
+  isDroppedDataLoading?: boolean;
   /**
    * Overrides the plottables derived from `chartInfo`, e.g. when several
    * aggregates are plotted on the same chart.
@@ -104,22 +105,26 @@ export function ChartVisualization({
   chartInfo,
   chartRef,
   droppedData,
+  isDroppedDataLoading = false,
   plottables: plottablesOverride,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
   const plottables = plottablesOverride ?? defaultPlottables;
-  const previousPlottables = usePrevious(
-    plottables,
-    chartInfo.timeseriesResult.isPending
-  );
+  const isLoading =
+    chartInfo.timeseriesResult.isPending ||
+    (isDroppedDataLoading && !chartInfo.timeseriesResult.error);
+  // `usePrevious` seeds itself with the first render's value, so a chart that
+  // mounts mid-load must not seed it, or it would draw without the band.
+  const previousPlottables = usePrevious(isLoading ? [] : plottables, isLoading);
+  const previousDroppedData = usePrevious(isLoading ? undefined : droppedData, isLoading);
   const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
     chartInfo.series,
     chartInfo.timeseriesResult.meta?.ingestion?.completeThrough
   );
 
-  const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
+  const activeDroppedData = isLoading ? previousDroppedData : droppedData;
 
   if (isLoading && !plottablesCanBeVisualized(previousPlottables)) {
     const loadingMessage =
@@ -158,7 +163,7 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
-        droppedData={droppedData}
+        droppedData={activeDroppedData}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         tooltipLimit={tooltipLimit}
       />

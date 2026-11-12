@@ -66,7 +66,6 @@ describe('GroupAutofix', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: false,
         isSeerConfigured: true,
       },
     });
@@ -198,7 +197,6 @@ describe('GroupAutofix', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -251,7 +249,6 @@ describe('GroupAutofix', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -275,7 +272,6 @@ describe('GroupAutofix', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });

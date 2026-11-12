@@ -1,13 +1,11 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {defined} from 'sentry/utils/defined';
-import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
-  createTraceMetricEventsFilter,
+  getAggregatesMetricsTotalFilter,
   getEquationMetricsTotalFilter,
 } from 'sentry/views/explore/metrics/utils';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -49,14 +47,11 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
         const functionAggregates = aggregates.filter(agg => !isEquation(agg));
         const equationAggregates = aggregates.filter(agg => isEquation(agg));
 
-        const traceMetrics = functionAggregates
-          .map(aggregate => extractTraceMetricFromColumn(explodeFieldString(aggregate)))
-          .filter(defined);
-
         const filters: string[] = [];
 
-        if (traceMetrics.length > 0) {
-          filters.push(createTraceMetricEventsFilter(traceMetrics));
+        const functionFilter = getAggregatesMetricsTotalFilter(functionAggregates);
+        if (functionFilter) {
+          filters.push(functionFilter);
         }
 
         for (const equation of equationAggregates) {

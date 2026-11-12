@@ -149,25 +149,25 @@ export function ReprocessingEventModal({
             {isDisabled => (
               <form.AppField name="remainingEvents">
                 {field => (
-                  <field.Radio.Group
+                  <field.RadioGroup
                     value={field.state.value}
-                    onChange={value => {
-                      if (value === 'keep' || value === 'delete') {
-                        field.handleChange(value);
-                      }
-                    }}
+                    onChange={field.handleChange}
                     disabled={isDisabled}
                   >
-                    <field.Layout.Row
-                      label={t('Remaining events')}
-                      hintText={t('What to do with the events that are not reprocessed.')}
-                    >
-                      <Flex gap="2xl">
-                        <field.Radio.Item value="keep">{t('Keep')}</field.Radio.Item>
-                        <field.Radio.Item value="delete">{t('Delete')}</field.Radio.Item>
-                      </Flex>
-                    </field.Layout.Row>
-                  </field.Radio.Group>
+                    {({Item}) => (
+                      <field.Layout.Row
+                        label={t('Remaining events')}
+                        hintText={t(
+                          'What to do with the events that are not reprocessed.'
+                        )}
+                      >
+                        <Flex gap="2xl">
+                          <Item value="keep">{t('Keep')}</Item>
+                          <Item value="delete">{t('Delete')}</Item>
+                        </Flex>
+                      </field.Layout.Row>
+                    )}
+                  </field.RadioGroup>
                 )}
               </form.AppField>
             )}

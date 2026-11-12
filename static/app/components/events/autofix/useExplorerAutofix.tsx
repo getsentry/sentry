@@ -6,7 +6,6 @@ import {toast} from '@sentry/scraps/toast';
 
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -484,18 +483,25 @@ function getSingleRunSections(
   blocks: Block[],
   runState: ExplorerAutofixState
 ): AutofixSection[] {
-  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks)
-    .filter(artifact => artifact.key === SINGLE_RUN_ROOT_CAUSE_KEY)
-    .flatMap(artifact => {
+  const rootCauses: Array<Artifact<RootCauseArtifact>> = collectArtifacts(blocks).flatMap(
+    artifact => {
+      if (artifact.key !== 'root_cause' && artifact.key !== SINGLE_RUN_ROOT_CAUSE_KEY) {
+        return [];
+      }
       const headline = artifact.data?.headline;
       const cause = artifact.data?.cause;
       if (!isString(headline) || !isString(cause)) {
         return [];
       }
       return [
-        {...artifact, data: {one_line_description: headline, cause, five_whys: []}},
+        {
+          ...artifact,
+          key: 'root_cause',
+          data: {one_line_description: headline, cause, five_whys: []},
+        },
       ];
-    });
+    }
+  );
 
   const sections: AutofixSection[] = [
     {
@@ -634,10 +640,6 @@ export function isPullRequestsSection(section: AutofixSection): boolean {
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
-}
-
-export function isRunValidForPrIteration(organization: Organization): boolean {
-  return organization.features.includes('autofix-pr-iteration-manual');
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {

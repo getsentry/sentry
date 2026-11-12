@@ -646,7 +646,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-pymongo',
   'rust',
   'apple-macos',
-  'native',
   'native-crashpad',
   'native-breakpad',
   'native-qt',
@@ -664,6 +663,10 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
+  'unreal',
+  'nintendo-switch',
+  'playstation',
+  'xbox',
   'java',
   'kotlin',
 ];

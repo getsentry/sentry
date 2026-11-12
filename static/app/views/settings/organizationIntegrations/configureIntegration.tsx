@@ -19,6 +19,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -38,8 +39,9 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
+import {canManageIntegrations} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
@@ -54,7 +56,6 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {GcpConnectionStatus} from './gcpConnectionStatus';
 import {GrafanaIntegrationForm} from './grafanaIntegrationForm';
 import {IntegrationAlertRules} from './integrationAlertRules';
-import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
 import {IntegrationIcon} from './integrationIcon';
@@ -66,7 +67,7 @@ const LazyVercelIntegrationForm = lazy(() =>
   }))
 );
 
-type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
+type Tab = 'settings' | 'userMappings' | 'teamMappings';
 
 function organizationIntegrationApiOptions({
   organizationSlug,
@@ -144,6 +145,32 @@ function IntegrationAction({
   organization: Organization;
   provider: IntegrationProvider;
 }) {
+  const {startFlow} = useAddIntegration();
+
+  if (provider.key === 'linear') {
+    return (
+      <Button
+        onClick={() =>
+          startFlow({
+            provider,
+            organization,
+            // The default toast says the integration was "added", but this
+            // flow refreshes an existing workspace connection.
+            suppressSuccessMessage: true,
+            onInstall: () => {
+              toast.success(t('%s reconnected', provider.name));
+              onUpdateIntegration();
+            },
+          })
+        }
+        disabled={!canManageIntegrations(organization)}
+        size="sm"
+      >
+        {t('Reconnect Linear')}
+      </Button>
+    );
+  }
+
   if (provider.key === 'pagerduty') {
     return (
       <PagerdutyAddServicesButton
@@ -395,8 +422,6 @@ function IntegrationTabContent({
   tab: Tab;
 }) {
   switch (tab) {
-    case 'codeMappings':
-      return <IntegrationCodeMappings integration={integration} />;
     case 'settings':
       return mainTab;
     case 'userMappings':
@@ -426,15 +451,13 @@ function ConfigureIntegration() {
     isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
-  } = useApiQuery<{
-    providers: IntegrationProvider[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    apiOptions.as<{
+      providers: IntegrationProvider[];
+    }>()('/organizations/$organizationIdOrSlug/config/integrations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    })
   );
   const {
     data: integration,
@@ -533,8 +556,8 @@ function ConfigureIntegration() {
     provider.key === 'jira' &&
     organization.features.includes('jira-explicit-mapping-removals');
 
-  // The Settings tab only has content when there is something to render in
-  // renderMainTab(). When empty, the tab is hidden entirely.
+  // Determines whether there is anything to show in the Settings tab.
+  // When empty and no other tabs exist, the settings content renders directly.
   const settingsInstructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
   const hasSettingsTabContent =
@@ -544,22 +567,10 @@ function ConfigureIntegration() {
     provider.features.includes('alert-rule') ||
     provider.features.includes('serverless');
 
-  const hasStacktraceLinking = provider.features.includes('stacktrace-link');
   const hasCodeOwners =
     provider.features.includes('codeowners') &&
     organization.features.includes('integrations-codeowners');
   const hasUserMapping = provider.features.includes('user-mapping');
-
-  // The Settings tab is paired with stacktrace linking or user mapping; it is
-  // only shown when renderMainTab() would actually have content.
-  const settingsTabs: Array<[Tab, string]> =
-    hasSettingsTabContent && (hasStacktraceLinking || hasUserMapping)
-      ? [['settings', t('Settings')]]
-      : [];
-
-  const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
-    ? [['codeMappings', t('Code Mappings')]]
-    : [];
 
   const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
     ? [
@@ -568,18 +579,20 @@ function ConfigureIntegration() {
       ]
     : [];
 
-  // User mappings are mutually exclusive with stacktrace linking
-  // and code owners, so only render the main settings tab and user mappings.
+  // User mappings are mutually exclusive with code owners, so only render
+  // the main settings tab and user mappings.
   const userMappingTabs: Array<[Tab, string]> = hasUserMapping
     ? [['userMappings', t('User Mappings')]]
     : [];
 
-  const allTabs = [
-    ...settingsTabs,
-    ...stackTraceLinkingTabs,
-    ...codeOwnerTabs,
-    ...userMappingTabs,
-  ];
+  // The Settings tab only appears alongside other tabs and only when there
+  // is settings content. When no tabs remain, the settings content renders
+  // directly without a tab list.
+  const mappingTabs = [...codeOwnerTabs, ...userMappingTabs];
+  const allTabs: Array<[Tab, string]> =
+    hasSettingsTabContent && mappingTabs.length > 0
+      ? [['settings', t('Settings')], ...mappingTabs]
+      : mappingTabs;
 
   const tab =
     allTabs.find(([key]) => key === tabParam)?.[0] ?? allTabs[0]?.[0] ?? 'settings';

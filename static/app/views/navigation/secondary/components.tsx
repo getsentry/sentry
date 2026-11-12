@@ -331,8 +331,12 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (!collapsible) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (
@@ -456,7 +460,9 @@ function SectionTitle(props: SectionTitleProps) {
 
   if (props.canCollapse) {
     return (
-      <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
+      // A Flex, not a Grid: the button label inherits the display but not the
+      // grid columns, so a Grid would stack the title and chevron.
+      <Flex justify="between" align="center" gap="sm" width="100%" padding="sm lg">
         {p => (
           <Button
             {...p}
@@ -476,7 +482,7 @@ function SectionTitle(props: SectionTitleProps) {
             </Flex>
           </Button>
         )}
-      </Grid>
+      </Flex>
     );
   }
 
@@ -890,6 +896,11 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
   return (
     <DndContext
+      // dnd-kit renders its position: fixed live region inline by default. While the
+      // panel animates, its transform turns that region into an absolute element
+      // below the scrolled list. If the list overflows, the page grows a scrollbar
+      // and the main content shifts.
+      accessibility={{container: document.body}}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}

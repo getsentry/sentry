@@ -33,6 +33,7 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.types import DetectorType
 
 
@@ -115,9 +116,12 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         }
 
         workflows_map = defaultdict(list)
-        detector_workflows = DetectorWorkflow.objects.filter(detector__in=item_list).values_list(
-            "detector_id", "workflow_id"
-        )
+
+        # Ensure the workflow_ids belonging to hidden workflows are not included
+        detector_workflows = DetectorWorkflow.objects.filter(
+            detector__in=item_list, workflow__type__in=VISIBLE_WORKFLOW_TYPES
+        ).values_list("detector_id", "workflow_id")
+
         for detector_id, workflow_id in detector_workflows:
             workflows_map[detector_id].append(str(workflow_id))
 
@@ -204,23 +208,13 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
                 },
             )
             attrs[item]["latest_group"] = latest_groups_map.get(item.id)
-            if item.id in configs:
-                attrs[item]["config"] = configs[item.id]
+            if item.type == DetectorType.ERROR and item.project_id in configs:
+                attrs[item]["config"] = configs[item.project_id]
             else:
                 attrs[item]["config"] = item.config
             attrs[item]["owner"] = item.owner and owner_lookup.get(item.owner) or None
 
         return attrs
-
-    @staticmethod
-    def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
-        # XXX: There are some migrated metric alerts which have `detection_type: "static"`,
-        # a defined `comparison_delta`. These are treated as `detection_type: "percent"` in the backend,
-        # so this is a temporary fix to ensure that the frontend displays the correct detection type.
-        # Remove this once ISWF-2272 backfills the correct `detection_type`.
-        if config.get("detection_type") == "static" and config.get("comparison_delta"):
-            return {**config, "detection_type": "percent"}
-        return config
 
     def serialize(
         self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
@@ -241,9 +235,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "conditionGroup": attrs.get("condition_group"),
             "config": cast(
                 DetectorConfigResponse,
-                convert_dict_key_case(
-                    self._normalize_config(attrs.get("config", {})), snake_to_camel_case
-                ),
+                convert_dict_key_case(attrs.get("config", {}), snake_to_camel_case),
             ),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
