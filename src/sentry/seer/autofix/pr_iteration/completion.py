@@ -377,6 +377,12 @@ def _single_run_iteration_outcome(
         return None
     if iteration_terminal_errored_repos(state):
         return PrIterationOutcome.PR_CREATION_ERRORED
+    if iteration_prs_any_closed(group.organization, state):
+        record_pr_closed("push")
+        pause_pr_iteration(
+            run_id=run_id, organization_id=group.organization.id, reason=PauseReason.PR_CLOSED
+        )
+        return PrIterationOutcome.PR_CLOSED
     if _push_iteration_changes(
         log_ctx, group, run_id, state, author=_iteration_commit_author(state)
     ):

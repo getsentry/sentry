@@ -3108,6 +3108,34 @@ class TestSingleRunCompletion(TestCase):
         mocks["complete"].assert_not_called()
         mocks["consume"].assert_not_called()
 
+    def test_pr_feedback_edits_on_a_closed_pr_pause_instead_of_pushing(self) -> None:
+        edits = MemoryBlock(
+            id="edits",
+            message=Message(role="assistant", content="Renamed"),
+            timestamp="2026-02-10T00:00:00Z",
+            merged_file_patches=[
+                AgentFilePatch(
+                    repo_name="test-repo",
+                    patch=FilePatch(path="test.py", type="M", added=1, removed=1),
+                )
+            ],
+        )
+        state = run_state(
+            blocks=[single_run_memory_block(_ROOT_CAUSE), self._pr_feedback_turn(), edits],
+            metadata={"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID},
+        )
+
+        with (
+            patch(f"{COMPLETION_PATH}.iteration_prs_any_closed", return_value=True),
+            patch(f"{COMPLETION_PATH}.pause_pr_iteration") as pause,
+            patch(f"{COMPLETION_PATH}.trigger_push_changes") as push,
+        ):
+            mocks = self._execute_pr_feedback(state)
+
+        push.assert_not_called()
+        assert pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        assert mocks["complete"].call_args.kwargs["outcome"] == "pr_closed"
+
     def test_plain_reply_drains_feedback_queued_while_it_ran(self) -> None:
         with patch(f"{COMPLETION_PATH}.count_queued_autofix_feedback", return_value=1):
             mocks = self._execute_pr_feedback(self._state(single_run_memory_block(_ROOT_CAUSE)))
