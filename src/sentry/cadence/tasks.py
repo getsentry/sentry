@@ -92,7 +92,7 @@ def cadence_tick() -> None:
                 logger.warning("cadence.tick.time_limit_reached", extra={"claimed": claimed_count})
                 return
     finally:
-        metrics.distribution("cadence.tick.claimed", claimed_count)
+        metrics.distribution("cadence.tick.claimed", claimed_count, sample_rate=1.0)
 
 
 def _claim_batch(

@@ -411,7 +411,7 @@ class CadenceTickTest(CadenceTickTestCase):
                 ("cadence.trigger.dispatch_lag", 5.0),
                 {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
             ),
-            (("cadence.tick.claimed", 2), {}),
+            (("cadence.tick.claimed", 2), {"sample_rate": 1.0}),
         ]
         ((timing_args, _),) = [
             c
@@ -446,7 +446,7 @@ class CadenceTickTest(CadenceTickTestCase):
                 ("cadence.trigger.dispatch_lag", 7.0),
                 {"tags": {"trigger_type": "log"}, "unit": "second"},
             ),
-            (("cadence.tick.claimed", 2), {}),
+            (("cadence.tick.claimed", 2), {"sample_rate": 1.0}),
         ]
 
     @freeze_time(NOW)
