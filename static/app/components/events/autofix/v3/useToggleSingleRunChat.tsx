@@ -45,20 +45,3 @@ export function useIsSingleRunChatOpen(runId: SeerExplorerRunId | undefined) {
   const {runId: openRunId} = useSeerExplorerChatState();
   return runId !== undefined && isOpen && String(openRunId) === String(runId);
 }
-
-export function useToggleSingleRunChat(runId: SeerExplorerRunId | undefined) {
-  const {closeSeerExplorer} = useSeerExplorerContext();
-  const isChatOpen = useIsSingleRunChatOpen(runId);
-  const openSingleRunChat = useOpenSingleRunChat();
-
-  return useCallback(() => {
-    if (runId === undefined) {
-      return;
-    }
-    if (isChatOpen) {
-      closeSeerExplorer();
-    } else {
-      openSingleRunChat(runId);
-    }
-  }, [runId, isChatOpen, openSingleRunChat, closeSeerExplorer]);
-}

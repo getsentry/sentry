@@ -71,6 +71,7 @@ class SeerWorkflowTriggerHandlerTest(TestCase):
                 trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
                 target_id=config_id,
                 scheduled_for=SCHEDULED_FOR,
+                next_scheduled_for=SCHEDULED_FOR + timedelta(days=1),
             )
             for config_id in (11, 12)
         ]
