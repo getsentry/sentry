@@ -440,6 +440,7 @@ function getPaymentVerification(error: unknown) {
   const response = error.responseJSON as PaymentRequiredResponse | undefined;
   const verification = response?.verification;
   if (
+    !response ||
     !verification?.required ||
     !verification.clientSecret ||
     !verification.paymentIntentId ||
