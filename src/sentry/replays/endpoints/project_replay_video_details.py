@@ -100,7 +100,7 @@ def handle_range_response(range_header: str, video: bytes) -> HttpResponseBase:
         if len(ranges) > 1:
             raise MalformedRangeHeader("Too many ranges specified.")
     except (MalformedRangeHeader, UnsatisfiableRange):
-        logger.exception("Malformed range request.")
+        logger.warning("Malformed range request.")
 
         # Malformed ranges receive an empty 416 status response which includes a
         # header to demonstrate the correct range format.
