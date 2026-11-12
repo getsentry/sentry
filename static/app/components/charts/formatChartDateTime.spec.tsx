@@ -40,15 +40,21 @@ it('uses explicit hour cycles at midnight and truncates fractional milliseconds'
   ).toBe('12:00:00.012');
 });
 
-it('uses Intl short zone labels for seasonal and fractional offsets', () => {
-  const date = '2026-07-01T00:00:00Z';
-  expect(formatChartDateTime(date, 'timezone', {timezone: 'Europe/London'})).toBe(
-    'GMT+1'
-  );
-  expect(formatChartDateTime(date, 'timezone', {timezone: 'Asia/Kathmandu'})).toBe(
-    'GMT+5:45'
-  );
-});
+it.each([
+  ['2026-01-01T00:00:00Z', 'Australia/Sydney', 'AEDT'],
+  ['2026-07-01T00:00:00Z', 'Australia/Sydney', 'AEST'],
+  ['2026-01-01T00:00:00Z', 'Europe/London', 'GMT'],
+  ['2026-07-01T00:00:00Z', 'Europe/London', 'BST'],
+  ['2026-01-01T00:00:00Z', 'Europe/Paris', 'CET'],
+  ['2026-07-01T00:00:00Z', 'Europe/Paris', 'CEST'],
+  ['2026-01-01T00:00:00Z', 'Asia/Kathmandu', '+0545'],
+  ['2026-01-01T00:00:00Z', '+05:45', 'GMT+5:45'],
+])(
+  'preserves the existing chart timezone label at %s in %s',
+  (date, timezone, expected) => {
+    expect(formatChartDateTime(date, 'timezone', {timezone})).toBe(expected);
+  }
+);
 
 it('fails closed for invalid timestamps and non-instant input shapes', () => {
   for (const input of [

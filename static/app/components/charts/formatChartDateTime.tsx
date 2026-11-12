@@ -1,4 +1,5 @@
 import {Temporal} from '@js-temporal/polyfill';
+import moment from 'moment-timezone';
 
 import type {DateTimeInput, DateTimePreferences} from '@sentry/scraps/dateTime';
 
@@ -59,9 +60,11 @@ export function formatChartDateTime(
     }
     if (style === 'timezone') {
       return (
+        moment.tz.zone(timezone)?.abbr(value.epochMilliseconds) ??
         new Intl.DateTimeFormat(locale, {...base, timeZoneName: 'short'})
           .formatToParts(value.epochMilliseconds)
-          .find(part => part.type === 'timeZoneName')?.value ?? ''
+          .find(part => part.type === 'timeZoneName')?.value ??
+        ''
       );
     }
     if (style === 'replayTime') {

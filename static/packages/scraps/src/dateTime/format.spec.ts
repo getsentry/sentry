@@ -37,11 +37,23 @@ it.each([
 });
 
 it.each([
-  ['Australia/Sydney', '11:00 AM GMT+11'],
-  ['Asia/Kathmandu', '5:45 AM GMT+5:45'],
-])('uses Intl timezone labels for %s', (timezone, expected) => {
+  ['2025-01-01T00:00:00Z', 'Australia/Sydney', '11:00 AM AEDT'],
+  ['2025-07-01T00:00:00Z', 'Australia/Sydney', '10:00 AM AEST'],
+  ['2025-01-01T00:00:00Z', 'Australia/Adelaide', '10:30 AM ACDT'],
+  ['2025-07-01T00:00:00Z', 'Australia/Adelaide', '9:30 AM ACST'],
+  ['2025-01-01T00:00:00Z', 'Europe/London', '12:00 AM GMT'],
+  ['2025-07-01T00:00:00Z', 'Europe/London', '1:00 AM BST'],
+  ['2025-01-01T00:00:00Z', 'Europe/Paris', '1:00 AM CET'],
+  ['2025-07-01T00:00:00Z', 'Europe/Paris', '2:00 AM CEST'],
+  ['2025-01-01T00:00:00Z', 'Asia/Kathmandu', '5:45 AM +0545'],
+  ['2025-01-01T00:00:00Z', 'Asia/Kolkata', '5:30 AM IST'],
+  ['2025-01-01T00:00:00Z', 'UTC', '12:00 AM UTC'],
+  ['2025-01-01T00:00:00Z', 'Etc/UTC', '12:00 AM UTC'],
+  ['2025-01-01T00:00:00Z', 'Etc/GMT+5', '7:00 PM -05'],
+  ['2025-01-01T00:00:00Z', '+05:45', '5:45 AM GMT+5:45'],
+])('preserves the existing timezone label at %s in %s', (date, timezone, expected) => {
   expect(
-    formatDateTime('2025-01-01T00:00:00Z', {
+    formatDateTime(date, {
       mode: 'time',
       timezone,
       showTimezone: true,
@@ -132,6 +144,13 @@ it.each([
     expect(formatDateTime('2025-01-01T12:05:06.123Z', {mode: 'time', precision})).toBe(
       expected
     );
+    expect(
+      formatDateTime('2025-01-01T12:05:06.123Z', {
+        mode: 'time',
+        precision,
+        showTimezone: true,
+      })
+    ).toBe(`${expected} CET`);
     expect(
       formatDateTime('2025-01-01T12:05:06.123Z', {mode: 'date', year: 'always'})
     ).toBe('1 janv. 2025');
