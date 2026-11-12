@@ -16,7 +16,11 @@ from sentry.service_accounts.endpoints.organization_service_account_tokens impor
     DisallowAgentTokenWrites,
     OrganizationServiceAccountTokenIndexEndpoint,
 )
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountToken
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountToken,
+    ServiceAccountTokenReplica,
+)
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.service_accounts.tokens import (
     SERVICE_ACCOUNT_TOKEN_PREFIX,
@@ -170,6 +174,46 @@ class OrganizationServiceAccountTokenIndexTest(ServiceAccountTokenTestCase):
         assert plaintext not in str(response.content)
 
     @freeze_time("2026-11-09 12:00:00")
+    def test_create_replicates_token_to_cell(self) -> None:
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                status_code=201,
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ServiceAccountTokenReplica.objects.filter(
+                token_id=int(response.data["id"])
+            ).exists()
+
+    def test_create_returns_token_when_outbox_flush_fails(self) -> None:
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch(
+                "sentry.hybridcloud.models.outbox.ControlOutbox.drain_shard",
+                side_effect=Exception("cell unavailable"),
+            ),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.service_account.id,
+                method="post",
+                name="deploys",
+                scopes=["project:read"],
+                status_code=201,
+            )
+
+        assert response.data["token"].startswith(SERVICE_ACCOUNT_TOKEN_PREFIX)
+        assert ServiceAccountToken.objects.filter(id=response.data["id"]).exists()
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ServiceAccountTokenReplica.objects.filter(
+                token_id=int(response.data["id"])
+            ).exists()
+
     def test_create_with_expiration(self) -> None:
         expires_at = timezone.now() + timedelta(days=30)
         with self.feature(FEATURE_FLAG):

@@ -6,6 +6,7 @@ which replicates it to the org's cell.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any, NotRequired, TypedDict, cast
@@ -51,7 +52,25 @@ from sentry.service_accounts.tokens import generate_token, stored_token_fields
 from sentry.types.cell import get_locality_name_for_cell
 from sentry.utils.security.orgauthtoken_token import SystemUrlPrefixMissingException
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_TOKEN_LIFETIME = timedelta(days=30)
+
+
+def _flush_token_outboxes(token: ServiceAccountToken) -> None:
+    """Replicate the token to its cell now, but don't fail the request if that fails.
+
+    The token and its outbox are already committed, so the scheduled outbox drain
+    replicates it later.
+    """
+    try:
+        for outbox in token.outboxes_for_update():
+            outbox.drain_shard()
+    except Exception:
+        logger.exception(
+            "service_accounts.token.outbox_flush_failed",
+            extra={"token_id": token.id, "organization_id": token.organization_id},
+        )
 
 
 class ServiceAccountTokenResponse(TypedDict):
@@ -234,9 +253,8 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
             )
         stored = stored_token_fields(token_str)
 
-        # The token is committed before replication, so a failed flush mustn't turn the
-        # request into a 500 that hides the only copy of the plaintext token. The outbox
-        # drains later and the token reaches the cell then.
+        # Flushing inside the transaction would turn a replication failure into a 500 that
+        # hides the only copy of the plaintext token, so flush after commit instead.
         with outbox_context(
             transaction.atomic(using=router.db_for_write(ServiceAccountToken)), flush=False
         ):
@@ -250,6 +268,7 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
                 created_by_id=acting_user_id(request.user),
                 date_expires=data.get("expiresAt", timezone.now() + DEFAULT_TOKEN_LIFETIME),
             )
+        _flush_token_outboxes(token)
 
         self.create_audit_entry(
             request,
