@@ -8,10 +8,12 @@ WORKFLOW_RUNS_RESPONSE = [
                 {
                     "id": "101",
                     "configId": "10",
+                    "configName": "Checkout latency",
                     "strategy": "breached_metric_investigation",
                     "trigger": {
                         "type": "monitor",
                         "detectorId": "401",
+                        "detectorName": "Checkout p95 latency",
                         "environment": "production",
                         "eventId": "9f2d4c1b8a7e4f6d9c3b2a1e0f9d8c7b",
                         "groupId": "501",
@@ -54,6 +56,7 @@ WORKFLOW_RUNS_RESPONSE = [
                 {
                     "id": "102",
                     "configId": "10",
+                    "configName": "Checkout latency",
                     "strategy": "breached_metric_investigation",
                     "trigger": None,
                     "status": "failed",
