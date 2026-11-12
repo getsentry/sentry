@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';

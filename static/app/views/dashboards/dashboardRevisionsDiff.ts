@@ -1,7 +1,8 @@
+import {formatDateTime} from '@sentry/scraps/dateTime';
+
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
-import {getFormattedDate} from 'sentry/utils/dates';
 
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
 import {DashboardFilterKeys, DisplayType} from './types';
@@ -17,7 +18,7 @@ function formatTime(d: DashboardDetails): string | null {
     return getRelativeSummary(d.period);
   }
   if (d.start && d.end) {
-    const fmt = (s: string) => getFormattedDate(s, 'MMM D, YYYY', {local: !d.utc});
+    const fmt = (s: string) => formatDateTime(s, {format: 'MMM D, YYYY', utc: d.utc});
     return `${fmt(d.start)} – ${fmt(d.end)}`;
   }
   return null;

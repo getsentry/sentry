@@ -6,13 +6,13 @@ import {useIsFetching, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';

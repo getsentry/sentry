@@ -9,7 +9,7 @@ import type {
 } from 'echarts';
 import type {LinearGradientObject, ZRColor} from 'echarts/types/dist/shared';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {horizontalTooltipPosition} from 'sentry/components/charts/components/tooltip';

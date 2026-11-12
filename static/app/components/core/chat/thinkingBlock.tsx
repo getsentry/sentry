@@ -3,11 +3,10 @@ import {Global} from '@emotion/react';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {formatElapsedDuration} from '@sentry/scraps/duration';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
 
 const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
 

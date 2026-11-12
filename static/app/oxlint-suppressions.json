@@ -208,11 +208,6 @@
       "count": 3
     }
   },
-  "components/core/relativeTime/relativeTime.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "components/customCommitsResolutionModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

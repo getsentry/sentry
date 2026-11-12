@@ -1,4 +1,5 @@
-import {getDuration} from 'sentry/utils/duration/getDuration';
+import {getDuration} from '@sentry/scraps/duration';
+
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
@@ -925,7 +926,7 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
       const sender = message.agentName || message.modelName || 'Assistant';
       const durationStr =
         message.duration !== undefined && message.duration > 0
-          ? ` — ${getDuration(message.duration, 1, true)}`
+          ? ` — ${getDuration(message.duration, {precision: 1, style: 'short'})}`
           : '';
       lines.push(`### ${sender}${durationStr}`);
 

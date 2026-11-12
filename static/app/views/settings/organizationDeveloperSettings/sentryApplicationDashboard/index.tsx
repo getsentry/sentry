@@ -2,12 +2,12 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {BarChart} from 'sentry/components/charts/barChart';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';

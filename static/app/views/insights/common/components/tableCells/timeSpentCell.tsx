@@ -1,12 +1,12 @@
 import clamp from 'lodash/clamp';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatSpanOperation} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function TimeSpentCell({percentage, total, op}: Props) {
-  const formattedTotal = getDuration((total ?? 0) / 1000, 2, true);
+  const formattedTotal = getDuration((total ?? 0) / 1000, {precision: 2, style: 'short'});
   const tooltip = percentage ? getTimeSpentExplanation(percentage, op) : undefined;
 
   return (

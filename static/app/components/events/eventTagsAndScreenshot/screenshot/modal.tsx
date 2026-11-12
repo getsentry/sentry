@@ -5,11 +5,11 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Stack, Grid} from '@sentry/scraps/layout';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {webmMimeTypes} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';

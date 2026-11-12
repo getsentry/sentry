@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react';
 
+import {formatElapsedDuration} from '@sentry/scraps/duration';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
 import {
   getInvestigationActiveTime,
   isOnlyNextStepPending,

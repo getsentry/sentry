@@ -4,8 +4,9 @@ import type {LegendComponentOption} from 'echarts';
 import {parseAsString, useQueryStates} from 'nuqs';
 import qs from 'query-string';
 
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,

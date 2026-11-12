@@ -103,10 +103,6 @@
       "types": "./dist/boundaryContext.d.ts",
       "import": "./dist/boundaryContext.js"
     },
-    "./datetime": {
-      "types": "./dist/datetime.d.ts",
-      "import": "./dist/datetime.js"
-    },
     "./sizeContext": {
       "types": "./dist/sizeContext.d.ts",
       "import": "./dist/sizeContext.js"
@@ -322,6 +318,18 @@
     "./pagination": {
       "types": "./dist/pagination/index.d.ts",
       "import": "./dist/pagination/index.js"
+    },
+    "./duration": {
+      "types": "./dist/duration/index.d.ts",
+      "import": "./dist/duration/index.js"
+    },
+    "./relativeTime": {
+      "types": "./dist/relativeTime/index.d.ts",
+      "import": "./dist/relativeTime/index.js"
+    },
+    "./dateTime": {
+      "types": "./dist/dateTime/index.d.ts",
+      "import": "./dist/dateTime/index.js"
     }
   },
   "publishConfig": {
@@ -378,6 +386,7 @@
     "focus-trap": "8.2.2",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
+    "moment-timezone": "0.6.2",
     "prismjs": "^1.30.0",
     "query-string": "7.0.1",
     "react-error-boundary": "^6.1.6",

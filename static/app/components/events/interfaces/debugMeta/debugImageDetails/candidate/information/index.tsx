@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
 import moment from 'moment-timezone';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {FileSize} from 'sentry/components/fileSize';
 import {TimeSince} from 'sentry/components/timeSince';

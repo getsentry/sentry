@@ -8,7 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {ConfigStore} from 'sentry/stores/configStore';

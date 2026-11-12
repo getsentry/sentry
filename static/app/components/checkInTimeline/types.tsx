@@ -1,6 +1,6 @@
 import type {Theme} from '@emotion/react';
 
-import type {DateTimeProps} from 'sentry/components/dateTime';
+import type {DateTimeProps} from '@sentry/scraps/dateTime';
 
 interface MarkerIntervals {
   /**

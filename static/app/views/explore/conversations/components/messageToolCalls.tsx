@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -8,7 +9,6 @@ import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -111,7 +111,9 @@ export function MessageToolCalls({
           }
           duration={
             totalDuration > 0 ? (
-              <MetaValue>{getDuration(totalDuration, 2, true)}</MetaValue>
+              <MetaValue>
+                {getDuration(totalDuration, {precision: 2, style: 'short'})}
+              </MetaValue>
             ) : null
           }
         />
@@ -160,7 +162,9 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
           metric={node ? <ToolOutputSize node={node} /> : null}
           duration={
             tool.duration === undefined || tool.duration <= 0 ? null : (
-              <MetaValue>{getDuration(tool.duration, 2, true)}</MetaValue>
+              <MetaValue>
+                {getDuration(tool.duration, {precision: 2, style: 'short'})}
+              </MetaValue>
             )
           }
         />

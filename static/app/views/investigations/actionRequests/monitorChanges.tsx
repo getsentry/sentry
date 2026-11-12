@@ -4,13 +4,13 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSiren} from '@sentry/icons/siren';
 
 import {Tag} from '@sentry/scraps/badge';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';

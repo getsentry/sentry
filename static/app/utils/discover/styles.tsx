@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 import {IconUser} from '@sentry/icons/user';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ShortId, StyledAutoSelectText} from 'sentry/components/shortId';
 
 // Styled components used to render discover result sets.

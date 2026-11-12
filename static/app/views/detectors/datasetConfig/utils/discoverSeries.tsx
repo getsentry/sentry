@@ -1,8 +1,9 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   EAP_EXTRAPOLATION_MODE_MAP,
   ExtrapolationMode,
@@ -119,7 +120,7 @@ export function getDiscoverSeriesQueryOptions({
     {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        interval: getDuration(interval, 0, false, true),
+        interval: getDuration(interval, {style: 'narrow'}),
         project: [projectId],
         yAxis: aggregate,
         dataset,
