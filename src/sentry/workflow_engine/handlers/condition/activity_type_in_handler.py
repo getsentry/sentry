@@ -10,16 +10,12 @@ from sentry.workflow_engine.types import WorkflowEventData, WorkflowTriggerDataC
 
 
 class WorkflowActivityKind(StrEnum):
-    """Persisted source-event kinds, independent of action and recipient types."""
-
     ISSUE_ASSIGNED = "issue.assigned"
     ISSUE_MENTIONED = "issue.mentioned"
 
 
 def _get_activity_kind(event_data: WorkflowEventData) -> str | None:
     event = event_data.event
-    # Add concrete investigation-event matching here when its schemas are available.
-    # Issue events continue to use their native Activity representation.
     if not isinstance(event, Activity):
         return None
 
