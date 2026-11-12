@@ -36,6 +36,7 @@ export const enum SectionKey {
   THREADS = 'threads',
   SPANS = 'spans',
   EVIDENCE = 'evidence',
+  AGENT_RUN = 'agent-run',
   MESSAGE = 'message',
 
   SUSPECT_ROOT_CAUSE = 'suspect-root-cause',

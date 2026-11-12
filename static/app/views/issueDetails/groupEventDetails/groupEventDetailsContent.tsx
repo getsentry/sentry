@@ -30,10 +30,15 @@ import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {ProguardSection} from 'sentry/components/events/interfaces/debugMeta/proguardSection';
 import {Message} from 'sentry/components/events/interfaces/message';
+import {EventAgentRunSection} from 'sentry/components/events/interfaces/performance/agentRun/eventAgentRun';
+import {useEventAgentRun} from 'sentry/components/events/interfaces/performance/agentRun/useEventAgentRun';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
-import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  eventHasSyntheticTrace,
+  TRACE_WATERFALL_PREFERENCES_KEY,
+} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
@@ -111,6 +116,17 @@ export function EventDetailsContent({
   useCopyIssueDetails(group, event);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const hasTraceSection =
+    issueTypeConfig.trace.enabled &&
+    !!event.contexts.trace?.trace_id &&
+    organization.features.includes('performance-view');
+  const agentRun = useEventAgentRun(event, {
+    enabled:
+      hasTraceSection &&
+      !eventHasSyntheticTrace(event) &&
+      !issueTypeConfig.spanEvidence.enabled &&
+      organization.features.includes('issue-details-agent-run'),
+  });
 
   return (
     <DebugMetaSearchProvider key={event.id}>
@@ -163,6 +179,9 @@ export function EventDetailsContent({
         <EventGpuCrashReport event={event} />
       </ErrorBoundary>
       <EventStackTrace event={event} group={group} projectSlug={projectSlug} />
+      <ErrorBoundary customComponent={() => null}>
+        <EventAgentRunSection agentRun={agentRun} event={event} />
+      </ErrorBoundary>
       <ScreenshotDataSection event={event} projectSlug={project.slug} />
       {isANR && (
         <TraceStateProvider
@@ -234,11 +253,14 @@ export function EventDetailsContent({
           <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
-      {issueTypeConfig.trace.enabled &&
-        event.contexts.trace?.trace_id &&
-        organization.features.includes('performance-view') && (
-          <EventTraceView group={group} event={event} organization={organization} />
-        )}
+      {hasTraceSection && (
+        <EventTraceView
+          group={group}
+          event={event}
+          organization={organization}
+          agentRun={agentRun}
+        />
+      )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />

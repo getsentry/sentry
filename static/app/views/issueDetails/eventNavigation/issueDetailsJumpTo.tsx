@@ -24,6 +24,7 @@ const sectionLabels: Partial<Record<SectionKey, string>> = {
   [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
   [SectionKey.TRACE]: t('Trace'),
+  [SectionKey.AGENT_RUN]: t('Agent Run'),
   [SectionKey.LOGS]: t('Logs'),
   [SectionKey.METRICS]: t('Application Metrics'),
   [SectionKey.TAGS]: t('Tags'),
