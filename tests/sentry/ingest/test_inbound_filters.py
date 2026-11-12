@@ -509,14 +509,26 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             "all",
             [{"type": "environment", "operator": "does_not_start_with", "value": ["prod"]}],
             {
-                "op": "not",
-                "inner": {
-                    "op": "or",
-                    "inner": [
-                        {"op": "glob", "name": name, "value": ["prod*"]}
-                        for name in ENVIRONMENT_FIELDS
-                    ],
-                },
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": name, "value": ["*"]}
+                            for name in ENVIRONMENT_FIELDS
+                        ],
+                    },
+                    {
+                        "op": "not",
+                        "inner": {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": name, "value": ["prod*"]}
+                                for name in ENVIRONMENT_FIELDS
+                            ],
+                        },
+                    },
+                ],
             },
             id="catch_all_environment_negated",
         ),
