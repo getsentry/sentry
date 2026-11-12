@@ -359,10 +359,11 @@ const StyledComposer = styled(Composer, {
   shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
 })<{isWarningPlaceholder: boolean}>`
   max-height: 120px;
-  /* The frame draws the border and the focus ring around the editor and toolbar. */
-  border: none;
-  border-radius: calc(${p => p.theme.radius.lg} - 1px)
-    calc(${p => p.theme.radius.lg} - 1px) 0 0;
+  /* Overlap the frame's border so the editor keeps its native inset corners. */
+  margin: -1px -1px 0;
+  width: calc(100% + 2px);
+  border-bottom: 0;
+  border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
 
   &:focus,
   &:focus-visible {
