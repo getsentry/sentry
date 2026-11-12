@@ -9,6 +9,11 @@ import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
  */
 export type SeerExplorerSidebarPosition = 'auto' | 'right' | 'bottom';
 
+/** The UI entry point that started a chat, recorded on the new run. */
+export type SeerExplorerChatReferrer =
+  | 'command_palette.tab'
+  | 'command_palette.no_results';
+
 /**
  * z.enum but forward-compatible: accepts any string at runtime while preserving
  * autocomplete for the known values via the `(string & {})` trick.

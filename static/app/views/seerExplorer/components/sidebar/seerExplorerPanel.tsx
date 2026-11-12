@@ -15,6 +15,7 @@ export function SeerExplorerPanel() {
     sidebarPosition,
     setSidebarPosition,
     sidebarInitialQuery,
+    sidebarInitialQueryReferrer,
     sidebarAppendInitialQuery,
     sidebarKey,
   } = useSeerExplorerContext();
@@ -29,6 +30,7 @@ export function SeerExplorerPanel() {
         key={sidebarKey}
         getPageReferrer={getPageReferrer}
         initialQuery={sidebarInitialQuery}
+        initialQueryReferrer={sidebarInitialQueryReferrer}
         appendInitialQuery={sidebarAppendInitialQuery}
         onClose={closeSeerExplorer}
         sidebarPosition={sidebarPosition}
