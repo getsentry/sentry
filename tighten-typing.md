@@ -3,12 +3,61 @@
 ## Status
 
 - **Goal:** every cast, `Any`, `type: ignore`, and fixed-name `getattr`/`setattr` that [#129614](https://github.com/getsentry/sentry/pull/129614) (merged as `ae29b66fe41a`) added has been replaced by a contract that matches runtime behavior, or is kept under a named exemption from **Decisions → Escape-hatch policy**. Each change ships as a small draft PR.
-- **Baseline revision:** `de37779b53f` (`origin/master`, 2026-11-03). Rebased from `1cd41fc29e1`; the seeds are unchanged by the 95 commits between them. Timings and pinned versions under **Baseline** are still from `1cd41fc29e1`.
-- **Remaining (sweep counter, `master` only; open drafts #129702 and #129704 are not merged and not counted):** cast 1203, Any 3364, type-ignore 13, fixed-name-reflection 79.
-- **Items:** 2 of 31 in draft (C1 #129702, B1 #129704); 0 of 159 sweep packages. **Red:** none. **Parked:** none.
-- **Next:** B2.
+- **Integration baseline:** `442b0ecccf8` (`origin/master`, 2026-11-12). The combined draft integrates all 37 related open PRs, including the earlier typing fixes. Every source PR stays draft and is rebased onto this baseline.
+- **Last recorded sweep:** cast 1203, Any 3364, type-ignore 13, fixed-name-reflection 79, measured on `master` at `de37779b53f` on 2026-11-03. These historical counts do not describe the integration branch.
+- **Items:** C1 #129702 is merged. B1 #129704 is included in the integration draft. Other seed items and all 159 sweep packages retain their ledger status; collecting open PRs does not complete the campaign.
+- **Verification:** refreshing the pinned dependencies cleared the eight baseline errors in the Seer credit-check files. Full-tree mypy passes on the baseline. Integration validation is recorded below.
+- **Next:** review the combined draft and its validation, then resume B2.
 
 The executor rewrites this block in place after every accepted slice. The **Ledger** is the single tracker for all work: every item, every audit finding (through its item), and every sweep package has a row there.
+
+## Integration of open PRs (2026-11-12)
+
+The owner requested one combined draft, rebasing every related open PR onto the latest `master`, retaining draft status, and updating this document. This request includes the 16 earlier typing fixes. The integration preserves original and restacked source histories. For overlapping fixes, the corrected restacked behavior wins. Dashboard thresholds accept decimal maximums, and nonempty scalar strings remain invalid list-field inputs. The manifest, list-field, and debug-ID originals also use corrections from their restacked versions when resolving rebase or typing failures.
+
+This table accounts for all 37 related open PRs. Paired PRs implement the same fix; both histories are included, with one resulting implementation. Five fixes are already covered by `master` and contribute no code changes.
+
+| Fix | Source PRs | Integration result |
+| --- | --- | --- |
+| Retry exception strings | [#127788](https://github.com/getsentry/sentry/pull/127788) | Already covered; preserve the direct string return. |
+| Monitor status filtering | [#127793](https://github.com/getsentry/sentry/pull/127793) | Include list handling, the `ok` status, and environment-scoped filtering. |
+| Static bundle checksums | [#127794](https://github.com/getsentry/sentry/pull/127794) | Hash every file with its own checksum. |
+| Staff SSO test setup | [#127795](https://github.com/getsentry/sentry/pull/127795) | Use `STAFF_ORG_ID`. |
+| Selenium driver service | [#127796](https://github.com/getsentry/sentry/pull/127796) | Already covered; preserve Chrome reuse and launch helpers. |
+| Social auth settings | [#127797](https://github.com/getsentry/sentry/pull/127797) | Copy extra arguments before modifying them. |
+| Empty release owner | [#127798](https://github.com/getsentry/sentry/pull/127798) | Accept `None` and retain a nullable validator signature. |
+| First-event SDK name | [#127800](https://github.com/getsentry/sentry/pull/127800) | Read `event.data`. |
+| OAuth form responses | [#127812](https://github.com/getsentry/sentry/pull/127812) | Decode bytes before parsing form values. |
+| Monitor deletion audit ID | [#127813](https://github.com/getsentry/sentry/pull/127813) | Pass the scheduled deletion GUID. |
+| Response TypedDict contracts | [#127844](https://github.com/getsentry/sentry/pull/127844) | Retain current API descriptions and apply remaining contract corrections. Release defaults below keep health stats and group counts non-null. |
+| Segment release environment | [#127847](https://github.com/getsentry/sentry/pull/127847) | Already covered; preserve `environment_name`. |
+| Release first and last seen | [#127848](https://github.com/getsentry/sentry/pull/127848) | Merge timestamps across projects using the release ID. |
+| Empty BitField flags | [#127886](https://github.com/getsentry/sentry/pull/127886) | Materialize valid keys so the empty-input guard works. |
+| Empty stats CSV | [#127906](https://github.com/getsentry/sentry/pull/127906) | Return an empty string and type the result as `str`. |
+| Replay environment filter | [#127922](https://github.com/getsentry/sentry/pull/127922) | Resolve environment IDs to names. |
+| Previous-page ordering | [#129615](https://github.com/getsentry/sentry/pull/129615) | The fix and regression test are already covered. |
+| Teams conversation ID | [#129427](https://github.com/getsentry/sentry/pull/129427), [#129616](https://github.com/getsentry/sentry/pull/129616) | Require the response ID. |
+| Blank origin | [#129428](https://github.com/getsentry/sentry/pull/129428), [#129617](https://github.com/getsentry/sentry/pull/129617) | Preserve the blank value. |
+| Release defaults | [#129429](https://github.com/getsentry/sentry/pull/129429), [#129618](https://github.com/getsentry/sentry/pull/129618) | Default missing health stats and group counts. |
+| Jira search query | [#129430](https://github.com/getsentry/sentry/pull/129430), [#129619](https://github.com/getsentry/sentry/pull/129619) | Require a query before calling the client. |
+| Manifest JSON shape | [#129432](https://github.com/getsentry/sentry/pull/129432), [#129620](https://github.com/getsentry/sentry/pull/129620) | Require object-shaped manifests and `files`. |
+| Anonymous search-view queries | [#129433](https://github.com/getsentry/sentry/pull/129433) | Already covered; retain principal-aware ownership queries. |
+| Dashboard thresholds | [#129434](https://github.com/getsentry/sentry/pull/129434), [#129621](https://github.com/getsentry/sentry/pull/129621) | Use #129621, accepting numeric maximums and nullable units. |
+| Artifact debug IDs | [#129435](https://github.com/getsentry/sentry/pull/129435), [#129622](https://github.com/getsentry/sentry/pull/129622) | Treat non-string debug IDs as absent. |
+| Sourcemap headers | [#129436](https://github.com/getsentry/sentry/pull/129436), [#129623](https://github.com/getsentry/sentry/pull/129623) | Treat non-string headers as absent. |
+| Blank allowed domains | [#129438](https://github.com/getsentry/sentry/pull/129438), [#129624](https://github.com/getsentry/sentry/pull/129624) | Use #129624, retaining scalar-string rejection. |
+| Null Slack widget type | [#129704](https://github.com/getsentry/sentry/pull/129704) | Skip unsupported widgets and preserve the existing `ValueError` path. |
+
+The response contract changes affect generated OpenAPI schemas: event attachment objects, nullable transaction timestamps, string issue-view sorts, required ownership `schema`, and session query time unions. `query_replays_dataset_tagkey_values.environment` is now `list[str] | None`, matching its only caller and its `IN` filter. The integration changes no frontend code, migrations, CI workflows, or mypy settings.
+
+Validation on the combined tree:
+
+- Full-tree mypy passes across 8,730 files on the aggregate and all 37 source branches, reusing results for identical source trees. The initial Seer protobuf errors were an environment mismatch and disappeared after refreshing pinned dependencies.
+- The combined regression and API documentation run has 621 passing tests, four skipped tests, five passing subtests, and one sourcemap documentation case returning 404. That case passes in isolation on both the integration branch and `master`; the combined-run failure remains unresolved.
+- Another 83 focused checks pass across sourcemap debugging, monitor filtering, OAuth, onboarding, release serialization, and CSV downloads.
+- API schema generation and example validation pass. Repository hooks pass with formatters skipped; Ruff and whitespace checks pass separately.
+
+This integration retains escape hatches from the source drafts. In particular, checking that an artifact index is an object does not establish the nested `ArtifactIndex` shape promised by its cast. The contract-repair campaign remains open.
 
 ## Charter
 
@@ -28,7 +77,7 @@ The executor rewrites this block in place after every accepted slice. The **Ledg
 
 - **Scope: seeds plus a full sweep.** Finish the seed workstreams (Phase 1–2), then sweep package by package (Phase 3) until the sweep counter reads zero or every remaining count is a recorded exemption.
 - **Draft PRs are authorized.** Push branches and open PRs with `gh pr create --draft`. Never mark one ready, request reviewers, add labels, comment on other PRs, merge, or close.
-- **Followups #129615–#129624 are left untouched.** Don't push to, rebase, or comment on them. When a campaign PR covers the same code, start it from `master` and write `Supersedes #N` in its body. The owner closes the old PR.
+- **Followups #129615–#129624:** the 2026-11-12 integration request authorizes rebasing these branches and including them in the combined draft. Keep every PR draft and open. The earlier restriction remains in effect for unrelated changes.
 - **The executor may fix CI on its own drafts.** Check status with `gh pr checks <n>`. Reproduce a failure locally, fix it on the same branch, and push. Never touch workflow files, and never rerun or fix CI on PRs it did not open.
 - **Titles use Sentry style**, overriding the owner's global lowercase rule for this campaign.
 
@@ -219,6 +268,7 @@ The campaign is not "fully repaired" while any Ledger row is `todo` or `draft`, 
 
 ## Execution boundary and non-goals
 
+- **Integration exception (owner, 2026-11-12):** create and push the combined draft, rebase all 37 related source PR branches (including fork branches) with lease protection, keep every PR draft, and update this document. This grant overrides the branch restrictions below for this task. The two ready originals return to draft. No PR is merged or closed.
 - **Authorized:** local edits and commits; pushing `josh/typing-contracts/*` branches; opening and updating campaign draft PRs; reading any PR or issue with `gh`.
 - **Forbidden:** pushing to `master` or to any other branch, especially the #129615–#129624 branches; marking a PR ready; requesting review; commenting on, labeling, or closing any PR; editing CI workflows; migrations; frontend changes; changing mypy settings in `pyproject.toml` (including `warn_return_any`).
 - **Non-goals:** escape hatches that existed before #129614, unless a repair has to go through them; rewriting the followups; and runtime refactors that don't improve a contract.
@@ -296,7 +346,7 @@ Statuses: `todo`, `draft #N`, `merged #N`, `parked: <cause>; retry when <conditi
 | B1    | draft #129704 | Explicit skip; `build_widget_timeseries_params` raises its `ValueError` again. One test, sharing the unsupported-type skip test's body. |
 | B2    | todo          |                                                                                                                                         |
 | B3    | todo          |                                                                                                                                         |
-| C1    | draft #129702 | Overrides deleted; `MissedMarginField` typed; no new tests (covered by `test_resolve_age` and mypy).                                    |
+| C1    | merged #129702 | Overrides deleted; `MissedMarginField` typed; no new tests (covered by `test_resolve_age` and mypy).                                    |
 | C2    | todo          |                                                                                                                                         |
 | C3    | todo          |                                                                                                                                         |
 | C4    | todo          |                                                                                                                                         |
