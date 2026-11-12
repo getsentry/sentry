@@ -101,7 +101,7 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
             installation_id = (claims.get("app") or {}).get("installationId")
 
         event = request.data
-        if cloud_id is None or not isinstance(event, dict) or not event.get("changelog"):
+        if cloud_id is None or not _is_issue_change(event):
             return self.respond(status=202)
 
         integration = integration_service.get_integration(
@@ -132,6 +132,18 @@ class JiraForgeIssueUpdatedWebhook(JiraWebhookBase):
             # handlers are idempotent, so the whole event is safe to apply again.
             return self.respond(status=503)
         return self.respond(status=202)
+
+
+def _is_issue_change(event: Any) -> bool:
+    """Whether the event has the fields the handlers read without checking."""
+    if not isinstance(event, dict) or not isinstance(event.get("changelog"), dict):
+        return False
+    issue = event.get("issue")
+    return (
+        isinstance(issue, dict)
+        and isinstance(issue.get("id"), str)
+        and isinstance(issue.get("key"), str)
+    )
 
 
 def _apply_change(

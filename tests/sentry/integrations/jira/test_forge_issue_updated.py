@@ -87,6 +87,11 @@ class JiraForgeIssueUpdatedWebhookTest(ForgeIssueUpdatedTestMixin):
     def test_rejects_unsigned_delivery(self) -> None:
         assert self.deliver(MOVED_EVENT, signed=False) == 401
 
+    @patch(f"{MODULE}.handle_issue_moved")
+    def test_ignores_events_without_an_issue(self, mock_moved: MagicMock) -> None:
+        assert self.deliver({**MOVED_EVENT, "issue": {"id": "101"}}) == 202
+        mock_moved.assert_not_called()
+
     def test_applies_issue_move(self) -> None:
         external_issue = self.create_integration_external_issue(
             group=self.create_group(), integration=self.rpc_integration, key="APP-123"
