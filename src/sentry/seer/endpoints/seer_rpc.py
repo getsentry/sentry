@@ -12,7 +12,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
-from requests.exceptions import RequestException
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -34,17 +33,13 @@ from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentic
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
-from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.features.base import OrganizationFeature
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.identity import default_manager as identity_manager
-from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.investigations.endpoints.validators import InvestigationOrchestrationEventValidator
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.models.group import Group
@@ -66,6 +61,10 @@ from sentry.seer.agent.index_data import (
 )
 from sentry.seer.agent.monitoring_providers import (
     get_monitoring_provider_connections as fetch_monitoring_provider_connections,
+)
+from sentry.seer.agent.monitoring_providers import (
+    refresh_monitoring_provider_identity_token,
+    refresh_monitoring_provider_integration_token,
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
@@ -144,7 +143,6 @@ from sentry.seer.sentry_data_models import (
 from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
@@ -841,7 +839,11 @@ def deliver_feature_result(
 def get_monitoring_provider_connections(
     *, organization_id: int, user_id: int
 ) -> MonitoringProviderConnectionsResponse:
-    """Fetch the user's connected monitoring provider identities."""
+    """
+    Seer RPC shim for ``OrganizationSeerMonitoringConnectionsEndpoint``. Kept until Seer
+    calls the endpoint. It trusts ``user_id``; the endpoint takes the caller from the
+    viewer context.
+    """
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
@@ -863,102 +865,24 @@ def get_monitoring_provider_connections(
 def refresh_org_monitoring_provider_token(
     *, organization_id: int, integration_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
-    """Replace an org integration's rejected MCP token without a user identity."""
-    if not settings.SEER_GHE_ENCRYPT_KEY:
-        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
-    integrations = integration_service.get_integrations(
-        integration_ids=[integration_id],
-        organization_id=organization_id,
-        providers=[IntegrationProviderSlug.LINEAR.value],
-        status=ObjectStatus.ACTIVE,
-        org_integration_status=ObjectStatus.ACTIVE,
-    )
-    if not integrations:
-        return RefreshMonitoringProviderTokenErrorResponse(error="integration_not_found")
-    token = integration_service.get_access_token(
-        organization_id=organization_id, integration_id=integration_id, force_refresh=True
-    )
-    if token is None:
-        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
-    encrypted_header = encrypt_access_token_for_seer(f"Bearer {token.token}")
-    if not encrypted_header:
-        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
-    return RefreshMonitoringProviderTokenSuccessResponse(
-        encrypted_auth_headers={"Authorization": encrypted_header},
-        expires=int(token.expires_at.timestamp()) if token.expires_at else None,
+    """
+    Seer RPC shim for ``OrganizationSeerMonitoringIntegrationTokenEndpoint``. Kept until
+    Seer calls the endpoint.
+    """
+    return refresh_monitoring_provider_integration_token(
+        organization_id=organization_id, integration_id=integration_id
     )
 
 
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
-    """Refresh the access token for a monitoring provider identity."""
-    if not settings.SEER_GHE_ENCRYPT_KEY:
-        logger.error("Cannot encrypt monitoring provider access token without SEER_GHE_ENCRYPT_KEY")
-        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
-
-    identity = identity_service.get_identity(filter={"id": identity_id})
-    if identity is None:
-        logger.error(
-            "monitoring_provider.refresh.identity_not_found", extra={"identity_id": identity_id}
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
-
-    idp = identity_service.get_provider(provider_id=identity.idp_id)
-    if idp is None or idp.type not in MONITORING_PROVIDERS:
-        logger.error(
-            "monitoring_provider.refresh.identity_provider_not_found",
-            extra={
-                "identity_id": identity.id,
-                "idp_id": identity.idp_id,
-                "idp_type": idp.type if idp is not None else None,
-            },
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_found")
-
-    provider = identity_manager.get(idp.type)
-    if not isinstance(provider, OAuth2Provider):
-        # Static-token providers (e.g. Datadog PAT) have no refresh flow.
-        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_not_supported")
-
-    try:
-        provider.refresh_identity(identity)
-    except IdentityNotValid:
-        logger.exception(
-            "monitoring_provider.refresh.identity_not_valid",
-            extra={
-                "identity_id": identity_id,
-                "provider": idp.type,
-                "has_refresh_token": "refresh_token" in identity.data,
-            },
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
-    except (ApiError, KeyError, RequestException):
-        logger.exception(
-            "monitoring_provider.refresh.failed",
-            extra={"identity_id": identity_id, "provider": idp.type},
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="refresh_failed")
-
-    access_token = identity.data.get("access_token")
-    if not access_token:
-        logger.error(
-            "monitoring_provider.refresh.access_token_not_found", extra={"identity_id": identity.id}
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
-
-    encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
-    if not encrypted_auth_header:
-        logger.error(
-            "monitoring_provider.refresh.access_token_encryption_failed",
-            extra={"identity_id": identity.id},
-        )
-        return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
-
-    return RefreshMonitoringProviderTokenSuccessResponse(
-        encrypted_auth_headers={"Authorization": encrypted_auth_header},
-        expires=identity.data.get("expires"),
-    )
+    """
+    Seer RPC shim for ``OrganizationSeerMonitoringIdentityTokenEndpoint``. Kept until
+    Seer calls the endpoint. Unlike the endpoint, it doesn't bind the identity to a user
+    or an organization.
+    """
+    return refresh_monitoring_provider_identity_token(identity_id)
 
 
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
