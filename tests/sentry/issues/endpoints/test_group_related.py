@@ -5,9 +5,11 @@ from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.api.serializers import serialize
+from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.endpoints.group_related import ALL_TYPES_UNAVAILABLE_DETAIL
 from sentry.issues.related.similar_stacktrace import (
     NO_STACKTRACE_DETAIL,
+    NOT_AN_ERROR_DETAIL,
     SIMILARITY_DISABLED_DETAIL,
 )
 from sentry.models.group import Group
@@ -164,6 +166,27 @@ class GroupRelatedEndpointTest(APITestCase):
                     "type": "similar_stacktrace",
                     "status": "not_applicable",
                     "detail": NO_STACKTRACE_DETAIL,
+                }
+            ]
+        }
+        mock_seer_request.assert_not_called()
+
+    @mock.patch(SEER_URLOPEN)
+    def test_non_error_issue(self, mock_seer_request: mock.MagicMock) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/related/",
+            {"type": "similar_stacktrace"},
+        )
+
+        assert response.status_code == 200
+        assert response.data["meta"] == {
+            "types": [
+                {
+                    "type": "similar_stacktrace",
+                    "status": "not_applicable",
+                    "detail": NOT_AN_ERROR_DETAIL,
                 }
             ]
         }

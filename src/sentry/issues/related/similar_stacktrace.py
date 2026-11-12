@@ -15,6 +15,7 @@ from collections.abc import Sequence
 
 from sentry.auth.principal import acting_user_id
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.types import (
     RelatedIssueRelation,
     RelatedIssuesContext,
@@ -47,6 +48,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 SIMILARITY_UNAVAILABLE_DETAIL = "Similar stack traces are temporarily unavailable. Try again later."
+NOT_AN_ERROR_DETAIL = "Only error issues have similar stack traces."
 SIMILARITY_DISABLED_DETAIL = "Seer similarity isn't enabled for this project."
 NO_STACKTRACE_DETAIL = "This issue's event has no stack trace Seer can compare."
 
@@ -98,6 +100,9 @@ def similar_stacktrace_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     group, event = ctx.group, ctx.event
 
     # 1. Check that this type applies to the issue
+    # Seer only indexes error issues, so a metric or performance issue has nothing to compare.
+    if group.issue_category != GroupCategory.ERROR:
+        return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NOT_AN_ERROR_DETAIL)
     if not project_uses_seer_similarity(group.project):
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=SIMILARITY_DISABLED_DETAIL)
     if killswitch_enabled(group.project.id, ReferrerOptions.SIMILAR_ISSUES_TAB):
