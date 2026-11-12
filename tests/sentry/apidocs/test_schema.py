@@ -17,6 +17,8 @@ from sentry.api.helpers.timeseries_transformations import (
     SmaSmoothTransformation,
     get_transformations,
 )
+from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.workflow_engine.endpoints.organization_detector_index import (
@@ -26,6 +28,34 @@ from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowIndexEndpoint,
 )
 from tests.sentry.apidocs import generate_schema
+
+
+@pytest.mark.parametrize(
+    ("view", "method", "component", "has_default"),
+    [
+        (OrganizationMemberIndexEndpoint, "post", "OrganizationMemberRequest", True),
+        (OrganizationMemberDetailsEndpoint, "put", "UpdateOrgMemberRoles", False),
+    ],
+)
+def test_member_team_role_request_schema(
+    view: type[Endpoint], method: str, component: str, has_default: bool
+) -> None:
+    route = "organizations/<str:organization_id_or_slug>/members/"
+    schema = generate_schema(route, view=view)
+    operation = schema["paths"]["/organizations/{organization_id_or_slug}/members/"][method]
+    assert operation["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": f"#/components/schemas/{component}"
+    }
+    components = schema["components"]["schemas"]
+    team_roles = components[component]["properties"]["teamRoles"]
+    assert team_roles["type"] == "array"
+    assert ("default" in team_roles) is has_default
+    assert not team_roles.get("nullable", False)
+    assert team_roles["items"] == {"$ref": "#/components/schemas/TeamRoleAssignment"}
+    assignment = components["TeamRoleAssignment"]
+    assert set(assignment["required"]) == {"teamSlug", "role"}
+    assert assignment["properties"]["teamSlug"]["type"] == "string"
+    assert assignment["properties"]["role"]["nullable"] is True
 
 
 def test_simple() -> None:
