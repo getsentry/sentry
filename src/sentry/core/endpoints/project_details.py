@@ -745,9 +745,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        old_data = serialize(
-            project, request.user, DetailedProjectSerializer(), access=request.access
-        )
+        old_data = serialize(project, request.user, DetailedProjectSerializer())
         has_elevated_scopes = request.access and (
             request.access.has_scope("project:write")
             or request.access.has_scope("project:admin")
@@ -846,7 +844,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:fingerprinting_rules"] = result["fingerprintingRules"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
-                changed_proj_settings["sentry:token"] = result["securityToken"]
+                changed_proj_settings["sentry:token"] = "[Filtered]"
         if result.get("securityTokenHeader") is not None:
             if project.update_option("sentry:token_header", result["securityTokenHeader"]):
                 changed_proj_settings["sentry:token_header"] = result["securityTokenHeader"]

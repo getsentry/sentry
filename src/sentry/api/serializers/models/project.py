@@ -35,7 +35,7 @@ from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_p
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import Environment, EnvironmentProject
-from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.options.project_option import EXPOSED_OPTION_KEYS, OPTION_KEYS, ProjectOption
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -672,13 +672,10 @@ class ProjectSerializer(Serializer):
         # no options specified
         option_list: list[str] = []
 
-        # Internal option keys are not all safe to expose. The scraping token is
-        # available only through the permission-gated detailed serializer.
+        # Internal option keys are not all safe to expose.
         if self.expand_context.get("options"):
             option_list = [
-                option
-                for option in self.expand_context["options"]
-                if option in OPTION_KEYS and option != "sentry:token"
+                option for option in self.expand_context["options"] if option in EXPOSED_OPTION_KEYS
             ]
 
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)

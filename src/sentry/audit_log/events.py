@@ -138,8 +138,10 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
             return "renamed project slug from {old_slug} to {new_slug}".format(
                 **audit_log_entry.data
             )
+        # Historical entries may contain the raw token.
         items_string = " ".join(
-            f"in {key} to {value}" for (key, value) in audit_log_entry.data.items()
+            f"in {key} to {'[Filtered]' if key == 'sentry:token' else value}"
+            for key, value in audit_log_entry.data.items()
         )
         return "edited project settings " + items_string
 
