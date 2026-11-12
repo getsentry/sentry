@@ -54,7 +54,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   const {copy} = useCopyToClipboard();
   const isSingleRun = isSingleRunAutofix(autofix.runState);
   const singleRunRerun = useRerunSingleRun(autofix, {
-    enabled: isSingleRun && section.status === 'error',
+    enabled: isSingleRun && section.status !== 'processing' && !artifact?.data && !stop,
   });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
