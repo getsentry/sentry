@@ -61,7 +61,6 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import project_stopping_point, should_use_single_run
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
@@ -239,7 +238,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
     stopping_point = serializers.ChoiceField(
         required=False,
         choices=["root_cause", "solution", "code_changes", "open_pr"],
-        help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
+        help_text="Where the issue fix process should stop. If not provided, step runs stop at root cause and single runs at code changes.",
     )
     run_id = serializers.IntegerField(
         required=False,
@@ -365,16 +364,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
-        stopping_points = {stopping_point}
-        is_new_run = data.get("sentry_run_id") is None and data.get("run_id") is None
-        if (
-            stopping_point is None
-            and is_new_run
-            and should_use_single_run(group, step)
-            and project_stopping_point(group.project) == AutofixStoppingPoint.OPEN_PR
-        ):
-            stopping_points.add(AutofixStoppingPoint.OPEN_PR.value)
-        _require_publish_scope(request, group, step, stopping_points)
+        _require_publish_scope(request, group, step, {stopping_point})
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
