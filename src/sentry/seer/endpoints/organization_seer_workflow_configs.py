@@ -183,7 +183,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
                 )
         elif "monitorIds" in data:
             raise serializers.ValidationError(
-                {"monitorIds": "Only metric automations support monitor selection."}
+                {"monitorIds": "This automation type does not support monitor selection."}
             )
         return data
 
@@ -596,7 +596,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             and get_definition(config.strategy).trigger.scoped_by != "monitors"
         ):
             return Response(
-                {"detail": "Only metric automations support monitor selection."}, status=400
+                {"detail": "This automation type does not support monitor selection."}, status=400
             )
 
         if project_ids or monitor_ids:

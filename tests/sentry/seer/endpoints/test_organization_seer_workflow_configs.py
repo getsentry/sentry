@@ -688,12 +688,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
     def test_put_enables_and_pauses_metric_investigations(self) -> None:
         monitor = self.create_metric_monitor(self.project)
         workflow = self.create_metric_workflow(monitor_ids=[monitor.id])
+        backing_workflow = Workflow.objects.filter(id=workflow.get_config().backing_workflow_id)
+        assert not backing_workflow.get().enabled
 
         response = self.get_success_response(
             self.organization.slug, workflow.config_id, method="put", enabled=True
         )
         assert response.data["enabled"] is True
         assert workflow.matches_scope(self.project.id, None)
+        assert backing_workflow.get().enabled
         version = response.data["version"]
 
         repeated = self.get_success_response(
@@ -707,6 +710,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["enabled"] is False
         assert not workflow.matches_scope(self.project.id, None)
         assert response.data["monitorIds"] == [monitor.id]
+        assert not backing_workflow.get().enabled
 
     def test_member_cannot_enable_investigations_for_inaccessible_projects(self) -> None:
         monitor = self.create_metric_monitor(self.project)
@@ -781,7 +785,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             status_code=400,
         )
 
-        assert response.data == {"detail": "Only metric automations support monitor selection."}
+        assert response.data == {
+            "detail": "This automation type does not support monitor selection."
+        }
         config.refresh_from_db()
         assert config.version == 1
         assert config.backing_workflow_id is None
@@ -1367,7 +1373,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
         assert response.data == {
-            "monitorIds": ["Only metric automations support monitor selection."]
+            "monitorIds": ["This automation type does not support monitor selection."]
         }
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 

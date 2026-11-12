@@ -32,14 +32,14 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.base import (
+    AutomationAction,
+    AutomationDefinition,
+    AutomationTrigger,
     ConfigUpdate,
     NoSettings,
     RejectionReason,
     ScopeSelection,
     SelectedMonitors,
-    WorkflowAction,
-    WorkflowDefinition,
-    WorkflowTrigger,
     WorkflowUpdateError,
     lock_config,
 )
@@ -82,7 +82,7 @@ class MetricBreachInputs(BaseModel):
     action_id: int
 
 
-class MetricAlertTrigger(WorkflowTrigger[MetricBreachInputs]):
+class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
     """Runs when a connected metric monitor opens an issue.
 
     The config's backing alert workflow holds the monitor connections, so the automation
@@ -134,7 +134,9 @@ class MetricAlertTrigger(WorkflowTrigger[MetricBreachInputs]):
         )
 
     def sync(self, config: SeerWorkflowConfig) -> None:
-        pass
+        Workflow.objects.filter(
+            id=config.backing_workflow_id, organization_id=config.organization_id
+        ).exclude(enabled=config.enabled).update(enabled=config.enabled)
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         if config.backing_workflow_id is None:
@@ -147,7 +149,7 @@ class MetricAlertTrigger(WorkflowTrigger[MetricBreachInputs]):
             workflow.update(status=ObjectStatus.PENDING_DELETION)
 
 
-class InvestigateBreachedMetricAction(WorkflowAction[MetricBreachInputs]):
+class InvestigateBreachedMetricAction(AutomationAction[MetricBreachInputs]):
     settings_type = NoSettings
 
     def dispatch(
@@ -548,7 +550,7 @@ def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -
     return workflow
 
 
-def _definition_for(config: SeerWorkflowConfig) -> WorkflowDefinition[Any] | None:
+def _definition_for(config: SeerWorkflowConfig) -> AutomationDefinition[Any] | None:
     # Imported here because definitions imports this module for its table of pairings.
     from sentry.seer.workflows.definitions import find_definition
 

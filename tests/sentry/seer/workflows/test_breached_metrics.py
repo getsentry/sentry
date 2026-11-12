@@ -528,7 +528,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
         assert not SeerWorkflowRun.objects.exists()
 
-    @mock.patch("sentry.seer.workflows.base.WorkflowDefinition.has_quota_available")
+    @mock.patch("sentry.seer.workflows.base.AutomationDefinition.has_quota_available")
     def test_wfe_action_ignores_environment_mismatch_without_history(
         self, admission: mock.MagicMock
     ) -> None:
@@ -550,7 +550,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         event = self.breach_event(detector_id=self.detector.id)
         with (
             mock.patch(
-                "sentry.seer.workflows.base.WorkflowDefinition.has_quota_available",
+                "sentry.seer.workflows.base.AutomationDefinition.has_quota_available",
                 return_value=False,
             ) as quota,
             mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr,
@@ -992,7 +992,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             update.set_scope(SelectedMonitors(tuple(self.monitor_ids)))
 
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        with pytest.raises(ValueError, match="Only metric automations"):
+        with pytest.raises(ValueError, match="does not support monitor selection"):
             self.select_monitors(self.monitor_ids)
         assert not Workflow.objects.exists()
 

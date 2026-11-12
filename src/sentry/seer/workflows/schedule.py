@@ -26,12 +26,12 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
+    AutomationAction,
+    AutomationTrigger,
     ConfigUpdate,
     ScopeSelection,
     SelectedMonitors,
     SelectedProjects,
-    WorkflowAction,
-    WorkflowTrigger,
     WorkflowUpdateError,
     validate_project_ids,
 )
@@ -110,7 +110,7 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
         )
 
 
-class ScheduleTrigger(WorkflowTrigger[ScheduledRunInputs]):
+class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
     inputs_type = ScheduledRunInputs
@@ -136,7 +136,9 @@ class ScheduleTrigger(WorkflowTrigger[ScheduledRunInputs]):
                 all_projects = False
                 project_ids = set(selected)
             case SelectedMonitors():
-                raise WorkflowUpdateError("Only metric automations support monitor selection.")
+                raise WorkflowUpdateError(
+                    "This automation type does not support monitor selection."
+                )
             case _:
                 assert_never(selection)
 
@@ -174,7 +176,7 @@ class ScheduleTrigger(WorkflowTrigger[ScheduledRunInputs]):
         )
 
 
-class PromptedInvestigationAction(WorkflowAction[BaseModel]):
+class PromptedInvestigationAction(AutomationAction[BaseModel]):
     """Run an investigation from a prompt, whatever started the run."""
 
     settings_type = PromptSettings

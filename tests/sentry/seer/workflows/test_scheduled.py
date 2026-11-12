@@ -14,7 +14,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.base import WorkflowDefinition
+from sentry.seer.workflows.base import AutomationDefinition
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.schedule import (
     PromptedInvestigationAction,
@@ -206,7 +206,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert self.is_scheduled()
 
     def test_quota_exceeded_rejects_the_run(self) -> None:
-        with patch.object(WorkflowDefinition, "has_quota_available", return_value=False):
+        with patch.object(AutomationDefinition, "has_quota_available", return_value=False):
             self.run_task()
 
         (run,) = self.runs()
