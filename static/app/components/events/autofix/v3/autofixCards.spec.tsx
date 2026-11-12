@@ -671,6 +671,47 @@ describe('ArtifactCard', () => {
       expect(startStepMock).toHaveBeenCalledWith('root_cause');
     });
 
+    it('holds Re-run disabled when the org cannot afford a new single run', async () => {
+      const creditsOrganization = OrganizationFixture({
+        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_root_cause'})],
+        body: {hasEnoughCredits: false},
+      });
+      const queryClient = makeTestQueryClient();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <CodeChangesCard
+            autofix={{
+              ...mockAutofix,
+              runState: {
+                run_id: 776,
+                feature_id: 'autofix_single_run',
+                status: 'error',
+                updated_at: '2026-01-01T00:00:00Z',
+                blocks: [],
+              },
+            }}
+            groupId="1"
+            section={makeSection('code_changes', 'error', [])}
+          />
+        </QueryClientProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryState(
+            seerCreditCheckApiOptions(creditsOrganization, 'autofix_root_cause').queryKey
+          )?.status
+        ).toBe('success')
+      );
+      expect(screen.getByRole('button', {name: 'Re-run'})).toBeDisabled();
+    });
+
     it('renders single file in single repo', () => {
       render(
         <CodeChangesCard

@@ -52,7 +52,10 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
   ) : null;
 
   const {copy} = useCopyToClipboard();
-  const rerunSingleRun = useRerunSingleRun(autofix);
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+  const singleRunRerun = useRerunSingleRun(autofix, {
+    enabled: isSingleRun && section.status === 'error',
+  });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -162,11 +165,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              onClick={
-                isSingleRunAutofix(autofix.runState)
-                  ? rerunSingleRun
-                  : () => handleReset()
-              }
+              disabled={isSingleRun && singleRunRerun.disabled}
+              onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
             >
               {t('Re-run')}
             </Button>

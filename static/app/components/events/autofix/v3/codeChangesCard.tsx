@@ -102,7 +102,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const {copy} = useCopyToClipboard();
   const isSingleRun = isSingleRunAutofix(autofix.runState);
-  const rerunSingleRun = useRerunSingleRun(autofix);
+  const singleRunRerun = useRerunSingleRun(autofix, {
+    enabled: isSingleRun && section.status === 'error',
+  });
   const markdown = useMemo(
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
@@ -347,8 +349,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
             <Button
               variant="primary"
               icon={<IconRefresh />}
-              disabled={!isSingleRun && !canReset}
-              onClick={isSingleRun ? rerunSingleRun : () => handleReset()}
+              disabled={isSingleRun ? singleRunRerun.disabled : !canReset}
+              onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
             >
               {t('Re-run')}
             </Button>
