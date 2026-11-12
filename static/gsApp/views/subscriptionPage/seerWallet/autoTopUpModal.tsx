@@ -55,15 +55,12 @@ function toWholeDollarCents(cents: number) {
 }
 
 function getInitialAmount(autoTopUp: SeerWalletAutoTopUp, creditPriceCents: number) {
-  const savedCents = toWholeDollarCents(autoTopUp.topUpCredits * creditPriceCents);
-  if (AMOUNT_PRESETS_CENTS.includes(savedCents)) {
-    return {cents: savedCents, isCustom: false};
-  }
-  // Turning on starts from a preset rather than an amount the user never picked.
-  if (!autoTopUp.enabled) {
+  if (autoTopUp.topUpCredits === null) {
     return {cents: DEFAULT_AMOUNT_CENTS, isCustom: false};
   }
-  return {cents: savedCents, isCustom: true};
+  // Turning off keeps the amount, so this is also what turning back on shows.
+  const savedCents = toWholeDollarCents(autoTopUp.topUpCredits * creditPriceCents);
+  return {cents: savedCents, isCustom: !AMOUNT_PRESETS_CENTS.includes(savedCents)};
 }
 
 /**

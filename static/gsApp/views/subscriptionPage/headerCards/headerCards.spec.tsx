@@ -31,7 +31,7 @@ describe('HeaderCards', () => {
       body: {
         enabled: false,
         thresholdCredits: 500,
-        topUpCredits: 1000,
+        topUpCredits: null,
         dailySpendCapCents: 7500,
       },
     });

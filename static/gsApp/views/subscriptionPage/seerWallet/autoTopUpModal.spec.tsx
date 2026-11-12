@@ -11,7 +11,7 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: null,
     dailySpendCapCents: 7500,
     ...params,
   };
@@ -79,7 +79,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(
       await screen.findByText('Whenever your credits drop below $5, purchase this amount')
     ).toBeInTheDocument();
-    // The saved $10 isn't a preset, so turning on starts from the first one.
+    // Nothing is saved yet, so turning on starts from the first preset.
     expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
     expect(
       screen.queryByRole('textbox', {name: 'Custom credit amount'})
@@ -199,6 +199,36 @@ describe('openSeerAutoTopUpModal', () => {
           thresholdCredits: 500,
           topUpCredits: 4000,
           dailySpendCapCents: 20_000,
+        },
+      })
+    );
+  });
+
+  it('turns back on with the custom amount saved before turning off', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 1000}),
+    });
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: false, topUpCredits: 1000}),
+    });
+
+    expect(await screen.findByRole('radio', {name: 'Custom'})).toBeChecked();
+    expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('10');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $10.00 + tax'})
+    );
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 1000,
+          dailySpendCapCents: 7500,
         },
       })
     );

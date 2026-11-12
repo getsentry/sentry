@@ -30,7 +30,10 @@ export type SeerWalletAutoTopUp = {
   dailySpendCapCents: number;
   enabled: boolean;
   thresholdCredits: number;
-  topUpCredits: number;
+  /**
+   * Null until auto-load is first saved.
+   */
+  topUpCredits: number | null;
 };
 
 export function seerWalletBalanceOptions(organization: Organization) {

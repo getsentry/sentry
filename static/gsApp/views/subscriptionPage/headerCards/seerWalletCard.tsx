@@ -93,7 +93,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
               {autoTopUp.enabled ? t('Auto-load • On') : t('Auto-load • Off')}
             </Text>
             <Text size="xs" variant="muted">
-              {autoTopUp.enabled
+              {autoTopUp.enabled && autoTopUp.topUpCredits !== null
                 ? tct('Adds [credits] credits when below [threshold]', {
                     credits: autoTopUp.topUpCredits.toLocaleString(),
                     threshold: autoTopUp.thresholdCredits.toLocaleString(),

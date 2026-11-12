@@ -27,7 +27,7 @@ describe('SeerOutOfCreditsCta', () => {
       body: {
         enabled,
         thresholdCredits: 500,
-        topUpCredits: 1000,
+        topUpCredits: enabled ? 1000 : null,
         dailySpendCapCents: 7500,
       },
     });

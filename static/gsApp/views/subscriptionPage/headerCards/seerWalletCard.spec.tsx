@@ -28,7 +28,7 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: params.enabled ? 1000 : null,
     dailySpendCapCents: 7500,
     ...params,
   };
