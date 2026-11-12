@@ -318,6 +318,114 @@ describe('openSeerAutoTopUpModal', () => {
     ).toBeInTheDocument();
   });
 
+  it('verifies the first auto-reload charge with the bank', async () => {
+    const walletMock = MockApiClient.addMockResponse({
+      url: walletUrl,
+      body: {
+        balance: 0,
+        creditPriceCents: 1,
+        percentUsed: 1,
+        included: {total: 500, remaining: 0, resetsAt: null},
+        purchased: {total: 0, remaining: 0, expiresAt: null},
+      },
+    });
+    const autoTopUpMock = MockApiClient.addMockResponse({url, body: AutoTopUpFixture()});
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_secret',
+        },
+      },
+    });
+    const confirmMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/invoice-guid/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
+    renderGlobalModal({organization});
+    act(() => openSeerAutoTopUpModal({organization}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/payments/invoice-guid/confirm/`,
+      expect.objectContaining({data: {paymentIntentId: 'test-payment'}})
+    );
+    expect(await screen.findByText('Auto-reload turned on')).toBeInTheDocument();
+    expect(walletMock).toHaveBeenCalledTimes(2);
+    expect(autoTopUpMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns to the entered settings when bank verification fails', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'ERROR',
+        },
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(await screen.findByText(/authentication failed/)).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
+  it('returns to the entered settings when bank verification is cancelled', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_secret',
+        },
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
   it('offers a retry when the wallet fails to load', async () => {
     MockApiClient.addMockResponse({url: walletUrl, statusCode: 500, body: {}});
     MockApiClient.addMockResponse({url, body: AutoTopUpFixture()});

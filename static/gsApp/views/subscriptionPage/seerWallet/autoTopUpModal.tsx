@@ -22,6 +22,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
+import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
+import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
@@ -44,6 +46,17 @@ type AutoTopUpFormProps = AutoTopUpModalProps & {
   balanceCredits: number;
   creditPriceCents: number;
   purchased: SeerWalletBalance['purchased'];
+};
+
+type PaymentVerification = {
+  clientSecret: string;
+  paymentIntentId: string;
+  required: boolean;
+};
+
+type PaymentRequiredResponse = {
+  invoiceGuid?: string;
+  verification?: PaymentVerification;
 };
 
 function parseWholeNumber(value: string) {
@@ -144,6 +157,21 @@ function AutoTopUpForm({
     toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
+  const [verification, setVerification] = useState<
+    (PaymentVerification & {invoiceGuid: string}) | null
+  >(null);
+
+  const refreshWallet = () => {
+    queryClient.invalidateQueries({
+      queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
+    });
+    // Turning on can bill credits right away, so refresh the balance as well.
+    queryClient.invalidateQueries({
+      queryKey: seerWalletBalanceOptions(organization).queryKey,
+    });
+    // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
+    queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+  };
 
   const {mutate: save, isPending} = useMutation({
     mutationFn: (data: SeerWalletAutoTopUp) =>
@@ -155,15 +183,7 @@ function AutoTopUpForm({
         data,
       }),
     onSuccess: data => {
-      queryClient.invalidateQueries({
-        queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
-      });
-      // Turning on can bill credits right away, so refresh the balance as well.
-      queryClient.invalidateQueries({
-        queryKey: seerWalletBalanceOptions(organization).queryKey,
-      });
-      // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
-      queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+      refreshWallet();
       if (!data.enabled) {
         toast.success(t('Auto-reload turned off'));
       } else if (isTurningOn) {
@@ -174,10 +194,12 @@ function AutoTopUpForm({
       closeModal();
     },
     onError: err => {
-      const fieldErrors =
-        err instanceof RequestError
-          ? (err.responseJSON as Record<string, string[]> | undefined)
-          : undefined;
+      const paymentRequired = getPaymentVerification(err);
+      if (paymentRequired) {
+        setVerification(paymentRequired);
+        return;
+      }
+      const fieldErrors = err instanceof RequestError ? err.responseJSON : undefined;
       setIsConfirmingTurnOff(false);
       setError(
         fieldErrors
@@ -186,6 +208,37 @@ function AutoTopUpForm({
       );
     },
   });
+
+  if (verification) {
+    return (
+      <Fragment>
+        <Header closeButton>
+          <Heading as="h2" size="xl">
+            {t('Verify payment')}
+          </Heading>
+        </Header>
+        <Body>
+          <StripeWrapper>
+            <AuthenticatePayment
+              clientSecret={verification.clientSecret}
+              invoiceGuid={verification.invoiceGuid}
+              organization={organization}
+              onCancel={() => setVerification(null)}
+              onFailure={message => {
+                setVerification(null);
+                setError(message);
+              }}
+              onSuccess={() => {
+                refreshWallet();
+                toast.success(t('Auto-reload turned on'));
+                closeModal();
+              }}
+            />
+          </StripeWrapper>
+        </Body>
+      </Fragment>
+    );
+  }
 
   if (isConfirmingTurnOff) {
     return (
@@ -378,6 +431,24 @@ function AutoTopUpForm({
       </Footer>
     </Fragment>
   );
+}
+
+function getPaymentVerification(error: unknown) {
+  if (!(error instanceof RequestError)) {
+    return null;
+  }
+  const response = error.responseJSON as PaymentRequiredResponse | undefined;
+  const verification = response?.verification;
+  if (
+    !response ||
+    !verification?.required ||
+    !verification.clientSecret ||
+    !verification.paymentIntentId ||
+    !response.invoiceGuid
+  ) {
+    return null;
+  }
+  return {...verification, invoiceGuid: response.invoiceGuid};
 }
 
 function TurnOffMessage({purchased}: {purchased: SeerWalletBalance['purchased']}) {
