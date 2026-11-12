@@ -552,24 +552,23 @@ class ConfigUpdate:
         return True
 
     def _service_account_replica(self) -> ServiceAccountReplica:
-        replica = (
-            ServiceAccountReplica.objects.filter(
-                service_account_id=self.config.service_account_id,
-                organization_id=self.config.organization_id,
-                is_active=True,
-            ).first()
-            if self.config.service_account_id is not None
-            else None
-        )
+        if self.config.service_account_id is None:
+            raise WorkflowUpdateError("The automation doesn't have a service account")
+        replica = ServiceAccountReplica.objects.filter(
+            service_account_id=self.config.service_account_id,
+            organization_id=self.config.organization_id,
+            is_active=True,
+        ).first()
         if replica is None:
             logger.warning(
                 "seer.workflow.service_account_missing",
                 extra={
                     "organization_id": self.config.organization_id,
                     "config_id": self.config.id,
+                    "service_account_id": self.config.service_account_id,
                 },
             )
-            raise WorkflowUpdateError("The automation doesn't have a service account")
+            raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
