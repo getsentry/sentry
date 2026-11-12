@@ -75,11 +75,13 @@ class AdditionalAttachmentManager[T]:
         return wrapped
 
 
-manager: AdditionalAttachmentManager[SlackBlock] = AdditionalAttachmentManager(
+slack_attachment_manager: AdditionalAttachmentManager[SlackBlock] = AdditionalAttachmentManager(
     {ExternalProviders.SLACK, ExternalProviders.SLACK_STAGING}
 )
-register_additional_attachment_generator = manager.register_additional_attachment_generator
-get_additional_attachment = manager.get_additional_attachment
+register_additional_attachment_generator = (
+    slack_attachment_manager.register_additional_attachment_generator
+)
+get_additional_attachment = slack_attachment_manager.get_additional_attachment
 
 discord_attachment_manager: AdditionalAttachmentManager[DiscordMessageEmbedDict] = (
     AdditionalAttachmentManager({ExternalProviders.DISCORD})
