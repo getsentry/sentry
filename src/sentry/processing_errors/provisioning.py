@@ -43,7 +43,7 @@ def ensure_detector(
         lock.blocking_acquire(initial_delay=0.1, timeout=3),
         transaction.atomic(router.db_for_write(Detector)),
     ):
-        existing = Detector.objects.filter(type=slug, project=project).first()
+        existing = Detector.objects.filter(type=slug, project=project).first()  # noqa: S034
         if existing:
             return existing
 

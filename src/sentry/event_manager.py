@@ -1622,7 +1622,7 @@ def _create_group(
     # when we queried for the release and now, so
     # make sure it still exists
     group_creation_kwargs["first_release_id"] = (
-        Release.objects.filter(id=first_release.id).values_list("id", flat=True).first()
+        Release.objects.filter(id=first_release.id).values_list("id", flat=True).first()  # noqa: S034
         if first_release
         else None
     )

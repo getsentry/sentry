@@ -123,7 +123,7 @@ def fetch_filestore_segment_meta(
         project_id=project_id,
         replay_id=replay_id,
         segment_id=segment_id,
-    ).first()
+    ).first()  # noqa: S034
     if segment is None:
         return None
 

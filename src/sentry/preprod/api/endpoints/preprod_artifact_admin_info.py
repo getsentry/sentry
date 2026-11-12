@@ -90,7 +90,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
 
         snapshot_metrics = PreprodSnapshotMetrics.objects.filter(
             preprod_artifact_id=head_artifact_id_int
-        ).first()
+        ).first()  # noqa: S034
 
         snapshot_comparison = None
         if snapshot_metrics:

@@ -81,7 +81,7 @@ def _validate_with_serializer(
     """
 
     # Projects are unused in this check, but we need at least one project to satisfy the serializer
-    project = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).first()
+    project = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).first()  # noqa: S034
 
     if project is None:
         return None

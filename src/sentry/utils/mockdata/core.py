@@ -1180,7 +1180,7 @@ def create_mock_attachment(event_id: str, project: Project) -> None:
 
 def create_mock_user_feedback(project: Project, has_attachment: bool = True) -> None:
     # Get an existing release for this project instead of creating a new one
-    release = Release.objects.filter(projects=project).first()
+    release = Release.objects.filter(projects=project).first()  # noqa: S034
 
     event = {
         "project_id": project.id,

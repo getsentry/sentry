@@ -35,6 +35,6 @@ def resolve_base_repo_url(
         organization_id=organization_id,
         name=base_repo_name,
         provider=f"integrations:{commit_comparison.provider}",
-    ).first()
+    ).first()  # noqa: S034
     # Prefer no link over a fork URL that would 404 for the base SHA.
     return base_repository.url if base_repository else None

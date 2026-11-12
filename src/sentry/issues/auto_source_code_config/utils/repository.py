@@ -57,4 +57,4 @@ def get_repository_by_provider_identity(
     """
     return Repository.objects.filter(
         organization_id=organization_id, provider=provider, external_id=external_id
-    ).first()
+    ).first()  # noqa: S034

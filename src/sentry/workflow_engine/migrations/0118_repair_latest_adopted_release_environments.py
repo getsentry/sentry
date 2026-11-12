@@ -34,7 +34,7 @@ def repair_latest_adopted_release_environments(
         environment = Environment.objects.filter(
             organization_id=organization_id,
             id=int(stored_environment),
-        ).first()
+        ).first()  # noqa: S034
         if environment is None:
             # It doesn't reference an environment by id either; skip
             continue

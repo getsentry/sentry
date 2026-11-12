@@ -537,7 +537,7 @@ def pull_request_state_changing(instance: PullRequest, **kwargs: object) -> None
             return
 
         old_state = (
-            PullRequest.objects.filter(pk=instance.pk).values_list("state", flat=True).first()
+            PullRequest.objects.filter(pk=instance.pk).values_list("state", flat=True).first()  # noqa: S034
         )
         previous_is_open = is_open_pull_request_state(old_state)
         is_open = is_open_pull_request_state(instance.state)

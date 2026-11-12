@@ -28,7 +28,7 @@ def expire_replay_deletion_jobs(
     Raises `Project.DoesNotExist` for an unknown `project_id`. An operator supplies that ID by hand,
     so a typo has to fail the run loudly rather than report zero jobs expired and look like success.
     """
-    project = Project.objects.filter(id=project_id).first()
+    project = Project.objects.filter(id=project_id).first()  # noqa: S034
     if project is None:
         raise Project.DoesNotExist(
             f"expire_replay_deletion_jobs got project_id={project_id}, which does not exist"

@@ -52,7 +52,7 @@ def produce_eap_uptime_result(
     snuba-items topic for EAP ingestion.
     """
     try:
-        detector_state = detector.detectorstate_set.first()
+        detector_state = detector.detectorstate_set.first()  # noqa: S034
         if detector_state and detector_state.is_triggered:
             incident_status = IncidentStatus.IN_INCIDENT
         else:

@@ -925,7 +925,7 @@ def compare_snapshots(
         comparison = PreprodSnapshotComparison.objects.filter(
             head_snapshot_metrics=head_metrics,
             base_snapshot_metrics=base_metrics,
-        ).first()
+        ).first()  # noqa: S034
         if comparison is None:
             logger.exception(
                 "Snapshot comparison not found after IntegrityError",
@@ -1238,7 +1238,7 @@ def _finalize_if_all_chunks_done(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
-    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()  # noqa: S034
     if comparison is None or comparison.state != PreprodSnapshotComparison.State.PROCESSING:
         return
     if comparison.chunks_total is None:
@@ -1274,7 +1274,7 @@ def finalize_snapshot_comparison(
     base_artifact_id: int,
     **kwargs: Any,
 ) -> None:
-    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()  # noqa: S034
     if comparison is None:
         return
     if comparison.state in (

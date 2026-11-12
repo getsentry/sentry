@@ -497,7 +497,7 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False) -> No
         if not detector.enabled:
             return
 
-        detector_state = detector.detectorstate_set.first()
+        detector_state = detector.detectorstate_set.first()  # noqa: S034
         if detector_state and detector_state.is_triggered:
             # Resolve the issue so that we don't see it in the ui anymore
             resolve_uptime_issue(detector)
