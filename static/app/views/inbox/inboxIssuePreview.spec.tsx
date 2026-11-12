@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus} from 'sentry/types/group';
@@ -35,9 +35,33 @@ describe('InboxIssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
       body: {owners: [], rules: []},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
+      body: {firstRelease: null, lastRelease: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-installations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
   });
 
-  it('shows the issue header and activity', async () => {
+  it('shows the issue header and overview', async () => {
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     expect(
@@ -46,17 +70,28 @@ describe('InboxIssuePreview', () => {
     expect(screen.getByLabelText('327,482 events')).toBeInTheDocument();
     expect(screen.getByLabelText('35,097 affected users')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Modify issue priority'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Modify issue assignee'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: 'Overview'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
+    expect(screen.getByRole('heading', {name: 'Issue timeline'})).toBeInTheDocument();
     expect(screen.getByRole('combobox', {name: 'Add a comment'})).toBeInTheDocument();
+
+    const sidebar = screen.getByRole('complementary', {name: 'Issue overview'});
+    expect(
+      within(sidebar).getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).getByRole('button', {name: 'Modify issue priority'})
+    ).toBeInTheDocument();
+    expect(within(sidebar).getByText('First seen')).toBeInTheDocument();
+    expect(within(sidebar).getByText('Last seen')).toBeInTheDocument();
+    expect(
+      await within(sidebar).findByRole('heading', {name: 'External Links', level: 3})
+    ).toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('button', {name: 'Collapse Section'})
+    ).not.toBeInTheDocument();
   });
 
   it('resolves the issue from the header actions', async () => {
