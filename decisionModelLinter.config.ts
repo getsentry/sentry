@@ -599,28 +599,8 @@ const voice = {
   threshold: 0.7,
   unchecked: 'warn',
   rules: {
-    usesTitleCaseInUiCopy: {
-      // Distinct contexts evaluate each copy rule independently.
-      context: {
-        copyKind: 'heading and label capitalization',
-      },
-      prompt: `${uiCopyScope}\n\nDoes a heading, button, or label incorrectly use Title Case after its first word, or ALL CAPS for an ordinary English word? This includes bold section headings, table/chart labels, sidebar items, form labels, and widget titles. Use sentence case: "Last seen", not "Last Seen"; "Settings", not "SETTINGS". Preserve proper names and named products (${productNames.join(', ')}). Preserve recognized acronyms and their plurals, including ${acronyms.join(', ')}. These examples are not exhaustive. Preserve canonical mixed/lowercase names and metric notation. An ordinary English word does not become an acronym just because it is uppercase. Body prose and strings in other function arguments do not count.`,
-      values: [
-        {
-          value: 'TRUE',
-          description:
-            'An ordinary word in a translated heading or label uses title case after the first word, or unnecessary ALL CAPS. The offending word is in a translation text argument, not another argument or an unwrapped string.',
-          severity: 'warn',
-          report:
-            'Use sentence case for this title or label. Preserve the canonical spelling of product names, proper nouns, and acronyms.',
-        },
-        {
-          value: 'FALSE',
-          description:
-            'Every ordinary word has sentence-case spelling: only the first letter of an ordinary first word is capitalized, and later ordinary words are lowercase. Other capitalization belongs to proper names, acronyms, or technical notation.',
-        },
-      ],
-    },
+    // usesTitleCaseInUiCopy is off until there is a plan to migrate existing title-case copy;
+    // sentence case can't land page by page without mixing casing on one screen.
     miscapitalizesProductName: {
       context: {copyKind: 'product name capitalization'},
       threshold: 0.6,
