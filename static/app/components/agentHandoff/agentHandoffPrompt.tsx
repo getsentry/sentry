@@ -18,9 +18,10 @@ import {darkTheme} from '@sentry/scraps/theme';
 import {toast} from '@sentry/scraps/toast';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
+import {buildHandoffPrompt} from './handoffPrompt';
 import {
   AgentHandoffFlow,
   type AgentHandoffContext,
@@ -44,13 +45,21 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   onSelect,
 }: AgentHandoffPromptProps<Flow>) {
   const links = useStore(ConfigStore, state => state.links);
-  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
   const [useIpPinning, setUseIpPinning] = useState(true);
   const handoff = useAgentHandoff(flow, context);
   const copyDisabled = !context || handoff.isPending;
-  const guideUrl = `${urlPrefix.replace(/\/$/, '')}/agent-handoff/`;
   const previewUrl = new URL(`/agent-handoff/?preview=1&flow=${flow}`, links.sentryUrl)
     .href;
+
+  const [promptStart, maskedCode, promptEnd] = buildHandoffPrompt(
+    <MaskedCode
+      monospace
+      variant="warning"
+      title={t('The secret code authorizes your agent on your behalf')}
+    >
+      sntryh_****
+    </MaskedCode>
+  );
 
   function copyPrompt() {
     if (handoff.isPending) {
@@ -103,21 +112,9 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
                 textWrap="wrap"
                 onPointerDown={handlePointerDown}
               >
-                {tct(
-                  'Follow the instructions verbatim at [guideUrl]. Your handoff code is [token].',
-                  {
-                    guideUrl,
-                    token: (
-                      <MaskedCode
-                        monospace
-                        variant="warning"
-                        title={t('The secret code authorizes your agent on your behalf')}
-                      >
-                        sntryh_****
-                      </MaskedCode>
-                    ),
-                  }
-                )}
+                {promptStart}
+                {maskedCode}
+                {promptEnd}
               </PromptText>
               <Container position="absolute" top="8px" right="8px">
                 <Button
