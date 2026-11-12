@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
@@ -71,6 +72,40 @@ function getModel(nodes: AITraceSpanNode[], failingNode: AITraceSpanNode) {
   );
 }
 
+const SURROUNDING_STEPS = 3;
+
+/**
+ * Keeps the steps around the failing one, like the trace preview does around an error.
+ */
+function getVisibleSteps(nodes: AITraceSpanNode[], failingNode: AITraceSpanNode) {
+  const index = nodes.findIndex(node => node.id === failingNode.id);
+  let start = Math.max(0, index - SURROUNDING_STEPS);
+  let end = Math.min(nodes.length, index + SURROUNDING_STEPS + 1);
+  // Hiding a single step saves no space, so show it instead.
+  if (start === 1) {
+    start = 0;
+  }
+  if (nodes.length - end === 1) {
+    end = nodes.length;
+  }
+  return {
+    steps: nodes.slice(start, end),
+    hiddenBefore: start,
+    hiddenAfter: nodes.length - end,
+  };
+}
+
+function HiddenStepsLink({count, to}: {count: number; to: LinkProps['to']}) {
+  if (count === 0) {
+    return null;
+  }
+  return (
+    <Text size="sm" variant="muted">
+      <Link to={to}>{tn('%s more step', '%s more steps', count)}</Link>
+    </Text>
+  );
+}
+
 interface AgentRunProps {
   agentRun: EventAgentRun;
   event: Event;
@@ -97,6 +132,8 @@ export function EventAgentRunSection({agentRun, event}: AgentRunProps) {
     },
     {label: t('Duration'), value: getDuration(runNode.space[1] / 1000, 2, true)},
   ].filter(item => item.value);
+  const {steps, hiddenBefore, hiddenAfter} = getVisibleSteps(nodes, failingNode);
+  const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
     <FoldSection
@@ -106,7 +143,7 @@ export function EventAgentRunSection({agentRun, event}: AgentRunProps) {
         <LinkButton
           size="xs"
           variant="primary"
-          to={getAgentActivityLink(failingNode.id)}
+          to={fullActivityLink}
           analyticsEventName="Issue Details: Open Agent Activity Clicked"
           analyticsEventKey="issue_details.agent_run.open_agent_activity_clicked"
         >
@@ -127,11 +164,15 @@ export function EventAgentRunSection({agentRun, event}: AgentRunProps) {
             </Text>
           ))}
         </Grid>
-        <AiSpanTimeline
-          nodes={nodes}
-          selectedNodeKey={failingNode.id}
-          onSelectNode={node => navigate(getAgentActivityLink(node.id))}
-        />
+        <Stack gap="xs">
+          <HiddenStepsLink count={hiddenBefore} to={fullActivityLink} />
+          <AiSpanTimeline
+            nodes={steps}
+            selectedNodeKey={failingNode.id}
+            onSelectNode={node => navigate(getAgentActivityLink(node.id))}
+          />
+          <HiddenStepsLink count={hiddenAfter} to={fullActivityLink} />
+        </Stack>
       </Stack>
     </FoldSection>
   );

@@ -162,6 +162,59 @@ describe('EventAgentRunSection', () => {
     expect(link).toHaveAttribute('href', expect.stringContaining('node=span-tool-span'));
   });
 
+  it('only shows the steps around the failing step in a long run', () => {
+    const steps = Array.from({length: 12}, (_, index) =>
+      makeEAPSpan({
+        event_id: `tool-span-${index}`,
+        op: 'gen_ai.execute_tool',
+        name: 'gen_ai.execute_tool',
+        description: `execute_tool step_${index}`,
+        start_timestamp: index + 1,
+        end_timestamp: index + 2,
+        additional_attributes: {
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': `step_${index}`,
+        },
+        errors: index === 6 ? [makeEAPError({event_id: errorEventId})] : [],
+      })
+    );
+    const trace = [
+      makeEAPSpan({
+        event_id: 'agent-span',
+        op: 'gen_ai.invoke_agent',
+        name: 'gen_ai.invoke_agent',
+        description: 'invoke_agent support-agent',
+        is_transaction: true,
+        start_timestamp: 0,
+        end_timestamp: 14,
+        additional_attributes: {'gen_ai.operation.type': 'agent'},
+        children: steps,
+      }),
+    ];
+
+    render(
+      <EventAgentRunSection
+        agentRun={getEventAgentRun(trace, errorEventId, organization)}
+        event={event}
+      />,
+      {organization}
+    );
+
+    // The run has 13 rows: the agent span and 12 steps. The failing step is row 7.
+    expect(screen.queryByText('step_2')).not.toBeInTheDocument();
+    expect(screen.getByText('step_3')).toBeInTheDocument();
+    expect(screen.getByText('step_9')).toBeInTheDocument();
+    expect(screen.queryByText('step_10')).not.toBeInTheDocument();
+
+    const earlier = screen.getByRole('link', {name: '4 more steps'});
+    expect(earlier).toHaveAttribute('href', expect.stringContaining('tab=ai-spans'));
+    expect(earlier).toHaveAttribute(
+      'href',
+      expect.stringContaining('node=span-tool-span-6')
+    );
+    expect(screen.getByRole('link', {name: '2 more steps'})).toBeInTheDocument();
+  });
+
   it('renders nothing when the error was raised outside an agent run', () => {
     const {container} = render(
       <EventAgentRunSection
