@@ -169,10 +169,13 @@ class AutomationDefinition[Inputs: BaseModel]:
             and self.trigger.projects(config).filter(id=project_id).exists()
         )
 
-    def validate_settings(self, extras: SeerWorkflowConfigExtras) -> None:
+    def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
+        """Return the parsed trigger and action settings."""
         try:
-            self.trigger.settings_type.parse_obj(extras.trigger_settings or {})
-            self.action.settings_type.parse_obj(extras.action_settings or {})
+            return (
+                self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
+                self.action.settings_type.parse_obj(extras.action_settings or {}),
+            )
         except ValidationError as e:
             raise WorkflowUpdateError(
                 "; ".join(
@@ -232,6 +235,8 @@ class AutomationDefinition[Inputs: BaseModel]:
             admission=admission,
         )
         lifecycle = SeerWorkflowRunLifecycle.create(config, trigger_key=trigger_key, extras=extras)
+        # TODO(telkins): Decide whether an automation that stays over quota should keep
+        # recording a rejected run for every trigger.
         if admission.status == "rejected":
             lifecycle.reject(
                 error=WorkflowRunError(code=admission.reason, message="Automation quota exceeded.")
