@@ -113,6 +113,11 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "level": "level",
     "logger": "logger",
     # Top-level structures ("interfaces")
+    # sentry_user is a special field added for on-demand metrics
+    # https://github.com/getsentry/relay/pull/3122
+    # No longer emitted by Relay but kept here see:
+    # https://github.com/getsentry/sentry/pull/130901
+    "user": "sentry_user",
     "user.email": "user.email",
     "user.id": "user.id",
     "user.ip": "user.ip_address",
