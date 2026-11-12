@@ -4,8 +4,9 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 interface DeleteDebugIdArtifactsVariables {
   bundleId: string;
@@ -18,16 +19,19 @@ export function useDeleteDebugIdBundle(
     'mutationFn'
   > = {}
 ) {
-  const api = useApi();
   const organization = useOrganization();
 
   return useMutation<unknown, RequestError, DeleteDebugIdArtifactsVariables>({
     ...options,
     mutationFn: ({projectSlug, bundleId}: DeleteDebugIdArtifactsVariables) => {
-      const debugIdBundlesEndpoint = `/projects/${organization.slug}/${projectSlug}/files/artifact-bundles/`;
-      return api.requestPromise(debugIdBundlesEndpoint, {
+      const debugIdBundlesEndpoint = getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/artifact-bundles/',
+        {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+      );
+      return fetchMutation({
+        url: debugIdBundlesEndpoint,
         method: 'DELETE',
-        query: {bundleId},
+        options: {query: {bundleId}},
       });
     },
     onMutate: (...args) => {

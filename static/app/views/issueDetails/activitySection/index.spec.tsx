@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -2642,5 +2643,164 @@ describe('ActivitySection', () => {
       'href',
       pullRequest.externalUrl
     );
+  });
+
+  it('renders Impact assessment details', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [
+              {
+                source: 'event',
+                reference: 'entire-event:event-id',
+                claim: 'The request failed before order creation.',
+              },
+            ],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
+    expect(timeline).toHaveTextContent('Users cannot submit an order.');
+    expect(timeline).toHaveTextContent('Citations:');
+    expect(screen.getByTestId('impact-activity-details')).toBeInTheDocument();
+
+    const alphaBadge = screen.getByLabelText('alpha');
+    expect(alphaBadge).toBeInTheDocument();
+    await userEvent.hover(alphaBadge);
+    expect(
+      await screen.findByText('This feature is internal and available for QA purposes')
+    ).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('event'));
+    expect(await screen.findByText('Source Event')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '7f4b9a95'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/${impactGroup.id}/events/7f4b9a95abc449a8a5afc3d1d2683a8b/`
+    );
+    expect(
+      await screen.findByText('The request failed before order creation.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders a link from an investigation', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: {id: '42', title: 'Checkout latency', status: 'active'},
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} variant="standalone" />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in Checkout latency');
+    expect(timeline).toHaveTextContent('Its timeouts start with the deploy.');
+    expect(timeline).toHaveTextContent('Payment retries exhaust the pool');
+    expect(screen.getByText('Evidence:')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Checkout latency'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/investigations/42/'
+    );
+    expect(screen.getByLabelText('Seer activity')).toBeInTheDocument();
+  });
+
+  it('leaves the hypothesis out of an investigation link in the sidebar', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: {id: '42', title: 'Checkout latency', status: 'active'},
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in Checkout latency');
+    expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
+    expect(timeline).not.toHaveTextContent('Its timeouts start with the deploy.');
+  });
+
+  it('renders a link from a deleted investigation without details', async () => {
+    const linkedGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.INVESTIGATION_LINKED,
+          id: 'investigation-link-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            investigation: null,
+            hypothesisId: 'h-1',
+            hypothesisStatement: 'Payment retries exhaust the pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={linkedGroup} project={linkedGroup.project}>
+        <ActivitySection group={linkedGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Mentioned in a deleted investigation');
+    expect(timeline).not.toHaveTextContent('Payment retries exhaust the pool');
+    expect(screen.queryByRole('link', {name: /investigation/})).not.toBeInTheDocument();
   });
 });

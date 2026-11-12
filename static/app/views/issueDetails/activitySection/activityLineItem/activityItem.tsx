@@ -24,7 +24,9 @@ import {getProviderName} from './activityItem/provider';
 import {getResolvedInReleaseDetails} from './activityItem/releaseDetails';
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
+import {ImpactChip} from './chips/impactChip';
 import {getIntegrationChip} from './chips/integrationChip';
+import {InvestigationChip} from './chips/investigationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
@@ -636,6 +638,29 @@ function getActivityItemContent({
         default:
           return {title: t('Autofix triggered')};
       }
+    case GroupActivityType.IMPACT_ASSESSMENT: {
+      const {level, score} = activity.data;
+      if (level === null || score === null) {
+        return {title: t("Impact wasn't assessed")};
+      }
+      return {
+        title: t('Impact assessed'),
+        details: tct('as [impact]', {
+          impact: <ImpactChip level={level} score={score} />,
+        }),
+      };
+    }
+    case GroupActivityType.INVESTIGATION_LINKED: {
+      const {investigation} = activity.data;
+      return {
+        title: t('Mentioned in'),
+        details: investigation ? (
+          <InvestigationChip investigation={investigation} />
+        ) : (
+          t('a deleted investigation')
+        ),
+      };
+    }
   }
 
   Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {

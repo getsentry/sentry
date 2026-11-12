@@ -19,9 +19,18 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -88,10 +97,21 @@ export function MultiQueryModeChart({
     };
   }, [chartType, isTopN, timeseriesResult, yAxes]);
 
+  const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
+
   const organization = useOrganization();
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
   const pageFilters = usePageFilters();
   const {projects} = useProjects();
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({
+      query: queryParts.query,
+      yAxes,
+      groupBys: queryParts.groupBys,
+      mode,
+      caseInsensitive: queryParts.caseInsensitive === '1',
+    });
 
   const Title = (
     <Fragment>
@@ -116,8 +136,8 @@ export function MultiQueryModeChart({
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
   if (defined(yAxes[0])) {
-    items.push(
-      getSaveAsAlertMenuItem({
+    items.push({
+      ...getSaveAsAlertMenuItem({
         to: getAlertsUrl({
           project,
           query: queryParts.query,
@@ -134,13 +154,15 @@ export function MultiQueryModeChart({
             organization,
           });
         },
-      })
-    );
+      }),
+      details: alertCaseDetails,
+    });
   }
 
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Add to Dashboard'),
+    details: dashboardCaseDetails,
     label: t('Add to Dashboard'),
     onAction: () => {
       trackAnalytics('trace_explorer.save_as', {
@@ -219,16 +241,23 @@ export function MultiQueryModeChart({
         ),
       ]}
       revealActions="always"
-      Visualization={<ChartVisualization chartInfo={chartInfo} />}
+      Visualization={<ChartVisualization chartInfo={chartInfo} plottables={plottables} />}
       Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isLoading={chartInfo.timeseriesResult?.isPending || false}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={isTopN ? chartInfo.series.length : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
+        hasExtrapolationConfidenceFooter ? (
+          !chartInfo.timeseriesResult?.isPending &&
+          hasLowConfidencePlottables(plottables) && (
+            <ExtrapolationConfidenceFooter plottables={plottables} />
+          )
+        ) : (
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={isTopN ? chartInfo.series.length : undefined}
+            dataScanned={chartInfo.dataScanned}
+          />
+        )
       }
     />
   );

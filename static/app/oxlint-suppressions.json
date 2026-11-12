@@ -2709,7 +2709,7 @@
   },
   "views/discover/results.tsx": {
     "@sentry/prefer-nuqs": {
-      "count": 8
+      "count": 1
     },
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -4266,11 +4266,6 @@
       "count": 1
     }
   },
-  "views/projectsDashboard/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/projectsDashboard/noEvents.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4582,11 +4577,6 @@
       "count": 1
     }
   },
-  "views/settings/organizationIntegrations/configureIntegration.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/organizationIntegrations/detailedView/integrationLayout.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 1
@@ -4596,9 +4586,6 @@
     }
   },
   "views/settings/organizationIntegrations/integrationListDirectory.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 2
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4609,11 +4596,6 @@
     }
   },
   "views/settings/organizationIntegrations/integrationRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4630,11 +4612,6 @@
   },
   "views/settings/organizationMembers/inviteMember/orgRoleSelect.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/organizationMembers/organizationMembersList.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4668,23 +4645,8 @@
       "count": 2
     }
   },
-  "views/settings/project/preprod/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/settings/project/preprod/sizeRulesPanel.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/project/preprod/statusCheckRuleItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/settings/project/projectAttributes.tsx": {
-    "@sentry/prefer-nuqs": {
       "count": 1
     }
   },
@@ -4718,41 +4680,17 @@
       "count": 1
     }
   },
-  "views/settings/project/projectTeams.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/project/tempest/DevKitSettings.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/settings/project/tempest/EmptyState.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
-  "views/settings/project/tempest/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
-  "views/settings/project/tempest/PlayStationSettings.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/projectDebugFiles/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4767,28 +4705,17 @@
       "count": 1
     }
   },
-  "views/settings/projectProguard/index.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    }
-  },
   "views/settings/projectProguard/projectProguardRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
   "views/settings/projectSourceMaps/sourceMapsDetails.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
   },
   "views/settings/projectSourceMaps/sourceMapsList.tsx": {
-    "@sentry/prefer-nuqs": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }

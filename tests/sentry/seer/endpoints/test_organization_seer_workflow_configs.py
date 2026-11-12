@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -30,17 +30,15 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow, ConnectedMonitor
-from sentry.seer.workflows.workflow import (
-    ConfigUpdate,
-    SeerServiceAccountGrant,
-    WorkflowUpdateError,
-)
+from sentry.seer.workflows.base import ConfigUpdate, SelectedMonitors, WorkflowUpdateError
+from sentry.seer.workflows.breached_metrics import ConnectedMonitor
+from sentry.seer.workflows.workflow import SeerServiceAccountGrant, SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.requests import drf_request_from_request
@@ -109,10 +107,28 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "filters": {"minEventCount": 10},
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "agentic_triage_v2",
+            "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
         assert response.data["configs"][1]["projects"] == []
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_includes_next_run_of_scheduled_configs(self) -> None:
+        scheduled = self.create_config()
+        with SeerWorkflow(
+            config_id=scheduled.id, organization_id=scheduled.organization_id
+        ).update_config() as update:
+            update.set_enabled(True)
+        unscheduled = self.create_config()
+
+        response = self.get_success_response(self.organization.slug)
+
+        next_runs = {item["id"]: item["nextRunAt"] for item in response.data["configs"]}
+        assert next_runs[str(unscheduled.id)] is None
+        # Spread over the hour after the scheduled 10:00 run.
+        scheduled_for = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        assert scheduled_for <= next_runs[str(scheduled.id)] < scheduled_for + timedelta(hours=1)
 
     def test_id_filter_is_scoped_and_applies_before_pagination(self) -> None:
         self.create_config()
@@ -250,7 +266,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
                 configs, accessible_project_ids=[project_id], has_global_access=True
             )
 
-        assert len(queries) == 2
+        assert len(queries) == 3
         assert [config["dateLastRun"] for config in result["configs"]] == [
             run.date_added for run in runs
         ]
@@ -283,9 +299,10 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             self.create_detector(project=second_project, type=MetricIssue.slug),
         ]
         disabled = self.create_detector(project=self.create_project(), type=MetricIssue.slug)
-        metric = BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id,
-            monitor_ids=[*(m.id for m in monitors), disabled.id],
+        metric = SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            scope=SelectedMonitors((*(m.id for m in monitors), disabled.id)),
             service_account_grant=GRANT,
         )
         disabled.update(status=ObjectStatus.DISABLED)
@@ -313,9 +330,10 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             project=self.create_project(teams=[self.create_team(organization=self.organization)]),
             type=MetricIssue.slug,
         )
-        BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id,
-            monitor_ids=[accessible.id, hidden.id],
+        SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            scope=SelectedMonitors((accessible.id, hidden.id)),
             service_account_grant=GRANT,
         )
         self.login_as(member)
@@ -372,6 +390,20 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, config.id)
 
         assert response.data["createdBy"] == str(self.user.id)
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_returns_next_run_of_scheduled_config(self) -> None:
+        config = self.create_config()
+        with SeerWorkflow(
+            config_id=config.id, organization_id=config.organization_id
+        ).update_config() as update:
+            update.set_enabled(True)
+
+        response = self.get_success_response(self.organization.slug, config.id)
+
+        # Spread over the hour after the scheduled 10:00 run.
+        scheduled_for = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+        assert scheduled_for <= response.data["nextRunAt"] < scheduled_for + timedelta(hours=1)
 
     def test_unavailable_config_returns_404(self) -> None:
         legacy = Factories.create_seer_workflow_config(
@@ -815,11 +847,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             method="put",
             projectIds=[self.project.id],
             enabled=True,
+            name="Checkout triage",
         )
 
         assert response.data["version"] == config.version + 1
         assert response.data["enabled"] is True
         assert response.data["projects"] == [self.project.id]
+        assert response.data["name"] == "Checkout triage"
+        config.refresh_from_db()
+        assert config.extras["name"] == "Checkout triage"
 
     def test_put_failure_rolls_back_every_change(self) -> None:
         config = self.create_config()
@@ -963,14 +999,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         self,
         monitor_ids: list[int] | None = None,
         service_account_grant: SeerServiceAccountGrant = GRANT,
-    ) -> BreachedMetricWorkflow:
-        return BreachedMetricWorkflow.create_with_monitors(
-            self.organization.id,
-            monitor_ids=monitor_ids or [],
+    ) -> SeerWorkflow:
+        return SeerWorkflow.create(
+            organization_id=self.organization.id,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            scope=SelectedMonitors(tuple(monitor_ids or ())),
             service_account_grant=service_account_grant,
         )
 
-    def connected_monitor_ids(self, workflow: BreachedMetricWorkflow) -> set[int]:
+    def connected_monitor_ids(self, workflow: SeerWorkflow) -> set[int]:
         backing_workflow = workflow.get_config().backing_workflow
         assert backing_workflow is not None
         return set(backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True))
@@ -1046,6 +1083,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "filters": {},
             "outputPolicy": {},
             "seededDefault": None,
+            "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
             "createdBy": str(self.user.id),
@@ -1366,7 +1404,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.backing_workflow_id is None
+        assert config.backing_workflow is not None
+        assert not config.backing_workflow.detectorworkflow_set.exists()
         assert response.data["monitorIds"] == []
         assert response.data["projects"] == []
 

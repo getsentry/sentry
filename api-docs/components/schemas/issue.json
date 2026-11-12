@@ -32,62 +32,99 @@
     "properties": {
       "annotations": {
         "type": "array",
+        "description": "Annotations on the issue, such as links to external issues.",
         "items": {
           "type": "string"
         }
       },
       "assignedTo": {
         "type": "object",
-        "nullable": true
+        "description": "The user or team the issue is assigned to. Null when the issue is unassigned.",
+        "nullable": true,
+        "required": ["type", "id", "name"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["user", "team"],
+            "description": "Whether the assignee is a user or a team."
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the user or team."
+          },
+          "name": {
+            "type": "string",
+            "description": "The display name of the user, or the slug of the team."
+          },
+          "email": {
+            "type": "string",
+            "description": "The email address of the user. Only set for users."
+          }
+        }
       },
       "count": {
-        "type": "string"
+        "type": "string",
+        "description": "The total number of events in the issue."
       },
       "culprit": {
-        "type": "string"
+        "type": "string",
+        "description": "The function or module where the issue occurs."
       },
       "firstSeen": {
-        "type": "string"
+        "type": "string",
+        "description": "When the issue was first seen (ISO 8601)."
       },
       "hasSeen": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether the requesting user has seen the issue since it last occurred."
       },
       "id": {
-        "type": "string"
+        "type": "string",
+        "description": "The ID of the issue."
       },
       "isBookmarked": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether the requesting user bookmarked the issue."
       },
       "isPublic": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether the issue is shared publicly."
       },
       "isSubscribed": {
-        "type": "boolean"
+        "type": "boolean",
+        "description": "Whether the requesting user is subscribed to the issue."
       },
       "lastSeen": {
-        "type": "string"
+        "type": "string",
+        "description": "When the issue was last seen (ISO 8601)."
       },
       "level": {
-        "type": "string"
+        "type": "string",
+        "description": "The severity level of the issue, such as `error` or `warning`."
       },
       "logger": {
         "type": "string",
+        "description": "The logger of the issue's events.",
         "nullable": true
       },
       "metadata": {
+        "description": "Metadata of the issue. Its keys depend on the issue type.",
         "oneOf": [
           {
             "type": "object",
             "required": ["filename", "type", "value"],
             "properties": {
               "filename": {
-                "type": "string"
+                "type": "string",
+                "description": "The file where the error was raised."
               },
               "type": {
-                "type": "string"
+                "type": "string",
+                "description": "The type of the error."
               },
               "value": {
-                "type": "string"
+                "type": "string",
+                "description": "The error message."
               }
             }
           },
@@ -96,41 +133,51 @@
             "required": ["title"],
             "properties": {
               "title": {
-                "type": "string"
+                "type": "string",
+                "description": "The title of the issue."
               }
             }
           }
         ]
       },
       "numComments": {
-        "type": "integer"
+        "type": "integer",
+        "description": "The number of comments on the issue."
       },
       "permalink": {
-        "type": "string"
+        "type": "string",
+        "description": "The URL of the issue in Sentry."
       },
       "project": {
         "type": "object",
+        "description": "The project the issue belongs to.",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "description": "The ID of the project."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The name of the project."
           },
           "slug": {
-            "type": "string"
+            "type": "string",
+            "description": "The slug of the project."
           }
         }
       },
       "shareId": {
         "type": "string",
+        "description": "The ID used in the issue's public share URL. Null when the issue isn't shared.",
         "nullable": true
       },
       "shortId": {
-        "type": "string"
+        "type": "string",
+        "description": "The short ID of the issue, such as `PROJECT-1A`."
       },
       "stats": {
         "type": "object",
+        "description": "Event counts for the issue over time.",
         "properties": {
           "24h": {
             "type": "array",
@@ -139,29 +186,45 @@
               "items": {
                 "type": "number"
               }
-            }
+            },
+            "description": "Hourly event counts for the last 24 hours, as [timestamp, count] pairs."
           }
         }
       },
       "status": {
         "type": "string",
+        "description": "The status of the issue.",
         "enum": ["resolved", "unresolved", "ignored"]
       },
       "statusDetails": {
-        "type": "object"
+        "$ref": "#/IssueStatusDetails"
       },
       "subscriptionDetails": {
         "type": "object",
-        "nullable": true
+        "description": "Why the requesting user is subscribed to the issue. Null when there's no subscription.",
+        "nullable": true,
+        "properties": {
+          "disabled": {
+            "type": "boolean",
+            "description": "Whether the requesting user turned off notifications for the issue."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the requesting user is subscribed, such as `commented`, `assigned`, `bookmarked`, `changed_status`, `mentioned` or `unknown`."
+          }
+        }
       },
       "title": {
-        "type": "string"
+        "type": "string",
+        "description": "The title of the issue."
       },
       "type": {
-        "type": "string"
+        "type": "string",
+        "description": "The event type of the issue, such as `error` or `default`."
       },
       "userCount": {
-        "type": "integer"
+        "type": "integer",
+        "description": "The number of users affected by the issue."
       }
     }
   },
@@ -654,6 +717,85 @@
       },
       "userCount": {
         "type": "integer"
+      }
+    }
+  },
+  "IssueStatusDetails": {
+    "type": "object",
+    "description": "Details of the issue's status, such as when an ignore expires or which release resolves it. Empty when the status has no details.",
+    "properties": {
+      "ignoreCount": {
+        "type": "integer",
+        "nullable": true,
+        "description": "Number of additional events after which the issue stops being ignored."
+      },
+      "ignoreUntil": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true,
+        "description": "When the issue stops being ignored."
+      },
+      "ignoreUserCount": {
+        "type": "integer",
+        "nullable": true,
+        "description": "Number of additional affected users after which the issue stops being ignored."
+      },
+      "ignoreUserWindow": {
+        "type": "integer",
+        "nullable": true,
+        "description": "Time window in minutes for ignoreUserCount."
+      },
+      "ignoreWindow": {
+        "type": "integer",
+        "nullable": true,
+        "description": "Time window in minutes for ignoreCount."
+      },
+      "actor": {
+        "type": "object",
+        "nullable": true,
+        "description": "User who ignored or resolved the issue.",
+        "properties": {
+          "id": { "type": "string", "description": "ID of the user." },
+          "name": { "type": "string", "description": "Name of the user." },
+          "username": { "type": "string", "description": "Username of the user." },
+          "email": { "type": "string", "description": "Email address of the user." }
+        }
+      },
+      "inNextRelease": {
+        "type": "boolean",
+        "description": "Whether the issue is resolved in the next release."
+      },
+      "inRelease": {
+        "type": "string",
+        "description": "Version of the release the issue is resolved in."
+      },
+      "inCommit": {
+        "type": "string",
+        "description": "Commit the issue is resolved in."
+      },
+      "pendingEvents": {
+        "type": "integer",
+        "description": "Number of events still waiting to be reprocessed."
+      },
+      "info": {
+        "type": "object",
+        "nullable": true,
+        "description": "Reprocessing progress details.",
+        "required": ["dateCreated", "syncCount", "totalEvents"],
+        "properties": {
+          "dateCreated": {
+            "type": "string",
+            "description": "When reprocessing started (ISO 8601)."
+          },
+          "syncCount": {
+            "type": "integer",
+            "description": "Number of events in the issue when reprocessing started."
+          },
+          "totalEvents": {
+            "type": "integer",
+            "description": "Number of events to reprocess, at most the requested maximum."
+          }
+        }
       }
     }
   }

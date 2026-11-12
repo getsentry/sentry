@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {NumberInput} from '@sentry/scraps/numberInput';
 import {Text} from '@sentry/scraps/text';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';

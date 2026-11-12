@@ -61,11 +61,12 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
-from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.formats import ApiFormat
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.formats import ApiFormat, ApiJsonValue
+from sentry.apidocs.json_schemas import union_schema
 from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
 from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
-from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE
+from sentry.apidocs.response_coverage import CYCLE, FIELD_SOURCE, JSON_VALUE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -74,6 +75,8 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 #   grabbing description from a TypedDict __doc__
 #   grabbing field descriptions from Annotated[T, ApiDescription(...)]
 #   adding schema keywords such as format from Annotated[T, ApiFormat(...)]
+#   any JSON value from JsonValue, Annotated[object, ApiJsonValue()]
+#   replacing the schema with Annotated[T, ApiSchema(...)]
 #   support for TypedDict required fields
 #   support for excluded fields via @extend_schema_serializer
 
@@ -187,10 +190,30 @@ def _cycle_placeholder(hint: Any) -> dict[str, Any]:
     return placeholder
 
 
+def _json_value() -> dict[str, Any]:
+    """Schema of a JsonValue field: any JSON value, listed by type."""
+    schema: dict[str, Any] = {
+        "description": "Any JSON value",
+        "anyOf": [
+            # OpenAPI 3.0 has no null type, and `nullable` needs a `type` next to it.
+            {"type": "object", "additionalProperties": True, "nullable": True},
+            {"type": "array", "items": {}},
+            {"type": "string"},
+            {"type": "number"},
+            {"type": "boolean"},
+        ],
+    }
+    if os.environ.get("OPENAPIGENERATE"):
+        # Read by the response coverage check; the deref step strips it.
+        schema[JSON_VALUE] = True
+    return schema
+
+
 def resolve_type_hint(hint: TypeHint) -> TypeHint:
     """drf-spectacular library method modified as described above"""
     if hint is type(None):
-        return {"nullable": True, "enum": [None]}
+        # Validators reject "nullable" without a "type", so this keeps one.
+        return {"type": "object", "nullable": True, "enum": [None]}
 
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
@@ -200,6 +223,11 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
     if isinstance(hint, NewType):
         return resolve_type_hint(hint.__supertype__)
     if origin is Annotated:
+        if any(isinstance(metadata, ApiJsonValue) for metadata in hint.__metadata__):
+            return _json_value()
+        for metadata in hint.__metadata__:
+            if isinstance(metadata, ApiSchema):
+                return metadata.build()
         schema = resolve_type_hint(hint.__origin__)
         for metadata in hint.__metadata__:
             if isinstance(metadata, ApiFormat):
@@ -223,8 +251,11 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             _resolve_at(args[0], "items") if args else build_basic_type(OpenApiTypes.ANY)
         )
     elif origin is tuple:
+        if len(args) == 2 and args[1] is Ellipsis:
+            return build_array_type(_resolve_at(args[0], "items"))
+        # OpenAPI 3.0 has no tuples, so each item can be any of the tuple's types.
         return build_array_type(
-            schema=build_basic_type(args[0]),
+            schema=union_schema(_resolve_at(arg, "items") for arg in args),
             max_length=len(args),
             min_length=len(args),
         )
@@ -268,7 +299,7 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
         hints_with_extras = get_type_hints(hint, include_extras=True)
         _typed_dicts_in_progress.append(hint)
         try:
-            return build_object_type(
+            schema = build_object_type(
                 properties={
                     k: _field_schema(
                         _resolve_at(v, "properties", k),
@@ -286,6 +317,10 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
                     if k not in excluded_fields
                 ],
             )
+            # A TypedDict without fields describes a response that is always `{}`.
+            if not hints_with_extras:
+                schema["maxProperties"] = 0
+            return schema
         finally:
             _typed_dicts_in_progress.pop()
     elif origin is Union or origin is UnionType:
@@ -307,13 +342,13 @@ def resolve_type_hint(hint: TypeHint) -> TypeHint:
             # There's an issue where if 3 or more types are OR'd together and one of
             # them is None, validating the schema will fail because "nullable: true"
             # with "anyOf" raises an error because there is no "type" key on the
-            # schema. This works around it by including a proxy null object in
-            # the "anyOf".
+            # schema. This works around it by including a proxy object in the
+            # "anyOf" that only allows null.
             # See:
             #   - https://github.com/tfranzel/drf-spectacular/issues/925
             #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
             if len(args) > 2:
-                schema["anyOf"].append({"type": "object", "nullable": True})
+                schema["anyOf"].append(resolve_type_hint(type(None)))
             else:
                 schema["nullable"] = True
         return schema

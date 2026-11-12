@@ -233,7 +233,9 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.keyboard(keys);
 
-      expect(await screen.findByRole('textbox', {name: 'Search commands'})).toHaveFocus();
+      expect(
+        await screen.findByRole('searchbox', {name: 'Search commands'})
+      ).toHaveFocus();
     }
   );
 

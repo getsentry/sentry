@@ -5,8 +5,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,38 +26,24 @@ export default function ProjectKeyDetails() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const {
-    data: projKeyData,
-    isError,
-    isPending,
-  } = useQuery(
-    apiOptions.as<ProjectKey>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectId,
-          keyId,
-        },
-        staleTime: 0,
-      }
-    )
+  const projectKeyOptions = apiOptions.as<ProjectKey>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        keyId,
+      },
+      staleTime: 0,
+    }
   );
+  const {data: projKeyData, isError, isPending} = useQuery(projectKeyOptions);
 
   function onDataChange(data: ProjectKey) {
-    setApiQueryData<ProjectKey>(
-      queryClient,
-      [
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectId,
-            keyId,
-          },
-        }),
-      ],
-      data
-    );
+    queryClient.setQueryData(projectKeyOptions.queryKey, previous => ({
+      json: data,
+      headers: previous?.headers ?? {},
+    }));
   }
 
   const handleRemove = () => {

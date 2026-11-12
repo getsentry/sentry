@@ -4,9 +4,10 @@ import {IconCommit} from '@sentry/icons/commit';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconGithub} from '@sentry/icons/github';
 import {IconMail} from '@sentry/icons/mail';
-import * as qs from 'query-string';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
@@ -19,7 +20,6 @@ import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
 import {Carousel} from 'sentry/components/carousel';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
@@ -27,7 +27,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
@@ -48,7 +47,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   const api = useApi();
   // NOTE: this is currently used for Github only
   const promptsFeature = 'github_missing_members';
-  const location = useLocation();
+  const [inviteMissingMembers] = useQueryState('inviteMissingMembers', parseAsString);
 
   const snoozePrompt = useCallback(async () => {
     trackAnalytics('github_invite_banner.snoozed', {
@@ -111,12 +110,10 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   }, [api, organization, promptsFeature, isEligibleForBanner, fetchMissingMembers]);
 
   useEffect(() => {
-    const {inviteMissingMembers} = qs.parse(location.search);
-
     if (isEligibleForBanner && inviteMissingMembers) {
       openInviteModal();
     }
-  }, [openInviteModal, location, isEligibleForBanner]);
+  }, [openInviteModal, inviteMissingMembers, isEligibleForBanner]);
 
   if (isEligibleForBanner && showBanner && missingMembers.length > 0) {
     trackAnalytics('github_invite_banner.viewed', {

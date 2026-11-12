@@ -8,10 +8,19 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import View
 
+from sentry import options
 from sentry.agent_handoff.claims import claim_handoff
-from sentry.agent_handoff.runbook import render_claim_runbook
+from sentry.agent_handoff.codes import HandoffFlow, HandoffIPMismatch
+from sentry.agent_handoff.flows import get_flow
+from sentry.agent_handoff.runbook import (
+    render_agent_runbook,
+    render_claim_runbook,
+    render_ip_mismatch_runbook,
+)
 from sentry.ratelimits import backend as ratelimiter
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 
 _CLAIM_WINDOW = 60
@@ -25,6 +34,7 @@ def _markdown(body: str, *, status: int = 200) -> HttpResponse:
 
 
 @control_silo_view
+@ai_machine_readable
 class AgentHandoffView(View):
     http_method_names = ["get", "post", "head", "options"]
 
@@ -39,8 +49,33 @@ class AgentHandoffView(View):
         return response
 
     def get(self, request: HttpRequest) -> HttpResponse:
+        if request.GET.get("preview") == "1":
+            response = self._preview(request)
+            response["Content-Type"] = "text/plain; charset=utf-8"
+            return response
+
         return _markdown(
             render_claim_runbook(claim_url=absolute_uri(reverse("sentry-agent-handoff")))
+        )
+
+    def _preview(self, request: HttpRequest) -> HttpResponse:
+        try:
+            flow = HandoffFlow(request.GET.get("flow", HandoffFlow.GUIDED_NEXT_STEPS))
+        except ValueError:
+            return _markdown(
+                "# Unknown Handoff Flow\n\nChoose a supported handoff flow.\n", status=400
+            )
+
+        return _markdown(
+            render_agent_runbook(
+                organization_slug="example-org",
+                organization_name="Example Organization",
+                user_email="user@example.com",
+                sentry_url=options.get("system.url-prefix"),
+                client_id="<client-id>",
+                setup_code="<setup-code>",
+                flow_instructions=get_flow(flow).preview(),
+            )
         )
 
     def post(self, request: HttpRequest) -> HttpResponse:
@@ -67,7 +102,11 @@ class AgentHandoffView(View):
         if not _HANDOFF_CODE.fullmatch(code):
             return _markdown(_UNAVAILABLE, status=400)
 
-        guide = claim_handoff(code)
+        try:
+            guide = claim_handoff(code, ip_address=request.META.get("REMOTE_ADDR"))
+        except HandoffIPMismatch:
+            metrics.incr("agent_handoff.claim.ip_mismatch", sample_rate=1.0)
+            return _markdown(render_ip_mismatch_runbook(), status=403)
         if guide is None:
             return _markdown(_UNAVAILABLE, status=410)
         return _markdown(guide)
