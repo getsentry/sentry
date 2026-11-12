@@ -4,7 +4,7 @@ import zipfile
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
 from types import TracebackType
-from typing import IO, Any, Self, cast
+from typing import IO, Any, Self
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -278,11 +278,11 @@ class ArtifactBundleArchive:
 
     @staticmethod
     def normalize_debug_id(debug_id: object) -> str | None:
-        if debug_id is None:
+        if not isinstance(debug_id, str):
             return None
 
         try:
-            return normalize_debug_id(cast(str, debug_id))
+            return normalize_debug_id(debug_id)
         except SymbolicError:
             return None
 
