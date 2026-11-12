@@ -46,6 +46,7 @@ export interface SeerExplorerHeaderActionsProps {
   onHistoryOpenChange: (isOpen: boolean) => void;
   onSearchChange: (search: string) => void;
   onTogglePictureInPicture: () => void;
+  searchQuery: string;
   sessionOptions: SessionOption[];
   sessionsError: boolean;
   sessionsLoading: boolean;
@@ -53,7 +54,27 @@ export interface SeerExplorerHeaderActionsProps {
   sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
+function getChatHistoryEmptyMessage({
+  searchQuery,
+  sessionsError,
+  sessionsLoading,
+}: Pick<
+  SeerExplorerHeaderActionsProps,
+  'searchQuery' | 'sessionsError' | 'sessionsLoading'
+>) {
+  if (sessionsError) {
+    return t('Error loading session history.');
+  }
+  // Options are cleared while a fetch is in flight, so keep the list blank
+  // rather than flashing an empty state before results arrive.
+  if (sessionsLoading) {
+    return ' ';
+  }
+  return searchQuery ? t('No chats match your search.') : t('No chats yet.');
+}
+
 function ChatHistorySelect({
+  searchQuery,
   sessionOptions,
   sessionsLoading,
   sessionsError,
@@ -62,6 +83,7 @@ function ChatHistorySelect({
   onSearchChange,
 }: Pick<
   SeerExplorerHeaderActionsProps,
+  | 'searchQuery'
   | 'sessionOptions'
   | 'sessionsLoading'
   | 'sessionsError'
@@ -77,7 +99,11 @@ function ChatHistorySelect({
       onChange={option => onChangeSession(option.value)}
       onOpenChange={onHistoryOpenChange}
       loading={sessionsLoading}
-      emptyMessage={sessionsError ? t('Error loading session history.') : ' '}
+      emptyMessage={getChatHistoryEmptyMessage({
+        searchQuery,
+        sessionsError,
+        sessionsLoading,
+      })}
       search={{
         filter: false,
         onChange: onSearchChange,
@@ -119,6 +145,7 @@ export function SeerExplorerHeaderActions({
   onTogglePictureInPicture,
   sidebarPosition = 'auto',
   onSidebarPositionChange,
+  searchQuery,
   sessionOptions,
   sessionsLoading,
   sessionsError,
@@ -211,6 +238,7 @@ export function SeerExplorerHeaderActions({
         />
       )}
       <ChatHistorySelect
+        searchQuery={searchQuery}
         sessionOptions={sessionOptions}
         sessionsLoading={sessionsLoading}
         sessionsError={sessionsError}
@@ -230,6 +258,7 @@ export function SeerExplorerHeaderActionsMenu({
   onTogglePictureInPicture,
   sidebarPosition = 'auto',
   onSidebarPositionChange,
+  searchQuery,
   sessionOptions,
   sessionsLoading,
   sessionsError,
@@ -331,6 +360,7 @@ export function SeerExplorerHeaderActionsMenu({
           collapsing into the overflow menu — the DropdownMenu has no search,
           so a submenu couldn't offer the same filtering the inline actions do. */}
       <ChatHistorySelect
+        searchQuery={searchQuery}
         sessionOptions={sessionOptions}
         sessionsLoading={sessionsLoading}
         sessionsError={sessionsError}

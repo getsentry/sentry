@@ -248,5 +248,25 @@ describe('SeerExplorerHeader', () => {
         await screen.findByPlaceholderText('Search chats\u2026')
       ).toBeInTheDocument();
     });
+
+    it('shows an empty state when there is no chat history', async () => {
+      await renderHeader();
+
+      const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
+      await userEvent.click(chatHistory!);
+      expect(await screen.findByText('No chats yet.')).toBeInTheDocument();
+    });
+
+    it('shows a no-results state when a search matches nothing', async () => {
+      await renderHeader();
+
+      const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
+      await userEvent.click(chatHistory!);
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search chats\u2026'),
+        'nothing'
+      );
+      expect(await screen.findByText('No chats match your search.')).toBeInTheDocument();
+    });
   });
 });

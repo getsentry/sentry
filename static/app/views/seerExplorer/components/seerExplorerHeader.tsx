@@ -115,6 +115,7 @@ export function SeerExplorerHeader({
     isPoppedOut,
     sidebarPosition,
     onSidebarPositionChange,
+    searchQuery: search,
     sessionOptions,
     sessionsLoading: isFetching || isSearchPending,
     sessionsError: isError,
