@@ -1,5 +1,4 @@
 from unittest.mock import MagicMock, patch
-from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.test import override_settings
@@ -42,16 +41,9 @@ class OrganizationAgentHandoffTest(APITestCase):
             scopes=["org:admin"],
             status_code=201,
         )
-        url = urlsplit(response.data["guideUrl"])
-        assert url.path == "/agent-handoff.md"
-        assert not url.query
-        assert not url.fragment
+        assert set(response.data) == {"code", "expiresAt"}
         code = response.data["code"]
         assert code.startswith("sntryh_")
-        assert response.data["prompt"] == (
-            f"Follow the instructions verbatim at {response.data['guideUrl']}. "
-            f"Your handoff code is `{code}`."
-        )
         record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS

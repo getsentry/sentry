@@ -1,7 +1,6 @@
 import logging
 from typing import Any, TypedDict
 
-from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
@@ -30,7 +29,6 @@ from sentry.organizations.services.organization.model import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +89,6 @@ class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
 
 class AgentHandoffResponse(TypedDict):
     code: str
-    prompt: str
-    guideUrl: str
     expiresAt: str
 
 
@@ -140,7 +136,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
         organization_context: RpcUserOrganizationContext,
     ) -> Response:
-        """Create a short-lived private prompt when the user chooses to copy it."""
+        """Mint a short-lived handoff code when the user chooses to copy their agent prompt."""
         user = require_user(request)
         if organization_context.member is None:
             return Response({"detail": "Organization membership is required."}, status=403)
@@ -166,14 +162,8 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
             ip_address=request.META["REMOTE_ADDR"],
             disable_ip_pinning=serializer.validated_data["disable_ip_pinning"],
         )
-        guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
             "code": issued.code,
-            "prompt": (
-                f"Follow the instructions verbatim at {guide_url}. "
-                f"Your handoff code is `{issued.code}`."
-            ),
-            "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),
         }
         logger.info(
