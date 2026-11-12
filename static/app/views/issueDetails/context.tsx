@@ -30,6 +30,7 @@ export const enum SectionKey {
   RESOURCES = 'resources', // Position controlled by flag
 
   EXCEPTION = 'exception',
+  GPU_CRASH_REPORT = 'gpu-crash-report',
   STACKTRACE = 'stacktrace',
   CHAINED_EXCEPTION = 'chained-exception',
   THREADS = 'threads',

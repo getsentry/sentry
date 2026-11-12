@@ -55,7 +55,7 @@ export function HypothesisCard({
   isPrimary = false,
 }: HypothesisCardProps) {
   const theme = useTheme();
-  const steps = [...(hypothesis.verificationSteps ?? [])].sort(
+  const steps = (hypothesis.verificationSteps ?? []).toSorted(
     (a, b) => a.order - b.order
   );
   // Once a verdict lands the checks are supporting detail, so they fold away

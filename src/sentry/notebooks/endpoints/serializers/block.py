@@ -13,7 +13,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
-class InvestigationBlockExecutionSerializerResponse(TypedDict):
+class NotebookBlockExecutionSerializerResponse(TypedDict):
     id: str
     status: str
     executor: str
@@ -23,7 +23,7 @@ class InvestigationBlockExecutionSerializerResponse(TypedDict):
     error: Any
 
 
-class InvestigationBlockSerializerResponse(TypedDict):
+class NotebookBlockSerializerResponse(TypedDict):
     """
     Notebook block. version is the block concurrency token; dependencies are block IDs and
     parameterKeys reference notebook parameters. output is the latest successful result and may
@@ -40,7 +40,7 @@ class InvestigationBlockSerializerResponse(TypedDict):
     generatedContent: str
     output: Any
     outputStatus: str
-    currentExecution: InvestigationBlockExecutionSerializerResponse | None
+    currentExecution: NotebookBlockExecutionSerializerResponse | None
     config: dict[str, Any]
     display: dict[str, Any]
     dependencies: list[str]
@@ -51,7 +51,7 @@ class InvestigationBlockSerializerResponse(TypedDict):
     lastEditedBy: str | None
 
 
-class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerResponse]):
+class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
     @override
     def get_attrs(
         self,
@@ -74,7 +74,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> InvestigationBlockSerializerResponse:
+    ) -> NotebookBlockSerializerResponse:
         execution = obj.current_execution
         if execution is None:
             output = None

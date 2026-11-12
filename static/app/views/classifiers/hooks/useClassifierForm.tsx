@@ -18,7 +18,15 @@ import {usePrebuiltClassifiers} from './usePrebuiltClassifiers';
 
 const classifierDetailsSchema = z.object({
   name: z.string().trim().min(1, t('Classifier title is required')).max(256),
-  resultAttribute: z.string().trim().min(1, t('Attribute name is required')).max(256),
+  resultAttribute: z
+    .string()
+    .trim()
+    .min(1, t('Attribute name is required'))
+    .max(256)
+    .regex(
+      /^[a-z0-9_]+(\.[a-z0-9_]+)*$/,
+      t('Use lowercase letters, numbers, and underscores, separated by dots')
+    ),
 });
 
 interface UseClassifierFormOptions {

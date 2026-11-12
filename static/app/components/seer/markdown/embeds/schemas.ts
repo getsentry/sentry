@@ -101,13 +101,13 @@ interface SeerEmbedSchema {
 }
 
 /**
- * Autofix is a Seer plan entitlement, and the two plan shapes grant it under
- * different flags: seat-based plans and legacy usage-based ones. Matching the
- * pair is the same test the frontend's `orgHasSeerAccess` makes.
+ * Autofix is a Seer plan entitlement. Seat-based, legacy usage-based and
+ * token-billed plans each grant it under their own flag.
  */
 const SEER_PLAN_AUTOFIX_FEATURES = [
   'organizations:seat-based-seer-enabled',
   'organizations:seer-added',
+  'organizations:token-billed-seer-enabled',
 ];
 
 export const SEER_EMBED_SCHEMAS = {

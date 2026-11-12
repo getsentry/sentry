@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.cache.backends.base import BaseCache
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
-from sentry_sdk.integrations.logging import ignore_logger
+from sentry_sdk.integrations.logging import ignore_logger_for_events
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
@@ -29,7 +29,7 @@ OPTIONS_LOGGER_NAME = "sentry.options_store"
 logger = logging.getLogger(OPTIONS_LOGGER_NAME)
 # Our SDK logging integration will create a circular dependency due to its
 # reliance on options, so we need to ignore it.
-ignore_logger(OPTIONS_LOGGER_NAME)
+ignore_logger_for_events(OPTIONS_LOGGER_NAME)
 
 
 @dataclasses.dataclass

@@ -42,7 +42,7 @@ describe('useTableCursor', () => {
     expect(result.current.cursor).toBeUndefined();
 
     act(() => {
-      result.current.setCursor('newCursor', '/', {}, -1);
+      result.current.setCursor('newCursor', -1);
     });
 
     await waitFor(() => {
@@ -65,7 +65,7 @@ describe('useTableCursor', () => {
     expect(result.current.cursor).toBe('oldCursor');
 
     act(() => {
-      result.current.setCursor('newCursor', '/', {}, -1);
+      result.current.setCursor('newCursor', -1);
     });
 
     await waitFor(() => {
@@ -111,7 +111,7 @@ describe('useTableCursor', () => {
     expect(result.current.cursor).toBe('someCursor');
 
     act(() => {
-      result.current.setCursor(undefined, '/', {}, -1);
+      result.current.setCursor(undefined, -1);
     });
 
     await waitFor(() => {

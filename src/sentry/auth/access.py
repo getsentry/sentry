@@ -37,6 +37,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import (
+    RpcOrganization,
     RpcOrganizationAccessContext,
     RpcOrganizationResourceIds,
     RpcTeamMember,
@@ -50,7 +51,11 @@ from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.auth import is_service_account_auth
-from sentry.service_accounts.models import ServiceAccountProjectReplica, ServiceAccountReplica
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+)
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.types.request import _HttpRequestWithUser
@@ -1337,6 +1342,16 @@ def from_request(
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
 
 
+def _sentry_app_scopes(
+    scope_list: Iterable[str], organization: Organization | RpcOrganization
+) -> frozenset[str]:
+    # Sentry App scopes aren't capped by member role scopes, so add granular
+    # scopes only where the organization's roles grant them too.
+    if features.has("organizations:granular-permission-scopes", organization):
+        return translate_deprecated_scopes(scope_list)
+    return frozenset(scope_list)
+
+
 # only used internally
 def _from_sentry_app(user: User, organization: Organization | None = None) -> Access:
     if not organization:
@@ -1353,7 +1368,7 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
         return NoAccess()
 
     return OrganizationGlobalMembership(
-        organization, translate_deprecated_scopes(sentry_app.scope_list), sso_is_valid=True
+        organization, _sentry_app_scopes(sentry_app.scope_list, organization), sso_is_valid=True
     )
 
 
@@ -1378,7 +1393,7 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
             ),
             permissions=[],
         ),
-        scopes=translate_deprecated_scopes(installation.sentry_app.scope_list),
+        scopes=_sentry_app_scopes(installation.sentry_app.scope_list, context.organization),
     )
 
 
@@ -1536,15 +1551,24 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
     # Bound to the account's own org, like agent tokens.
     if auth.entity_id is None or auth.organization_id != organization_id:
         return DEFAULT
-    # The token doesn't carry `all_projects`, so read it from the replica, like the
-    # project links. An account deactivated since authentication gets no access.
-    all_projects = (
-        ServiceAccountReplica.objects.filter(
-            service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+    # The token doesn't carry `all_projects`, so read it from a replica of the account:
+    # a read replica on control, the cell replica elsewhere. An account deactivated since
+    # authentication gets no access.
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        all_projects = (
+            ServiceAccount.objects.using_replica()
+            .filter(id=auth.entity_id, organization_id=organization_id, is_active=True)
+            .values_list("all_projects", flat=True)
+            .first()
         )
-        .values_list("all_projects", flat=True)
-        .first()
-    )
+    else:
+        all_projects = (
+            ServiceAccountReplica.objects.filter(
+                service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+            )
+            .values_list("all_projects", flat=True)
+            .first()
+        )
     if all_projects is None:
         return DEFAULT
     return ServiceAccountAccess(

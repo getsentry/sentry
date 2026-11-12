@@ -1319,20 +1319,18 @@ class IssueStreamDetectorConfigResponse(TypedDict):
 
 
 # config_schema of the metric_issue detector
-# The schema allows keys that aren't listed here.
 class MetricIssueDetectorConfig(TypedDict):
     """A representation of a metric detector config dict"""
 
-    comparison_delta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000] | None]
+    comparison_delta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000]]
     detection_type: Literal["static", "percent", "dynamic"]
 
 
 # config_schema of the metric_issue detector
-# The schema allows keys that aren't listed here.
 class MetricIssueDetectorConfigResponse(TypedDict):
     """A representation of a metric detector config dict"""
 
-    comparisonDelta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000] | None]
+    comparisonDelta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000]]
     detectionType: Literal["static", "percent", "dynamic"]
 
 
