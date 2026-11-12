@@ -1,0 +1,59 @@
+from dataclasses import dataclass, field
+
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
+
+from sentry.search.eap import constants
+from sentry.search.eap.aggregate_utils import count_processor
+from sentry.search.eap.columns import (
+    AggregateDefinition,
+    AttributeArgumentDefinition,
+    NumericArgumentDefinition,
+    ValueArgumentDefinition,
+    count_argument_resolver_optimized,
+)
+from sentry.search.eap.common_aggregates import count_unique_aggregate_definition
+
+
+@dataclass(kw_only=True)
+class NumericDefinition(AggregateDefinition):
+    default_search_type: constants.SearchType = "number"
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition] = field(
+        default_factory=lambda: [NumericArgumentDefinition()]
+    )
+    valid_arithmetic: bool = True
+
+
+ENRICHMENT_ALWAYS_PRESENT_ATTRIBUTES = [
+    AttributeKey(name="sentry.item_id", type=AttributeKey.Type.TYPE_STRING),
+]
+
+ENRICHMENT_AGGREGATE_DEFINITIONS = {
+    "count": AggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        infer_search_type_from_arguments=False,
+        processor=count_processor,
+        default_search_type="integer",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "number",
+                    "integer",
+                },
+                default_arg="id",
+            )
+        ],
+        attribute_resolver=count_argument_resolver_optimized(ENRICHMENT_ALWAYS_PRESENT_ATTRIBUTES),
+        valid_arithmetic=True,
+    ),
+    "count_unique": count_unique_aggregate_definition(default_arg="trace"),
+    "sum": NumericDefinition(internal_function=Function.FUNCTION_SUM),
+    "avg": NumericDefinition(internal_function=Function.FUNCTION_AVG),
+    "p50": NumericDefinition(internal_function=Function.FUNCTION_P50),
+    "p75": NumericDefinition(internal_function=Function.FUNCTION_P75),
+    "p90": NumericDefinition(internal_function=Function.FUNCTION_P90),
+    "p95": NumericDefinition(internal_function=Function.FUNCTION_P95),
+    "p99": NumericDefinition(internal_function=Function.FUNCTION_P99),
+    "max": NumericDefinition(internal_function=Function.FUNCTION_MAX),
+    "min": NumericDefinition(internal_function=Function.FUNCTION_MIN),
+}

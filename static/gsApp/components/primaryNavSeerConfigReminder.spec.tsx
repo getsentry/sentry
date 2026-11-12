@@ -35,7 +35,6 @@ describe('PrimaryNavSeerConfigReminder', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });

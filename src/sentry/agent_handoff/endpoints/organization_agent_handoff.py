@@ -162,8 +162,8 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
             "prompt": (
-                f"Fetch and follow the instructions at {guide_url}. "
-                f"Your secret token is `{issued.code}`."
+                f"Follow the instructions verbatim at {guide_url}. "
+                f"Your handoff code is `{issued.code}`."
             ),
             "guideUrl": guide_url,
             "expiresAt": issued.expires_at.isoformat(),
