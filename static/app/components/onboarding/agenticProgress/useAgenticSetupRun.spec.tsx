@@ -2,7 +2,12 @@ import {useState} from 'react';
 import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {AgenticRunSession} from './types';
 import {useAgenticSetupRun} from './useAgenticSetupRun';
@@ -12,9 +17,16 @@ describe('useAgenticSetupRun', () => {
   const initialRun = AgenticProgressRunFixture();
   const endpoint = `/organizations/${organization.slug}/onboarding/agent/runs/`;
 
-  afterEach(() => {
-    jest.useRealTimers();
-    MockApiClient.clearMockResponses();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+      MockApiClient.clearMockResponses();
+    }
   });
 
   it('polls live progress and resumes the same run after the host pauses it', async () => {

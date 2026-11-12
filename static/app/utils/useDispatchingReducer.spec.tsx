@@ -1,4 +1,4 @@
-import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers} from './makeCombinedReducer';
 import {useDispatchingReducer} from './useDispatchingReducer';
@@ -15,8 +15,13 @@ describe('useDispatchingReducer', () => {
     });
     jest.useFakeTimers();
   });
-  afterEach(() => {
-    jest.useRealTimers();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+    }
   });
   it('initializes state with initializer', () => {
     const reducer = jest.fn().mockImplementation(s => s);

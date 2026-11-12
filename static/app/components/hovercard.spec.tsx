@@ -1,4 +1,4 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -49,52 +49,62 @@ describe('Hovercard', () => {
     expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
   });
 
-  it('respects displayTimeout to delay hiding card when hover is removed', async () => {
-    const DISPLAY_TIMEOUT = 100;
-    render(
-      <Hovercard
-        position="top"
-        body="Hovercard Body"
-        header="Hovercard Header"
-        displayTimeout={DISPLAY_TIMEOUT}
-      >
-        Hovercard Trigger
-      </Hovercard>
-    );
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('respects displayTimeout to delay hiding card when hover is removed', async () => {
+      const DISPLAY_TIMEOUT = 100;
+      render(
+        <Hovercard
+          position="top"
+          body="Hovercard Body"
+          header="Hovercard Header"
+          displayTimeout={DISPLAY_TIMEOUT}
+        >
+          Hovercard Trigger
+        </Hovercard>
+      );
 
-    jest.useFakeTimers();
-    await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
-    await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
+      jest.useFakeTimers();
+      await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
+      await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
 
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
-    jest.useRealTimers();
+      act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT - 1));
 
-    expect(screen.getByText(/Hovercard Body/)).toBeInTheDocument();
-    expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
-  });
+      expect(screen.getByText(/Hovercard Body/)).toBeInTheDocument();
+      expect(screen.getByText(/Hovercard Header/)).toBeInTheDocument();
+    });
 
-  it('hides the cards after the display timeout when hover is removed', async () => {
-    const DISPLAY_TIMEOUT = 100;
-    render(
-      <Hovercard
-        position="top"
-        body="Hovercard Body"
-        header="Hovercard Header"
-        displayTimeout={DISPLAY_TIMEOUT}
-      >
-        Hovercard Trigger
-      </Hovercard>
-    );
+    it('hides the cards after the display timeout when hover is removed', async () => {
+      const DISPLAY_TIMEOUT = 100;
+      render(
+        <Hovercard
+          position="top"
+          body="Hovercard Body"
+          header="Hovercard Header"
+          displayTimeout={DISPLAY_TIMEOUT}
+        >
+          Hovercard Trigger
+        </Hovercard>
+      );
 
-    jest.useFakeTimers();
-    await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
-    await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
+      jest.useFakeTimers();
+      await userEvent.hover(screen.getByText('Hovercard Trigger'), {delay: null});
+      await userEvent.unhover(screen.getByText('Hovercard Trigger'), {delay: null});
 
-    act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT));
-    jest.useRealTimers();
+      act(() => jest.advanceTimersByTime(DISPLAY_TIMEOUT));
 
-    expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Hovercard Body/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Hovercard Header/)).not.toBeInTheDocument();
+    });
   });
 
   it('does not snap-close when a tooltip inside the body is hovered', async () => {

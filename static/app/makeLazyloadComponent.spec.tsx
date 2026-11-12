@@ -1,6 +1,13 @@
 import {useState} from 'react';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -31,15 +38,20 @@ const createMockComponentPromise =
     });
 
 describe('makeLazyloadComponent', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   describe('lazy loading functionality', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('renders lazy component after loading', async () => {
       const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
 
@@ -129,6 +141,19 @@ describe('makeLazyloadComponent', () => {
   });
 
   describe('preload functionality', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('adds preload method to component', () => {
       const LazyComponent = makeLazyloadComponent(createMockComponentPromise());
 

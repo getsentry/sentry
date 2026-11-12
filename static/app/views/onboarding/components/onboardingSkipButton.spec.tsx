@@ -1,4 +1,6 @@
 import {
+  act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -49,8 +51,16 @@ const MAPPED_CASES: MappedCase[] = [
 ];
 
 describe('OnboardingSkipButton', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+      jest.clearAllMocks();
+    }
   });
 
   it.each(MAPPED_CASES)(
@@ -95,7 +105,6 @@ describe('OnboardingSkipButton', () => {
         );
         expect(openSpy).toHaveBeenCalled();
       } finally {
-        jest.useRealTimers();
         openSpy.mockRestore();
       }
     }

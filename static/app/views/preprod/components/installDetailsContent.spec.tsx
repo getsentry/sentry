@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   getDeviceInstallUrl,
@@ -83,10 +83,6 @@ describe('InstallDetailsContent', () => {
     });
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it('shows settings link on 404 when distribution is disabled', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
@@ -157,24 +153,36 @@ describe('InstallDetailsContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows generic error with retry for non-404 errors', async () => {
-    jest.useFakeTimers();
-    const installDetailsRequest = MockApiClient.addMockResponse({
-      url: INSTALL_DETAILS_URL,
-      statusCode: 500,
-      body: {detail: 'Internal error'},
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('shows generic error with retry for non-404 errors', async () => {
+      jest.useFakeTimers();
+      const installDetailsRequest = MockApiClient.addMockResponse({
+        url: INSTALL_DETAILS_URL,
+        statusCode: 500,
+        body: {detail: 'Internal error'},
+      });
 
-    render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {
-      organization,
+      render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {
+        organization,
+      });
+
+      // Non-404 errors are retried twice with react-query's default exponential
+      // backoff (1s, then 2s) before the error is shown
+      await act(() => jest.advanceTimersByTimeAsync(3000));
+
+      expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+      expect(installDetailsRequest).toHaveBeenCalledTimes(3);
     });
-
-    // Non-404 errors are retried twice with react-query's default exponential
-    // backoff (1s, then 2s) before the error is shown
-    await act(() => jest.advanceTimersByTimeAsync(3000));
-
-    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
-    expect(installDetailsRequest).toHaveBeenCalledTimes(3);
   });
 
   it('shows distribution error reason when no install URL and error code is provided', async () => {

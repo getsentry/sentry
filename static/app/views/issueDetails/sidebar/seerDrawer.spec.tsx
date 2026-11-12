@@ -5,6 +5,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -364,8 +365,13 @@ describe('SeerDrawer', () => {
       jest.useFakeTimers();
     });
 
-    afterEach(() => {
-      jest.useRealTimers();
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     function mockAutofixWithPr() {

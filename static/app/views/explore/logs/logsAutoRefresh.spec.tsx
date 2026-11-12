@@ -1,7 +1,14 @@
 import React, {Fragment} from 'react';
 import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -303,38 +310,50 @@ describe('LogsAutoRefresh Integration Tests', () => {
     });
   });
 
-  it('disables auto-refresh after 5 consecutive requests with more data', async () => {
-    jest.useFakeTimers();
-
-    // Clear default mocks and add custom mock
-    MockApiClient.clearMockResponses();
-    const mockApi = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: baseFixtures.slice(0, 1)},
-      headers: {
-        Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:1000:0>; rel="next"; results="true"',
-      },
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
-    setupTotalPayloadMock();
+    it('disables auto-refresh after 5 consecutive requests with more data', async () => {
+      jest.useFakeTimers();
 
-    const {router} = renderWithProviders(<AutorefreshToggle />, {
-      initialRouterConfig: enabledRouterConfig,
-      organization,
-    });
+      // Clear default mocks and add custom mock
+      MockApiClient.clearMockResponses();
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        method: 'GET',
+        body: {data: baseFixtures.slice(0, 1)},
+        headers: {
+          Link: '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:1000:0>; rel="next"; results="true"',
+        },
+      });
+      setupTotalPayloadMock();
 
-    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
-    expect(toggleSwitch).toBeChecked();
+      const {router} = renderWithProviders(<AutorefreshToggle />, {
+        initialRouterConfig: enabledRouterConfig,
+        organization,
+      });
 
-    await waitFor(() => {
+      const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+      expect(toggleSwitch).toBeChecked();
+
+      await waitFor(() => {
+        expect(
+          mockApi.mock.calls.filter(
+            ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
+          )
+        ).toHaveLength(5);
+      });
+
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
     });
-
-    expect(
-      mockApi.mock.calls.filter(
-        ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
-      )
-    ).toHaveLength(5);
   });
 
   it('continues auto-refresh when there is no more data', async () => {
@@ -359,7 +378,11 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(toggleSwitch).toBeChecked();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(5);
+      expect(
+        mockApi.mock.calls.filter(
+          ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
+        )
+      ).toHaveLength(5);
     });
 
     // Auto-refresh should still be enabled

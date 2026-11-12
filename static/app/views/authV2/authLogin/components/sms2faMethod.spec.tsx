@@ -1,37 +1,59 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Sms2FAMethod} from './sms2faMethod';
 
 describe('Sms2FAMethod', () => {
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it('activates SMS and resends the challenge', async () => {
-    jest.useFakeTimers();
-    const challengeRequest = MockApiClient.addMockResponse({
-      url: '/auth/2fa/challenge/',
-      method: 'POST',
-      body: {method: 'sms', expiresIn: 45},
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
-    render(
-      <Sms2FAMethod isActive isProcessing={false} onSubmit={jest.fn()} resetKey={null} />
-    );
+    it('activates SMS and resends the challenge', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const challengeRequest = MockApiClient.addMockResponse({
+        url: '/auth/2fa/challenge/',
+        method: 'POST',
+        body: {method: 'sms', expiresIn: 45},
+      });
+      render(
+        <Sms2FAMethod
+          isActive
+          isProcessing={false}
+          onSubmit={jest.fn()}
+          resetKey={null}
+        />
+      );
 
-    const resendButton = await screen.findByRole('button', {name: 'Resend (45)'});
-    expect(resendButton).toHaveAttribute('aria-disabled', 'true');
+      await act(() => jest.advanceTimersByTimeAsync(0));
+      const resendButton = screen.getByRole('button', {name: 'Resend (45)'});
+      expect(resendButton).toHaveAttribute('aria-disabled', 'true');
 
-    act(() => jest.advanceTimersByTime(45_000));
-    expect(screen.getByRole('button', {name: 'Resend'})).toBeEnabled();
+      await act(() => jest.advanceTimersByTimeAsync(45_000));
+      expect(screen.getByRole('button', {name: 'Resend'})).toBeEnabled();
 
-    jest.useRealTimers();
-    await userEvent.click(screen.getByRole('button', {name: 'Resend'}));
+      await user.click(screen.getByRole('button', {name: 'Resend'}));
+      await act(() => jest.advanceTimersByTimeAsync(0));
 
-    await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(2));
-    expect(await screen.findByRole('button', {name: 'Resend (45)'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+      expect(challengeRequest).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole('button', {name: 'Resend (45)'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
   });
 
   it('shows the sending state until activation completes', async () => {
