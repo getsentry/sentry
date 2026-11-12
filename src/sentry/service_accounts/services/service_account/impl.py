@@ -47,7 +47,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     ) -> RpcServiceAccount | None:
         service_account = ServiceAccount.objects.filter(
             id=service_account_id, organization_id=organization_id, is_active=True
-        ).first()
+        ).first()  # noqa: S034
         if service_account is None:
             return None
         return _serialize_with_projects(service_account)
@@ -106,7 +106,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     ) -> RpcServiceAccount | None:
         service_account = ServiceAccount.objects.filter(
             organization_id=organization_id, idempotency_key=idempotency_key
-        ).first()
+        ).first()  # noqa: S034
         if service_account is None:
             return None
         return _serialize_with_projects(service_account)
@@ -133,7 +133,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             service_account = (
                 ServiceAccount.objects.select_for_update()
                 .filter(id=service_account_id, organization_id=organization_id, is_active=True)
-                .first()
+                .first()  # noqa: S034
             )
             if service_account is None:
                 return None
@@ -148,7 +148,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
         service_account = ServiceAccount.objects.filter(
             id=service_account_id, organization_id=organization_id
-        ).first()
+        ).first()  # noqa: S034
         if service_account is not None:
             service_account.deactivate()
 

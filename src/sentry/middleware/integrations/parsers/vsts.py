@@ -32,7 +32,7 @@ class VstsRequestParser(BaseRequestParser):
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
-        return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
+        return Integration.objects.filter(external_id=external_id, provider=self.provider).first()  # noqa: S034
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class not in self.cell_view_classes:

@@ -20,7 +20,7 @@ class DatabaseBackedOrgAuthTokenService(OrgAuthTokenService):
         date_last_used: datetime | None = None,
         project_last_used_id: int | None = None,
     ) -> None:
-        token = OrgAuthToken.objects.filter(id=org_auth_token_id).first()
+        token = OrgAuthToken.objects.filter(id=org_auth_token_id).first()  # noqa: S034
 
         if token is None:
             return

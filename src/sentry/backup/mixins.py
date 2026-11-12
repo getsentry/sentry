@@ -38,7 +38,7 @@ class OverwritableConfigMixin:
                 # If all of the fields in the unique set are NULL, we'll avoid a collision, so exit
                 # early and write a new entry.
                 if len(query) > 0:
-                    existing = self.__class__.objects.filter(**query).first()  # type: ignore[attr-defined]
+                    existing = self.__class__.objects.filter(**query).first()  # type: ignore[attr-defined]  # noqa: S034
                     if existing:
                         # Re-use the existing data if config overwrite is disabled.
                         if not flags.overwrite_configs:

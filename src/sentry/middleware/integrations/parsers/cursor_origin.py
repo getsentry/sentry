@@ -83,7 +83,7 @@ class CursorOriginRequestParser(BaseRequestParser):
             return None
         return Integration.objects.filter(
             provider=self.provider, external_id=installation_id
-        ).first()
+        ).first()  # noqa: S034
 
     def get_response(self) -> HttpResponseBase:
         shed_response = self.get_shed_response()

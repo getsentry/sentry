@@ -40,7 +40,7 @@ def create_organization_join_request(
             Q(email__iexact=email)
             | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
             organization=organization,
-        ).first()
+        ).first()  # noqa: S034
         if om:
             return None
 

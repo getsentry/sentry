@@ -63,7 +63,7 @@ class RelocationRetryEndpoint(Endpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        relocation = Relocation.objects.filter(uuid=relocation_uuid).first()
+        relocation = Relocation.objects.filter(uuid=relocation_uuid).first()  # noqa: S034
         if relocation is None:
             raise ResourceDoesNotExist
         if relocation.status != Relocation.Status.FAILURE.value:
@@ -77,7 +77,7 @@ class RelocationRetryEndpoint(Endpoint):
             )
 
         relocation_file = (
-            RelocationFile.objects.filter(relocation=relocation).select_related("file").first()
+            RelocationFile.objects.filter(relocation=relocation).select_related("file").first()  # noqa: S034
         )
         if relocation_file is None:
             return Response(

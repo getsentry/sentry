@@ -221,7 +221,7 @@ class UserEmailsEndpoint(UserEndpoint):
 
         email = validator.validated_data["email"]
         primary_email = UserEmail.objects.get_primary_email(user)
-        del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()
+        del_email = UserEmail.objects.filter(user=user, email__iexact=email).first()  # noqa: S034
         del_useroption_email_list = UserOption.objects.filter(
             user=user, key="mail:email", value=email
         )

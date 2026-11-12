@@ -273,7 +273,7 @@ class Actor(RpcModel):
         from sentry.users.services.user.service import user_service
 
         if self.is_team:
-            team = Team.objects.filter(id=self.id).first()
+            team = Team.objects.filter(id=self.id).first()  # noqa: S034
             if team:
                 return team
             raise Actor.InvalidActor(f"Cannot find a team with id={self.id}")
@@ -338,7 +338,7 @@ def validate_actor(actor: Actor, organization_id: int) -> None:
     elif isinstance(obj, RpcUser):
         membership = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=obj.id
-        ).first()
+        ).first()  # noqa: S034
         if not membership:
             raise serializers.ValidationError("User is not a member of this organization")
         if not membership.user_is_active:
