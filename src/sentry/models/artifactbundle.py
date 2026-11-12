@@ -145,7 +145,8 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    # No index of its own: the composite index in Meta leads with organization_id.
+    organization_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
