@@ -1,9 +1,11 @@
+import dataclasses
 import logging
 import time
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from concurrent.futures import FIRST_EXCEPTION, wait
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any, Literal, NoReturn, cast, get_args
 
 import sentry_sdk
@@ -47,6 +49,7 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.constants import TIMEOUT_RPC_ERROR_MESSAGE
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import rpc_dataset_common
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.referrer import Referrer
@@ -275,17 +278,35 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
                     selected_columns=[stats_config.id_column, "timestamp"],
                 )
 
+        def get_preflight_params(rows: list[dict[str, Any]]) -> SnubaParams:
+            # Filtering on item ids alone can't prune granules, so bound the
+            # preflight to the time span of the sampled items. Snuba compares
+            # whole seconds with an exclusive end, hence the floor and +1s.
+            timestamps = [datetime.fromisoformat(row["timestamp"]) for row in rows]
+            start = min(timestamps).replace(microsecond=0)
+            end = max(timestamps).replace(microsecond=0) + timedelta(seconds=1)
+            return dataclasses.replace(
+                snuba_params,
+                start=max(start, snuba_params.start_date),
+                end=min(end, snuba_params.end_date),
+            )
+
         def run_stats_query_with_item_ids(
             item_id_filter: str,
+            params: SnubaParams,
         ) -> list[dict[str, Any]]:
             with handle_query_errors():
                 return stats_config.rpc_class.run_stats_query(
-                    params=snuba_params,
+                    params=params,
                     stats_types=serialized.get("statsType"),
                     query_string=item_id_filter,
                     referrer=stats_config.referrer.value,
                     config=resolver_config,
-                    search_resolver=resolver,
+                    search_resolver=SearchResolver(
+                        params=params,
+                        config=resolver_config,
+                        definitions=stats_config.definitions,
+                    ),
                     max_buckets=1,
                     skip_translate_internal_to_public_alias=True,
                 )
@@ -313,7 +334,9 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
             item_id_list = ",".join(item_ids)
 
             deadline.remaining("preflight")
-            preflight_stats = run_stats_query_with_item_ids(f"id:[{item_id_list}]")
+            preflight_stats = run_stats_query_with_item_ids(
+                f"id:[{item_id_list}]", get_preflight_params(table_results["data"])
+            )
             try:
                 internal_alias_attr_keys = list(
                     preflight_stats[0]["attributeDistributions"]["data"].keys()
