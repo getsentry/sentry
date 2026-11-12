@@ -146,7 +146,7 @@ class TestBlockCreateValidator:
 
         assert not validator.is_valid()
 
-    def test_requires_an_investigation_version(self) -> None:
+    def test_requires_an_notebook_version(self) -> None:
         validator = BlockCreateValidator(data={"kind": "text"})
 
         assert not validator.is_valid()

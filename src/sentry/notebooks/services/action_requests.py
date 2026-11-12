@@ -74,7 +74,7 @@ def _supersede(queryset: QuerySet[NotebookActionRequest]) -> int:
     )
 
 
-def supersede_action_requests_before(investigation: Notebook, report_revision: int) -> int:
+def supersede_action_requests_before(notebook: Notebook, report_revision: int) -> int:
     """Supersede requests that belonged to an older report.
 
     Only the primary and block-anchored requests go away with the old report. A re-run can
@@ -84,7 +84,7 @@ def supersede_action_requests_before(investigation: Notebook, report_revision: i
     """
 
     older = NotebookActionRequest.objects.filter(
-        notebook=investigation, producer_revision__lt=report_revision
+        notebook=notebook, producer_revision__lt=report_revision
     )
     _drop_stale(older)
     return _supersede(
@@ -92,14 +92,14 @@ def supersede_action_requests_before(investigation: Notebook, report_revision: i
     )
 
 
-def _replace_primary(investigation: Notebook, row: NotebookActionRequest) -> None:
+def _replace_primary(notebook: Notebook, row: NotebookActionRequest) -> None:
     """Make `row` the only live primary.
 
     An older primary with an anchor stays as a normal request under that anchor. One without
     an anchor is superseded, and a stale one stops being listed.
     """
 
-    others = NotebookActionRequest.objects.filter(notebook=investigation, primary=True).exclude(
+    others = NotebookActionRequest.objects.filter(notebook=notebook, primary=True).exclude(
         id=row.id
     )
     _drop_stale(others)
@@ -122,9 +122,7 @@ def _after_upsert(rows: Sequence[NotebookActionRequest]) -> None:
             kind.after_upsert(row)
 
 
-def upsert_action_request(
-    investigation: Notebook, item: ActionRequestItem
-) -> NotebookActionRequest:
+def upsert_action_request(notebook: Notebook, item: ActionRequestItem) -> NotebookActionRequest:
     """Create or update the request with this key. Callers must hold the investigation and
     run locks.
 
@@ -132,15 +130,15 @@ def upsert_action_request(
     if Seer changes the action, so replaying an event can't bring them back.
     """
 
-    row, changed = _upsert(investigation, item)
+    row, changed = _upsert(notebook, item)
     if item["primary"]:
-        _replace_primary(investigation, row)
+        _replace_primary(notebook, row)
     if changed:
         _after_upsert([row])
     return row
 
 
-def _upsert(investigation: Notebook, item: ActionRequestItem) -> tuple[NotebookActionRequest, bool]:
+def _upsert(notebook: Notebook, item: ActionRequestItem) -> tuple[NotebookActionRequest, bool]:
     """Create or update the request with this key, and say whether Seer changed it."""
 
     anchor = item["anchor"]
@@ -154,11 +152,11 @@ def _upsert(investigation: Notebook, item: ActionRequestItem) -> tuple[NotebookA
         "rationale": item["rationale"],
         "impact": item["impact"],
     }
-    row = NotebookActionRequest.objects.filter(notebook=investigation, key=item["key"]).first()
+    row = NotebookActionRequest.objects.filter(notebook=notebook, key=item["key"]).first()
     changed = True
     if row is None:
         row = NotebookActionRequest.objects.create(
-            notebook=investigation,
+            notebook=notebook,
             key=item["key"],
             action_kind=action["kind"] if action is not None else None,
             action_payload=action,
@@ -196,7 +194,7 @@ def _upsert(investigation: Notebook, item: ActionRequestItem) -> tuple[NotebookA
         # A newer request under the same anchor replaces a stale one there.
         _drop_stale(
             NotebookActionRequest.objects.filter(
-                notebook=investigation,
+                notebook=notebook,
                 anchor_type=anchor["type"],
                 anchor_id=anchor["id"],
                 id__lt=row.id,
@@ -212,7 +210,7 @@ def _upsert(investigation: Notebook, item: ActionRequestItem) -> tuple[NotebookA
     return row, changed
 
 
-def withdraw_action_request(investigation: Notebook, key: str, reason: str) -> bool:
+def withdraw_action_request(notebook: Notebook, key: str, reason: str) -> bool:
     """Withdraw a suggested or stale request that Seer no longer stands behind. Applied and
     failed requests are left alone.
     """
@@ -220,7 +218,7 @@ def withdraw_action_request(investigation: Notebook, key: str, reason: str) -> b
     return bool(
         NotebookActionRequest.objects.filter(
             Q(state=NotebookActionRequestState.SUGGESTED) | STALE,
-            notebook=investigation,
+            notebook=notebook,
             key=key,
         ).update(
             state=NotebookActionRequestState.WITHDRAWN,
@@ -230,9 +228,7 @@ def withdraw_action_request(investigation: Notebook, key: str, reason: str) -> b
     )
 
 
-def sync_snapshot_action_requests(
-    investigation: Notebook, items: Sequence[ActionRequestItem]
-) -> None:
+def sync_snapshot_action_requests(notebook: Notebook, items: Sequence[ActionRequestItem]) -> None:
     """Treat the snapshot as the full list: any live request it leaves out is superseded, and
     any stale one stops being listed.
     """
@@ -240,7 +236,7 @@ def sync_snapshot_action_requests(
     primaries: list[NotebookActionRequest] = []
     changed: list[NotebookActionRequest] = []
     for item in items:
-        row, row_changed = _upsert(investigation, item)
+        row, row_changed = _upsert(notebook, item)
         if item["primary"]:
             primaries.append(row)
         if row_changed:
@@ -249,7 +245,7 @@ def sync_snapshot_action_requests(
         # Pick the newest revision, then a suggested request over a failed one, then the key,
         # so the list order never decides which primary wins.
         _replace_primary(
-            investigation,
+            notebook,
             max(
                 primaries,
                 key=lambda row: (
@@ -260,21 +256,21 @@ def sync_snapshot_action_requests(
             ),
         )
     _supersede(
-        NotebookActionRequest.objects.filter(notebook=investigation).exclude(
+        NotebookActionRequest.objects.filter(notebook=notebook).exclude(
             key__in=[item["key"] for item in items]
         )
     )
     _after_upsert(changed)
 
 
-def supersede_block_action_requests(investigation: Notebook, block_keys: Sequence[str]) -> int:
+def supersede_block_action_requests(notebook: Notebook, block_keys: Sequence[str]) -> int:
     """Supersede the requests anchored to blocks that were just removed, since their anchor is
     gone and the UI would have nowhere to show them.
     """
 
     return _supersede(
         NotebookActionRequest.objects.filter(
-            notebook=investigation,
+            notebook=notebook,
             anchor_type=NotebookActionRequestAnchorType.BLOCK,
             anchor_id__in=block_keys,
         )
@@ -282,7 +278,7 @@ def supersede_block_action_requests(investigation: Notebook, block_keys: Sequenc
 
 
 _REASON_DETAILS = {
-    CannotApplyReason.INVESTIGATION_ARCHIVED: "Archived investigations are read-only.",
+    CannotApplyReason.NOTEBOOK_ARCHIVED: "Archived investigations are read-only.",
     CannotApplyReason.UNSUPPORTED_ACTION: "This request has no action to apply.",
 }
 _DEFAULT_REASON_DETAIL = "This action can't be applied."
@@ -307,7 +303,7 @@ def _not_suggested_error(action_request: NotebookActionRequest) -> ApplyError:
 
 
 def _check_can_apply(
-    investigation: Notebook,
+    notebook: Notebook,
     action_request: NotebookActionRequest,
     request: Request,
     *,
@@ -317,7 +313,7 @@ def _check_can_apply(
     for a request that already went stale or was applied, so its state doesn't count.
     """
 
-    reason = shared_cannot_apply_reason(investigation, action_request)
+    reason = shared_cannot_apply_reason(notebook, action_request)
     if reason == CannotApplyReason.NOT_SUGGESTED:
         if not retry:
             raise ApplyFailed(_not_suggested_error(action_request))
@@ -328,7 +324,7 @@ def _check_can_apply(
         # The same check that decides canApply guards the endpoint, so a kind can't forget it.
         reason = kind.cannot_apply_reasons(
             [action_request],
-            investigations={investigation.id: investigation},
+            notebooks={notebook.id: notebook},
             access=request.access,
             user=request.user,
         )[action_request.id]
@@ -378,20 +374,20 @@ def complete_action_requests(
     investigations, are skipped.
     """
 
-    investigation_ids = list(action_requests.values_list("notebook_id", flat=True).distinct())
-    for investigation_id in investigation_ids:
+    notebook_ids = list(action_requests.values_list("notebook_id", flat=True).distinct())
+    for notebook_id in notebook_ids:
         with transaction.atomic(using=router.db_for_write(NotebookActionRequest)):
-            investigation = (
-                Notebook.objects.select_for_update(of=("self",)).filter(id=investigation_id).first()
+            notebook = (
+                Notebook.objects.select_for_update(of=("self",)).filter(id=notebook_id).first()
             )
-            if investigation is None:
+            if notebook is None:
                 continue
-            producer = get_producer(investigation.source_type)
+            producer = get_producer(notebook.source_type)
             if producer is None:
                 continue
-            run = producer.lock_run(investigation, lock=True)
-            for row in action_requests.filter(notebook=investigation).select_for_update():
-                if shared_cannot_apply_reason(investigation, row) is None:
+            run = producer.lock_run(notebook, lock=True)
+            for row in action_requests.filter(notebook=notebook).select_for_update():
+                if shared_cannot_apply_reason(notebook, row) is None:
                     _complete_action_request(run, row, applied_by=applied_by, details=details)
 
 
@@ -457,26 +453,26 @@ def _check_action_unchanged(
 
 
 def _locked_context(
-    investigation: Notebook,
+    notebook: Notebook,
     action_request: NotebookActionRequest,
     request: Request,
     actor_id: int,
     *,
     lock: bool,
 ) -> ApplyContext:
-    investigations = Notebook.objects.select_related("organization")
+    notebooks = Notebook.objects.select_related("organization")
     action_requests = NotebookActionRequest.objects.all()
     if lock:
-        investigations = investigations.select_for_update(of=("self",))
+        notebooks = notebooks.select_for_update(of=("self",))
         action_requests = action_requests.select_for_update()
 
-    locked = investigations.get(id=investigation.id)
+    locked = notebooks.get(id=notebook.id)
     producer = get_producer(locked.source_type)
     if producer is None:
         # Only a producer's requests can be acted on.
         raise ResourceDoesNotExist
     return ApplyContext(
-        investigation=locked,
+        notebook=locked,
         run=producer.lock_run(locked, lock=lock),
         action_request=action_requests.get(id=action_request.id),
         request=request,
@@ -486,15 +482,15 @@ def _locked_context(
 
 def _apply(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     action_request: NotebookActionRequest,
     request: Request,
     actor_id: int,
     dry_run: bool,
     expected_action: Mapping[str, Any] | None,
 ) -> NotebookActionRequest:
-    context = _locked_context(investigation, action_request, request, actor_id, lock=not dry_run)
-    kind = _check_can_apply(context.investigation, context.action_request, request)
+    context = _locked_context(notebook, action_request, request, actor_id, lock=not dry_run)
+    kind = _check_can_apply(context.notebook, context.action_request, request)
     _check_action_unchanged(context.action_request, expected_action)
     try:
         if dry_run:
@@ -524,22 +520,22 @@ def _apply(
 
 def _recheck(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     action_request: NotebookActionRequest,
     request: Request,
     actor_id: int,
     expected_action: Mapping[str, Any] | None,
 ) -> NotebookActionRequest:
-    context = _locked_context(investigation, action_request, request, actor_id, lock=True)
+    context = _locked_context(notebook, action_request, request, actor_id, lock=True)
     action_request = context.action_request
     if _failed_recheck(context):
-        _check_can_apply(context.investigation, action_request, request, retry=True)
+        _check_can_apply(context.notebook, action_request, request, retry=True)
         _check_action_unchanged(action_request, expected_action)
         if not context.run.retry_recheck(action_request, context.actor_id):
             assert action_request.error is not None
             _record_stale(context, action_request.error["current"])
         return action_request
-    kind = _check_can_apply(context.investigation, action_request, request)
+    kind = _check_can_apply(context.notebook, action_request, request)
     _check_action_unchanged(action_request, expected_action)
     try:
         _check_without_writes(kind, context)
@@ -555,27 +551,27 @@ def _recheck(
 
 def _retry_follow_up(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     action_request: NotebookActionRequest,
     request: Request,
     actor_id: int,
     expected_action: Mapping[str, Any] | None,
 ) -> NotebookActionRequest:
-    context = _locked_context(investigation, action_request, request, actor_id, lock=True)
+    context = _locked_context(notebook, action_request, request, actor_id, lock=True)
     action_request = context.action_request
     if not _undelivered_follow_up(context):
         raise ApplyFailed(
             {"detail": "There's nothing to send Seer again.", "code": ApplyErrorCode.NOT_RETRYABLE}
         )
-    _check_can_apply(context.investigation, action_request, request, retry=True)
+    _check_can_apply(context.notebook, action_request, request, retry=True)
     _check_action_unchanged(action_request, expected_action)
     context.run.resend_follow_up(action_request)
     return action_request
 
 
-def _get_action_request(investigation: Notebook, action_request_id: str) -> NotebookActionRequest:
+def _get_action_request(notebook: Notebook, action_request_id: str) -> NotebookActionRequest:
     try:
-        return NotebookActionRequest.objects.get(id=action_request_id, notebook=investigation)
+        return NotebookActionRequest.objects.get(id=action_request_id, notebook=notebook)
     except (NotebookActionRequest.DoesNotExist, ValueError):
         raise ResourceDoesNotExist
 
@@ -595,7 +591,7 @@ def _commit_then_raise(run: Callable[[], NotebookActionRequest]) -> NotebookActi
 
 def apply_action_request(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     action_request_id: str,
     request: Request,
     actor_id: int,
@@ -606,17 +602,17 @@ def apply_action_request(
     says whether it would work, and doesn't take locks or change anything.
     """
 
-    action_request = _get_action_request(investigation, action_request_id)
+    action_request = _get_action_request(notebook, action_request_id)
     # A silo call can't run in a transaction, so check before taking locks. _apply runs the
     # guard again under them.
-    kind = _check_can_apply(investigation, action_request, request)
+    kind = _check_can_apply(notebook, action_request, request)
     try:
-        kind.check_remote(investigation, action_request)
+        kind.check_remote(notebook, action_request)
     except ActionInvalid as invalid:
         raise ApplyFailed(_invalid_error(invalid))
     return _commit_then_raise(
         lambda: _apply(
-            investigation=investigation,
+            notebook=notebook,
             action_request=action_request,
             request=request,
             actor_id=actor_id,
@@ -628,7 +624,7 @@ def apply_action_request(
 
 def recheck_action_request(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     action_request_id: str,
     request: Request,
     actor_id: int,
@@ -639,10 +635,10 @@ def recheck_action_request(
     re-check failed is sent to Seer again. It never applies the change.
     """
 
-    action_request = _get_action_request(investigation, action_request_id)
+    action_request = _get_action_request(notebook, action_request_id)
     return _commit_then_raise(
         lambda: _recheck(
-            investigation=investigation,
+            notebook=notebook,
             action_request=action_request,
             request=request,
             actor_id=actor_id,
@@ -653,7 +649,7 @@ def recheck_action_request(
 
 def retry_follow_up(
     *,
-    investigation: Notebook,
+    notebook: Notebook,
     action_request_id: str,
     request: Request,
     actor_id: int,
@@ -663,10 +659,10 @@ def retry_follow_up(
     raise ApplyFailed with `not_retryable`.
     """
 
-    action_request = _get_action_request(investigation, action_request_id)
+    action_request = _get_action_request(notebook, action_request_id)
     return _commit_then_raise(
         lambda: _retry_follow_up(
-            investigation=investigation,
+            notebook=notebook,
             action_request=action_request,
             request=request,
             actor_id=actor_id,

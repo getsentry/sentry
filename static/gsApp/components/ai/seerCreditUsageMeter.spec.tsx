@@ -191,17 +191,28 @@ describe('SeerCreditUsageMeter', () => {
     );
   });
 
-  it('shows nothing to members without billing access', () => {
+  it('shows usage without auto reload to members without billing access', async () => {
     const organization = OrganizationFixture({
       access: ['org:read'],
       features: ['seer-credit-checks', 'token-billed-seer-enabled'],
     });
-    const {wallet, autoTopUp} = mockWallet(organization);
+    const {wallet, autoTopUp} = mockWallet(organization, {autoReload: true});
 
-    render(<SeerCreditUsageMeter hasEnoughCredits />, {organization});
+    render(<SeerCreditUsageMeter hasEnoughCredits={false} />, {organization});
 
-    expect(screen.queryByTestId('seer-credit-usage-meter')).not.toBeInTheDocument();
-    expect(wallet).not.toHaveBeenCalled();
+    await userEvent.hover(await screen.findByText('75%'));
+
+    expect(
+      await screen.findByText('Your organization has used 75% of your available credits.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('250/1,000 credits remaining.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Credits will reload automatically.')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/You do not have any more reloads available\./)
+    ).not.toBeInTheDocument();
+    expect(wallet).toHaveBeenCalledTimes(1);
     expect(autoTopUp).not.toHaveBeenCalled();
   });
 

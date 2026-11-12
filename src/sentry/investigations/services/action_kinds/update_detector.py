@@ -403,7 +403,7 @@ class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
         user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
@@ -415,7 +415,7 @@ class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
         }
         detector_ids_by_org: dict[int, set[int]] = defaultdict(set)
         for item in action_requests:
-            organization_id = investigations[item.notebook_id].organization_id
+            organization_id = notebooks[item.notebook_id].organization_id
             detector_ids_by_org[organization_id].add(_action_detector_id(item))
         detectors = {
             (organization_id, detector_id): detector
@@ -428,7 +428,7 @@ class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
             detector_id = _action_detector_id(item)
-            investigation = investigations[item.notebook_id]
+            investigation = notebooks[item.notebook_id]
             source_id = source_detector_ids.get(item.notebook_id)
             key = (detector_id, source_id, investigation.organization_id)
             if key not in detector_reasons:
@@ -451,7 +451,7 @@ class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
     def _apply(self, context: ApplyContext, *, dry_run: bool) -> UpdateDetectorAppliedDetails:
         action = context.action_request.action_payload
         assert action is not None
-        detectors = _metric_detectors(context.investigation.organization_id)
+        detectors = _metric_detectors(context.notebook.organization_id)
         snuba_queries = SnubaQuery.objects.all()
         if not dry_run:
             # Lock the monitor until we save, so an edit between the stale check and the save
