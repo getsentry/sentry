@@ -162,6 +162,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not self._occurrences_dataset_allowed(request, organization)
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
+        elif (
+            dataset_label == SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value
+            and not features.has("organizations:classifiers-ui", organization, actor=request.user)
+        ):
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)

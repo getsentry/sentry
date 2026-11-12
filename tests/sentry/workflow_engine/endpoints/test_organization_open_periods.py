@@ -37,6 +37,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_open_periods import (
     detector_opens_new_issue_per_activation,
 )
@@ -206,6 +207,25 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.get_error_response(
             *self.get_url_args(),
             qs_params={"detectorId": restricted_detector.id},
+            status_code=400,
+        )
+
+    def test_detector_id_returns_400_for_other_organization_detector(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        other_detector = self.create_detector(project=other_project)
+
+        self.get_error_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": other_detector.id},
+            status_code=400,
+        )
+
+    def test_detector_id_returns_400_for_all_projects_detector(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+        self.get_error_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": all_projects_detector.id},
             status_code=400,
         )
 

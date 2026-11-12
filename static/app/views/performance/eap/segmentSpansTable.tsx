@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -99,7 +100,8 @@ export function SegmentSpansTable({
     };
   });
 
-  const handleCursor: CursorHandler = (_cursor, pathname, cursorQuery) => {
+  const handleCursor: CursorHandler = _cursor => {
+    const {pathname, query: cursorQuery} = location;
     navigate({
       pathname,
       query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor},
@@ -270,7 +272,7 @@ function CustomPagination({
   if (isLoading) {
     return (
       <StyledPagination
-        pageLinks="n/a"
+        {...getPaginationProps('n/a')}
         disabled
         onCursor={() => {}}
         size={PAGINATION_CURSOR_SIZE}
@@ -280,7 +282,7 @@ function CustomPagination({
 
   return (
     <StyledPagination
-      pageLinks={pageLinks}
+      {...getPaginationProps(pageLinks)}
       onCursor={onCursor}
       size={PAGINATION_CURSOR_SIZE}
     />

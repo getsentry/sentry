@@ -145,8 +145,8 @@ export function NewWelcomeUI(props: StepProps) {
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
-        title: t("Code breaks.\nWe'll help you fix it faster"),
-        description: t('Monitor, debug, and fix your code, all in one place.'),
+        title: t('Code breaks. Fix it faster'),
+        description: t('Detect, diagnose, and debug, all in one place'),
       };
 
   useWelcomeAnalyticsEffect({showAgentSetup});
@@ -182,14 +182,14 @@ export function NewWelcomeUI(props: StepProps) {
       <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
-            <Stack gap="lg" paddingBottom="xl">
+            <Stack gap="md" paddingBottom="2xl">
               <MotionContainer {...ONBOARDING_ENTER}>
                 <Heading as="h2" size="3xl" align="center" wrap="pre-line">
                   {scmHeading.title}
                 </Heading>
               </MotionContainer>
               <MotionContainer {...ONBOARDING_ENTER}>
-                <Text align="center" variant="muted" size="lg" density="comfortable">
+                <Text align="center" variant="secondary" size="xl" density="comfortable">
                   {scmHeading.description}
                 </Text>
               </MotionContainer>

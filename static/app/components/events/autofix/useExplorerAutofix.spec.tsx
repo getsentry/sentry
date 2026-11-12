@@ -13,6 +13,7 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   getPollInterval,
+  getSingleRunStop,
   hideErroredPrIteration,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
@@ -681,6 +682,68 @@ describe('getOrderedAutofixSections', () => {
       );
     });
 
+    it('reads the root cause the API returns under the root_cause key', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'root_cause',
+                reason: 'found',
+                data: {headline: 'H', cause: 'C'},
+              },
+            ],
+          }),
+        ])
+      );
+
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
+    });
+
+    it('keeps why the run stopped on the root cause section', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'stop',
+                reason: 'stop',
+                data: {reason: 'R', suggestion: 'N'},
+              },
+            ],
+          }),
+        ])
+      );
+
+      expect(getSingleRunStop(sections[0]!)).toEqual({reason: 'R', suggestion: 'N'});
+    });
+
+    it('drops the stop once the run has code changes', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'stop',
+                reason: 'stop',
+                data: {reason: 'R', suggestion: 'N'},
+              },
+            ],
+            merged_file_patches: [makePatch('org/repo', 'a.py')],
+          }),
+        ])
+      );
+
+      expect(getSingleRunStop(sections[0]!)).toBeNull();
+    });
+
     it('has only a root cause section without patches', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun([
@@ -738,7 +801,7 @@ describe('getOrderedAutofixSections', () => {
       expect(sections.map(s => s.status)).toEqual(['error']);
     });
 
-    it('shows an error on the root cause when the run failed after finding it', () => {
+    it('keeps the root cause and shows an error on code changes when the run failed after finding it', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun(
           [
@@ -749,7 +812,15 @@ describe('getOrderedAutofixSections', () => {
         )
       );
 
-      expect(sections.map(s => s.status)).toEqual(['error']);
+      expect(sections.map(s => [s.step, s.status])).toEqual([
+        ['root_cause', 'completed'],
+        ['code_changes', 'error'],
+      ]);
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
     });
 
     it('shows an error on code changes when the run failed after editing', () => {

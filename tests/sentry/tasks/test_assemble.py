@@ -552,7 +552,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
             release_name="2.0", dist_name="android"
         ).date_added == datetime.fromisoformat("2023-05-31T11:00:00+00:00")
 
-    @override_options({"sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle": True})
     def test_upload_same_bundle_id_redates_debug_ids_by_bundle(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id

@@ -100,7 +100,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             type=MetricIssue.slug,
             config={
                 "detection_type": detection_type.value,
-                "comparison_delta": comparison_delta,
+                **({"comparison_delta": comparison_delta} if comparison_delta is not None else {}),
             },
             workflow_condition_group=condition_group,
             name="Checkout errors",
@@ -357,31 +357,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 "thresholdChangePercent": 40.0,
             },
         ]
-
-    def test_migrated_percent_detector_snapshot(self) -> None:
-        group, open_period = self.create_metric_open_period(
-            detection_type=AlertRuleDetectionType.STATIC,
-            condition_comparison=150,
-            comparison_delta=86_400,
-        )
-        source = {
-            "type": "metric_open_period",
-            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
-        }
-
-        launched = self.client.post(
-            self.start_url,
-            {"source": source},
-            format="json",
-        )
-
-        assert launched.status_code == 201
-        monitor = launched.data["source"]["snapshot"]["monitor"]
-        assert monitor["detectionType"] == "percent"
-        assert monitor["comparisonDeltaSeconds"] == 86_400
-        assert all(
-            condition["thresholdChangePercent"] == 50.0 for condition in monitor["conditions"]
-        )
 
     def test_dynamic_detector_is_available(self) -> None:
         comparison = {

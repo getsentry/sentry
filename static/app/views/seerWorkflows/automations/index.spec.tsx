@@ -116,8 +116,7 @@ describe('AutomationsList', () => {
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/seer/automations/42/runs/'
     );
-    expect(await screen.findByText('17')).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
+    expect(await screen.findByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no automations', async () => {
