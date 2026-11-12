@@ -37,7 +37,6 @@ def _get_activity_kind(event_data: WorkflowEventData) -> str | None:
 @condition_handler_registry.register(Condition.ACTIVITY_TYPE_IN)
 class ActivityTypeInHandler(WorkflowTriggerDataConditionHandler):
     is_internal = True
-    supports_group_less = True
     preview_behavior = UnsupportedPreviewBehavior(
         "Internal activity conditions are not previewable"
     )

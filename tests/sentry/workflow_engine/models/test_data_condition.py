@@ -36,7 +36,6 @@ class ActivityTypeInConditionTest(ConditionTestCase):
         handler = condition_handler_registry.get(Condition.ACTIVITY_TYPE_IN)
         assert handler.__name__ == "ActivityTypeInHandler"
         assert handler.is_internal
-        assert handler.supports_group_less
 
     def test_user_assignment(self) -> None:
         activity = self.create_group_activity(
