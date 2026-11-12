@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import F, Prefetch, prefetch_related_objects
+from django.db.models import F, Prefetch, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError
 from rest_framework import serializers
@@ -236,8 +236,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         Each execution's ``outputs`` lists linked investigations by type, ID, and title
         when the viewer has investigation access, including archived investigations.
         The same investigation can be linked to multiple executions.
-        Limited-access members must be able to access every project in the saved run
-        snapshot; runs without a saved scope are hidden from them.
+        Limited-access members see a run started by a trigger in one project (such as a
+        monitor) when they can access that project. For other runs they must be able to
+        access every project in the saved run snapshot; runs without a saved scope are
+        hidden from them.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -262,13 +264,18 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         if config_id is not None:
             runs = runs.filter(workflow_config_id=config_id)
 
-        # Filter by accessible projects (TODO: filter by trigger.project_id)
+        # Filter by accessible projects. A run started by a trigger in one project only needs
+        # access to that project; other runs need access to every project in their saved scope.
         accessible_project_ids: set[int] | None = None
         if not request.access.has_global_access:
             projects = self.get_projects(request, organization, include_all_accessible=True)
             accessible_project_ids = {project.id for project in projects}
             runs = runs.filter(
-                extras__snapshot__project_ids__contained_by=list(accessible_project_ids)
+                Q(extras__snapshot__inputs__project_id__in=accessible_project_ids)
+                | Q(
+                    extras__snapshot__inputs__project_id__isnull=True,
+                    extras__snapshot__project_ids__contained_by=list(accessible_project_ids),
+                )
             )
 
         return self.paginate(

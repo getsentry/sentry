@@ -546,7 +546,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
         assert response.data["runs"][0]["trigger"]["detectorName"] is None
 
-    def test_detector_name_requires_access_to_the_trigger_project(self) -> None:
+    def test_triggered_runs_only_require_access_to_the_trigger_project(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         team = self.create_team(organization=self.organization)
@@ -558,12 +558,14 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         )
         visible_detector = self.create_detector(project=visible_project, name="Visible monitor")
         hidden_detector = self.create_detector(project=hidden_project, name="Hidden monitor")
-        hidden = self.create_run(
+        # Triggered in a hidden project, even though the saved scope is fully visible.
+        self.create_run(
             project_ids=[visible_project.id],
             inputs=self.monitor_inputs(hidden_detector.id, hidden_project.id),
         )
+        # Triggered in a visible project, even though the saved scope includes a hidden one.
         visible = self.create_run(
-            project_ids=[visible_project.id],
+            project_ids=[visible_project.id, hidden_project.id],
             inputs=self.monitor_inputs(visible_detector.id, visible_project.id),
         )
         self.login_as(member)
@@ -572,7 +574,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
 
         assert [(run["id"], run["trigger"]["detectorName"]) for run in response.data["runs"]] == [
             (str(visible.id), "Visible monitor"),
-            (str(hidden.id), None),
         ]
         assert "Hidden monitor" not in response.content.decode()
 
