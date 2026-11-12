@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 
 from tools.seer_nav import parser
+from tools.seer_nav.entries import Condition
 from tools.seer_nav.parser import (
     _js_condition,
     _parse_route_tree,
@@ -176,7 +177,7 @@ def test_flag_dependent_titles_become_one_entry_per_label(frontend_dir: str) -> 
         ("access?.has('org:billing')", {"scope": "org:billing"}),
     ],
 )
-def test_js_condition(expr: str, expected: dict | None) -> None:
+def test_js_condition(expr: str, expected: Condition | None) -> None:
     assert _js_condition(expr) == expected
 
 
