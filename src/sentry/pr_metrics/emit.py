@@ -151,7 +151,7 @@ def select_verdict(
         metrics.incr("pr_metrics.select_verdict.activity_disabled", sample_rate=1.0)
         return VerdictDeferral.INDETERMINATE
 
-    metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
+    metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()  # noqa: S034
     if metrics_row is None:
         # error, not warning: handle_metrics writes this row before emission, so its
         # absence means that write failed and the PR will never emit. Only ERROR
@@ -521,7 +521,7 @@ def _repo_external_identity(
     repo = (
         Repository.objects.filter(id=pull_request.repository_id)
         .values_list("external_id", "provider", "integration_id")
-        .first()
+        .first()  # noqa: S034
     )
     if repo is None:
         return None, None, None
@@ -729,7 +729,7 @@ def _merge_commit_id(pull_request: PullRequest) -> int | None:
             key=pull_request.merge_commit_sha,
         )
         .values_list("id", flat=True)
-        .first()
+        .first()  # noqa: S034
     )
 
 
@@ -787,7 +787,7 @@ def _repo_is_public(
             pull_request=pull_request, event_type=PullRequestActivityType.OPENED
         )
         .values_list("payload__is_private", flat=True)
-        .first()
+        .first()  # noqa: S034
     )
     return None if is_private is None else not is_private
 
@@ -833,7 +833,7 @@ def build_pr_metrics_row(
     # A bare instance carries the model's zero/false field defaults, so a PR with
     # no stored metrics row emits zeroed counters rather than erroring.
     metrics = (
-        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
+        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()  # noqa: S034
     )
     # Loaded once and threaded through to every reader below: they all read the
     # same PR's activity, so without this each would re-issue an identical

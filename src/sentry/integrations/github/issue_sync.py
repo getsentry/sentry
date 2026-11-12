@@ -86,7 +86,7 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
                 user_id=user.id,
                 integration_id=external_issue.integration_id,
                 organization=external_issue.organization,
-            ).first()
+            ).first()  # noqa: S034
             if not external_actor:
                 logger.info(
                     "assignee-outbound.external-actor-not-found",

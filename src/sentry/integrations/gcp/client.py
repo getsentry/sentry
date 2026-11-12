@@ -28,7 +28,7 @@ _CONNECTORS_PROJECT = "sentry-connectors"
 
 
 def generate_sentry_sa(org_id: int) -> str:
-    existing = GcpServiceAccount.objects.filter(organization_id=org_id).first()
+    existing = GcpServiceAccount.objects.filter(organization_id=org_id).first()  # noqa: S034
     if existing:
         return existing.service_account_email
 

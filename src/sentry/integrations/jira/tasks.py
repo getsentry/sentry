@@ -26,7 +26,7 @@ def sync_metadata(integration_id: int) -> None:
     from sentry.integrations.jira_server.integration import JiraServerIntegration
 
     integration = Integration.objects.get(id=integration_id)
-    org_install = integration.organizationintegration_set.first()
+    org_install = integration.organizationintegration_set.first()  # noqa: S034
     if not org_install:
         return
     installation = integration.get_installation(org_install.organization_id)
@@ -60,7 +60,7 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
     #    site has a Connect integration keyed by its clientKey. A failed lookup is retried,
     #    never taken to mean there's no Connect integration.
     # 3. Otherwise, create a Forge-only integration keyed by the cloud ID.
-    integration = Integration.objects.filter(provider="jira", external_id=cloud_id).first()
+    integration = Integration.objects.filter(provider="jira", external_id=cloud_id).first()  # noqa: S034
     if integration is None and payload["app_id"] not in options.get("jira.forge.native-app-ids"):
         client_key = client.get_connect_client_key()
         integration = Integration.objects.get(provider="jira", external_id=client_key)

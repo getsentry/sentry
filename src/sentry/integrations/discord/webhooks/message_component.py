@@ -71,7 +71,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
     def group(self) -> Group | None:
         try:
             group_id = int(self.group_id)
-            return Group.objects.filter(id=group_id).first()
+            return Group.objects.filter(id=group_id).first()  # noqa: S034
         except Exception:
             return None
 

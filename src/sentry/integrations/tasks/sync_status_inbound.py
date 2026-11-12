@@ -263,7 +263,7 @@ def sync_status_inbound(
     # late writes an old status over a newer one.
     external_issue = ExternalIssue.objects.filter(
         organization_id=organization_id, integration_id=integration_id, key=issue_key
-    ).first()
+    ).first()  # noqa: S034
     event_time = parse_provider_event_time(data)
     if external_issue is not None and is_stale_status_event(
         external_issue.provider_status_updated_at, event_time

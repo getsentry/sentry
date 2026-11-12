@@ -304,7 +304,7 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
         # Re-read and write only the metadata: saving the copy read before the request would
         # undo a rename or an uninstall that landed meanwhile. No row lock, since locks on
         # control tables have stalled the control database before.
-        integration = Integration.objects.filter(id=self.integration.id).first()
+        integration = Integration.objects.filter(id=self.integration.id).first()  # noqa: S034
         if not integration:
             return None
         integration.metadata.update({"access_token": token, "expires_at": expires_at})

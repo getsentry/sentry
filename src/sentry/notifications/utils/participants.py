@@ -312,7 +312,7 @@ def determine_eligible_recipients(
         # We're adding the current assignee to the list of suggested assignees because
         # a new issue could have multiple codeowners and one of them got auto-assigned.
         group_assignee = (
-            GroupAssignee.objects.filter(group_id=event.group_id).first()
+            GroupAssignee.objects.filter(group_id=event.group_id).first()  # noqa: S034
             if event.group_id is not None
             else None
         )
@@ -432,7 +432,7 @@ def get_user_from_identifier(
     team_ids = [t.id for t in project.teams.all()]
     omt = OrganizationMemberTeam.objects.filter(
         organizationmember_id=organization_member_team.id, team_id__in=team_ids
-    ).first()
+    ).first()  # noqa: S034
     if omt is None:
         return None
     return user_service.get_user(ident)

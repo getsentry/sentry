@@ -232,7 +232,7 @@ class IntegrationProxyRequestValidator:
                 status=ObjectStatus.ACTIVE,
             )
             .select_related("integration")
-            .first()
+            .first()  # noqa: S034
         )
         if org_integration is None:
             raise IntegrationProxyRequestValidationException(

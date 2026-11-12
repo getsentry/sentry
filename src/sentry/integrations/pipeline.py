@@ -307,7 +307,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                 provider=self.provider.integration_key,
                 external_id=data["external_id"],
                 status=ObjectStatus.ACTIVE,
-            ).first()
+            ).first()  # noqa: S034
             if integration is None:
                 raise IntegrationError(
                     "This installation no longer exists. Reinstall the app and try again."

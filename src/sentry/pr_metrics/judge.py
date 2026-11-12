@@ -177,7 +177,7 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
     # A bare instance carries zero/false defaults, so a PR with no stored metrics
     # row (the row-missing defer-to-judge case) forwards zeroed counters.
     metrics_row = (
-        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
+        PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()  # noqa: S034
     )
     close_action: CloseAction = "merged" if pull_request.merged_at is not None else "closed"
     activity, activity_events_dropped = _pr_activity_timeline(pull_request)

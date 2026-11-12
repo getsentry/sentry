@@ -94,7 +94,7 @@ class IssueNotificationContext:
             return context
 
         workflow_name = (
-            Workflow.objects.filter(id=workflow_id).values_list("name", flat=True).first()
+            Workflow.objects.filter(id=workflow_id).values_list("name", flat=True).first()  # noqa: S034
         )
         if workflow_name is None:
             return context

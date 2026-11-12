@@ -255,7 +255,7 @@ class BaseIssueAlertHandler(ABC):
             alert_rule_workflow = AlertRuleWorkflow.objects.filter(
                 workflow_id=workflow_id,
                 rule_id__isnull=False,
-            ).first()
+            ).first()  # noqa: S034
             if alert_rule_workflow:
                 assert alert_rule_workflow.rule_id is not None
                 if Rule.objects.filter(

@@ -230,7 +230,7 @@ def _oldest_date(
 ) -> datetime | None:
     """One date off the head of the index, bounded. Raises ``OperationalError`` on expiry."""
     with statement_timeout(alias, SWEEP_BACKLOG_QUERY_TIMEOUT):
-        return queryset.using(alias).values_list(date_field, flat=True).first()
+        return queryset.using(alias).values_list(date_field, flat=True).first()  # noqa: S034
 
 
 def _report_backlog_query_failure(store: str, lookup: str) -> None:

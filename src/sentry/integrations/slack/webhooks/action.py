@@ -168,7 +168,7 @@ def get_notification_origin(
 def get_group(slack_request: SlackActionRequest) -> Group | None:
     """Determine the issue group on which an action is being taken."""
     group_id = slack_request.callback_data["issue"]
-    group = Group.objects.select_related("project__organization").filter(id=group_id).first()
+    group = Group.objects.select_related("project__organization").filter(id=group_id).first()  # noqa: S034
     if group:
         if not integration_service.get_organization_integration(
             organization_id=group.project.organization_id,

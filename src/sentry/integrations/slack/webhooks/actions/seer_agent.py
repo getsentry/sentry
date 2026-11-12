@@ -131,7 +131,7 @@ def handle_seer_agent_write_approval(
     if slack_user_id is None:
         return _respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
 
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.filter(id=organization_id).first()  # noqa: S034
     if not organization or not SeerAgentOperator.has_access(
         organization=organization,
         entrypoint_key=SeerEntrypointKey.SLACK,
