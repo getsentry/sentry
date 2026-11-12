@@ -2719,11 +2719,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Overall time budget, in seconds, for one trace item stats request across all of
-# its Snuba RPCs. 0 disables the budget.
+# its Snuba RPCs. 0 disables the budget. Defaults to SENTRY_SNUBA_TIMEOUT so it only
+# cuts off requests that chain several slow RPCs.
 register(
     "explore.trace-items.stats.deadline-seconds",
     type=Float,
-    default=15.0,
+    default=30.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
