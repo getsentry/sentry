@@ -8,6 +8,8 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
+import {useAvatarColors} from './useAvatarColors';
+
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
 type AvatarTriggerProps = Omit<
   React.ComponentProps<typeof OverlayTrigger.Button>,
@@ -47,7 +49,9 @@ export function AvatarButton({
           : undefined,
   });
 
-  // The frame keeps the default button colors, whatever the avatar's color.
+  // Only used to inset logos that don't fill the frame. The frame itself keeps
+  // the default button colors, whatever the avatar's color.
+  const colors = useAvatarColors(isSuggested ? undefined : avatar);
   const borderColor = isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent';
 
   const contextSize = useSizeContext();
@@ -59,6 +63,7 @@ export function AvatarButton({
         <AvatarContainer
           size={size}
           round={round}
+          padded={false}
           borderColor={theme.tokens.border.primary}
           borderStyle="solid"
         >
@@ -74,6 +79,7 @@ export function AvatarButton({
         <AvatarContainer
           size={size}
           round={round}
+          padded={false}
           borderColor={borderColor}
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
@@ -91,6 +97,7 @@ export function AvatarButton({
       <AvatarContainer
         size={size}
         round={round}
+        padded={colors.type === 'image' && colors.style === 'padded'}
         borderColor={borderColor}
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
@@ -117,6 +124,7 @@ const AvatarContainer = styled('div')<{
   borderStyle: 'dashed' | 'solid';
   round: boolean;
   size: AvatarButtonSize;
+  padded?: boolean;
 }>`
   width: 100%;
   height: 100%;
@@ -132,6 +140,8 @@ const AvatarContainer = styled('div')<{
           : p.size === 'xs'
             ? p.theme.radius.sm
             : p.theme.radius.xs};
+  padding: ${p => (p.padded ? p.theme.space.xs : '0')};
+  background: ${p => (p.padded ? p.theme.tokens.background.primary : 'transparent')};
   position: relative;
 `;
 
