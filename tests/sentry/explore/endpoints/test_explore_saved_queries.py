@@ -2428,3 +2428,15 @@ class ExploreSavedQueryScopeTest(APITestCase):
     def test_org_read_accepted_without_granular_scopes(self) -> None:
         self._use_token(["org:read"])
         assert self.client.get(self.url).status_code == 200
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_member_read_token_is_translated(self) -> None:
+        # member:read translates to saved_query:*, so it can read and write saved queries.
+        self._use_token(["member:read"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_member_read_token_without_translation(self) -> None:
+        self._use_token(["member:read"])
+        assert self.client.get(self.details_url).status_code == 403

@@ -2,6 +2,7 @@ from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
 from django.test import override_settings
 
 from sentry.auth.deprecated_scope_translation import (
@@ -21,7 +22,6 @@ ORG_READ_GRANULAR_SCOPES = frozenset(
         "user_preference:write",
     }
 )
-USER_PREFERENCE_SCOPES = frozenset({"user_preference:read", "user_preference:write"})
 
 
 @pytest.fixture(autouse=True)
@@ -34,8 +34,11 @@ def test_translate_org_read_adds_granular_scopes() -> None:
     assert translate_deprecated_scopes(["org:read"]) == {"org:read"} | ORG_READ_GRANULAR_SCOPES
 
 
-def test_translate_member_read_adds_user_preference_scopes() -> None:
-    assert translate_deprecated_scopes(["member:read"]) == {"member:read"} | USER_PREFERENCE_SCOPES
+def test_translate_member_read_adds_granular_scopes() -> None:
+    assert (
+        translate_deprecated_scopes(["member:read"])
+        == settings.DEPRECATED_SCOPE_TRANSLATIONS["member:read"]
+    )
 
 
 def test_translate_org_read_keeps_org_read() -> None:

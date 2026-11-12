@@ -2076,10 +2076,13 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
         ]
     ),
     # Starring, starred order and last visited accept member:read today, including writes.
+    # Listing and creating issue views accept member:read too, so it also adds saved_query:*.
     "member:read": frozenset(
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
+            "saved_query:read",
+            "saved_query:write",
             "user_preference:read",
             "user_preference:write",
         ]

@@ -60,6 +60,7 @@ from sentry.issues.endpoints import (
     organization_group_search_view_details_starred,
     organization_group_search_view_starred_order,
     organization_group_search_view_visit,
+    organization_group_search_views,
     organization_group_search_views_starred,
 )
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
@@ -605,6 +606,7 @@ OPTED_IN_PERMISSIONS: list[type[OrganizationPermission]] = [
     organization_group_search_view_details_starred.MemberPermission,
     organization_group_search_view_starred_order.MemberPermission,
     organization_group_search_view_visit.MemberPermission,
+    organization_group_search_views.MemberPermission,
     organization_group_search_views_starred.MemberPermission,
 ]
 
