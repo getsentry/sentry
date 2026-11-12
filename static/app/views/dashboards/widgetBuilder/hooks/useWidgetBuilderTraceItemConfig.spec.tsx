@@ -14,9 +14,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
   });
 
   it('returns undefined query when multiple metrics are selected', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture();
 
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
       organization,
@@ -42,9 +40,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
   });
 
   it('returns a query when a single metric is selected', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture();
 
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
       organization,

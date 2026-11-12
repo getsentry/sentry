@@ -896,8 +896,7 @@ describe('Dashboards > WidgetCard', () => {
             showContextMenu
             widgetLimitReached={false}
             widgetLegendState={widgetLegendState}
-          />,
-          []
+          />
         );
 
         await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -924,8 +923,7 @@ describe('Dashboards > WidgetCard', () => {
           showContextMenu
           widgetLimitReached={false}
           widgetLegendState={widgetLegendState}
-        />,
-        []
+        />
       );
 
       await userEvent.click(await screen.findByLabelText('Widget actions'));

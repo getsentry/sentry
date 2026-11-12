@@ -30,9 +30,7 @@ describe('OpenInLogsButton', () => {
   });
 
   it('renders the button', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <Wrapper>
@@ -45,9 +43,7 @@ describe('OpenInLogsButton', () => {
   });
 
   it('appends replay_id to the URL when replayId is provided', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <Wrapper>
@@ -61,9 +57,7 @@ describe('OpenInLogsButton', () => {
   });
 
   it('includes the existing search query before replay_id in the URL', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture();
 
     render(
       <Wrapper>

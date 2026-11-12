@@ -69,7 +69,7 @@ describe('OurLogFilters', () => {
   });
 
   it('renders with replay-specific placeholder text', async () => {
-    const organization = OrganizationFixture({features: []});
+    const organization = OrganizationFixture();
 
     render(
       <Wrapper>
