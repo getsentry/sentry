@@ -1789,7 +1789,9 @@ class DiscoverDatasetConfig(DatasetConfig):
         if identifiers:
             if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
                 return None
-            group_ids = resolve_issue_ids(self.builder.params.organization_id, identifiers)
+            group_ids = resolve_issue_ids(
+                self.builder.params.organization_id, self.builder.params.project_ids, identifiers
+            )
             issue_values = [group_ids[v] if isinstance(v, str) and v else v for v in issue_values]
             value = issue_values if search_filter.is_in_filter else issue_values[0]
 

@@ -259,7 +259,9 @@ class SearchResolver:
         if not collected:
             return
         self.issue_id_to_group_id_cache.update(
-            event_filter.resolve_issue_ids(self.params.organization_id, sorted(collected))
+            event_filter.resolve_issue_ids(
+                self.params.organization_id, self.params.project_ids, sorted(collected)
+            )
         )
 
     def parse_search_query(self, querystring: str) -> Sequence[event_search.QueryToken]:

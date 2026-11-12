@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Collection, Iterable, Sequence
 from datetime import datetime
 from typing import Any, TypedDict, Union, cast
 
@@ -78,14 +78,17 @@ def to_list[T](value: list[T] | T) -> list[T]:
     return [value]
 
 
-def resolve_issue_ids(organization_id: int | None, identifiers: Iterable[str]) -> dict[str, int]:
+def resolve_issue_ids(
+    organization_id: int | None, project_ids: Collection[int], identifiers: Iterable[str]
+) -> dict[str, int]:
     """
     Map issue identifiers to group IDs for the `issue` and `issue.id` filters. An identifier is
     either a numeric group ID (`123`) or a qualified short ID (`PROJECT-123`).
 
     Numeric IDs are not looked up, the same as `issue.id` has always worked: event queries are
     scoped to the requested projects, so an ID outside them matches nothing. Short IDs resolve
-    within the organization and raise `InvalidIssueSearchQuery` when any of them does not exist.
+    only within the query's projects, so a short ID in any other project raises the same
+    `InvalidIssueSearchQuery` as one that does not exist and does not reveal that it exists.
     """
     resolved: dict[str, int] = {}
     short_ids: list[str] = []
@@ -104,8 +107,7 @@ def resolve_issue_ids(organization_id: int | None, identifiers: Iterable[str]) -
         groups = Group.objects.by_qualified_short_id_bulk(
             organization_id,
             short_ids,
-            # org-wide: the Snuba query is already scoped to the requested projects.
-            project_ids=None,
+            project_ids=project_ids,
         )
     except Group.DoesNotExist:
         raise InvalidIssueSearchQuery(short_ids)

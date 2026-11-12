@@ -27,7 +27,7 @@ def issue_filter_converter(
     cache: dict[str, int] = resolver.issue_id_to_group_id_cache
     missing = [v for v in identifiers if isinstance(v, str) and v not in cache]
     if missing:
-        cache.update(resolve_issue_ids(params.organization_id, missing))
+        cache.update(resolve_issue_ids(params.organization_id, params.project_ids, missing))
     resolved_ids = sorted(cache[v] if isinstance(v, str) else int(v) for v in identifiers)
     mapped_value: list[int] | int
     if search_filter.is_in_filter:
