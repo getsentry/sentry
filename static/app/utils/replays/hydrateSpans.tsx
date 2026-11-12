@@ -25,6 +25,8 @@ export function hydrateSpans(
 
         if (!frame.data) {
           opsMissingData.add(frame.op);
+        } else if (frame.op === 'memory' && !(frame.data as {memory?: unknown}).memory) {
+          opsMissingData.add(frame.op);
         }
         return {
           ...frame,
