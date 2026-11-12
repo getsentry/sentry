@@ -10,6 +10,7 @@ import {
   type ParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {getServerTransformations} from 'sentry/views/explore/utils/outliersTransformation';
 import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 export const MAX_VISUALIZES = 8;
@@ -292,7 +293,9 @@ export function isVisualizeFunction(
 }
 
 export function hasVisualizeTransformations(visualizes: readonly Visualize[]): boolean {
-  return visualizes.some(visualize => visualize.transformations.length > 0);
+  return visualizes.some(
+    visualize => getServerTransformations(visualize.transformations).length > 0
+  );
 }
 
 export function isVisualizeEquation(

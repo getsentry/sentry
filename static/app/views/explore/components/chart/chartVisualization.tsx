@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -50,7 +51,7 @@ interface ChartVisualizationProps {
 function createChartInfoPlottables(
   chartInfo: ChartInfo,
   theme: Theme,
-  {combined}: {combined: boolean}
+  {combined, highlightedSeries}: {combined: boolean; highlightedSeries?: TimeSeries}
 ): Plottable[] {
   const DataPlottableConstructor =
     chartInfo.chartType === ChartType.LINE
@@ -71,10 +72,25 @@ function createChartInfoPlottables(
 
     return new DataPlottableConstructor(markDelayedData(s, INGESTION_DELAY), {
       alias,
-      color: s.meta.isOther ? theme.tokens.content.secondary : undefined,
+      color: getSeriesColor(s, theme, highlightedSeries),
       stack: 'all',
     });
   });
+}
+
+/**
+ * When a series is highlighted, it's drawn in red and every other series is
+ * dimmed. Otherwise only "Other" gets a fixed color.
+ */
+function getSeriesColor(
+  timeSeries: TimeSeries,
+  theme: Theme,
+  highlightedSeries: TimeSeries | undefined
+): string | undefined {
+  if (highlightedSeries) {
+    return timeSeries === highlightedSeries ? theme.colors.red400 : theme.colors.gray200;
+  }
+  return timeSeries.meta.isOther ? theme.tokens.content.secondary : undefined;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
@@ -89,15 +105,18 @@ export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
 /**
  * Builds the plottables for one or more aggregates rendered on a single chart.
  */
-export function useChartInfosPlottables(chartInfos: ChartInfo[]) {
+export function useChartInfosPlottables(
+  chartInfos: ChartInfo[],
+  {highlightedSeries}: {highlightedSeries?: TimeSeries} = {}
+) {
   const theme = useTheme();
 
   return useMemo(() => {
     const combined = chartInfos.length > 1;
     return chartInfos.flatMap(chartInfo =>
-      createChartInfoPlottables(chartInfo, theme, {combined})
+      createChartInfoPlottables(chartInfo, theme, {combined, highlightedSeries})
     );
-  }, [chartInfos, theme]);
+  }, [chartInfos, theme, highlightedSeries]);
 }
 
 export function ChartVisualization({

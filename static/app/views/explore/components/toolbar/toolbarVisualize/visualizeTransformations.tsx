@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TraceItemDataset} from 'sentry/views/explore/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type FillMethod = 'zero' | 'locf' | 'linear';
 type SmoothMethod = 'sma' | 'ema' | 'asap';
@@ -28,11 +28,33 @@ type Transformation =
   | {kind: 'fill'; method: FillMethod}
   | {kind: 'smooth'; method: 'sma'; window: number}
   | {kind: 'smooth'; method: 'ema'; window: number; factor?: number}
-  | {kind: 'smooth'; method: 'asap'; window?: number};
+  | {kind: 'smooth'; method: 'asap'; window?: number}
+  | {kind: 'outliers'; method: OutliersMethod};
+type OutliersMethod = 'mad';
 
 const KIND_OPTIONS: Array<SelectOption<Transformation['kind']>> = [
   {value: 'fill', label: t('Fill')},
   {value: 'smooth', label: t('Smooth')},
+  {value: 'outliers', label: t('Outliers')},
+];
+
+/**
+ * Outliers are only drawn on the Spans charts so far.
+ */
+function getKindOptions(traceItemDataset: Props['traceItemDataset']) {
+  return traceItemDataset === TraceItemDataset.SPANS
+    ? KIND_OPTIONS
+    : KIND_OPTIONS.filter(option => option.value !== 'outliers');
+}
+
+const OUTLIERS_OPTIONS: Array<SelectOption<OutliersMethod>> = [
+  {
+    value: 'mad',
+    label: t('MAD'),
+    details: t(
+      'Median absolute deviation. Highlights the group that strays furthest from the other groups shown.'
+    ),
+  },
 ];
 const FILL_OPTIONS: Array<SelectOption<FillMethod>> = [
   {
@@ -91,6 +113,10 @@ function parseTransformation(raw: string): Transformation | null {
     const option = FILL_OPTIONS.find(candidate => candidate.value === method);
     return args.length === 1 && option ? {kind: 'fill', method: option.value} : null;
   }
+  if (parsedFunction.name === 'outliers') {
+    const option = OUTLIERS_OPTIONS.find(candidate => candidate.value === method);
+    return args.length === 1 && option ? {kind: 'outliers', method: option.value} : null;
+  }
   if (method === 'asap' && args.length === 1) {
     return {kind: 'smooth', method};
   }
@@ -117,6 +143,9 @@ function formatTransformation(value: Transformation): string {
   if (value.kind === 'fill') {
     return `fill(${value.method})`;
   }
+  if (value.kind === 'outliers') {
+    return `outliers(${value.method})`;
+  }
   const args: Array<string | number> = [value.method];
   if (value.window !== undefined) {
     args.push(value.window);
@@ -135,6 +164,17 @@ const SMOOTH_DEFAULTS: Record<SmoothMethod, SmoothTransformation> = {
   asap: {kind: 'smooth', method: 'asap'},
 };
 
+function getDefaultTransformation(kind: Transformation['kind']): Transformation {
+  switch (kind) {
+    case 'fill':
+      return {kind: 'fill', method: 'zero'};
+    case 'outliers':
+      return {kind: 'outliers', method: 'mad'};
+    default:
+      return SMOOTH_DEFAULTS.sma;
+  }
+}
+
 interface Props {
   onChange: (transformations: readonly string[]) => void;
   traceItemDataset:
@@ -148,6 +188,11 @@ interface Props {
 interface TransformationRowsProps extends Props {
   gap?: SpaceSize;
   layout?: TransformationLayout;
+  /**
+   * Shown next to the outliers transformation, e.g. which group stands out or
+   * why none can be picked
+   */
+  outliersNote?: string;
   size?: FormSize;
 }
 
@@ -159,6 +204,7 @@ export function VisualizeTransformationRows({
   layout = 'stacked',
   size = 'md',
   analyticsSource = 'explore',
+  outliersNote,
 }: TransformationRowsProps) {
   const organization = useOrganization();
 
@@ -175,6 +221,7 @@ export function VisualizeTransformationRows({
             analyticsSource={analyticsSource}
             layout={layout}
             size={size}
+            outliersNote={outliersNote}
             onChange={value =>
               onChange(transformations.toSpliced(index, 1, formatTransformation(value)))
             }
@@ -217,9 +264,7 @@ export function VisualizeTransformationRows({
                 transformations.toSpliced(
                   index,
                   1,
-                  formatTransformation(
-                    kind === 'fill' ? {kind: 'fill', method: 'zero'} : SMOOTH_DEFAULTS.sma
-                  )
+                  formatTransformation(getDefaultTransformation(kind))
                 )
               );
             }}
@@ -244,7 +289,7 @@ export function AddTransformationButton({
   variant = 'transparent',
 }: AddTransformationButtonProps) {
   const organization = useOrganization();
-  const kindOptions = KIND_OPTIONS.map(option => ({
+  const kindOptions = getKindOptions(traceItemDataset).map(option => ({
     ...option,
     disabled: transformations.some(raw => parseFunction(raw)?.name === option.value),
   }));
@@ -252,7 +297,7 @@ export function AddTransformationButton({
   return (
     <CompactSelect
       options={kindOptions}
-      disabled={transformations.length >= KIND_OPTIONS.length}
+      disabled={kindOptions.every(option => option.disabled)}
       value={undefined}
       trigger={props =>
         iconOnly ? (
@@ -285,9 +330,7 @@ export function AddTransformationButton({
         });
         onChange([
           ...transformations,
-          formatTransformation(
-            value === 'fill' ? {kind: 'fill', method: 'zero'} : SMOOTH_DEFAULTS.sma
-          ),
+          formatTransformation(getDefaultTransformation(value)),
         ]);
       }}
     />
@@ -304,6 +347,7 @@ interface TransformationRowProps {
   size: FormSize;
   traceItemDataset: Props['traceItemDataset'];
   transformation: Transformation | null;
+  outliersNote?: string;
 }
 
 function TransformationRow({
@@ -313,6 +357,7 @@ function TransformationRow({
   onChange,
   onRemove,
   onTypeChange,
+  outliersNote,
   size,
   traceItemDataset,
   transformation,
@@ -350,7 +395,7 @@ function TransformationRow({
             <PageFilterBar condensed size={size}>
               <CompactSelect
                 size={size}
-                options={KIND_OPTIONS}
+                options={getKindOptions(traceItemDataset)}
                 value={transformation.kind}
                 trigger={props => (
                   <OverlayTrigger.Button
@@ -380,6 +425,17 @@ function TransformationRow({
                     }
                     onChange({...transformation, method: value});
                   }}
+                />
+              ) : transformation.kind === 'outliers' ? (
+                <CompactSelect
+                  size={size}
+                  options={OUTLIERS_OPTIONS}
+                  menuWidth={320}
+                  value={transformation.method}
+                  trigger={props => (
+                    <OverlayTrigger.Button {...props} aria-label={t('Outliers method')} />
+                  )}
+                  onChange={({value}) => onChange({...transformation, method: value})}
                 />
               ) : (
                 <CompactSelect
@@ -414,6 +470,11 @@ function TransformationRow({
           ) : (
             <Text size="sm">{t('Unsupported transformation')}</Text>
           )}
+          {transformation?.kind === 'outliers' && outliersNote ? (
+            <Text size="sm" variant="muted">
+              {outliersNote}
+            </Text>
+          ) : null}
           {layout === 'inline' && transformation?.kind === 'smooth' ? (
             <SmoothingSettings
               transformation={transformation}

@@ -14,7 +14,7 @@ type TransformationAnalyticsContext = {
   transformation_index: number;
 };
 
-type TransformationType = 'fill' | 'smooth';
+type TransformationType = 'fill' | 'smooth' | 'outliers';
 
 export type ExploreAnalyticsEventParameters = {
   'explore.dropped_data.ask_seer_clicked': {

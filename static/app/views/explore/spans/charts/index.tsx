@@ -20,12 +20,18 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {
+  findMadOutlierSeries,
+  getOutlierPeerSeries,
+  MIN_OUTLIER_PEERS,
+} from 'sentry/utils/timeSeries/findMadOutlierSeries';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -68,6 +74,11 @@ import {
   getConditionalFilterInvalidSeriesMessageForYAxis,
   isConditionalAggregateYAxisValid,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  getServerTransformations,
+  hasOutliersTransformation,
+  isCountLikeAggregate,
+} from 'sentry/views/explore/utils/outliersTransformation';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -191,7 +202,7 @@ function getChartInfo({
   const series = getTimeSeriesForQuery(
     timeseriesResult.data,
     visualize.yAxis,
-    visualize.transformations
+    getServerTransformations(visualize.transformations)
   );
 
   let confidenceSeries = series;
@@ -341,7 +352,54 @@ function Chart({
     [chartInfos]
   );
 
-  const plottables = useChartInfosPlottables(chartInfos);
+  const outliers = useMemo(() => {
+    if (
+      !showTransformationControls ||
+      !hasOutliersTransformation(visualize.transformations)
+    ) {
+      return null;
+    }
+    if (isCombinedChart) {
+      return {note: t('Not available for charts with several aggregates')};
+    }
+    if (!groupBys.some(groupBy => groupBy !== '')) {
+      return {note: t('Needs a group by')};
+    }
+    if (chartInfo.timeseriesResult.isPending) {
+      return {note: undefined};
+    }
+    if (getOutlierPeerSeries(chartInfo.series).length < MIN_OUTLIER_PEERS) {
+      return {
+        note: t('Needs at least %s groups, not counting Other', MIN_OUTLIER_PEERS),
+      };
+    }
+    // Groups of an aggregate that grows with traffic are compared by shape, or
+    // the busiest group would always stand out.
+    const normalize = isCountLikeAggregate(visualize.yAxis);
+    const outlier = findMadOutlierSeries(chartInfo.series, {normalize});
+    if (!outlier) {
+      return {note: t('No group stands out')};
+    }
+    const label = formatTimeSeriesLabel(outlier.timeSeries);
+    const score = outlier.score.toFixed(1);
+    return {
+      note: normalize
+        ? t('Most unusual by shape: %s (score %s)', label, score)
+        : t('Most unusual: %s (score %s)', label, score),
+      series: outlier.timeSeries,
+    };
+  }, [
+    chartInfo,
+    groupBys,
+    isCombinedChart,
+    showTransformationControls,
+    visualize.transformations,
+    visualize.yAxis,
+  ]);
+
+  const plottables = useChartInfosPlottables(chartInfos, {
+    highlightedSeries: outliers && 'series' in outliers ? outliers.series : undefined,
+  });
   const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
@@ -570,6 +628,7 @@ function Chart({
             traceItemDataset={TraceItemDataset.SPANS}
             transformations={visualize.transformations}
             layout="inline"
+            outliersNote={outliers?.note}
             onChange={onTransformationsChange}
           />
         </Container>

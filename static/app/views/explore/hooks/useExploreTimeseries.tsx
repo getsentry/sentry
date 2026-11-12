@@ -21,6 +21,7 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
 import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
+import {getServerTransformations} from 'sentry/views/explore/utils/outliersTransformation';
 import {
   useSortedTimeSeries,
   type SortedTimeSeries,
@@ -169,7 +170,11 @@ export function shouldTriggerHighAccuracy(
 ) {
   const samplingInfo = visualizes.map(visualize =>
     determineSeriesSampleCountAndIsSampled(
-      getTimeSeriesForQuery(data, visualize.yAxis, visualize.transformations),
+      getTimeSeriesForQuery(
+        data,
+        visualize.yAxis,
+        getServerTransformations(visualize.transformations)
+      ),
       isTopN
     )
   );

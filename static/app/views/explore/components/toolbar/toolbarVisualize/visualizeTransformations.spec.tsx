@@ -13,18 +13,27 @@ import {
 
 jest.mock('sentry/utils/analytics');
 
-function Example({initial = []}: {initial?: string[]}) {
+function Example({
+  initial = [],
+  outliersNote,
+  traceItemDataset = TraceItemDataset.SPANS,
+}: {
+  initial?: string[];
+  outliersNote?: string;
+  traceItemDataset?: TraceItemDataset.SPANS | TraceItemDataset.LOGS;
+}) {
   const [transformations, setTransformations] = useState<readonly string[]>(initial);
   return (
     <div>
       <VisualizeTransformationRows
-        traceItemDataset={TraceItemDataset.SPANS}
+        traceItemDataset={traceItemDataset}
         transformations={transformations}
         onChange={setTransformations}
         layout="inline"
+        outliersNote={outliersNote}
       />
       <AddTransformationButton
-        traceItemDataset={TraceItemDataset.SPANS}
+        traceItemDataset={traceItemDataset}
         transformations={transformations}
         onChange={setTransformations}
       />
@@ -100,7 +109,10 @@ describe('VisualizeTransformations', () => {
   ])(
     'allows one $existing and one $available',
     async ({initial, existing, available, added}) => {
-      render(<Example initial={[initial]} />, {organization});
+      // Logs offers only Fill and Smooth, so adding both uses every option
+      render(<Example initial={[initial]} traceItemDataset={TraceItemDataset.LOGS} />, {
+        organization,
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
       expect(screen.getByRole('option', {name: existing})).toHaveAttribute(
         'aria-disabled',
@@ -120,6 +132,28 @@ describe('VisualizeTransformations', () => {
       );
     }
   );
+
+  it('adds Outliers on Spans and shows its note', async () => {
+    render(<Example outliersNote="Most unusual: checkout" />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Outliers'}));
+
+    expect(screen.getByRole('status')).toHaveTextContent('["outliers(mad)"]');
+    expect(screen.getByRole('button', {name: 'Outliers method'})).toHaveTextContent(
+      'MAD'
+    );
+    expect(screen.getByText('Most unusual: checkout')).toBeInTheDocument();
+  });
+
+  it('does not offer Outliers outside Spans', async () => {
+    render(<Example traceItemDataset={TraceItemDataset.LOGS} />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+
+    expect(screen.getByRole('option', {name: 'Fill'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Outliers'})).not.toBeInTheDocument();
+  });
 
   it('counts unsupported settings toward function uniqueness', async () => {
     render(<Example initial={['smooth(sma,20)']} />, {organization});
