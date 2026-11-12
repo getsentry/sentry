@@ -992,7 +992,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             update.set_scope(SelectedMonitors(tuple(self.monitor_ids)))
 
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        with pytest.raises(ValueError, match="Only metric automations"):
+        with pytest.raises(ValueError, match="does not support monitor selection"):
             self.select_monitors(self.monitor_ids)
         assert not Workflow.objects.exists()
 

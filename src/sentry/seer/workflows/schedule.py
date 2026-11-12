@@ -136,7 +136,9 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
                 all_projects = False
                 project_ids = set(selected)
             case SelectedMonitors():
-                raise WorkflowUpdateError("Only metric automations support monitor selection.")
+                raise WorkflowUpdateError(
+                    "This automation type does not support monitor selection."
+                )
             case _:
                 assert_never(selection)
 
