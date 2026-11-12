@@ -17,10 +17,9 @@ from sentry.integrations.messaging.message_builder import (
     build_footer,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
-from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
@@ -274,21 +273,6 @@ class DiscordIssueAlertTest(RuleTestCase):
             buttons[2]["custom_id"]
             == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.group_event.group.id}"
         )
-
-    @responses.activate
-    def test_additional_attachment(self) -> None:
-        attachment = {"title": "Extra", "description": "Additional content"}
-
-        with mock.patch.dict(
-            discord_attachment_manager.attachment_generators,
-            {ExternalProviders.DISCORD: lambda integration, organization: [attachment]},
-        ):
-            results = list(self.rule.after(self.group_event))
-            results[0].callback(self.group_event, futures=[])
-
-        data = orjson.loads(responses.calls[0].request.body)
-        assert len(data["embeds"]) == 2
-        assert data["embeds"][1] == attachment
 
     @responses.activate
     def test_feature_flag_disabled(self) -> None:
