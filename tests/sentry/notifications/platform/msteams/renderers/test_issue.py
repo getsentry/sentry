@@ -34,10 +34,12 @@ from sentry.integrations.msteams.card_builder.block import (
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
 from sentry.integrations.msteams.utils import ACTION_TYPE
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.project import Project
+from sentry.notifications.additional_attachment_manager import msteams_attachment_manager
 from sentry.notifications.platform.msteams.provider import (
     MSTeamsNotificationProvider,
 )
@@ -77,6 +79,7 @@ class IssueMSTeamsRendererTest(TestCase):
         *,
         tags: list[str] | None = None,
         event_data: dict[str, Any] | None = None,
+        integration_id: int | None = None,
     ) -> tuple[IssueNotificationData, Any, Group]:
         event = self.store_event(
             data=event_data or {"message": "test event"},
@@ -92,6 +95,7 @@ class IssueMSTeamsRendererTest(TestCase):
             notification_uuid="test-uuid",
             tags=tags,
             rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
+            integration_id=integration_id,
         )
 
         return data, event, group
@@ -419,6 +423,25 @@ class IssueMSTeamsRendererTest(TestCase):
             )
 
         assert result == self._build_expected_card(group=group, event=event)
+
+    def test_render_appends_additional_attachment(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="msteams", external_id="msteams-team"
+        )
+        data, event, group = self._create_data(integration_id=integration.id)
+        attachment: Block = {"type": "TextBlock", "text": "Additional content"}
+
+        with patch.dict(
+            msteams_attachment_manager.attachment_generators,
+            {ExternalProviders.MSTEAMS: lambda integration, organization: [attachment]},
+        ):
+            result = render_issue(
+                data=data,
+                rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+            )
+
+        expected = self._build_expected_card(group=group, event=event)
+        assert result["body"] == [*expected["body"], attachment]
 
     def test_render_group_not_found(self) -> None:
         data = IssueNotificationData(

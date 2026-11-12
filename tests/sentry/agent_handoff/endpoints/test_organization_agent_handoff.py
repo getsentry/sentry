@@ -44,7 +44,8 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert url.path == "/agent-handoff/"
         assert not url.query
         assert not url.fragment
-        code = response.data["prompt"].split("`")[1]
+        code = response.data["code"]
+        assert code.startswith("sntryh_")
         assert response.data["prompt"] == (
             f"Follow the instructions verbatim at {response.data['guideUrl']}. "
             f"Your handoff code is `{code}`."
@@ -66,7 +67,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="guided_next_steps", status_code=201
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
@@ -84,7 +85,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         validate.assert_called_once_with(
             organization_id=self.organization.id, user_id=self.user.id, run_id="a" * 32
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
         assert handoff.context == ProjectSetupContext(run_id="a" * 32)
@@ -100,7 +101,7 @@ class OrganizationAgentHandoffTest(APITestCase):
                 context={"runId": "a" * 32},
                 status_code=201,
             )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="127.0.0.1")
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.CREATE_PROJECT
         assert handoff.context == ProjectSetupContext(run_id="a" * 32)
@@ -240,7 +241,7 @@ class OrganizationAgentHandoffTest(APITestCase):
             ipAddress="192.0.2.2",
             status_code=201,
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="192.0.2.1")
+        handoff = consume_handoff(response.data["code"], ip_address="192.0.2.1")
         assert handoff is not None
         assert handoff.ip_address == "192.0.2.1"
 
@@ -248,7 +249,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, disableIpPinning=True, status_code=201
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1], ip_address="192.0.2.2")
+        handoff = consume_handoff(response.data["code"], ip_address="192.0.2.2")
         assert handoff is not None
         assert handoff.ip_address == "127.0.0.1"
         assert handoff.disable_ip_pinning

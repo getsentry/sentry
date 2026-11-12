@@ -17,9 +17,9 @@ import {
 
 import type {GroupIntegration} from 'sentry/types/integrations';
 
-import {ExternalIssueSidebarList} from './externalIssueSidebarList';
+import {ExternalIssueSidebarSection} from './externalIssueSidebarSection';
 
-describe('ExternalIssueSidebarList', () => {
+describe('ExternalIssueSidebarSection', () => {
   const organization = OrganizationFixture();
   const event = EventFixture();
   const group = GroupFixture();
@@ -86,7 +86,7 @@ describe('ExternalIssueSidebarList', () => {
       method: 'DELETE',
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(await screen.findByRole('link', {name: issueKey})).toBeInTheDocument();
 
@@ -147,7 +147,7 @@ describe('ExternalIssueSidebarList', () => {
       body: [component],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(
       await screen.findByRole('link', {name: 'ClickUp: hello#1'})
@@ -187,7 +187,7 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));
@@ -228,13 +228,17 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(await screen.findByText('External Links')).toBeInTheDocument();
     expect(screen.queryByText('Issue Tracking')).not.toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'GitHub'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Jira'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse Section'}));
+    expect(screen.queryByRole('button', {name: 'Link issue'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'View Section'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Link issue'}));
 
@@ -265,7 +269,7 @@ describe('ExternalIssueSidebarList', () => {
       body: {createIssueConfig: [], linkIssueConfig: []},
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
     renderGlobalModal({organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));
@@ -307,7 +311,7 @@ describe('ExternalIssueSidebarList', () => {
       )
     );
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     const linkedIssueList = await screen.findByRole('list', {name: 'Linked issues'});
     expect(within(linkedIssueList).getByRole('link', {name: issue.key})).toHaveAttribute(
@@ -336,7 +340,7 @@ describe('ExternalIssueSidebarList', () => {
       }),
     ]);
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     expect(
@@ -358,7 +362,7 @@ describe('ExternalIssueSidebarList', () => {
       body: [],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(
       await screen.findByRole('link', {
@@ -396,7 +400,7 @@ describe('ExternalIssueSidebarList', () => {
       ],
     });
 
-    render(<ExternalIssueSidebarList event={event} group={group} />);
+    render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Link issue'}));

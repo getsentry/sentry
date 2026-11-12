@@ -27,10 +27,6 @@ packageExtensions:
     peerDependenciesMeta:
       webpack:
         optional: true
-  style-loader@4.0.0:
-    peerDependenciesMeta:
-      webpack:
-        optional: true
 patchedDependencies:
   zrender@6.1.0: patches/zrender@6.1.0.patch
   css-tree@3.2.1: patches/css-tree@3.2.1.patch

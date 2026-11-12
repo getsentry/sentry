@@ -26,12 +26,23 @@ HARD_TIMEOUT = 3 * 24 * 60 * 60  # 3 days = 259200 seconds
 REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
+# React 19 reworded several messages and added placeholders (e.g. #418), so
+# errors from React 18 and older must be decoded with the codes they shipped
+# with. Otherwise their placeholders have no args and render as <redacted>.
+REACT_LEGACY_MAPPING_URL = (
+    "https://raw.githubusercontent.com/facebook/react/v18.3.1/scripts/error-codes/codes.json"
+)
 
 # Regex for React error messages.
 # * The `(\d+)` group matches the error code
 # * The `(?:\?(\S+))?` group optionally matches a query (non-capturing),
 #   and `(\S+)` matches the query parameters.
-REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://[^?]+(?:\?(\S+))?"
+# React 19+ links to react.dev/errors/; older versions link to an
+# error-decoder.html page on reactjs.org or facebook.github.io.
+REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://react\.dev/[^?]+(?:\?(\S+))?"
+REACT_LEGACY_ERROR_REGEX = (
+    r"Minified React error #(\d+); visit https?://(?!react\.dev/)[^?]+(?:\?(\S+))?"
+)
 
 error_processors: dict[str, Processor] = {}
 
@@ -86,13 +97,21 @@ class Processor:
         return self.func(exc, match, mapping)
 
 
-def minified_error(vendor: str, mapping_url: str, regex: str) -> Callable[[ProcessorFunc], None]:
-    def decorator(f: ProcessorFunc) -> None:
+def minified_error(
+    vendor: str, mapping_url: str, regex: str
+) -> Callable[[ProcessorFunc], ProcessorFunc]:
+    def decorator(f: ProcessorFunc) -> ProcessorFunc:
         error_processors[vendor] = Processor(vendor, mapping_url, regex, f)
+        return f
 
     return decorator
 
 
+@minified_error(
+    vendor="react-legacy",
+    mapping_url=REACT_LEGACY_MAPPING_URL,
+    regex=REACT_LEGACY_ERROR_REGEX,
+)
 @minified_error(
     vendor="react",
     mapping_url=REACT_MAPPING_URL,
