@@ -177,10 +177,13 @@ describe('getTraceAttributesTreeActions', () => {
       },
     });
 
-    expect(actions).toHaveLength(1);
-    expect(actions[0]?.label).toBe('Copy attribute for filter');
+    expect(actions.map(action => action.label)).toEqual([
+      'Find more samples with this value',
+      'Find samples excluding this value',
+      'Copy attribute for filter',
+    ]);
 
-    actions[0]?.onAction?.();
+    actions[2]?.onAction?.();
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       'span.description:"GET /api/users"'
@@ -197,8 +200,11 @@ describe('getTraceKeyValueActions', () => {
       rowValue: 'GET /api/users',
     });
 
-    expect(actions).toHaveLength(1);
-    expect(actions[0]?.label).toBe('Copy attribute for filter');
+    expect(actions.map(action => action.label)).toEqual([
+      'Find more samples with this value',
+      'Find samples excluding this value',
+      'Copy attribute for filter',
+    ]);
   });
 });
 
