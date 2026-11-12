@@ -195,6 +195,33 @@ export function causeTimeseriesOptions({organization, project}: ProjectQueryPara
   };
 }
 
+// An event with two causes is in two cause series. This series has each
+// failed event one time.
+export function failedEventsTimeseriesOptions({
+  organization,
+  project,
+}: ProjectQueryParams) {
+  return {
+    ...apiOptions.as<EventsStats>()(
+      '/organizations/$organizationIdOrSlug/events-stats/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          dataset: 'processing_errors',
+          yAxis: 'count_unique(event_id)',
+          query: SYMBOLICATION_ERROR_TYPES_QUERY,
+          statsPeriod: STATS_PERIOD,
+          interval: STATS_INTERVAL,
+          project: project.id,
+          referrer: REFERRER,
+        },
+        staleTime: STALE_TIME,
+      }
+    ),
+    retry: false,
+  };
+}
+
 export function totalEventsTimeseriesOptions({
   organization,
   project,

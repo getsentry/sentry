@@ -47,6 +47,7 @@ import {FIXES, getSymbolicationErrorInfo, STATS_PERIOD} from './constants';
 import {FailureDetails} from './failureDetails';
 import {
   causeTimeseriesOptions,
+  failedEventsTimeseriesOptions,
   failureTrendsOptions,
   issueVolumesOptions,
   issueVolumeTrendsOptions,
@@ -108,18 +109,12 @@ function toTimeSeries(
 function toCausePlottables(
   series: Array<[string, EventsStats]>,
   colors: CauseColors,
+  failed: EventsStats | undefined,
   total: EventsStats | undefined,
   totalColor: string
 ): Plottable[] {
-  const failuresByDay = new Map<number, number>();
   const bars = series.map(([cause, data], index) => {
     const points = toPoints(data);
-    for (const point of points) {
-      failuresByDay.set(
-        point.timestamp,
-        (failuresByDay.get(point.timestamp) ?? 0) + point.value
-      );
-    }
     return new Bars(toTimeSeries('count_unique(event_id)', 'number', points), {
       name: `symbolication-errors-${index}`,
       alias:
@@ -130,12 +125,15 @@ function toCausePlottables(
       stack: 'all',
     });
   });
-  if (!bars.length || !total) {
+  if (!bars.length || !failed || !total) {
     return bars;
   }
+  const failedByDay = new Map(
+    toPoints(failed).map(point => [point.timestamp, point.value])
+  );
   const otherEvents = toPoints(total).map(point => ({
     timestamp: point.timestamp,
-    value: Math.max(0, point.value - (failuresByDay.get(point.timestamp) ?? 0)),
+    value: Math.max(0, point.value - (failedByDay.get(point.timestamp) ?? 0)),
   }));
   return [
     ...bars,
@@ -533,6 +531,7 @@ function SymbolicationErrors() {
   const [cursor] = useQueryState('cursor', parseAsString);
   const timeseries = useQuery(causeTimeseriesOptions({organization, project}));
   const causeColors = useCauseColors(timeseries.data);
+  const failedEvents = useQuery(failedEventsTimeseriesOptions({organization, project}));
   const totalEvents = useQuery(totalEventsTimeseriesOptions({organization, project}));
 
   return (
@@ -550,6 +549,7 @@ function SymbolicationErrors() {
           plottables={toCausePlottables(
             causeSeries(timeseries.data),
             causeColors,
+            failedEvents.data,
             totalEvents.data,
             theme.tokens.dataviz.semantic.other
           )}
