@@ -99,12 +99,14 @@ def get_trace_item_stats_config(item_type: SupportedItemType) -> TraceItemStatsC
     )
 
 
-def _has_aggregate_filter(terms: Sequence[QueryToken]) -> bool:
-    return any(
-        isinstance(term, AggregateFilter)
-        or (isinstance(term, ParenExpression) and _has_aggregate_filter(term.children))
-        for term in terms
-    )
+def _find_aggregate_filters(terms: Sequence[QueryToken]) -> list[AggregateFilter]:
+    found: list[AggregateFilter] = []
+    for term in terms:
+        if isinstance(term, AggregateFilter):
+            found.append(term)
+        elif isinstance(term, ParenExpression):
+            found.extend(_find_aggregate_filters(term.children))
+    return found
 
 
 class TraceItemStatsPaginator:
@@ -236,9 +238,13 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
         # group to apply to and Snuba rejects the query. Only parse here: a full resolve
         # is expensive and the RPCs below resolve the query again.
         with handle_query_errors():
-            if _has_aggregate_filter(resolver.parse_search_query(serialized.get("query", ""))):
+            aggregate_filters = _find_aggregate_filters(
+                resolver.parse_search_query(serialized.get("query", ""))
+            )
+            if aggregate_filters:
+                names = ", ".join(f.key.name for f in aggregate_filters)
                 raise InvalidSearchQuery(
-                    "Aggregate filters are not supported for trace item stats."
+                    f"Aggregate filters are not supported for trace item stats: {names}"
                 )
 
         substring_match = serialized.get("substringMatch", "")
