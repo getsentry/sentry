@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.models.team import Team
 from sentry.notifications.platform.strategies.actor_routing import (
@@ -8,6 +10,7 @@ from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.slack import add_identity, install_slack
+from sentry.users.models.user import User
 
 
 class UserRoutingStrategyTest(TestCase):
@@ -80,6 +83,103 @@ class UserRoutingStrategyTest(TestCase):
             project=self.project,
             user_ids=[other_user.id],
             settings_key=NotificationSettingEnum.ISSUE_ALERTS,
+        ).get_targets()
+
+        assert targets == []
+
+
+class UserRoutingStrategyInboxTest(TestCase):
+    def setUp(self) -> None:
+        integration = install_slack(self.organization)
+        add_identity(integration, self.user, external_id="U123")
+
+    def _get_targets(
+        self, settings_key: NotificationSettingEnum = NotificationSettingEnum.INBOX_MENTIONS
+    ) -> set[tuple[NotificationProviderKey, str]]:
+        targets = UserRoutingStrategy(
+            organization_id=self.organization.id,
+            user_ids=[self.user.id],
+            settings_key=settings_key,
+        ).get_targets()
+        return {(target.provider_key, target.resource_id) for target in targets}
+
+    def _set_option(self, user: User, setting: NotificationSettingEnum, value: str) -> None:
+        self.create_notification_setting_option(
+            user_id=user.id,
+            scope_type="user",
+            scope_identifier=user.id,
+            type=setting.value,
+            value=value,
+        )
+
+    def _set_inbox_provider(self, provider: str, value: str) -> None:
+        self.create_notification_settings_provider(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider=provider,
+            type=NotificationSettingEnum.INBOX.value,
+            value=value,
+        )
+
+    def test_requires_project_or_organization(self) -> None:
+        with pytest.raises(ValueError):
+            UserRoutingStrategy(
+                user_ids=[self.user.id], settings_key=NotificationSettingEnum.INBOX_MENTIONS
+            )
+
+    def test_defaults_to_email_and_slack(self) -> None:
+        assert self._get_targets() == {
+            (NotificationProviderKey.EMAIL, self.user.email),
+            (NotificationProviderKey.SLACK, "U123"),
+        }
+
+    def test_category_off(self) -> None:
+        self._set_option(self.user, NotificationSettingEnum.INBOX_MENTIONS, "never")
+
+        assert self._get_targets() == set()
+        assert self._get_targets(NotificationSettingEnum.INBOX_ASSIGNMENTS) == {
+            (NotificationProviderKey.EMAIL, self.user.email),
+            (NotificationProviderKey.SLACK, "U123"),
+        }
+
+    def test_master_setting_off(self) -> None:
+        self._set_option(self.user, NotificationSettingEnum.INBOX, "never")
+
+        assert self._get_targets() == set()
+
+    def test_uses_master_setting_providers(self) -> None:
+        self._set_inbox_provider("slack", "never")
+
+        assert self._get_targets() == {(NotificationProviderKey.EMAIL, self.user.email)}
+
+    def test_category_off_and_master_slack_only(self) -> None:
+        self._set_inbox_provider("email", "never")
+        self._set_option(self.user, NotificationSettingEnum.INBOX_PULL_REQUESTS_READY, "never")
+
+        assert self._get_targets() == {(NotificationProviderKey.SLACK, "U123")}
+        assert self._get_targets(NotificationSettingEnum.INBOX_PULL_REQUESTS_READY) == set()
+
+    def test_settings_are_per_user(self) -> None:
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(organization=self.organization, user=other_user)
+        self._set_option(other_user, NotificationSettingEnum.INBOX_MENTIONS, "never")
+
+        targets = UserRoutingStrategy(
+            organization_id=self.organization.id,
+            user_ids=[self.user.id, other_user.id],
+            settings_key=NotificationSettingEnum.INBOX_MENTIONS,
+        ).get_targets()
+
+        assert {target.resource_id for target in targets} == {self.user.email, "U123"}
+
+    def test_excludes_users_outside_organization(self) -> None:
+        other_organization = self.create_organization()
+
+        targets = UserRoutingStrategy(
+            organization_id=other_organization.id,
+            user_ids=[self.user.id],
+            settings_key=NotificationSettingEnum.INBOX_MENTIONS,
         ).get_targets()
 
         assert targets == []
