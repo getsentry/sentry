@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("seer", "0047_workflow_config_versions_and_schedule_spec"),
+        ("seer", "0047_workflow_config_versions"),
     ]
 
     operations = [

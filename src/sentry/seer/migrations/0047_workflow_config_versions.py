@@ -69,16 +69,6 @@ class Migration(CheckedMigration):
             },
         ),
         migrations.AddField(
-            model_name="seerworkflowconfig",
-            name="definition",
-            field=models.JSONField(db_default={}, default=dict),
-        ),
-        migrations.AddField(
-            model_name="seerworkflowconfig",
-            name="schedule_spec",
-            field=models.JSONField(null=True),
-        ),
-        migrations.AddField(
             model_name="seerworkflowrun",
             name="config_version",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),

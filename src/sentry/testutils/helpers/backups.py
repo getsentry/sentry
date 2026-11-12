@@ -681,8 +681,8 @@ class ExhaustiveFixtures(Fixtures):
             seer_workflow_config,
             created_by_id=owner_id,
             snapshot={
-                "definition": {"prompt": "Summarize new issues"},
-                "schedule_spec": {"cron": "0 9 * * 1", "timezone": "America/New_York"},
+                "trigger_settings": {"cron": "0 9 * * 1", "timezone": "America/New_York"},
+                "action_settings": {"prompt": "Summarize new issues"},
                 "filters": {"environments": ["production"]},
                 "output_policy": {},
             },

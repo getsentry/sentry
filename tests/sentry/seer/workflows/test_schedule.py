@@ -30,6 +30,15 @@ class ScheduleForTest(TestCase):
         )
         assert schedule_for(config) == cron("0 9 * * 1")
 
+    def test_config_cron_runs_in_its_timezone(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            enabled=True,
+            extras={"trigger_settings": {"cron": "0 9 * * 1", "timezone": "America/New_York"}},
+        )
+        assert schedule_for(config) == cron("0 9 * * 1", "America/New_York")
+
     def test_disabled_config_is_unscheduled(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=False

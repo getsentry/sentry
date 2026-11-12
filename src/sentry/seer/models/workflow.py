@@ -67,15 +67,6 @@ class SeerWorkflowSchedule(models.TextChoices):
     DAILY = "daily"
 
 
-class SeerWorkflowScheduleSpec(BaseModel):
-    """When a config runs on a schedule."""
-
-    # Five-field cron expression, evaluated in `timezone`.
-    cron: str
-    # IANA timezone name, e.g. "America/New_York".
-    timezone: str = "UTC"
-
-
 @cell_silo_model
 class SeerWorkflowConfig(DefaultFieldsModel):
     """A workflow's saved configuration.
@@ -104,10 +95,6 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
     )
-    # Shape: SeerWorkflowScheduleSpec. Null for configs that don't run on a schedule.
-    schedule_spec = models.JSONField(null=True)
-    # What a run does, such as the skill or prompt to run, in a strategy-specific shape.
-    definition = models.JSONField(default=dict, db_default={})
     # Metadata in the shape of SeerWorkflowConfigExtras.
     extras = models.JSONField(db_default={}, default=dict)
     # Incremented on every saved change, so runs can record which configuration they used.
@@ -170,8 +157,8 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
 class WorkflowConfigVersionSnapshot(BaseModel):
     """The parts of a config that change what its runs do, as of one version."""
 
-    definition: dict[str, Any]
-    schedule_spec: SeerWorkflowScheduleSpec | None
+    trigger_settings: dict[str, Any]
+    action_settings: dict[str, Any]
     filters: dict[str, Any]
     output_policy: dict[str, Any]
 
@@ -181,7 +168,7 @@ class WorkflowConfigVersionSnapshot(BaseModel):
 
 @cell_silo_model
 class SeerWorkflowConfigVersion(DefaultFieldsModel):
-    """One saved version of a config's definition, schedule, filters and outputs."""
+    """One saved version of a config's trigger and action settings, filters and outputs."""
 
     __relocation_scope__ = RelocationScope.Organization
 
