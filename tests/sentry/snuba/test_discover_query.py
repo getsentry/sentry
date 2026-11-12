@@ -190,6 +190,9 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ("issue", f"issue.id:{self.event.group_id}"),
             ("issue.id", f"issue:{group.qualified_short_id}"),
             ("issue.id", f"issue.id:{self.event.group_id}"),
+            ("issue.id", f"issue:{self.event.group_id}"),
+            ("issue.id", f"issue.id:{group.qualified_short_id}"),
+            ("issue.id", f"issue:[{group.qualified_short_id},{self.event.group_id}]"),
         ]
 
         for column, query in tests:

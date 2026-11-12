@@ -27,8 +27,10 @@ from sentry.search.events.filter import (
     _semver_package_filter_converter,
     convert_search_filter_to_snuba_query,
     parse_semver,
+    resolve_issue_ids,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
@@ -426,6 +428,38 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         self.run_test("=", "124", "IN", [release_3.version])
         self.run_test("=", "125", "IN", [SEMVER_EMPTY_RELEASE])
         self.run_test("<", "125", "IN", [release.version, release_2.version, release_3.version])
+
+
+class ResolveIssueIdsTest(TestCase):
+    def test_numeric_ids_pass_through_without_lookup(self) -> None:
+        with self.assertNumQueries(0):
+            assert resolve_issue_ids(None, ["123", "456"]) == {"123": 123, "456": 456}
+
+    def test_resolves_short_ids_and_numeric_ids(self) -> None:
+        group = self.create_group(project=self.project)
+        short_id = group.qualified_short_id
+        assert short_id is not None
+        assert resolve_issue_ids(self.organization.id, [short_id, "123"]) == {
+            short_id: group.id,
+            "123": 123,
+        }
+
+    def test_unknown_short_id_raises(self) -> None:
+        with pytest.raises(InvalidIssueSearchQuery, match="Issue IDs do not exist"):
+            resolve_issue_ids(self.organization.id, ["123", f"{self.project.slug}-ZZZZZZ"])
+
+    def test_short_id_from_another_org_raises(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        short_id = self.create_group(project=other_project).qualified_short_id
+        assert short_id is not None
+        with pytest.raises(InvalidIssueSearchQuery):
+            resolve_issue_ids(self.organization.id, [short_id])
+
+    def test_short_id_without_organization_raises(self) -> None:
+        short_id = self.create_group(project=self.project).qualified_short_id
+        assert short_id is not None
+        with pytest.raises(InvalidIssueSearchQuery):
+            resolve_issue_ids(None, [short_id])
 
 
 class ParseSemverTest(unittest.TestCase):

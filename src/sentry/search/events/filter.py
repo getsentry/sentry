@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from typing import Any, TypedDict, Union, cast
 
@@ -18,7 +18,7 @@ from sentry.api.event_search import (
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.group import Group
+from sentry.models.group import Group, ShortId, parse_short_id
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.util import SemverFilter
@@ -50,6 +50,7 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.types import ParamsType
+from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.search.utils import parse_release
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
@@ -75,6 +76,47 @@ def to_list[T](value: list[T] | T) -> list[T]:
     if isinstance(value, list):
         return value
     return [value]
+
+
+def resolve_issue_ids(organization_id: int | None, identifiers: Iterable[str]) -> dict[str, int]:
+    """
+    Map issue identifiers to group IDs for the `issue` and `issue.id` filters. An identifier is
+    either a numeric group ID (`123`) or a qualified short ID (`PROJECT-123`).
+
+    Numeric IDs are not looked up, the same as `issue.id` has always worked: event queries are
+    scoped to the requested projects, so an ID outside them matches nothing. Short IDs resolve
+    within the organization and raise `InvalidIssueSearchQuery` when any of them does not exist.
+    """
+    resolved: dict[str, int] = {}
+    short_ids: list[str] = []
+    for identifier in identifiers:
+        if identifier.isascii() and identifier.isdigit():
+            resolved[identifier] = int(identifier)
+        else:
+            short_ids.append(identifier)
+
+    if not short_ids:
+        return resolved
+    if organization_id is None:
+        raise InvalidIssueSearchQuery(short_ids)
+
+    try:
+        groups = Group.objects.by_qualified_short_id_bulk(
+            organization_id,
+            short_ids,
+            # org-wide: the Snuba query is already scoped to the requested projects.
+            project_ids=None,
+        )
+    except Group.DoesNotExist:
+        raise InvalidIssueSearchQuery(short_ids)
+
+    group_ids = {ShortId(g.project.slug.lower(), g.short_id): g.id for g in groups}
+    for short_id in short_ids:
+        parsed = parse_short_id(short_id)
+        # by_qualified_short_id_bulk raises unless every short id parses and resolves.
+        assert parsed is not None
+        resolved[short_id] = group_ids[parsed]
+    return resolved
 
 
 def _environment_filter_converter(

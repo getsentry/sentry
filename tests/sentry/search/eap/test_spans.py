@@ -830,17 +830,45 @@ class SearchResolverQueryTest(TestCase):
         group1 = self.create_group(project=self.project)
         group2 = self.create_group(project=self.project)
         resolver.resolve_query(f"issue:{group1.qualified_short_id}")
-        project_id = group1.project_id
-        assert project_id in resolver.qualified_short_id_to_group_id_cache
-        assert len(resolver.qualified_short_id_to_group_id_cache[project_id]) == 1
-        assert (
-            group1.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
-        )
+        assert resolver.issue_id_to_group_id_cache == {group1.qualified_short_id: group1.id}
 
-        resolver.resolve_query(f"issue:{group2.qualified_short_id}")
-        assert len(resolver.qualified_short_id_to_group_id_cache[project_id]) == 2
-        assert (
-            group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
+        resolver.resolve_query(f"issue.id:{group2.qualified_short_id}")
+        assert resolver.issue_id_to_group_id_cache == {
+            group1.qualified_short_id: group1.id,
+            group2.qualified_short_id: group2.id,
+        }
+
+    def test_issue_filters_accept_numeric_and_short_ids_for_occurrences(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(organization=self.organization, projects=[self.project]),
+            config=SearchResolverConfig(),
+            definitions=OCCURRENCE_DEFINITIONS,
+        )
+        group = self.create_group(project=self.project)
+        group_id_key = AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT)
+        tests = [
+            f"issue:{group.id}",
+            f"issue:{group.qualified_short_id}",
+            f"issue.id:{group.id}",
+            f"issue.id:{group.qualified_short_id}",
+        ]
+        for query in tests:
+            where, _, _ = resolver.resolve_query(query)
+            assert where == TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=group_id_key,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_int=group.id),
+                )
+            ), query
+
+        where, _, _ = resolver.resolve_query(f"issue:[{group.qualified_short_id},123]")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=group_id_key,
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_int_array=IntArray(values=sorted([group.id, 123]))),
+            )
         )
 
     def test_has_trace(self) -> None:

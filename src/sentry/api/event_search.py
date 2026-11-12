@@ -797,6 +797,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Keys considered valid for numeric filter types
     numeric_keys: set[str] = field(default_factory=set)
 
+    # Numeric keys that also accept qualified issue short IDs (`PROJECT-123`). Those values stay
+    # strings, and the query builder must resolve them to group IDs.
+    issue_short_id_keys: set[str] = field(default_factory=set)
+
     # Keys considered valid for date filter types
     date_keys: set[str] = field(default_factory=set)
 
@@ -1032,7 +1036,10 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
             )
-        if self.is_numeric_key(search_key.name):
+        if (
+            self.is_numeric_key(search_key.name)
+            and search_key.name not in self.config.issue_short_id_keys
+        ):
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
             )

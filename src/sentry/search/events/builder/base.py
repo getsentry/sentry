@@ -1126,13 +1126,19 @@ class BaseQueryBuilder:
         if query is None:
             return []
 
+        overrides: dict[str, Any] = {}
+        # Only datasets whose issue.id converter resolves short IDs accept them.
+        if constants.ISSUE_ID_ALIAS in self.search_filter_converter:
+            overrides["issue_short_id_keys"] = {constants.ISSUE_ID_ALIAS}
+        overrides.update(self.builder_config.parser_config_overrides)
+
         try:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
                 config=event_search.SearchConfig.create_from(
                     event_search.default_config,
-                    **self.builder_config.parser_config_overrides,
+                    **overrides,
                 ),
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_function_result_type,

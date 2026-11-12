@@ -573,6 +573,51 @@ class DiscoverQueryBuilderTest(TestCase):
         )
         assert Condition(Column("group_id"), Op.EQ, 123456.0) in query.where
 
+    def test_issue_filter_accepts_numeric_and_short_ids(self) -> None:
+        group = self.create_group(project=self.project)
+        params: ParamsType = {**self.params, "organization_id": self.organization.id}
+        tests = [
+            (f"issue:{group.id}", Op.EQ, group.id),
+            (f"!issue:{group.id}", Op.NEQ, group.id),
+            (f"issue:{group.qualified_short_id}", Op.EQ, group.id),
+            (f"issue:[{group.qualified_short_id},123]", Op.IN, [group.id, 123]),
+            (f"issue.id:{group.qualified_short_id}", Op.EQ, group.id),
+            (f"!issue.id:{group.qualified_short_id}", Op.NEQ, group.id),
+            (f"issue.id:[123,{group.qualified_short_id}]", Op.IN, [123, group.id]),
+        ]
+        for query, op, value in tests:
+            builder = DiscoverQueryBuilder(
+                Dataset.Discover, params, query=query, selected_columns=["count()"]
+            )
+            assert Condition(Column("group_id"), op, value) in builder.where, query
+
+    def test_issue_filter_keeps_unknown_as_no_issue(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            {**self.params, "organization_id": self.organization.id},
+            query="issue:[unknown,123]",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("group_id"), Op.IN, [0, 123]) in query.where
+
+    def test_issue_filters_reject_unknown_short_id(self) -> None:
+        params: ParamsType = {**self.params, "organization_id": self.organization.id}
+        for query in [f"issue:{self.project.slug}-ZZZZZZ", f"issue.id:{self.project.slug}-ZZZZZZ"]:
+            with pytest.raises(InvalidSearchQuery, match="Issue IDs do not exist"):
+                DiscoverQueryBuilder(
+                    Dataset.Discover, params, query=query, selected_columns=["count()"]
+                )
+
+    def test_issue_id_short_id_on_transactions_is_coerced_to_string(self) -> None:
+        group = self.create_group(project=self.project)
+        query = DiscoverQueryBuilder(
+            Dataset.Transactions,
+            {**self.params, "organization_id": self.organization.id},
+            query=f"issue.id:{group.qualified_short_id}",
+            selected_columns=["count()"],
+        )
+        assert Condition(Column("tags[issue.id]"), Op.EQ, str(group.id)) in query.where
+
     def test_not_empty_measurement(self) -> None:
         query = DiscoverQueryBuilder(
             Dataset.Discover,
