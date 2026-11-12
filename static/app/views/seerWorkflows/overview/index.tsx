@@ -9,6 +9,7 @@ import {
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge, Badge} from '@sentry/scraps/badge';
@@ -44,12 +45,9 @@ import {
   indexMembersByProject,
   type IndexedMembersByProject,
 } from 'sentry/utils/members/shared';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -108,6 +106,16 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
 const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
 
 const ACTIVITY_DEFAULT_PERIOD = '7d';
+
+const overviewQueryParsers = {
+  sort: parseAsString,
+  assignee: parseAsString,
+  view: parseAsString,
+  activityStatsPeriod: parseAsString,
+  activityStart: parseAsString,
+  activityEnd: parseAsString,
+  activityUtc: parseAsString,
+};
 
 const EMPTY_MEMBER_LIST: User[] = [];
 
@@ -174,8 +182,7 @@ export default function AutofixOverview() {
 function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const {initiallyLoaded: projectsLoaded} = useProjects();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates(overviewQueryParsers);
   const user = useUser();
   const breakpoints = useBreakpoints();
   useOverviewSeerDrawer();
@@ -185,20 +192,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   );
 
   const sort: OverviewSort =
-    SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
-      ?.value ?? 'recommended';
-  const assignee = decodeScalar(location.query.assignee) ?? null;
-  const view =
-    decodeScalar(location.query.view) === 'in_progress' ? 'in_progress' : 'all';
-
-  const setQueryParam = (key: string, value: string | undefined) =>
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {...location.query, [key]: value},
-      },
-      {replace: true}
-    );
+    SORT_OPTIONS.find(option => option.value === queryParams.sort)?.value ??
+    'recommended';
+  const assignee = queryParams.assignee || null;
+  const view = queryParams.view === 'in_progress' ? 'in_progress' : 'all';
 
   const trackFilterChanged = (
     filterType: 'sort' | 'assignee' | 'activity' | 'view_tab',
@@ -210,13 +207,14 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       value,
     });
 
+  const {activityStatsPeriod, activityStart, activityEnd, activityUtc} = queryParams;
   const activityDatetime = useMemo<PageFilterDatetime>(() => {
     const {statsPeriod, start, end, utc} = normalizeDateTimeParams(
       {
-        statsPeriod: location.query.activityStatsPeriod,
-        start: location.query.activityStart,
-        end: location.query.activityEnd,
-        utc: location.query.activityUtc,
+        statsPeriod: activityStatsPeriod,
+        start: activityStart,
+        end: activityEnd,
+        utc: activityUtc,
       },
       {defaultStatsPeriod: ACTIVITY_DEFAULT_PERIOD}
     );
@@ -226,40 +224,24 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       end: end ?? null,
       utc: utc === undefined ? null : utc === 'true',
     };
-  }, [
-    location.query.activityStatsPeriod,
-    location.query.activityStart,
-    location.query.activityEnd,
-    location.query.activityUtc,
-  ]);
-
-  const setActivityWindow = (next: {
-    activityEnd?: string;
-    activityStart?: string;
-    activityStatsPeriod?: string;
-    activityUtc?: string;
-  }) =>
-    navigate(
-      {pathname: location.pathname, query: {...location.query, ...next}},
-      {replace: true}
-    );
+  }, [activityStatsPeriod, activityStart, activityEnd, activityUtc]);
 
   const handleActivityChange = ({start, end, relative, utc}: ChangeData) => {
     trackFilterChanged('activity', relative ?? 'absolute');
     if (start && end) {
-      setActivityWindow({
-        activityStatsPeriod: undefined,
+      setQueryParams({
+        activityStatsPeriod: null,
         activityStart: getUtcDateString(start),
         activityEnd: getUtcDateString(end),
-        activityUtc: utc ? 'true' : undefined,
+        activityUtc: utc ? 'true' : null,
       });
       return;
     }
-    setActivityWindow({
-      activityStatsPeriod: relative || undefined,
-      activityStart: undefined,
-      activityEnd: undefined,
-      activityUtc: undefined,
+    setQueryParams({
+      activityStatsPeriod: relative || null,
+      activityStart: null,
+      activityEnd: null,
+      activityUtc: null,
     });
   };
 
@@ -454,7 +436,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           value={assignee}
           onChange={next => {
             trackFilterChanged('assignee', bucketAssignee(next, user.id));
-            setQueryParam('assignee', next ?? undefined);
+            setQueryParams({assignee: next});
           }}
           loading={isPending}
           truncated={(data?.truncatedMilestones?.length ?? 0) > 0}
@@ -464,10 +446,9 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           options={SORT_OPTIONS}
           onChange={selected => {
             trackFilterChanged('sort', selected.value);
-            setQueryParam(
-              'sort',
-              selected.value === 'recommended' ? undefined : selected.value
-            );
+            setQueryParams({
+              sort: selected.value === 'recommended' ? null : selected.value,
+            });
           }}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
@@ -500,7 +481,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   value={view}
                   onChange={next => {
                     trackFilterChanged('view_tab', next);
-                    setQueryParam('view', next === 'all' ? undefined : next);
+                    setQueryParams({view: next === 'all' ? null : next});
                   }}
                 >
                   <TabList>

@@ -6,12 +6,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 import {WEB_VITALS_NAVIGATION_TYPE_FEATURE} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 
+import {enqueueDashboardWrite} from './hooks/useDashboardQueryPriority';
 import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
 import {WEB_VITALS_NAVIGATION_TYPE_FILTER} from './utils/prebuiltConfigs/webVitals/webVitals';
 import {FiltersBar, type FiltersBarProps} from './filtersBar';
@@ -23,9 +24,7 @@ describe('FiltersBar', () => {
   beforeEach(() => {
     mockNetworkRequests();
 
-    organization = OrganizationFixture({
-      features: ['dashboards-basic', 'dashboards-edit'],
-    });
+    organization = OrganizationFixture();
   });
 
   afterEach(() => {
@@ -202,12 +201,7 @@ describe('FiltersBar', () => {
     ['Application Metrics', 'tracemetrics'],
   ])('dynamically fetches %s filter keys when searched', async (dataset, itemType) => {
     organization = OrganizationFixture({
-      features: [
-        'dashboards-basic',
-        'dashboards-edit',
-        'ourlogs-enabled',
-        'visibility-explore-view',
-      ],
+      features: ['ourlogs-enabled', 'visibility-explore-view'],
     });
     const filterKey = `custom.searched.${itemType}`;
     const searchRequest = MockApiClient.addMockResponse({
@@ -226,7 +220,7 @@ describe('FiltersBar', () => {
     renderFilterBar();
     await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
     await userEvent.click(screen.getByRole('option', {name: dataset}));
-    await userEvent.type(screen.getByRole('textbox'), 'searched');
+    await userEvent.type(screen.getByRole('searchbox'), 'searched');
 
     await waitFor(() =>
       expect(searchRequest).toHaveBeenCalledWith(
@@ -446,25 +440,274 @@ describe('FiltersBar', () => {
       renderFilterBar();
 
       expect(
-        screen.queryByRole('button', {name: 'Query priority: Normal'})
+        screen.queryByRole('button', {name: 'Query Speed: Balanced Querying'})
       ).not.toBeInTheDocument();
     });
 
     it('defaults to normal and can switch to faster', async () => {
       organization = OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+        features: ['low-priority-queries'],
       });
       renderFilterBar();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      expect(screen.getByText('Balance speed and accuracy')).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      expect(screen.getByText('Balances speed and accuracy')).toBeInTheDocument();
       expect(screen.getByText('Faster with reduced accuracy')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
 
       expect(
-        screen.getByRole('button', {name: 'Query priority: Faster'})
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
       ).toBeInTheDocument();
+    });
+
+    it('shows the priority saved on the dashboard', () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {queryPriority: 'faster'}),
+      });
+
+      expect(
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
+      ).toBeInTheDocument();
+    });
+
+    it('saves the selection on the dashboard', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1'}),
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {queryPriority: 'faster'},
+          })
+        );
+      });
+    });
+
+    it('does not save a prebuilt placeholder dashboard', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/prebuilt-dashboard-1/',
+        method: 'PUT',
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: 'prebuilt-dashboard-1'}),
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+
+      expect(
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
+      ).toBeInTheDocument();
+      expect(updateMock).not.toHaveBeenCalled();
+    });
+
+    it('saves the latest selection when the priority changes during a save', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseFirstSave = () => {};
+      const firstSave = new Promise<void>(resolve => {
+        releaseFirstSave = resolve;
+      });
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'normal'}),
+        asyncDelay: firstSave,
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Balanced Querying'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      releaseFirstSave();
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledTimes(2);
+      });
+      expect(updateMock).toHaveBeenNthCalledWith(
+        1,
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {queryPriority: 'faster'},
+        })
+      );
+      expect(updateMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {queryPriority: 'normal'},
+        })
+      );
+      expect(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      ).toBeInTheDocument();
+    });
+
+    it('saves a revert after the previous save settles and before props update', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseSave = () => {};
+      const saveSettled = new Promise<void>(resolve => {
+        releaseSave = resolve;
+      });
+      const onDashboardQueryPrioritySaved = jest.fn();
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+        asyncDelay: saveSettled,
+      });
+      renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+        onDashboardQueryPrioritySaved,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      releaseSave();
+      await waitFor(() => {
+        expect(onDashboardQueryPrioritySaved).toHaveBeenCalled();
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Fast Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Balanced Querying'}));
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledTimes(2);
+      });
+      expect(updateMock).toHaveBeenNthCalledWith(
+        2,
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {queryPriority: 'normal'},
+        })
+      );
+    });
+
+    it('does not apply a priority save after the bar unmounts', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseSave = () => {};
+      const saveSettled = new Promise<void>(resolve => {
+        releaseSave = resolve;
+      });
+      const onDashboardQueryPrioritySaved = jest.fn();
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+        asyncDelay: saveSettled,
+      });
+      const {unmount} = renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+        onDashboardQueryPrioritySaved,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+      expect(updateMock).toHaveBeenCalledTimes(1);
+
+      unmount();
+      releaseSave();
+      await act(async () => {
+        await saveSettled;
+      });
+
+      expect(onDashboardQueryPrioritySaved).not.toHaveBeenCalled();
+    });
+
+    it('persists a queued priority save after the bar unmounts', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      let releaseBlocker = () => {};
+      const blocker = new Promise<void>(resolve => {
+        releaseBlocker = resolve;
+      });
+      const blockedWrite = enqueueDashboardWrite(() => blocker);
+      const onDashboardQueryPrioritySaved = jest.fn();
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: DashboardFixture([], {queryPriority: 'faster'}),
+      });
+      const {unmount} = renderFilterBar({
+        dashboard: DashboardFixture([], {id: '1', queryPriority: 'normal'}),
+        onDashboardQueryPrioritySaved,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Query Speed: Balanced Querying'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+      expect(updateMock).not.toHaveBeenCalled();
+
+      unmount();
+      releaseBlocker();
+      await blockedWrite;
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            method: 'PUT',
+            data: {queryPriority: 'faster'},
+          })
+        );
+      });
+      expect(onDashboardQueryPrioritySaved).not.toHaveBeenCalled();
     });
   });
 });

@@ -80,7 +80,6 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
-    isActive: bool
     dateCreated: datetime
 
 
@@ -89,7 +88,6 @@ class ServiceAccountCreateRequestData(TypedDict):
     scopes: list[str]
     projectIds: NotRequired[list[int] | None]
     allProjects: NotRequired[bool]
-    isActive: NotRequired[bool]
 
 
 class ServiceAccountUpdateRequestData(TypedDict, total=False):
@@ -97,7 +95,6 @@ class ServiceAccountUpdateRequestData(TypedDict, total=False):
     scopes: list[str]
     projectIds: list[int] | None
     allProjects: bool
-    isActive: bool
 
 
 class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
@@ -120,7 +117,6 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
-            "isActive": obj.is_active,
             "dateCreated": obj.date_added,
         }
 
@@ -131,7 +127,6 @@ def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
         "scopes": response["scopes"],
         "project_ids": response["projectIds"],
         "all_projects": response["allProjects"],
-        "is_active": response["isActive"],
     }
 
 
@@ -169,9 +164,6 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
             " the account's listed projects and requires a role with access to all projects,"
             " such as Manager or Owner."
         ),
-    )
-    isActive = serializers.BooleanField(
-        required=False, help_text="Whether the service account can be used. Defaults to true."
     )
 
     def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
@@ -277,7 +269,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
     ) -> Response:
         return self.paginate(
             request=request,
-            queryset=ServiceAccount.objects.filter(organization_id=organization.id),
+            queryset=ServiceAccount.objects.filter(organization_id=organization.id, is_active=True),
             order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
@@ -323,7 +315,6 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                 project_ids=data.get("projectIds") or (),
                 all_projects=all_projects,
                 created_by_id=acting_user_id(request.user),
-                is_active=data.get("isActive", True),
             )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
@@ -340,13 +331,8 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         return Response(response, status=201)
 
 
-@control_silo_endpoint
-class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
+class ServiceAccountScopedEndpointBase(OrganizationServiceAccountEndpointBase):
+    """Resolves `service_account_id` to an active account in the URL's organization."""
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -356,10 +342,20 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             kwargs["service_account"] = ServiceAccount.objects.get(
                 organization_id=kwargs["organization"].id,
                 id=kwargs.pop("service_account_id"),
+                is_active=True,
             )
         except ServiceAccount.DoesNotExist:
             raise ResourceDoesNotExist
         return args, kwargs
+
+
+@control_silo_endpoint
+class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Service Account",
@@ -421,14 +417,12 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
                 service_account = ServiceAccount.objects.select_for_update().get(
-                    id=service_account.id
+                    id=service_account.id, is_active=True
                 )
                 if "name" in data:
                     service_account.name = data["name"]
                 if "scopes" in data:
                     service_account.scope_list = data["scopes"]
-                if "isActive" in data:
-                    service_account.is_active = data["isActive"]
                 # Checked against the locked row, so keeping all projects on an account
                 # also needs the role, even when the request doesn't mention it.
                 service_account.all_projects = data.get("allProjects", service_account.all_projects)
@@ -476,8 +470,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        # The tombstone cascade removes the cell replica. The project rows go with the account.
-        service_account.delete()
+        if not service_account.deactivate():
+            # Deleted by another request after convert_args loaded it.
+            raise ResourceDoesNotExist
         self.create_audit_entry(
             request,
             organization=organization,

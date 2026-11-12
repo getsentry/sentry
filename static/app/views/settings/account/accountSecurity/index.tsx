@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
+import {useMutation} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
@@ -18,9 +19,10 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useApi} from 'sentry/utils/useApi';
 import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -43,14 +45,18 @@ export default function AccountSecurity() {
     handleRefresh,
   } = useAccountSecurityContext();
 
-  const api = useApi();
+  const {mutateAsync: closeAllSessions} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/auth/'),
+        method: 'DELETE',
+        data: {all: true},
+      }),
+  });
 
   async function handleSessionClose() {
     try {
-      await api.requestPromise('/auth/', {
-        method: 'DELETE',
-        data: {all: true},
-      });
+      await closeAllSessions();
       testableWindowLocation.assign('/auth/login/');
     } catch (err) {
       toast.error(t('There was a problem closing all sessions'));

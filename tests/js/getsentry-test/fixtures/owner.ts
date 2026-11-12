@@ -23,7 +23,6 @@ export function OwnerFixture(params: Partial<Member> = {}): Member {
     user: mockUser,
     expired: false,
     inviteStatus: 'approved',
-    invite_link: '',
     inviterName: null,
     isOnlyOwner: true,
     orgRole: 'owner',

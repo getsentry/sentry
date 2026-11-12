@@ -31,6 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {
   getInvestigationsPath,
@@ -49,6 +50,7 @@ import {
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {PrimaryNavigationCommandPalette} from './primary/commandPalette';
 import {PrimaryNavigation} from './primary/components';
 import {PrimaryNavigationHelpMenu} from './primary/helpMenu';
 import {PrimaryNavigationOnboarding} from './primary/onboarding';
@@ -72,7 +74,7 @@ import {
   useNavigationTour,
   useNavigationTourModal,
 } from './navigationTour';
-import {usePrimaryNavigation} from './primaryNavigationContext';
+import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useCollapsedNavigation} from './useCollapsedNavigation';
 import {useSettingsNavigation} from './useSettingsNavigation';
@@ -124,6 +126,12 @@ function NavigationImpl() {
     [collapsedNavigation.view, secondarySidebarWidth]
   );
 
+  const secondarySidebar = (
+    <SecondaryNavigation.Sidebar>
+      <SecondaryNavigationContent />
+    </SecondaryNavigation.Sidebar>
+  );
+
   return (
     <Fragment>
       <PrimaryNavigation.Sidebar>
@@ -152,6 +160,7 @@ function NavigationImpl() {
               paddingBottom="md"
             >
               <PrimaryNavigation.FooterItems>
+                <PrimaryNavigationCommandPalette />
                 <PrimaryNavigationFooterItems>
                   <ErrorBoundary customComponent={null}>
                     <PrimaryNavigationWhatsNew />
@@ -167,26 +176,23 @@ function NavigationImpl() {
         )}
       </PrimaryNavigation.Sidebar>
 
-      {isCollapsed ? (
-        <CollapsedSecondaryWrapper
-          data-visible={collapsedNavigation.view === 'peek'}
-          data-test-id="collapsed-secondary-sidebar"
-          height="100%"
-          left={`${PRIMARY_SIDEBAR_WIDTH}px`}
-          top={0}
-          position="absolute"
-          background="primary"
-          {...sidebarAnimationProps}
-        >
-          <SecondaryNavigation.Sidebar>
-            <SecondaryNavigationContent />
-          </SecondaryNavigation.Sidebar>
-        </CollapsedSecondaryWrapper>
-      ) : (
-        <SecondaryNavigation.Sidebar>
-          <SecondaryNavigationContent />
-        </SecondaryNavigation.Sidebar>
-      )}
+      {hasSecondaryNavigation(activeGroup) &&
+        (isCollapsed ? (
+          <CollapsedSecondaryWrapper
+            data-visible={collapsedNavigation.view === 'peek'}
+            data-test-id="collapsed-secondary-sidebar"
+            height="100%"
+            left={`${PRIMARY_SIDEBAR_WIDTH}px`}
+            top={0}
+            position="absolute"
+            background="primary"
+            {...sidebarAnimationProps}
+          >
+            {secondarySidebar}
+          </CollapsedSecondaryWrapper>
+        ) : (
+          secondarySidebar
+        ))}
     </Fragment>
   );
 }
@@ -198,18 +204,26 @@ export function SettingsNavigationBackButton({
 }: {
   organizationSlug: string;
 }) {
-  const {setActiveGroup} = usePrimaryNavigation();
+  const {setActiveGroup, layout} = usePrimaryNavigation();
+  const {setView} = useSecondaryNavigation();
   return (
     <LinkButton
       size="sm"
       icon={<IconArrow direction="left" />}
       aria-label={t('Back to app')}
+      analyticsEventKey="settings.back_to_app_clicked"
+      analyticsEventName="Settings: Back to App Clicked"
       tooltipProps={{title: t('Back to app')}}
       to={getReturnPath(
         getSettingsReturnPathKey(organizationSlug),
         `/organizations/${organizationSlug}/issues/`
       )}
-      onClick={() => setActiveGroup(null)}
+      onClick={() => {
+        setActiveGroup(null);
+        if (layout === 'mobile') {
+          setView('collapsed');
+        }
+      }}
     />
   );
 }
@@ -270,6 +284,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
+  const classifiersEnabled = useClassifiersEnabled();
   const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
@@ -307,7 +322,9 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   const seerPath = automationsEnabled
     ? getAutomationsPath(organization.slug)
-    : getInvestigationsPath(organization.slug);
+    : investigationsEnabled
+      ? getInvestigationsPath(organization.slug)
+      : getClassifiersPath(organization.slug);
 
   const prefix = `organizations/${organization.slug}`;
 
@@ -344,7 +361,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </NavigationTourElement>
 
       {organization.features.includes('seer-primary-nav') &&
-        (investigationsEnabled || automationsEnabled) && (
+        (investigationsEnabled || automationsEnabled || classifiersEnabled) && (
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
               to={seerPath}
@@ -379,37 +396,31 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         )}
       </NavigationTourElement>
 
-      <Feature
-        features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
-        overrideName="feature-disabled:dashboards-sidebar-item"
-        requireAll={false}
+      <NavigationTourElement
+        id={NavigationTour.DASHBOARDS}
+        title={null}
+        description={null}
       >
-        <NavigationTourElement
-          id={NavigationTour.DASHBOARDS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/dashboards/`}
-                analyticsKey="dashboards"
-                label={t('Dashboards')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'dashboards',
-                    `/${prefix}/dashboards/`,
-                    `/${prefix}/dashboard`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconDashboard />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
-      </Feature>
+        {tourProps => (
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
+              to={`/${prefix}/dashboards/`}
+              analyticsKey="dashboards"
+              label={t('Dashboards')}
+              {...mergeProps(
+                makeNavigationItemProps(
+                  'dashboards',
+                  `/${prefix}/dashboards/`,
+                  `/${prefix}/dashboard`
+                ),
+                tourProps
+              )}
+            >
+              <IconDashboard />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
+        )}
+      </NavigationTourElement>
 
       {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
         <Feature features={['performance-view']}>

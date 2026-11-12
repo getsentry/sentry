@@ -25,7 +25,7 @@ from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
@@ -1464,6 +1464,43 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             replaced_release_e_1,
             replaced_release_e_2,
         }
+
+    def test_release_stage_is_scoped_to_selected_environment(self) -> None:
+        staging = self.create_environment(name="staging", project=self.project)
+        release = self.create_release(
+            version="adopted_in_production_only",
+            environments=[self.environment, staging],
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.filter(release=release, environment=staging).update(
+            adopted=None
+        )
+        staging_event = self.store_event(
+            data={
+                "release": release.version,
+                "timestamp": self.ten_mins_ago_iso,
+                "environment": staging.name,
+            },
+            project_id=self.project.id,
+        ).event_id
+
+        query = {
+            "field": ["id"],
+            "query": f"{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
+            "environment": [staging.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == []
+
+        query = {
+            "field": ["id"],
+            "query": f"{constants.RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
+            "environment": [staging.name],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {staging_event}
 
     def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")

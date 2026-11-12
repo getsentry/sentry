@@ -47,7 +47,7 @@ Contents of the files should use syntax as described in https://docs.sentry.io/p
 To add one or more of these rule configs
 
 ```python
-register_strategy_config(
+register_grouping_config(
     id="newstyle:YYYY-MM-DD",
     base="newstyle:YYYY-MM-DD", # Some other existing config
     fingerprinting_bases=["foo@YYYY-MM-DD", "bar@YYYY-MM-DD"],

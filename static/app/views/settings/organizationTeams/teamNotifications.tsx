@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -24,8 +24,8 @@ import type {ExternalTeam, Integration} from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -149,7 +149,6 @@ function TeamNotificationSettingsPanel({
 }
 
 export default function TeamNotificationSettings() {
-  const api = useApi();
   const params = useParams<{teamId: string}>();
   const organization = useOrganization();
 
@@ -179,6 +178,29 @@ export default function TeamNotificationSettings() {
     })
   );
 
+  const {mutateAsync: deleteExternalTeam} = useMutation({
+    mutationFn: ({
+      teamIdOrSlug,
+      externalTeamId,
+    }: {
+      externalTeamId: string;
+      teamIdOrSlug: string;
+    }) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              teamIdOrSlug,
+              externalTeamId,
+            },
+          }
+        ),
+        method: 'DELETE',
+      }),
+  });
+
   if (isTeamPending || isIntegrationsPending) {
     return (
       <Fragment>
@@ -204,21 +226,10 @@ export default function TeamNotificationSettings() {
 
   const handleDelete = async (externalTeam: ExternalTeam) => {
     try {
-      await api.requestPromise(
-        getApiUrl(
-          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              teamIdOrSlug: team.slug,
-              externalTeamId: externalTeam.id,
-            },
-          }
-        ),
-        {
-          method: 'DELETE',
-        }
-      );
+      await deleteExternalTeam({
+        teamIdOrSlug: team.slug,
+        externalTeamId: externalTeam.id,
+      });
       toast.success(t('Deletion successful'));
     } catch {
       toast.error(t('An error occurred'));

@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {BillingConfigTier} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
@@ -34,19 +34,19 @@ function canComparePrices(subscription: Subscription, initialPlan: Plan) {
 }
 
 export function useUpgradeNowParams({organization, subscription, enabled = true}: Opts) {
-  const {isPending, data: billingConfig} = useApiQuery<BillingConfig>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {isPending, data: billingConfig} = useQuery({
+    ...apiOptions.as<BillingConfig>()(
+      '/customers/$organizationIdOrSlug/billing-config/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           tier: BillingConfigTier.UPSELL,
         },
-      },
-    ],
-    {staleTime: 0, enabled}
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled,
+  });
 
   const result = useMemo(() => {
     if (isPending || !billingConfig || !enabled) {

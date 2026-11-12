@@ -11,7 +11,8 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.issue_summary import get_automation_stopping_point
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import get_automation_handoff
 from sentry.seer.models import SeerPermissionError
@@ -21,6 +22,7 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_contex
 class AdminAutofixSingleRunSerializer(serializers.Serializer):
     organization_slug = serializers.CharField()
     short_id = serializers.CharField()
+    automated = serializers.BooleanField(default=False)
 
 
 # TEMPORARY: lets staff test single-run Autofix in prod before orgs are flagged.
@@ -53,24 +55,34 @@ class SeerAdminAutofixSingleRunEndpoint(Endpoint):
                 status=400,
             )
 
-        user = require_user(request)
-        with viewer_context_scope(
-            ViewerContext(
-                actor=Actor(type=ActorType.USER, actor_id=user.id),
-                organization_id=organization.id,
-            )
-        ):
+        if serializer.validated_data["automated"]:
+            user = None
+            actor = Actor(type=ActorType.SYSTEM)
+            referrer = AutofixReferrer.ADMIN_AUTOMATED
+            stopping_point = get_automation_stopping_point(group)
+        else:
+            user = require_user(request)
+            actor = Actor(type=ActorType.USER, actor_id=user.id)
+            referrer = AutofixReferrer.ADMIN
+            stopping_point = None
+
+        with viewer_context_scope(ViewerContext(actor=actor, organization_id=organization.id)):
             try:
                 run = trigger_autofix_agent(
                     group=group,
                     step=AutofixStep.ROOT_CAUSE,
-                    referrer=AutofixReferrer.ADMIN,
+                    referrer=referrer,
                     user=user,
-                    actor_user_id=user.id,
+                    actor_user_id=actor.user_id,
+                    stopping_point=stopping_point,
                     single_run=True,
                 )
             except NoSeerQuotaException:
                 return Response({"detail": "Organization has no Seer quota"}, status=400)
+            except SeerOutOfCreditsException:
+                return Response(
+                    {"detail": "Organization does not have enough Seer credits"}, status=400
+                )
             except SeerPermissionError as e:
                 return Response({"detail": e.message}, status=400)
 

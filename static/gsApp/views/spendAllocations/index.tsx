@@ -5,13 +5,13 @@ import {IconBroadcast} from '@sentry/icons/broadcast';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -20,6 +20,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -509,7 +510,10 @@ export function SpendAllocationsRoot({subscription}: Props) {
               spendAllocations={currentAllocations}
             />
             {pageLinks && (
-              <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />
+              <Pagination
+                {...getPaginationProps(pageLinks)}
+                onCursor={setCurrentCursor}
+              />
             )}
           </Fragment>
         )}

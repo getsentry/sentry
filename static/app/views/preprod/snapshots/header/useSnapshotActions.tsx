@@ -7,12 +7,12 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconThumb} from '@sentry/icons/thumb';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -25,6 +25,7 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useSnapShotApiOptions} from 'sentry/views/preprod/snapshots/snapshotApiOptions';
 import {
   isForceApprovableSnapshotState,
   isSnapshotApproved,
@@ -36,7 +37,6 @@ import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermis
 import {openBuildDebugInfoModal} from './buildDebugInfoModal';
 
 interface UseSnapshotActionsParams {
-  apiUrl: ReturnType<typeof getApiUrl>;
   data: SnapshotDetailsApiResponse;
   organizationSlug: string;
 }
@@ -66,13 +66,13 @@ function handleRequestError(error: RequestError, message: string) {
 }
 
 export function useSnapshotActions({
-  apiUrl,
   data,
   organizationSlug,
 }: UseSnapshotActionsParams): SnapshotActions {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
+  const snapshotApiOptions = useSnapShotApiOptions();
   const isSentryEmployee = useIsSentryEmployee();
   const project = useProjectFromId({project_id: data.project_id});
 
@@ -109,7 +109,7 @@ export function useSnapshotActions({
     },
     onSuccess: (_resp, {successMessage}) => {
       toast.success(successMessage);
-      queryClient.invalidateQueries({queryKey: [apiUrl]});
+      queryClient.invalidateQueries({queryKey: snapshotApiOptions.queryKey});
     },
     onError: error => handleRequestError(error, t('Failed to approve snapshot')),
   });
@@ -152,7 +152,7 @@ export function useSnapshotActions({
       }),
     onSuccess: () => {
       toast.success(t('Status checks rerun initiated'));
-      queryClient.invalidateQueries({queryKey: [apiUrl]});
+      queryClient.invalidateQueries({queryKey: snapshotApiOptions.queryKey});
     },
     onError: () => {
       toast.error(t('Failed to rerun status checks'));
@@ -175,13 +175,25 @@ export function useSnapshotActions({
       }),
     onSuccess: () => {
       toast.success(t('Re-run comparison initiated'));
-      queryClient.invalidateQueries({queryKey: [apiUrl]});
+      queryClient.invalidateQueries({queryKey: snapshotApiOptions.queryKey});
     },
     onError: error => handleRequestError(error, t('Failed to re-run comparison')),
   });
 
   const {mutate: deleteSnapshot} = useMutation<unknown, RequestError>({
-    mutationFn: () => fetchMutation({url: apiUrl, method: 'DELETE'}),
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              snapshotId: data.head_artifact_id,
+            },
+          }
+        ),
+        method: 'DELETE',
+      }),
     onSuccess: () => {
       toast.success(t('Snapshot deleted'));
       // TODO(preprod): Redirect to snapshot builds list once that UI is added

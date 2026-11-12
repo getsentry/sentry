@@ -257,13 +257,13 @@ class OrganizationInviteRequestCreateTest(
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Approve"},
-                "action_id": "approve_request",
+                "action_id": f"approve_request::{self.organization.id}",
                 "value": "approve_member",
             },
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Reject"},
-                "action_id": "reject_request",
+                "action_id": f"reject_request::{self.organization.id}",
                 "value": "reject_member",
             },
             {

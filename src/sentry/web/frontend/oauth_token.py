@@ -15,6 +15,7 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import DEFAULT_INTERVAL, ApiDeviceCode, DeviceCodeStatus
@@ -26,6 +27,7 @@ from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.safety import unguarded_write
 from sentry.utils import json, metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
@@ -63,6 +65,7 @@ class _TokenGrantResult(TypedDict, total=False):
 
 
 @control_silo_view
+@ai_machine_readable
 class OAuthTokenView(View):
     # Token responses must not be cached per RFC 6749 §5.1/§5.2. We apply
     # never_cache at dispatch so every response from this endpoint is marked
@@ -611,20 +614,35 @@ class OAuthTokenView(View):
                         reason="device code in invalid state",
                     )
 
-                # Use a transaction to ensure token creation and device code deletion
-                # are atomic. This prevents duplicate tokens if delete fails after
-                # token creation succeeds.
-                with transaction.atomic(router.db_for_write(ApiToken)):
-                    # Create the access token for the device flow
-                    token = ApiToken.objects.create(
-                        application=application,
-                        user_id=device_code.user.id,
-                        scope_list=device_code.scope_list,
-                        scoping_organization_id=device_code.organization_id,
-                    )
+                token: ApiToken | None = None
+                try:
+                    # Use a transaction to ensure token creation and device code deletion
+                    # are atomic. This prevents duplicate tokens if delete fails after
+                    # token creation succeeds. The outbox_context is just to flag
+                    # that this is an outbox-producing operation.
+                    with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
+                        # Create the access token for the device flow
+                        token = ApiToken.objects.create(
+                            application=application,
+                            user_id=device_code.user.id,
+                            scope_list=device_code.scope_list,
+                            scoping_organization_id=device_code.organization_id,
+                        )
 
-                    # Delete the device code (one-time use)
-                    device_code.delete()
+                        # Delete the device code (one-time use)
+                        device_code.delete()
+                except (OutboxDatabaseError, OutboxFlushError):
+                    if token is None:
+                        raise
+
+                    # Guard against replication fanout failures. The token has been
+                    # minted, and its outbox has been committed alongside it,
+                    # guaranteeing that it will eventually be valid in all regions.
+                    logger.warning(
+                        "oauth.device-code-exchanged.outbox-flush-failure",
+                        extra={"token_id": token.id, "device_code_id": device_code.id},
+                        exc_info=True,
+                    )
 
                 metrics.incr("oauth_device.token_exchange", sample_rate=1.0)
                 logger.info(

@@ -208,12 +208,15 @@ describe('BreadcrumbList.Current', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders trailing actions on their own', () => {
+  it('renders a button trailing action', () => {
     render(
-      <BreadcrumbList.TrailingActions
-        actions={{
-          type: 'button',
-          element: <Button size="zero" aria-label="View full details" />,
+      <BreadcrumbList.Current
+        item={{
+          label: '1.2.3',
+          trailingActions: {
+            type: 'button',
+            element: <Button size="zero" aria-label="View full details" />,
+          },
         }}
       />
     );
@@ -221,10 +224,11 @@ describe('BreadcrumbList.Current', () => {
     expect(screen.getByRole('button', {name: 'View full details'})).toBeInTheDocument();
   });
 
-  it('renders nothing when every trailing action is null', () => {
-    const {container} = render(<BreadcrumbList.TrailingActions actions={[null]} />);
+  it('renders no trailing actions when every entry is null', () => {
+    render(<BreadcrumbList.Current item={{label: 'Logs', trailingActions: [null]}} />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Logs')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('hides the leading graphic from assistive technology', () => {

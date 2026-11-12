@@ -1,12 +1,15 @@
 import {useMemo} from 'react';
 import {IconSeer} from '@sentry/icons/seer';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   type AutofixSection,
+  explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -17,6 +20,7 @@ import {
   isRootCauseArtifact,
   isRootCauseSection,
   isSolutionArtifact,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -33,14 +37,20 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixSetupCard';
 import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
+import {
+  useIsSingleRunChatOpen,
+  useToggleSingleRunChat,
+} from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -48,6 +58,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {useCurrentTab} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 import type {AutofixContentProps} from './autofixSectionTypes';
 import {Resources} from './resources';
@@ -59,6 +70,7 @@ interface AutofixSectionProps {
 }
 
 export function AutofixSection({group, project}: AutofixSectionProps) {
+  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const isOnAutofixTab = useCurrentTab() === Tab.AUTOFIX;
 
@@ -66,6 +78,15 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   const issueTypeSupportsSeer =
     issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
+
+  const {data} = useQuery({
+    ...explorerAutofixApiOptions(organization.slug, group.id),
+    enabled: aiConfig.areAiFeaturesAllowed && issueTypeSupportsSeer,
+  });
+  const runState = data?.autofix ?? null;
+  const isAutofixChatOpen = useIsSingleRunChatOpen(
+    getAutofixRunId(isSingleRunAutofix(runState) ? runState : null)
+  );
 
   if (!aiConfig.areAiFeaturesAllowed || !issueTypeSupportsSeer) {
     if (!issueTypeConfig.resources) {
@@ -91,13 +112,15 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
     );
   }
 
+  const startCollapsed = isOnAutofixTab || isAutofixChatOpen;
+
   return (
     <SidebarFoldSection
       // The autofix tab already shows the full analysis, so start collapsed
       // there. Opening it on that tab shouldn't change the saved preference
       // for every other tab, and the key remounts it so each tab starts from
       // its own state.
-      key={isOnAutofixTab ? 'autofix-tab' : 'default'}
+      key={`${isOnAutofixTab}-${isAutofixChatOpen}`}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
@@ -106,8 +129,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       }
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
-      initialCollapse={isOnAutofixTab}
-      disableCollapsePersistence={isOnAutofixTab}
+      initialCollapse={startCollapsed}
+      disableCollapsePersistence={startCollapsed}
     >
       <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
@@ -226,6 +249,11 @@ function AutofixArtifacts({autofix, group, project}: AutofixArtifactsProps) {
       group={group}
       project={project}
       referrer={referrer}
+      singleRunId={
+        autofix.runState && isSingleRunAutofix(autofix.runState)
+          ? getAutofixRunId(autofix.runState)
+          : undefined
+      }
     />
   );
 }
@@ -250,6 +278,7 @@ function AutofixEmptyState({autofix, group, project}: AutofixEmptyStateProps) {
       group={group}
       referrer={referrer}
       onStarted={openSeerDrawer}
+      showOutOfCreditsNotice
     />
   );
 }
@@ -259,9 +288,17 @@ interface AutofixPreviewsProps {
   project: Project;
   sections: AutofixSection[];
   referrer?: string;
+  singleRunId?: SeerExplorerRunId;
 }
 
-function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsProps) {
+function AutofixPreviews({
+  group,
+  project,
+  sections,
+  referrer,
+  singleRunId,
+}: AutofixPreviewsProps) {
+  const toggleSingleRunChat = useToggleSingleRunChat(singleRunId);
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -328,7 +365,7 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
           icon={<IconSeer />}
           aria-label={t('Open Autofix')}
           variant="primary"
-          onClick={openSeerDrawer}
+          onClick={defined(singleRunId) ? toggleSingleRunChat : openSeerDrawer}
           analyticsEventKey="issue_details.seer_opened"
           analyticsEventName="Issue Details: Seer Opened"
           analyticsParams={{

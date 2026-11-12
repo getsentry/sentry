@@ -1,6 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPError,
@@ -14,8 +15,40 @@ import {
   getTraceKeyValueActions,
   getTraceIssueSeverityClassName,
   parseJsonWithFix,
+  sortAttributes,
   TraceDrawerActionKind,
 } from './utils';
+
+describe('sortAttributes', () => {
+  const attributes: TraceItemResponseAttribute[] = [
+    {name: 'span.op', rawName: 'sentry.op', type: 'str', value: 'http.server'},
+    {name: 'middle', type: 'str', value: 'fallback'},
+    {name: 'tags[zzz,string]', rawName: 'sentry.custom', type: 'str', value: 'custom'},
+    {name: 'span.custom', rawName: 'aaa.custom', type: 'str', value: 'other'},
+    {name: 'sentry.fallback', type: 'str', value: 'fallback sentry'},
+  ];
+
+  it('prioritizes span aliases by default', () => {
+    expect(sortAttributes(attributes).map(attribute => attribute.name)).toEqual([
+      'span.custom',
+      'span.op',
+      'middle',
+      'sentry.fallback',
+      'tags[zzz,string]',
+    ]);
+    expect(sortAttributes(attributes)).toEqual(sortAttributes(attributes));
+  });
+
+  it('prioritizes sentry raw names and falls back to aliases without mutating the input', () => {
+    const original = [...attributes];
+    expect(
+      sortAttributes(attributes, true).map(
+        attribute => attribute.rawName ?? attribute.name
+      )
+    ).toEqual(['sentry.custom', 'sentry.fallback', 'sentry.op', 'aaa.custom', 'middle']);
+    expect(attributes).toEqual(original);
+  });
+});
 
 describe('getAttributeFilterSearch', () => {
   it('formats an attribute key and value as a search filter', () => {

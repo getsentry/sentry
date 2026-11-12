@@ -25,6 +25,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
@@ -255,7 +256,11 @@ function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   if (isError) {
     return (
       <LoadingError
-        message={error.status === 404 ? t('The alert could not be found.') : undefined}
+        message={
+          error instanceof RequestError && error.status === 404
+            ? t('The alert could not be found.')
+            : undefined
+        }
         onRetry={refetch}
       />
     );

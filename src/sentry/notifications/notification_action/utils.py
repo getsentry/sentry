@@ -12,7 +12,7 @@ from sentry.incidents.typings.metric_detector import (
 from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
-from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.access import has_notebooks_access
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,
@@ -61,7 +61,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
 
         try:
             return execute_via_activity_type_registry(invocation=invocation)
-        except Exception:
+        except (NoRegistrationExistsError, ActivityHandlerValidationError):
             logger.exception(
                 "Error executing via activity type registry",
                 extra={
@@ -203,7 +203,7 @@ def metric_alert_notification_data_factory(
         action_type == Action.Type.SLACK
         and metric_issue_context.group is not None
         and metric_issue_context.new_status != IncidentStatus.CLOSED
-        and has_investigations_access(organization)
+        and has_notebooks_access(organization)
         and features.has("organizations:investigations-slack", organization)
     )
 

@@ -1,11 +1,12 @@
 import html
 import re
 import shlex
+from collections.abc import Mapping
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 # Markdown labels and shell blocks are escaped for their respective contexts below.
-_ENVIRONMENT = Environment(
+MARKDOWN_JINJA_ENV = Environment(
     loader=PackageLoader("sentry", "templates"),
     autoescape=False,
     undefined=StrictUndefined,
@@ -28,6 +29,39 @@ def _code_block(value: str, language: str = "bash") -> str:
     return f"{fence}{language}\n{value}\n{fence}"
 
 
+def _quote_powershell(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _powershell_command(command: str, environment: Mapping[str, str]) -> str:
+    if not environment:
+        return _code_block(command, "powershell")
+
+    lines = [
+        "& {",
+        "    $previousEnvironment = @{",
+        *(f"        {name} = $env:{name}" for name in environment),
+        "    }",
+        "    try {",
+        *(
+            f"        $env:{name} = {_quote_powershell(value)}"
+            for name, value in environment.items()
+        ),
+        f"        {command}",
+        "    } finally {",
+        "        foreach ($name in $previousEnvironment.Keys) {",
+        "            if ($null -eq $previousEnvironment[$name]) {",
+        '                Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue',
+        "                continue",
+        "            }",
+        "            [Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], 'Process')",
+        "        }",
+        "    }",
+        "}",
+    ]
+    return _code_block("\n".join(lines), "powershell")
+
+
 def render_agent_runbook(
     *,
     organization_slug: str,
@@ -36,40 +70,91 @@ def render_agent_runbook(
     sentry_url: str,
     client_id: str,
     setup_code: str,
+    flow_instructions: str,
 ) -> str:
     """Render a private guide from already-authorized context and minted credentials."""
-    instance_environment = (
-        f"SENTRY_HOST={shlex.quote(sentry_url)} SENTRY_URL={shlex.quote(sentry_url)}"
+    instance_variables = (
+        {}
+        if sentry_url.rstrip("/") in ("sentry.io", "https://sentry.io")
+        else {
+            "SENTRY_HOST": sentry_url,
+            "SENTRY_URL": sentry_url,
+            "SENTRY_CLIENT_ID": client_id,
+        }
     )
-    setup_environment = (
-        f"{instance_environment} SENTRY_CLIENT_ID={shlex.quote(client_id)} "
-        f"SENTRY_SETUP_CODE={shlex.quote(setup_code)}"
+    setup_variables = {
+        **instance_variables,
+        "SENTRY_SETUP_CODE": setup_code,
+    }
+    instance_environment = " ".join(
+        f"{name}={shlex.quote(value)}" for name, value in instance_variables.items()
     )
-    auth_status = _code_block(f"{instance_environment} sentry auth status --fresh --json")
-    installer = _code_block(
+    setup_environment = " ".join(
+        f"{name}={shlex.quote(value)}" for name, value in setup_variables.items()
+    )
+    unix_auth_status = _code_block(
+        " ".join(filter(None, (instance_environment, "sentry auth status --fresh --json")))
+    )
+    unix_installer = _code_block(
         "curl -fsSL https://cli.sentry.dev/install | " + setup_environment + " bash"
     )
-    bootstrap = _code_block(
+    unix_bootstrap = _code_block(
         f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
     )
 
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/runbook.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/runbook.md").render(
         {
             "sentry_url": _escape_label(sentry_url),
             "user_email": _escape_label(user_email),
             "organization_name": _escape_label(organization_name),
             "organization_slug": _escape_label(organization_slug),
-            "auth_status": auth_status,
-            "installer": installer,
-            "bootstrap": bootstrap,
+            "unix_auth_status": unix_auth_status,
+            "unix_installer": unix_installer,
+            "unix_bootstrap": unix_bootstrap,
+            "windows_auth_status": _powershell_command(
+                "sentry auth status --fresh --json", instance_variables
+            ),
+            "windows_installer": _powershell_command(
+                "Invoke-RestMethod https://cli.sentry.dev/install.ps1 | Invoke-Expression",
+                setup_variables,
+            ),
+            "windows_bootstrap": _powershell_command(
+                f"sentry auth bootstrap --url {_quote_powershell(sentry_url)}; "
+                'if ($LASTEXITCODE -ne 0) { throw "Sentry CLI authentication failed." }',
+                setup_variables,
+            ),
+            "flow_instructions": flow_instructions,
         },
     )
 
 
 def render_claim_runbook(*, claim_url: str) -> str:
-    command = (
+    unix_claim_command = (
         f"curl -sS -X POST {shlex.quote(claim_url)} --data-urlencode 'handoff_code=HANDOFF_CODE'"
     )
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/claim.md").render(
-        claim_command=_code_block(command),
+    windows_claim_command = "\n".join(
+        [
+            "try {",
+            "    (Invoke-WebRequest -UseBasicParsing -Method Post "
+            f"-Uri {_quote_powershell(claim_url)} "
+            "-ContentType 'application/x-www-form-urlencoded' "
+            "-Body @{handoff_code = 'HANDOFF_CODE'} -ErrorAction Stop).Content",
+            "} catch {",
+            "    if ($null -eq $_.Exception.Response) { throw }",
+            "    if ($_.ErrorDetails.Message) {",
+            "        $_.ErrorDetails.Message",
+            "    } else {",
+            "        $reader = [System.IO.StreamReader]::new($_.Exception.Response.GetResponseStream())",
+            "        try { $reader.ReadToEnd() } finally { $reader.Dispose() }",
+            "    }",
+            "}",
+        ]
     )
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/claim.md").render(
+        unix_claim_command=_code_block(unix_claim_command),
+        windows_claim_command=_code_block(windows_claim_command, "powershell"),
+    )
+
+
+def render_ip_mismatch_runbook() -> str:
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/ip_mismatch.md").render()

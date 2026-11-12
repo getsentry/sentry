@@ -46,8 +46,6 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.webhooks import has_error_events
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 
 logger = logging.getLogger(__name__)
@@ -173,7 +171,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            assert isinstance(request.user, (User, RpcUser)), (
+            assert request.user.is_authenticated, (
                 "User must be authenticated to update a Sentry App"
             )
             updated_app = SentryAppUpdater(
