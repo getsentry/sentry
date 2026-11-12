@@ -11,7 +11,7 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: 1500,
     dailySpendCapCents: 7500,
     minTopUpCredits: 1500,
     ...params,
@@ -89,7 +89,6 @@ describe('openSeerAutoTopUpModal', () => {
         'Whenever your credits are at or below $5, purchase this amount'
       )
     ).toBeInTheDocument();
-    // The saved $10 isn't a preset, so turning on starts from the first one.
     expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
     expect(
       screen.queryByRole('textbox', {name: 'Custom credit amount'})
@@ -221,6 +220,18 @@ describe('openSeerAutoTopUpModal', () => {
         },
       })
     );
+  });
+
+  it('turns back on with the custom amount saved before turning off', async () => {
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: false, topUpCredits: 2000}),
+    });
+
+    expect(await screen.findByRole('radio', {name: 'Custom'})).toBeChecked();
+    expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('20');
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $20.00 + tax'})
+    ).toBeInTheDocument();
   });
 
   it('switches a saved preset to another preset', async () => {
