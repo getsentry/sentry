@@ -3,8 +3,10 @@ from unittest import mock
 
 import pytest
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
@@ -15,7 +17,9 @@ from sentry.notifications.notification_action.activity_registry.ticketing import
 )
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
@@ -205,18 +209,39 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
         mock_record_failure.assert_called_once_with(error, create_issue=True)
 
     @mock.patch("sentry.notifications.notification_action.activity_registry.ticketing.logger")
-    @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.ticketing.integration_service"
-    )
-    def test_invoke_action_returns_when_integration_not_found(
-        self, mock_integration_service: mock.MagicMock, mock_logger: mock.MagicMock
+    def test_invoke_action_returns_when_integration_disabled(
+        self, mock_logger: mock.MagicMock
     ) -> None:
-        mock_integration_service.get_integration.return_value = None
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
 
-        TicketingActivityHandler.invoke_action(
-            invocation=self._create_invocation(self.activity), activity=self.activity
+        with self._mock_github_create_issue() as mock_create:
+            TicketingActivityHandler.invoke_action(
+                invocation=self._create_invocation(self.activity), activity=self.activity
+            )
+
+        mock_create.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "notification_action.activity.ticketing.integration_not_found",
+            extra=mock.ANY,
         )
 
+    @mock.patch("sentry.notifications.notification_action.activity_registry.ticketing.logger")
+    def test_invoke_action_returns_when_organization_integration_disabled(
+        self, mock_logger: mock.MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(status=ObjectStatus.DISABLED)
+
+        with self._mock_github_create_issue() as mock_create:
+            TicketingActivityHandler.invoke_action(
+                invocation=self._create_invocation(self.activity), activity=self.activity
+            )
+
+        mock_create.assert_not_called()
+        assert ExternalIssue.objects.count() == 0
         mock_logger.warning.assert_called_once_with(
             "notification_action.activity.ticketing.integration_not_found",
             extra=mock.ANY,

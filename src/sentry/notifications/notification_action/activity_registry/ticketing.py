@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.project_management.ticket_creation import create_ticket
 from sentry.integrations.services.integration.service import integration_service
@@ -83,13 +82,12 @@ class TicketingActivityHandler(ActivityHandler):
         integration_id = require_integration_id(action)
         provider = action.type
 
-        integration = integration_service.get_integration(
+        ctx = integration_service.organization_context(
+            organization_id=organization.id,
             integration_id=integration_id,
             provider=provider,
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-        )
-        if not integration:
+        ).active()
+        if ctx is None:
             logger.warning(
                 "notification_action.activity.ticketing.integration_not_found",
                 extra={
@@ -99,6 +97,7 @@ class TicketingActivityHandler(ActivityHandler):
                 },
             )
             return
+        integration, _ = ctx
 
         installation = integration.get_installation(organization.id)
         if not isinstance(installation, IssueBasicIntegration):
