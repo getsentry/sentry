@@ -156,9 +156,9 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
-            raise_exception=True
-        )
+        MetricIssueComparisonConditionValidator(
+            data=value, many=True, context=self.context
+        ).is_valid(raise_exception=True)
         condition_types = {condition["type"] for condition in value}
         has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
         if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:

@@ -10,9 +10,9 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@react-aria/utils": "3.34.1",
-    "@sentry/core": "11.7.0",
+    "@sentry/core": "11.12.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.7.0",
+    "@sentry/react": "11.12.0",
     "@sentry/scraps": "workspace:*",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^5.10.0",
@@ -39,7 +39,6 @@
     "@types/history": "^3.2.5",
     "@types/js-cookie": "3.0.6",
     "@types/lodash": "^4.17.24",
-    "@types/react": "19.3.0",
-    "@types/reflux": "0.4.1"
+    "@types/react": "19.3.0"
   }
 }

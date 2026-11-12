@@ -12,7 +12,6 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -91,15 +90,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     : undefined;
 
   const feedback = (
-    <TopBar.Slot name="feedback">
-      <FeedbackButton
-        feedbackOptions={buildDetailsFeedbackOptions}
-        aria-label={t('Give Feedback')}
-        tooltipProps={{title: t('Give Feedback')}}
-      >
-        {null}
-      </FeedbackButton>
-    </TopBar.Slot>
+    <TopBar.Slot name="feedback" feedbackOptions={buildDetailsFeedbackOptions} />
   );
 
   if (isBuildDetailsPending || isBuildDetailsError || !buildDetailsData) {

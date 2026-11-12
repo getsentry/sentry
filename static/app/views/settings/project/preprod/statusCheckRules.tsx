@@ -1,4 +1,6 @@
-import {t} from 'sentry/locale';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -29,15 +31,33 @@ export function StatusCheckRules() {
         },
         copy: {
           panelTitle: t('Size Analysis - Status Checks'),
-          enabledLabel: t('Status Checks Enabled'),
+          docsHint: {
+            text: tct(
+              "Fails your PR's status check when a build exceeds one of these rules. Rules are also available via the [link:API].",
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/api/mobile-builds/retrieve-size-analysis-status-check-rules-for-a-project/" />
+                ),
+              }
+            ),
+            docsUrl: 'https://docs.sentry.io/product/size-analysis/#status-checks',
+          },
+          enabledLabel: t('Enable Status Checks'),
           enabledDescription: t(
             "Sentry will post status checks based on your build's app size."
           ),
           toggleAriaLabel: t('Toggle status checks'),
+          disabledTooltip: tct(
+            'Status checks will not post. Rules are still accessible via the [link:API]',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/api/mobile-builds/retrieve-size-analysis-status-check-rules-for-a-project/" />
+              ),
+            }
+          ),
           emptyRulesText: t(
             'No status check rules configured. Create one to get started.'
           ),
-          disabledHintText: t('Enable status checks above to configure rules.'),
           addRuleButtonLabel: t('Create Status Check Rule'),
           connectRepoText: t(
             'Connect at least one repository to get Size Analysis status checks'

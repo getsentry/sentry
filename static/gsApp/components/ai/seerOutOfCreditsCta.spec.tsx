@@ -1,7 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 
@@ -26,24 +33,36 @@ describe('SeerOutOfCreditsCta', () => {
     });
   }
 
-  it('asks billing members to turn on auto-reload from the chat', async () => {
+  it('lets billing members turn on auto-reload from the chat in a modal', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
     );
     mockAutoTopUp(organization, false);
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/seer-wallet/`,
+      body: {
+        balance: 0,
+        creditPriceCents: 1,
+        percentUsed: 1,
+        included: {total: 500, remaining: 0, resetsAt: null},
+        purchased: {total: 0, remaining: 0, expiresAt: null},
+      },
+    });
 
     render(<SeerOutOfCreditsCta reason="agent-chat" />, {organization});
+    renderGlobalModal({organization});
 
     expect(
       await screen.findByText(
         'Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload.'
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Turn on auto-reload'})).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/billing/overview/`
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Turn on auto-reload'}));
+    expect(
+      await screen.findByRole('heading', {name: 'Auto-load credits'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'Credit amount'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 

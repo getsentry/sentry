@@ -13,6 +13,11 @@ export type SeerOutOfCreditsReason = 'agent-chat' | 'autofix-start' | 'autofix-c
 export interface SeerOutOfCreditsCtaProps {
   reason: SeerOutOfCreditsReason;
   /**
+   * The action button's size. Defaults to `md` for `agent-chat`, which sits
+   * above the chat's composer, and `sm` for Autofix's tighter spots.
+   */
+  size?: 'sm' | 'md';
+  /**
    * `muted` is for tight spots where the gated button stays on screen,
    * disabled, under the notice, like the issue sidebar.
    */
