@@ -20,6 +20,7 @@ from sentry.integrations.base import (
 from sentry.integrations.linear.client import (
     LINEAR_AUTHORIZE_URL,
     LINEAR_MCP_URL,
+    LINEAR_SCOPES,
     LINEAR_TOKEN_URL,
     LinearClient,
     LinearWorkspace,
@@ -133,7 +134,8 @@ class LinearIntegrationProvider(IntegrationProvider):
                 access_token_url=LINEAR_TOKEN_URL,
                 client_id=settings.LINEAR_CLIENT_ID,
                 client_secret=settings.LINEAR_CLIENT_SECRET,
-                scope="read",
+                # Linear expects a comma-separated scope list.
+                scope=",".join(LINEAR_SCOPES),
                 redirect_url="/extensions/linear/setup/",
                 bind_key="oauth_data",
                 extra_authorize_params={"actor": "app", "prompt": "consent"},

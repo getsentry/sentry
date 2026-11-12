@@ -1,18 +1,29 @@
 from __future__ import annotations
 
+import multiprocessing
 import os
+import shlex
+import signal
 import sys
 import threading
+import time
+import traceback
+from collections import defaultdict
 from collections.abc import MutableSequence, Sequence
 from pathlib import Path
-from typing import NoReturn
+from typing import IO, NoReturn
 
 import click
 import sentry_sdk
+from confluent_kafka import KafkaException
+from confluent_kafka.admin import AdminClient
+from sentry_kafka_schemas import list_topics
 from sentry_sdk import traces
 
 from sentry.runner.commands.devservices import get_docker_client
-from sentry.runner.decorators import configuration, log_options
+from sentry.runner.decorators import log_options, settings_configuration
+from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.kafka_config import get_kafka_admin_cluster_options, get_topic_definition
 
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
@@ -36,6 +47,16 @@ def add_daemon(name: str, command: list[str]) -> None:
     _DEFAULT_DAEMONS[name] = command
 
 
+# The eventstream backends whose `requires_post_process_forwarder()` is True.
+# Asking the backend would import models, which the devserver doesn't load.
+_POST_PROCESS_FORWARDER_EVENTSTREAMS = frozenset(
+    (
+        "sentry.eventstream.kafka.KafkaEventStream",
+        "sentry.eventstream.kafka.backend.KafkaEventStream",
+    )
+)
+
+
 def _get_daemon(name: str) -> tuple[str, list[str]]:
     return name, _DEFAULT_DAEMONS[name]
 
@@ -45,6 +66,60 @@ def _get_taskworker_daemon(reload: bool) -> tuple[str, list[str]]:
     if reload:
         command = [*command, "--autoreload"]
     return name, command
+
+
+_KAFKA_TIMEOUT_SECONDS = 60
+
+
+def _wait_for_kafka(cluster: str, output: IO[str]) -> None:
+    conf = get_kafka_admin_cluster_options(cluster)
+    servers = conf["bootstrap.servers"]
+    deadline = time.monotonic() + _KAFKA_TIMEOUT_SECONDS
+    waiting = False
+    # A client that can't reach Kafka backs off for up to 10s, so probe with a
+    # fresh client until Kafka answers. log_level 0 replaces the connect error
+    # that librdkafka logs on every attempt with one waiting line.
+    while True:
+        try:
+            AdminClient({**conf, "log_level": 0}).list_topics(timeout=1)
+            return
+        except KafkaException as e:
+            if not waiting:
+                click.echo(f"waiting for kafka at {servers}", file=output)
+                waiting = True
+            if time.monotonic() >= deadline:
+                raise RuntimeError(
+                    f"Kafka at {servers} didn't answer within {_KAFKA_TIMEOUT_SECONDS}s"
+                ) from e
+            time.sleep(0.5)
+
+
+def _create_kafka_topics_or_stop(topics_ready: Path, output: IO[str], devserver_pid: int) -> None:
+    """
+    Wait for Kafka, create every topic, then create `topics_ready`, which the
+    consumers wait for before they subscribe. Runs in the background so the web
+    doesn't wait for Kafka. A failure stops the devserver.
+    """
+    try:
+        topics_by_cluster: defaultdict[str, list[str]] = defaultdict(list)
+        for topic in list_topics():
+            topic_defn = get_topic_definition(topic)
+            topics_by_cluster[topic_defn["cluster"]].append(topic_defn["real_topic_name"])
+
+        for cluster, topic_names in topics_by_cluster.items():
+            _wait_for_kafka(cluster, output)
+            create_topics(cluster, topic_names)
+
+        topics_ready.touch()
+    except Exception:
+        traceback.print_exc(file=output)
+        os.kill(devserver_pid, signal.SIGTERM)
+
+
+def _after_kafka_topics(topics_ready: Path, command: str) -> str:
+    # honcho runs each command with `sh`. A consumer that subscribes before its
+    # topic exists crashes with UNKNOWN_TOPIC_OR_PART, which stops everything.
+    return f"until [ -e {shlex.quote(str(topics_ready))} ]; do sleep 0.2; done; exec {command}"
 
 
 @click.command()
@@ -145,7 +220,7 @@ def _get_taskworker_daemon(reload: bool) -> tuple[str, list[str]]:
     required=False,
 )
 @log_options()  # needs this decorator to be typed
-@configuration  # needs this decorator to be typed
+@settings_configuration  # needs this decorator to be typed
 @click.pass_context
 def devserver(
     ctx: click.Context,
@@ -331,9 +406,7 @@ def devserver(
 
             daemons.append(_get_taskworker_daemon(reload))
 
-            from sentry import eventstream
-
-            if eventstream.backend.requires_post_process_forwarder():
+            if settings.SENTRY_EVENTSTREAM in _POST_PROCESS_FORWARDER_EVENTSTREAMS:
                 kafka_consumers.add("post-process-forwarder-errors")
                 kafka_consumers.add("post-process-forwarder-transactions")
                 kafka_consumers.add("post-process-forwarder-issue-platform")
@@ -367,21 +440,11 @@ def devserver(
             if occurrence_ingest:
                 kafka_consumers.add("ingest-occurrences")
 
-        # Check if Kafka is available and create all topics if it is running
         kafka_container_name = "kafka-kafka-1"
         kafka_is_running = kafka_container_name in containers
 
-        if kafka_is_running:
-            from sentry_kafka_schemas import list_topics
-
-            from sentry.utils.batching_kafka_consumer import create_topics
-            from sentry.utils.kafka_config import get_topic_definition
-
-            for topic in list_topics():
-                topic_defn = get_topic_definition(topic)
-                create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
-
         # Set up Kafka consumers if they are configured
+        consumer_daemons: list[tuple[str, Sequence[str]]] = []
         if kafka_consumers:
             kafka_container_warning_message = f"""
     Devserver is configured to work with devservices. Looks like the `{kafka_container_name}` container is not running.
@@ -409,7 +472,7 @@ def devserver(
                 )
 
             if dev_consumer:
-                daemons.append(
+                consumer_daemons.append(
                     (
                         "dev-consumer",
                         ["sentry", "run", "dev-consumer"] + list(kafka_consumers),
@@ -417,7 +480,7 @@ def devserver(
                 )
             else:
                 for name in kafka_consumers:
-                    daemons.append(
+                    consumer_daemons.append(
                         (
                             name,
                             [
@@ -434,7 +497,7 @@ def devserver(
 
         # A better log-format for local dev when running through honcho,
         # but if there aren't any other daemons, we don't want to override.
-        if daemons:
+        if daemons or consumer_daemons:
             server_overrides["log-format"] = "%(method)s %(status)d %(path)s %(proto)s"
         else:
             server_overrides["log-format"] = "[%(time)s] %(method)s %(status)d %(path)s %(proto)s"
@@ -451,6 +514,27 @@ def devserver(
             os.environ["SENTRY_GRANIAN_WORKERS"] = "2"
             server_port = str(ports["region.server"])
 
+        cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
+        topics_ready = Path(cwd, ".artifacts", "devserver-kafka-topics-ready")
+        topics_ready.parent.mkdir(parents=True, exist_ok=True)
+        topics_ready.unlink(missing_ok=True)
+
+        serve_in_process = not daemons and not consumer_daemons and not silo
+        if serve_in_process and kafka_is_running:
+            # A process, not a thread: Granian forks its workers, and a fork
+            # must not copy live Kafka client threads.
+            multiprocessing.get_context("fork").Process(
+                target=_create_kafka_topics_or_stop,
+                args=(topics_ready, sys.stderr, os.getpid()),
+                daemon=True,
+            ).start()
+
+        if debug_server or serve_in_process:
+            from sentry.runner import configure
+
+            # The web server runs in this process, so it needs the whole app.
+            configure()
+
         server = SentryHTTPServer(
             host=host,
             port=int(server_port),
@@ -460,8 +544,9 @@ def devserver(
 
         # If we don't need any other daemons, just launch a normal webserver
         # and avoid dealing with subprocesses
-        if not daemons and not silo:
+        if serve_in_process:
             server.run()
+            sys.exit()
 
         from subprocess import list2cmdline
 
@@ -474,15 +559,17 @@ def devserver(
         else:
             # Make sure that the environment is prepared before honcho takes over
             # This sets all the appropriate env vars, etc
+            skip_validation = "SENTRY_SKIP_BACKEND_VALIDATION" in os.environ
             server.prepare_environment()
+            if not skip_validation:
+                # This process only loaded settings, so the children validate the backends.
+                del os.environ["SENTRY_SKIP_BACKEND_VALIDATION"]
             os.environ["SENTRY_GRANIAN_PORT"] = str(server_port)
             if reload:
                 os.environ["SENTRY_GRANIAN_RELOAD"] = "1"
 
             if silo != "control":
                 daemons += [_get_daemon("server")]
-
-        cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
         from sentry.runner.formatting import TeeStream, get_honcho_printer
 
@@ -492,17 +579,20 @@ def devserver(
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_file = open(log_path, "w", encoding="utf-8")
 
-        honcho_printer = get_honcho_printer(
-            prefix=prefix, pretty=pretty, output=TeeStream(sys.stdout, log_file)
-        )
+        output = TeeStream(sys.stdout, log_file)
+        honcho_printer = get_honcho_printer(prefix=prefix, pretty=pretty, output=output)
 
         manager = Manager(honcho_printer)
-        for name, cmd in daemons:
+        commands = [(name, list2cmdline(cmd)) for name, cmd in daemons] + [
+            (name, _after_kafka_topics(topics_ready, list2cmdline(cmd)))
+            for name, cmd in consumer_daemons
+        ]
+        for name, command in commands:
             quiet = bool(
                 name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
                 and settings.DEVSERVER_LOGS_ALLOWLIST
             )
-            manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
+            manager.add_process(name, command, quiet=quiet, cwd=cwd)
 
         if silo == "control":
             control_environ = {
@@ -540,5 +630,11 @@ def devserver(
                 )
                 manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
 
+        if kafka_is_running:
+            threading.Thread(
+                target=_create_kafka_topics_or_stop,
+                args=(topics_ready, output, os.getpid()),
+                daemon=True,
+            ).start()
         manager.loop()
         sys.exit(manager.returncode)

@@ -162,6 +162,29 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
         assert response.status_code == 200, response.content
         assert response.data == []
 
+    def test_expand_context_units(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    extra_data={"body": "log message"},
+                    organization=self.organization,
+                    project=self.project,
+                    attributes={
+                        "cache.item_size": {"int_value": 1024},
+                        "sentry.payload_size_bytes": {"int_value": 2048},
+                    },
+                )
+            ]
+        )
+
+        response = self.do_request(query={"attributeType": "number", "expand": "context"})
+        assert response.status_code == 200, response.content
+
+        attributes = {item["name"]: item for item in response.data}
+        assert attributes["cache.item_size"]["context"]["isConvention"] is True
+        assert attributes["cache.item_size"]["context"]["unit"] == "byte"
+        assert attributes["payload_size"]["context"] == {"unit": "byte"}
+
     def test_substring_matching_logs(self) -> None:
         logs = [
             self.create_ourlog(
@@ -743,6 +766,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             "brief": "The model identifier being used for the request.",
             "examples": ["gpt-4-turbo-preview"],
             "isDeprecated": False,
+            "isInOtel": True,
         }
         # `http.route` is a convention defined in sentry-conventions but not in
         # attributes.py, so it resolves as a `user` source attribute but is still
@@ -762,6 +786,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             ],
             "examples": ["/users/:id"],
             "isDeprecated": False,
+            "isInOtel": True,
         }
         # `span.description` is a Sentry-defined attribute that isn't a sentry
         # convention. It's always included (this segment sets no description) and
@@ -805,6 +830,48 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         message = attributes["tags[message,string]"]
         assert message["name"] == "message"
         assert message["context"] == {}
+
+    def test_expand_context_units(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            measurements={
+                "http.response_content_length": 100,
+                "react_native.module.duration.max": 3.0,
+                "gen_ai.tool.call.result.size": 5,
+                "sampling_rate": 0.5,
+                "cart_total": 42.0,
+            },
+        )
+
+        response = self.do_request(query={"attributeType": "number", "expand": "context"})
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["http.response_content_length"]["context"]["unit"] == "byte"
+        assert attributes["react_native.module.duration.max"]["context"]["unit"] == "millisecond"
+        assert attributes["gen_ai.tool.call.result.size"]["context"]["unit"] == "byte"
+        assert attributes["tags[sampling_rate,number]"]["context"] == {}
+        assert attributes["tags[cart_total,number]"]["context"] == {}
+
+    def test_expand_context_no_unit_for_string_attribute_named_like_unit_column(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"http.response_content_length": "large"},
+        )
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        assert attributes["tags[http.response_content_length,string]"]["context"] == {}
 
     def create_context(
         self,

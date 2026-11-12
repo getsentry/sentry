@@ -24,12 +24,7 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
-from sentry.apidocs.parameters import (
-    CursorQueryParam,
-    GlobalParams,
-    IssueParams,
-    VisibilityParams,
-)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -78,11 +73,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             GlobalParams.ENVIRONMENT,
             IssueParams.PROJECT_GROUP_STATS_PERIOD,
             CursorQueryParam,
-            VisibilityParams.PER_PAGE,
             IssueParams.PROJECT_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.DEFAULT_QUERY,
-            IssueParams.GROUP_INDEX_COLLAPSE,
             IssueParams.SHORT_ID_LOOKUP,
         ],
         responses={
@@ -113,12 +106,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam string statsPeriod: an optional stat period (can be one of
                                     ``"24h"``, ``"14d"``, and ``""``),
                                     defaults to ``"24h"``.
-        :qparam bool shortIdLookup: if this is set to true then short IDs are
-                                    looked up by this function as well.  This
-                                    can cause the return value of the function
-                                    to return an event issue of a different
-                                    project which is why this is an opt-in.
-                                    Set to `1` to enable.
+        :qparam string shortIdLookup: if this is set to ``"1"`` then short IDs
+                                      are looked up by this function as well.
+                                      This can cause the return value of the
+                                      function to return an event issue of a
+                                      different project which is why this is
+                                      an opt-in.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:unresolved"`` is assumed.)
@@ -247,8 +240,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         - For non-status updates, the `id` query parameter is required.
         - For status updates, the `id` query parameter may be omitted
           for a batch "update all" query.
-        - An optional `status` query parameter may be used to restrict
-          mutations to only events with the given status.
+        - To restrict a batch "update all" to issues with a given status,
+          use the `query` parameter, e.g. `query=is:resolved`.
 
         The following attributes can be modified and are supplied as
         JSON object in the body:
@@ -260,10 +253,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         parameter shall be repeated for each issue.  It
                         is optional only if a status is mutated in which
                         case an implicit `update all` is assumed.
-        :qparam string status: optionally limits the query to issues of the
-                               specified status.  Valid values are
-                               ``"resolved"``, ``"unresolved"`` and
-                               ``"ignored"``.
+        :qparam querystring query: an optional Sentry structured search
+                                   query that selects the issues to update
+                                   when no `id` is given.  If not provided an
+                                   implied ``"is:unresolved"`` is assumed.
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
         :pparam string project_id_or_slug: the id or slug of the project the issues
@@ -313,8 +306,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         Permanently remove the given issues. The list of issues to
         modify is given through the `id` query parameter.  It is repeated
         for each issue that should be removed.
-
-        Only queries by 'id' are accepted.
 
         If any IDs are out of scope this operation will succeed without
         any data mutation.

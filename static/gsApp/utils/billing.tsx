@@ -719,6 +719,30 @@ export function hasAccessToSubscriptionOverview(
 }
 
 /**
+ * Whether to link the user to the billing information page.
+ *
+ * Enterprise trials, and orgs that cannot use PAYG and are not self-serve on a
+ * free or trial plan, get no link. The page itself only redirects
+ * partner-billed orgs.
+ */
+export function shouldShowBillingInformation(
+  subscription: Subscription,
+  organization: Organization
+): boolean {
+  if (!hasBillingAccess(organization) || subscription.isSelfServePartner) {
+    return false;
+  }
+
+  const isTrialOrFreePlan =
+    subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
+
+  return (
+    supportsPayg(subscription) ||
+    (subscription.canSelfServe && isTrialOrFreePlan && !subscription.isEnterpriseTrial)
+  );
+}
+
+/**
  * Returns the soft cap type for the given metric history category that can be
  * displayed to users if applicable. Returns null for if no soft cap type.
  */

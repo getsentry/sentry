@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -10,7 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.agent_handoff.applications import get_handoff_application
-from sentry.agent_handoff.codes import HandoffFlow, issue_handoff
+from sentry.agent_handoff.codes import HandoffContext, HandoffFlow, issue_handoff
+from sentry.agent_handoff.flows import get_flow
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -50,12 +51,39 @@ HANDOFF_SCOPES = (
 
 class AgentHandoffRequest(TypedDict):
     flow: str
+    context: HandoffContext
     disable_ip_pinning: bool
 
 
 class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
-    disable_ip_pinning = serializers.BooleanField(default=False)
     flow = serializers.ChoiceField(choices=list(HandoffFlow), default=HandoffFlow.GUIDED_NEXT_STEPS)
+    disable_ip_pinning = serializers.BooleanField(default=False)
+
+    # DRF reserves Serializer.context for rendering metadata.
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        return {
+            **super().get_fields(),
+            "context": serializers.JSONField(required=False, allow_null=True, default=None),
+        }
+
+    def validate(self, attrs: AgentHandoffRequest) -> AgentHandoffRequest:
+        context_serializer = get_flow(HandoffFlow(attrs["flow"])).get_context_serializer()
+        if context_serializer is None:
+            if attrs["context"] is not None:
+                raise serializers.ValidationError(
+                    {"context": ["Context is not supported for this flow."]}
+                )
+
+            return attrs
+
+        serializer = context_serializer(data=attrs["context"], context=self.context)
+        try:
+            # The enclosing serializer owns error-key casing for nested fields.
+            context = serializer.run_validation(serializer.initial_data)
+        except serializers.ValidationError as error:
+            raise serializers.ValidationError({"context": error.detail}) from error
+
+        return {**attrs, "context": context}
 
 
 class AgentHandoffResponse(TypedDict):
@@ -110,15 +138,20 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         if organization_context.member is None:
             return Response({"detail": "Organization membership is required."}, status=403)
 
-        serializer = AgentHandoffRequestSerializer(data=request.data)
+        serializer = AgentHandoffRequestSerializer(
+            data=request.data, context={"user_id": user.id, "organization_id": organization.id}
+        )
         serializer.is_valid(raise_exception=True)
 
         application = get_handoff_application(HANDOFF_SCOPES)
         if application is None:
             return Response({"detail": "Agent onboarding is not configured."}, status=503)
 
+        values = serializer.validated_data
+        flow = HandoffFlow(values["flow"])
         issued = issue_handoff(
-            flow=HandoffFlow(serializer.validated_data["flow"]),
+            flow=flow,
+            context=values["context"],
             user_id=user.id,
             organization_id=organization.id,
             application_id=application.id,
@@ -129,7 +162,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
             "prompt": (
-                f"Fetch and follow the instructions at {guide_url}. "
+                f"Follow the instructions verbatim at {guide_url}. "
                 f"Your secret token is `{issued.code}`."
             ),
             "guideUrl": guide_url,

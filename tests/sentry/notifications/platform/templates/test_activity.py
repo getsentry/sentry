@@ -287,6 +287,17 @@ class ActivityAlertBaseTest(TestCase):
         )
         assert absolute_uri(expected_issue_url) == data.issue_url
 
+    def test_build_activity_notification_data_sentry_app_user_name(self) -> None:
+        sentry_app = self.create_internal_integration(name="Linear", organization=self.organization)
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=sentry_app.proxy_user_id,
+        )
+        data = build_activity_notification_data(activity=activity, target=self.target)
+
+        assert data.activity_user_name == "Linear"
+
     def test_build_activity_notification_data_release_url_has_referrer(self) -> None:
         activity = self.create_group_activity(
             group=self.group,

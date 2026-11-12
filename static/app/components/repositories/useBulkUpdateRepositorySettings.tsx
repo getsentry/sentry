@@ -5,10 +5,10 @@ import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getRepositoryWithSettingsQueryKey} from './useRepositoryWithSettings';
+import {repositoryWithSettingsApiOptions} from './repositoryWithSettingsApiOptions';
 
 type RepositorySettings =
   | {
@@ -67,9 +67,12 @@ export function useBulkUpdateRepositorySettings(
         ).queryKey,
       });
       (data ?? []).forEach(repo => {
-        const queryKey = getRepositoryWithSettingsQueryKey(organization, repo.id);
+        const queryKey = repositoryWithSettingsApiOptions(organization, repo.id).queryKey;
         queryClient.invalidateQueries({queryKey});
-        setApiQueryData<Repository>(queryClient, queryKey, repo);
+        queryClient.setQueryData(queryKey, previous => ({
+          json: repo,
+          headers: previous?.headers ?? {},
+        }));
       });
       options?.onSettled?.(data, error, variables, onMutateResult, context);
     },

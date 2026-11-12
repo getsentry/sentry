@@ -92,7 +92,6 @@ proxy.route(
         "/api/0/organizations/<str:org>/integrations/direct-enable(/<any:subp>)?",
         "/api/0/organizations/<str:org>/intercom-jwt",
         "/api/0/organizations/<str:org>/agent-handoff/prompts",
-        "/api/0/organizations/<str:org>/agent-handoff/prompts-preview",
         "/api/0/organizations/<str:org>/monitoring-providers(/<any:subp>)?",
         "/api/0/organizations/<str:org>/org-auth-tokens(/<any:subp>)?",
         "/api/0/organizations/<str:org>/partnership-agreements",

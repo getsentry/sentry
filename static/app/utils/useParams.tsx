@@ -22,6 +22,7 @@ type ParamKeys =
   | 'baseArtifactId'
   | 'beaconId'
   | 'broadcastId'
+  | 'classifierId'
   | 'clientID'
   | 'codeId'
   | 'conversationId'
