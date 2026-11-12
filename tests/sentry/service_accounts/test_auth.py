@@ -144,3 +144,15 @@ class ServiceAccountTokenRequestTest(APITestCase):
         response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token_str}")
 
         assert response.status_code == 401
+
+    def test_token_is_not_a_browser_login(self) -> None:
+        token_str, _ = self.create_token(["org:read", "project:read"])
+
+        response = self.client.post(
+            reverse("sentry-account-confirm-email-send"),
+            {"primary-email": "1", "email": "admin@example.com"},
+            HTTP_AUTHORIZATION=f"Bearer {token_str}",
+        )
+
+        assert response.status_code == 302
+        assert response["Location"].startswith("/auth/login/")
