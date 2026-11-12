@@ -401,7 +401,7 @@ describe('desktop navigation', () => {
         })
       );
 
-      expect(screen.getByText('Org Settings')).toBeInTheDocument();
+      expect(screen.getByText('Organization Settings')).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
       expect(
         screen.queryByRole('link', {name: 'Personal Tokens'})
@@ -667,7 +667,7 @@ describe('desktop navigation', () => {
       expect(
         await screen.findByRole('link', {name: 'Organizations'})
       ).toBeInTheDocument();
-      expect(screen.queryByText('Org Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
     });
   });
 
