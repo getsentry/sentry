@@ -60,24 +60,28 @@ inbox_item_type_registry.register(NOTEBOOK.subject_type)(NOTEBOOK)
 
 NOTEBOOK_COMPLETED = InboxEventType(
     event_type="notebook.completed",
+    summary=InboxEventSummary.NOTEBOOK_COMPLETED,
     item_type=NOTEBOOK,
     data_class=NotebookCompletedData,
     notification_setting=NotificationSettingEnum.INBOX_COMPLETION_STATUS,
 )
 NOTEBOOK_USER_MENTIONED = InboxEventType(
     event_type="notebook.user_mentioned",
+    summary=InboxEventSummary.NOTEBOOK_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 NOTEBOOK_TEAM_MENTIONED = InboxEventType(
     event_type="notebook.team_mentioned",
+    summary=InboxEventSummary.NOTEBOOK_TEAM_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 NOTEBOOK_PARTICIPANT_ADDED = InboxEventType(
     event_type="notebook.participant_added",
+    summary=InboxEventSummary.NOTEBOOK_PARTICIPANT_ADDED,
     item_type=NOTEBOOK,
     data_class=NotebookParticipantAddedData,
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,

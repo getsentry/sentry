@@ -128,7 +128,7 @@ class OrganizationInboxIndexTest(APITestCase):
         assert response.data[0]["unreadEventCount"] == 100
         assert response.data[0]["latestEvent"]["id"] == str(events[-1].id)
         assert response.data[0]["latestEvent"]["data"]["commentId"] == "102"
-        assert response.data[0]["subtitle"] == "Event 102"
+        assert response.data[0]["subtitle"] == "Mentioned you in a comment"
 
         response = self.client.get(
             reverse(
