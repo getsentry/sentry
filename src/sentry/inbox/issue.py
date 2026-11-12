@@ -8,6 +8,7 @@ from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_typ
 from sentry.inbox.types import (
     InboxActor,
     InboxEventData,
+    InboxEventSummary,
     InboxEventType,
     InboxItemType,
 )
@@ -120,7 +121,9 @@ def record_issue_assignment(
     event_type.record(
         subject=group,
         data=IssueAssignedData(
-            summary="Assigned to your team" if is_team else "Assigned to you",
+            summary=InboxEventSummary.ISSUE_TEAM_ASSIGNED
+            if is_team
+            else InboxEventSummary.ISSUE_USER_ASSIGNED,
             assignment_source=assignment_source,
         ),
         recipient_user_ids=_get_recipient_user_ids(
@@ -144,7 +147,9 @@ def record_issue_user_mention(
 
     ISSUE_USER_MENTIONED.record(
         subject=group,
-        data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=comment_id),
+        data=IssueMentionedData(
+            summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=comment_id
+        ),
         recipient_user_ids=_get_recipient_user_ids(group, user_ids=mentioned_user_ids, team_ids=[]),
         actor=actor,
     )
@@ -162,7 +167,9 @@ def record_issue_team_mention(
 
     ISSUE_TEAM_MENTIONED.record(
         subject=group,
-        data=IssueMentionedData(summary="Mentioned your team in a comment", comment_id=comment_id),
+        data=IssueMentionedData(
+            summary=InboxEventSummary.ISSUE_TEAM_MENTIONED, comment_id=comment_id
+        ),
         recipient_user_ids=_get_recipient_user_ids(group, user_ids=[], team_ids=mentioned_team_ids),
         actor=actor,
     )
@@ -180,7 +187,9 @@ def record_issue_pr_ready_for_review(
         ISSUE_PR_READY_FOR_REVIEW.record(
             subject=group,
             data=IssuePRReadyForReviewData(
-                summary="Pull request ready for review", pr_url=pr_url, seer_run_id=seer_run_id
+                summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
+                pr_url=pr_url,
+                seer_run_id=seer_run_id,
             ),
             recipient_user_ids=recipients,
             actor=actor,

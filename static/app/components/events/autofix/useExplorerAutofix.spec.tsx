@@ -681,6 +681,29 @@ describe('getOrderedAutofixSections', () => {
       );
     });
 
+    it('reads the root cause the API returns under the root_cause key', () => {
+      const sections = getOrderedAutofixSections(
+        makeSingleRun([
+          makeBlock({message: {metadata: {step: 'single_run'}}}),
+          makeBlock({
+            artifacts: [
+              {
+                key: 'root_cause',
+                reason: 'found',
+                data: {headline: 'H', cause: 'C'},
+              },
+            ],
+          }),
+        ])
+      );
+
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
+    });
+
     it('has only a root cause section without patches', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun([

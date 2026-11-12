@@ -29,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -274,12 +275,12 @@ export function ConversationsTable({
     [storedWidths.conversation]
   );
 
-  const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
+  const handlePaginate: typeof setCursor = (cursor, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
       organization,
       direction: pageDelta > 0 ? 'next' : 'previous',
     });
-    setCursor(cursor, path, query, pageDelta);
+    setCursor(cursor, pageDelta);
   };
 
   const handleCellAction = useCallback<CellActionHandler>(
@@ -386,7 +387,7 @@ export function ConversationsTable({
       {/* Zero Pagination's built-in top margin so the Stack's `lg` gap is the
           only spacing between the table and the controls. */}
       {!hidePagination && (
-        <TablePagination pageLinks={pageLinks} onCursor={handlePaginate} />
+        <TablePagination {...getPaginationProps(pageLinks)} onCursor={handlePaginate} />
       )}
     </Stack>
   );

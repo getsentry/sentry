@@ -11,7 +11,7 @@ from sentry.inbox.notebook import (
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.serializers import InboxItemEventSerializer, InboxItemSerializer
-from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData
+from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData, InboxEventSummary
 from sentry.models.organization import Organization
 from sentry.notebooks.models import NotebookStatus
 from sentry.notifications.models.inboxitem import InboxItem
@@ -141,32 +141,40 @@ class TestNotebookEvents:
         [
             (
                 "notebook.completed",
-                NotebookCompletedData(summary="Investigation completed", seer_run_id=123),
+                NotebookCompletedData(
+                    summary=InboxEventSummary.NOTEBOOK_COMPLETED, seer_run_id=123
+                ),
                 {"seerRunId": "123"},
             ),
             (
                 "notebook.user_mentioned",
-                NotebookMentionedData(summary="Mentioned you", comment_id=123),
+                NotebookMentionedData(summary=InboxEventSummary.NOTEBOOK_MENTIONED, comment_id=123),
                 {"commentId": "123", "blockId": None},
             ),
             (
                 "notebook.user_mentioned",
-                NotebookMentionedData(summary="Mentioned you", comment_id=123, block_id=456),
+                NotebookMentionedData(
+                    summary=InboxEventSummary.NOTEBOOK_MENTIONED, comment_id=123, block_id=456
+                ),
                 {"commentId": "123", "blockId": "456"},
             ),
             (
                 "notebook.team_mentioned",
-                NotebookMentionedData(summary="Mentioned your team", comment_id=123),
+                NotebookMentionedData(
+                    summary=InboxEventSummary.NOTEBOOK_TEAM_MENTIONED, comment_id=123
+                ),
                 {"commentId": "123", "blockId": None},
             ),
             (
                 "notebook.team_mentioned",
-                NotebookMentionedData(summary="Mentioned your team", comment_id=123, block_id=456),
+                NotebookMentionedData(
+                    summary=InboxEventSummary.NOTEBOOK_TEAM_MENTIONED, comment_id=123, block_id=456
+                ),
                 {"commentId": "123", "blockId": "456"},
             ),
             (
                 "notebook.participant_added",
-                NotebookParticipantAddedData(summary="Added you"),
+                NotebookParticipantAddedData(summary=InboxEventSummary.NOTEBOOK_PARTICIPANT_ADDED),
                 {},
             ),
         ],
