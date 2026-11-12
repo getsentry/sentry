@@ -498,10 +498,10 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
 
     # Mark the create as in progress, so an edit or delete made during the Snuba call isn't
     # overwritten. If this task dies partway, `subscription_checker` finishes the create.
-    if not _safe_status_update(
+    if not _transition_status(
         subscription,
-        expected=QuerySubscription.Status.BROKEN,
-        new=QuerySubscription.Status.CREATING,
+        from_=QuerySubscription.Status.BROKEN,
+        to=QuerySubscription.Status.CREATING,
         date_updated=timezone.now(),
     ):
         return
@@ -509,41 +509,45 @@ def recheck_broken_subscription(query_subscription_id: int, **kwargs: Any) -> No
     try:
         subscription_id = _create_in_snuba(subscription)
     except SubscriptionError:
-        _safe_status_update(
+        _transition_status(
             subscription,
-            expected=QuerySubscription.Status.CREATING,
-            new=QuerySubscription.Status.BROKEN,
+            from_=QuerySubscription.Status.CREATING,
+            to=QuerySubscription.Status.BROKEN,
         )
         metrics.incr("snuba.subscriptions.broken.verified")
         return
 
     # If the subscription changed meanwhile, the Snuba subscription is left unreferenced,
     # and the consumer deletes it when it sees its results.
-    _safe_status_update(
+    _transition_status(
         subscription,
-        expected=QuerySubscription.Status.CREATING,
-        new=QuerySubscription.Status.ACTIVE,
+        from_=QuerySubscription.Status.CREATING,
+        to=QuerySubscription.Status.ACTIVE,
         subscription_id=subscription_id,
     )
     metrics.incr("snuba.subscriptions.broken.recovered")
 
 
-def _safe_status_update(
+def _transition_status(
     subscription: QuerySubscription,
     *,
-    expected: QuerySubscription.Status,
-    new: QuerySubscription.Status,
+    from_: QuerySubscription.Status,
+    to: QuerySubscription.Status,
     **fields: Any,
 ) -> bool:
     """
-    Sets the subscription's status to `new`, along with any other `fields`, only if its
-    status is still `expected`. Returns whether it was updated.
+    Sets the subscription's status to `to`, along with any other `fields`, only if its
+    status is still `from_`. Returns whether it was updated.
     """
-    return bool(
-        QuerySubscription.objects.filter(id=subscription.id, status=expected.value).update(
-            status=new.value, **fields
+    with transaction.atomic(router.db_for_write(QuerySubscription)):
+        current = QuerySubscription.objects.select_for_update().get_or_none(
+            id=subscription.id, status=from_.value
         )
-    )
+        if current is None:
+            return False
+        # Model.update (rather than QuerySet.update) keeps the cached lookups current.
+        current.update(status=to.value, **fields)
+    return True
 
 
 # Re-check regularly so that broken subscriptions get re-enabled automatically once
