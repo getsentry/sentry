@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
@@ -25,6 +26,7 @@ import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organizatio
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -47,6 +49,7 @@ import {
   failureTrendsOptions,
   issueVolumesOptions,
   issueVolumeTrendsOptions,
+  OTHER_CAUSES,
   totalEventsTimeseriesOptions,
   symbolicationFailuresOptions,
   trendKey,
@@ -85,12 +88,23 @@ function causeSeries(stats: EventsStats | MultiSeriesEventsStats | undefined) {
     .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-/** The colour of each cause in the chart, so the row trends match it. */
+// The chart palette puts its four purple tones first. This order alternates
+// the hues, so that causes next to each other in the chart look different.
+const CAUSE_COLOR_ORDER = [0, 5, 7, 10, 8, 2, 4, 6, 3, 1, 9];
+
+/**
+ * The colour of each cause in the chart, so the row trends match it. A cause
+ * that the chart does not show has the colour of `OTHER_CAUSES`.
+ */
 function useCauseColors(stats: EventsStats | MultiSeriesEventsStats | undefined) {
   const theme = useTheme();
-  const series = causeSeries(stats);
-  const palette = theme.chart.getColorPalette(Math.max(series.length - 1, 0));
-  return new Map(series.map(([cause], index) => [cause, palette[index]!]));
+  const palette = theme.chart.getColorPalette(CAUSE_COLOR_ORDER.length - 1);
+  return new Map(
+    causeSeries(stats).map(([cause], index) => [
+      cause,
+      palette[CAUSE_COLOR_ORDER[index % CAUSE_COLOR_ORDER.length]!]!,
+    ])
+  );
 }
 
 function toTimeSeries(
@@ -124,7 +138,10 @@ function toCausePlottables(
     }
     return new Bars(toTimeSeries('count_unique(event_id)', 'number', points), {
       name: `symbolication-errors-${index}`,
-      alias: getSymbolicationErrorInfo(cause).label,
+      alias:
+        cause === OTHER_CAUSES
+          ? t('Other Causes')
+          : getSymbolicationErrorInfo(cause).label,
       color: colors.get(cause),
       stack: 'all',
     });
@@ -207,19 +224,43 @@ function ChartWidget({title, ...chart}: ChartProps & {title: string}) {
   );
 }
 
+// A table narrower than this has no room for five columns. It keeps the issue
+// and the failures. The cause goes below the issue, and the fix button goes
+// below the failures.
+const WIDE = '2xl';
+
+// The cells of a narrow table have different heights, so they align at the top.
+const CELL_ALIGN = {zero: 'start', [WIDE]: 'center'} as const;
+
+// A table narrower than this has no room for the trend. It shows only the
+// failure count.
+const WITH_TREND = 'sm';
+
 const COLUMNS: TableColumnConfig[] = [
-  {key: 'project', width: '48px'},
+  {key: 'project', visible: {[WIDE]: true}, width: '48px'},
   {key: 'issue', width: 'minmax(0, 2fr)'},
-  {key: 'cause', width: 'minmax(0, 1fr)'},
-  {key: 'failures', width: `${TREND_WIDTH + 130}px`},
-  {key: 'actions', width: 'max-content'},
+  {key: 'cause', visible: {[WIDE]: true}, width: 'minmax(0, 1fr)'},
+  {
+    key: 'failures',
+    width: {zero: 'max-content', [WITH_TREND]: `${TREND_WIDTH + 130}px`},
+  },
+  {key: 'actions', visible: {[WIDE]: true}, width: 'max-content'},
 ];
 
-function IssueCell({row, volume}: {row: FailureRow; volume: IssueVolume | undefined}) {
+function IssueCell({
+  row,
+  volume,
+  narrowTableCause,
+}: {
+  /** The cause, for a table too narrow for the cause column. */
+  narrowTableCause: ReactNode;
+  row: FailureRow;
+  volume: IssueVolume | undefined;
+}) {
   const organization = useOrganization();
 
   return (
-    <Stack gap="2xs" width="100%">
+    <Stack gap="2xs" width="100%" minWidth="0">
       <Text ellipsis>
         <Link
           to={normalizeUrl(`/organizations/${organization.slug}/issues/${row.group_id}/`)}
@@ -230,6 +271,9 @@ function IssueCell({row, volume}: {row: FailureRow; volume: IssueVolume | undefi
       <Text size="xs" variant="muted" ellipsis>
         {volume?.issue ?? String(row.group_id)}
       </Text>
+      <Container display={{zero: 'block', [WIDE]: 'none'}} paddingTop="xs">
+        {narrowTableCause}
+      </Container>
     </Stack>
   );
 }
@@ -398,7 +442,7 @@ function FailuresTable({
   }
 
   return (
-    <Stack gap="md">
+    <Stack gap="md" containerType="inline-size">
       <SimpleTable
         columns={COLUMNS}
         header={
@@ -406,7 +450,12 @@ function FailuresTable({
             <SimpleTable.HeaderCell />
             <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Cause')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Failed to symbolicate')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <Text display={{zero: 'none', [WITH_TREND]: 'inline'}}>
+                {t('Failed to symbolicate')}
+              </Text>
+              <Text display={{zero: 'inline', [WITH_TREND]: 'none'}}>{t('Failed')}</Text>
+            </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell />
           </SimpleTable.HeaderRow>
         }
@@ -420,62 +469,74 @@ function FailuresTable({
         {!isPending &&
           rows.map(row => {
             const volume = volumeByGroup.get(String(row.group_id));
+            const cause = <CauseCell errorType={row.error_type} project={project} />;
+            const fixButton = (
+              <Button
+                size="xs"
+                onClick={() =>
+                  openDrawer(
+                    () => (
+                      <FailureDetails
+                        organization={organization}
+                        project={project}
+                        row={row}
+                      />
+                    ),
+                    {
+                      ariaLabel: t('Symbolication failure details'),
+                      drawerKey: 'symbolication-failure-details',
+                    }
+                  )
+                }
+              >
+                {t('How to fix')}
+              </Button>
+            );
             return (
               <SimpleTable.Row key={trendKey(row)}>
                 <SimpleTable.RowCell>
                   <ProjectAvatar project={project} title={project.slug} hasTooltip />
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <IssueCell row={row} volume={volume} />
+                <SimpleTable.RowCell align={CELL_ALIGN}>
+                  <IssueCell row={row} volume={volume} narrowTableCause={cause} />
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <CauseCell errorType={row.error_type} project={project} />
+                <SimpleTable.RowCell>{cause}</SimpleTable.RowCell>
+                <SimpleTable.RowCell align={CELL_ALIGN}>
+                  <Stack gap="md" align="end">
+                    <Flex gap="md" align="center">
+                      <Container display={{zero: 'none', [WITH_TREND]: 'block'}}>
+                        <FailureTrend
+                          series={trends.data?.[trendKey(row)]}
+                          issueSeries={
+                            volume ? volumeTrends.data?.[volume.issue] : undefined
+                          }
+                          cause={getSymbolicationErrorInfo(row.error_type).label}
+                          color={
+                            causeColors.get(row.error_type) ??
+                            causeColors.get(OTHER_CAUSES) ??
+                            theme.tokens.dataviz.semantic.accent
+                          }
+                          isPending={trends.isPending}
+                        />
+                      </Container>
+                      <Text tabular wrap="nowrap">
+                        {formatAbbreviatedNumber(row['count_unique(event_id)'])}
+                        {volume
+                          ? ` / ${formatAbbreviatedNumber(volume['count()'])}`
+                          : null}
+                      </Text>
+                    </Flex>
+                    <Container display={{zero: 'block', [WIDE]: 'none'}}>
+                      {fixButton}
+                    </Container>
+                  </Stack>
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Flex gap="md" align="center">
-                    <FailureTrend
-                      series={trends.data?.[trendKey(row)]}
-                      issueSeries={volume ? volumeTrends.data?.[volume.issue] : undefined}
-                      cause={getSymbolicationErrorInfo(row.error_type).label}
-                      color={
-                        causeColors.get(row.error_type) ??
-                        theme.tokens.dataviz.semantic.accent
-                      }
-                      isPending={trends.isPending}
-                    />
-                    <Text tabular>
-                      {formatAbbreviatedNumber(row['count_unique(event_id)'])}
-                      {volume ? ` / ${formatAbbreviatedNumber(volume['count()'])}` : null}
-                    </Text>
-                  </Flex>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Button
-                    size="xs"
-                    onClick={() =>
-                      openDrawer(
-                        () => (
-                          <FailureDetails
-                            organization={organization}
-                            project={project}
-                            row={row}
-                          />
-                        ),
-                        {
-                          ariaLabel: t('Symbolication failure details'),
-                          drawerKey: 'symbolication-failure-details',
-                        }
-                      )
-                    }
-                  >
-                    {t('How to fix')}
-                  </Button>
-                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>{fixButton}</SimpleTable.RowCell>
               </SimpleTable.Row>
             );
           })}
       </SimpleTable>
-      <Pagination pageLinks={data?.headers.Link} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} />
     </Stack>
   );
 }

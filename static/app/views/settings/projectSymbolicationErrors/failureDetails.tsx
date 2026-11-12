@@ -194,7 +194,7 @@ export function FailureDetails({organization, project, row}: FailureDetailsProps
             )}
           </Stack>
 
-          <Flex gap="md" align="center">
+          <Flex gap="md" align="center" wrap="wrap">
             {fix ? (
               <LinkButton
                 size="sm"

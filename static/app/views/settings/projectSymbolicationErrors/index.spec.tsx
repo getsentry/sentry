@@ -83,8 +83,10 @@ describe('ProjectSymbolicationErrors', () => {
     expect(
       await screen.findByRole('link', {name: 'EXC_BAD_ACCESS in main'})
     ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/1/`);
-    expect(screen.getByText('Missing debug file')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Upload debug files'})).toHaveAttribute(
+    // jsdom applies no container queries, so the cause and the fix button show
+    // in the wide layout and in the narrow layout.
+    expect(screen.getAllByText('Missing debug file')).toHaveLength(2);
+    expect(screen.getAllByRole('link', {name: 'Upload debug files'})[0]).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/`
     );
@@ -113,7 +115,8 @@ describe('ProjectSymbolicationErrors', () => {
       initialRouterConfig,
     });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'How to fix'}));
+    const [fixButton] = await screen.findAllByRole('button', {name: 'How to fix'});
+    await userEvent.click(fixButton!);
 
     const drawer = await screen.findByRole('complementary', {
       name: 'Symbolication failure details',

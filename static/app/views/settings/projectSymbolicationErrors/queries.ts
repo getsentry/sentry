@@ -17,9 +17,10 @@ const REFERRER = 'api.project-settings.symbolication-errors';
 // stats request draws the trend of every row on the page.
 const PAGE_SIZE = 10;
 
-// The chart above the table shows this many causes. Rows with another cause
-// draw their trend in the accent colour.
-const CHART_CAUSES = 5;
+// The chart above the table shows this many causes. The stats endpoint adds
+// the rest under this key.
+const CHART_CAUSES = 10;
+export const OTHER_CAUSES = 'Other';
 
 export interface FailureRow {
   'count_unique(event_id)': number;
@@ -177,7 +178,10 @@ export function failureTrendsOptions({
   };
 }
 
-/** Failures per day for the most common causes, keyed by cause. */
+/**
+ * Failures per day for the most common causes, keyed by cause. The causes
+ * that are not among them share the `OTHER_CAUSES` series.
+ */
 export function causeTimeseriesOptions({organization, project}: ProjectQueryParams) {
   return {
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
@@ -189,7 +193,7 @@ export function causeTimeseriesOptions({organization, project}: ProjectQueryPara
           field: ['error_type', 'count_unique(event_id)'],
           yAxis: 'count_unique(event_id)',
           topEvents: CHART_CAUSES,
-          excludeOther: 1,
+          sort: '-count_unique(event_id)',
           query: SYMBOLICATION_ERROR_TYPES_QUERY,
           statsPeriod: STATS_PERIOD,
           interval: STATS_INTERVAL,
