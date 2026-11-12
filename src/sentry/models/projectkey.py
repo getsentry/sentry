@@ -186,7 +186,7 @@ class ProjectKey(ReplicatedCellModel):
             project=project,
             roles=models.F("roles").bitor(cls.roles.store),
             status=ProjectKeyStatus.ACTIVE,
-        ).first()
+        ).first()  # noqa: S034
 
     @property
     def is_active(self) -> bool:
@@ -392,10 +392,10 @@ class ProjectKey(ReplicatedCellModel):
         self, _s: ImportScope, _f: ImportFlags
     ) -> tuple[int, ImportKind] | None:
         # If there is a key collision, generate new keys.
-        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
+        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()  # noqa: S034
         if not self.public_key or matching_public_key:
             self.public_key = self.generate_api_key()
-        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()
+        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()  # noqa: S034
         if not self.secret_key or matching_secret_key:
             self.secret_key = self.generate_api_key()
 

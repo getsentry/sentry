@@ -139,7 +139,7 @@ class OrganizationForkEndpoint(Endpoint):
             provenance=Relocation.Provenance.SAAS_TO_SAAS.value,
             want_org_slugs=[org_mapping.slug],
             status__in={Relocation.Status.IN_PROGRESS.value, Relocation.Status.PAUSE.value},
-        ).first()
+        ).first()  # noqa: S034
         if duplicate_relocation is not None:
             return Response(
                 {

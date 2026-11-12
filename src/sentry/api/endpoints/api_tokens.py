@@ -148,7 +148,7 @@ class ApiTokensEndpoint(Endpoint):
         with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
             token_to_delete: ApiToken | None = ApiToken.objects.filter(
                 id=token_id, application__isnull=True, user_id=user_id
-            ).first()
+            ).first()  # noqa: S034
 
             if token_to_delete is None:
                 return Response({"tokenId": token_id, "userId": user_id}, status=400)

@@ -335,7 +335,7 @@ def run_agentic_triage_for_org(
     block on it. The run record, if created, is created synchronously."""
     organization = Organization.objects.filter(
         id=organization_id, status=OrganizationStatus.ACTIVE
-    ).first()
+    ).first()  # noqa: S034
     if organization is None:
         return None
 
@@ -357,7 +357,7 @@ def run_agentic_triage_for_org(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             trigger_key=schedule_id,
-        ).first()
+        ).first()  # noqa: S034
         # Without quota, only completed runs or runs with persisted executions can continue.
         if existing_run is None or (
             existing_run.date_completed is None and not existing_run.executions.exists()
@@ -440,7 +440,7 @@ def run_agentic_triage_execution(
     """Heavy phase of an agentic triage run: eligibility, triage, and optional
     autofix dispatch. Single code path used by both sync invocation (from
     run_agentic_triage_for_org) and async dispatch (apply_async)."""
-    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()
+    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()  # noqa: S034
     if run is None:
         logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
@@ -600,7 +600,7 @@ def build_run_options(
     if org_tweaks is not None:
         layered.update(_tweaks_to_partial(org_tweaks))
     if project_id is not None:
-        project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
+        project = Project.objects.filter(id=project_id, organization_id=organization_id).first()  # noqa: S034
         if project is not None:
             layered.update(_tweaks_to_partial(get_agentic_triage_tweaks(project)))
     layered.update(manual_overrides or {})

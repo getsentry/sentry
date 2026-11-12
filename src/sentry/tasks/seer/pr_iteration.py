@@ -632,7 +632,7 @@ def _drain_queued_autofix_feedback(
 ) -> None:
     """Pop this run's queued feedback and hand whatever survives to the agent."""
     group = (
-        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()  # noqa: S034
         if group_id
         else None
     )
@@ -1237,7 +1237,7 @@ def _resolve_run_for_pr_comment(
     every cell holding an org on the installation. The stop command therefore
     stays silent and leaves the answer to the cell that owns the run.
     """
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()  # noqa: S034
     if repo is None:
         logger.info(
             "autofix.pr_iteration.comment_trigger.missing_repo",
@@ -1831,7 +1831,7 @@ def _trigger_pr_iteration_from_review(
         "author_is_bot": author_is_bot,
     }
 
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()  # noqa: S034
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None

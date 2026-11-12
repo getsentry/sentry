@@ -221,7 +221,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
     def get_by_slug(self, organization: Organization, slug: str) -> FeatureAdoption | None:
         return self.filter(
             organization=organization, feature_id=manager.get_by_slug(slug).id
-        ).first()
+        ).first()  # noqa: S034
 
 
 @cell_silo_model

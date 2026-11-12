@@ -111,7 +111,7 @@ class OrgAuthToken(ReplicatedControlModel):
         # one.
         matching_token_hashed = self.__class__.objects.filter(
             token_hashed=self.token_hashed
-        ).first()
+        ).first()  # noqa: S034
         if (not self.token_hashed) or matching_token_hashed:
             org_slug = pk_map.get_slug(get_model_name(Organization), self.organization_id)
             if org_slug is None:

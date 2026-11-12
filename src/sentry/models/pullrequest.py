@@ -309,7 +309,7 @@ class PullRequestManager(BaseManager["PullRequest"]):
             organization_id=organization_id,
             repository_id=repository_id,
             key=key,
-        ).first()
+        ).first()  # noqa: S034
         if stored is not None and stored.external_id is not None:
             metrics.incr(
                 "scm.pull_request.external_id",

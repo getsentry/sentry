@@ -92,7 +92,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
                 identity__idp__type=provider_key,
             )
             .select_related("identity")
-            .first()
+            .first()  # noqa: S034
         )
         if org_identity is None:
             return Response({"detail": "Not connected to this provider."}, status=404)

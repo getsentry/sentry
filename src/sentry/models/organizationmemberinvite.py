@@ -265,7 +265,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     ) -> tuple[int, ImportKind] | None:
         # If there is a token collision, generate new tokens.
         query = models.Q(token=self.token)
-        existing = self.__class__.objects.filter(query).first()
+        existing = self.__class__.objects.filter(query).first()  # noqa: S034
         if existing:
             self.pk = existing.pk
             self.expires_at = timezone.now() + timedelta(days=INVITE_DAYS_VALID)

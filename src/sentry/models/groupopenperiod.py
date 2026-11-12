@@ -228,7 +228,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
     with transaction.atomic(router.db_for_write(Group)):
         # Force a Group lock before the create to establish consistent lock ordering
         # This prevents deadlocks by ensuring we always acquire the Group lock first
-        Group.objects.select_for_update().filter(id=group.id).first()
+        Group.objects.select_for_update().filter(id=group.id).first()  # noqa: S034
 
         # There are some historical cases where we log multiple regressions for the same group,
         # but we only want to create a new open period for the first regression

@@ -753,7 +753,7 @@ class ReleaseLookupData:
                 file__type=ARTIFACT_INDEX_TYPE,
             )
             .select_related("file")
-            .first()
+            .first()  # noqa: S034
         )
         if self.dist_matched_artifact_index_release_file:
             maybe_renew_releasefiles([self.dist_matched_artifact_index_release_file])
