@@ -10,7 +10,6 @@ type SymbolicationCategory = 'native' | 'javascript' | 'jvm' | 'fetch';
 
 export type FixKey = 'debug-symbols' | 'source-maps' | 'proguard' | 'source-fetching';
 
-/** A page under the project settings where the user fixes the cause. */
 export const FIXES: Record<FixKey, {label: string; page: string}> = {
   'debug-symbols': {label: t('Upload debug files'), page: 'debug-symbols/'},
   'source-maps': {label: t('Upload source maps'), page: 'source-maps/'},
@@ -29,7 +28,6 @@ export type GuideKey =
   | 'unmappable'
   | 'no-action';
 
-/** The values a guide puts into its commands. */
 interface GuideContext {
   orgSlug: string;
   projectSlug: string;
@@ -50,10 +48,6 @@ const uploadDebugFiles = (context: GuideContext) =>
 const uploadSourceMaps = (context: GuideContext) =>
   `sentry-cli sourcemaps inject <build-directory>\nsentry-cli sourcemaps upload ${target(context)} <build-directory>`;
 
-/**
- * The steps that fix a group of causes. A guide without steps is a cause the
- * user cannot fix.
- */
 export const GUIDES: Record<GuideKey, GuideStep[]> = {
   'missing-debug-file': [
     {

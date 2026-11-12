@@ -72,7 +72,6 @@ function toPoints(series: EventsStats) {
   }));
 }
 
-/** The chart series in legend order, one per cause. */
 function causeSeries(stats: EventsStats | MultiSeriesEventsStats | undefined) {
   if (!stats) {
     return [];
@@ -88,10 +87,6 @@ function causeSeries(stats: EventsStats | MultiSeriesEventsStats | undefined) {
     .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-/**
- * The colour of each cause in the chart, so the row trends match it. A cause
- * that the chart does not show has the colour of `OTHER_CAUSES`.
- */
 function useCauseColors(stats: EventsStats | MultiSeriesEventsStats | undefined) {
   const theme = useTheme();
   const series = causeSeries(stats);
@@ -109,10 +104,6 @@ function toTimeSeries(
   return {yAxis, meta: {valueType, valueUnit: null, interval: second - first}, values};
 }
 
-/**
- * The failures stacked by cause. The grey bars on top are the other events of
- * the project, so the height of a stack is every event of that day.
- */
 function toCausePlottables(
   series: Array<[string, EventsStats]>,
   colors: CauseColors,
@@ -244,7 +235,6 @@ function IssueCell({
   volume,
   narrowTableCause,
 }: {
-  /** The cause, for a table too narrow for the cause column. */
   narrowTableCause: ReactNode;
   row: FailureRow;
   volume: IssueVolume | undefined;
@@ -306,7 +296,6 @@ function FailureTrend({
   cause: string;
   color: string;
   isPending: boolean;
-  /** Every event of the issue, drawn in grey behind the failures. */
   issueSeries: EventsStats | undefined;
   series: EventsStats | undefined;
 }) {

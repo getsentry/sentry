@@ -67,10 +67,6 @@ function AffectedReleases({organization, project, row}: FailureDetailsProps) {
   );
 }
 
-/**
- * The fix as a task for a coding agent that works in the repository of the
- * project. The text is a prompt, so it stays in English.
- */
 function getAgentPrompt({
   organization,
   project,
@@ -122,7 +118,6 @@ function getAgentPrompt({
   ].join('\n');
 }
 
-/** What failed for one issue and cause, where, and the steps that fix it. */
 export function FailureDetails({organization, project, row}: FailureDetailsProps) {
   const info = getSymbolicationErrorInfo(row.error_type);
   const steps = GUIDES[info.guide];

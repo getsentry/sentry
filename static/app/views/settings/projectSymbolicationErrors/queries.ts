@@ -41,7 +41,6 @@ interface ProjectQueryParams {
   project: Project;
 }
 
-/** One page of (issue, cause) pairs, the most failures first. */
 export function symbolicationFailuresOptions({
   organization,
   project,
@@ -78,7 +77,6 @@ export interface IssueVolume {
 
 export const ISSUE_VOLUME_FIELDS = ['issue.id', 'issue', 'count()'];
 
-/** Every event of the listed issues in the period, with the issue short id. */
 export function issueVolumesOptions({
   organization,
   project,
@@ -105,11 +103,6 @@ export function issueVolumesOptions({
   };
 }
 
-/**
- * Events per day for each listed issue, keyed by the issue short id. The
- * endpoint resolves the short ids only for the `issue` field. With `issue.id`
- * every series gets the key "unknown".
- */
 export function issueVolumeTrendsOptions({
   organization,
   project,
@@ -148,7 +141,6 @@ function trendQuery(rows: FailureRow[]): string {
   return `${SYMBOLICATION_ERROR_TYPES_QUERY} (${pairs})`;
 }
 
-/** One failure time series per row, keyed by `trendKey`. */
 export function failureTrendsOptions({
   organization,
   project,
@@ -178,10 +170,6 @@ export function failureTrendsOptions({
   };
 }
 
-/**
- * Failures per day for the most common causes, keyed by cause. The causes
- * that are not among them share the `OTHER_CAUSES` series.
- */
 export function causeTimeseriesOptions({organization, project}: ProjectQueryParams) {
   return {
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
@@ -207,7 +195,6 @@ export function causeTimeseriesOptions({organization, project}: ProjectQueryPara
   };
 }
 
-/** Every error event of the project per day. */
 export function totalEventsTimeseriesOptions({
   organization,
   project,
@@ -246,7 +233,6 @@ export interface ReleaseFailures {
 // The detail drawer lists this many releases.
 const RELEASE_LIMIT = 5;
 
-/** The releases with the most failures of one issue and cause. */
 export function releaseFailuresOptions({
   organization,
   project,
@@ -274,7 +260,6 @@ export function releaseFailuresOptions({
   };
 }
 
-/** One event with the failure, so the drawer can link to it. */
 export function sampleEventOptions({
   organization,
   project,
