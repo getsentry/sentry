@@ -1,4 +1,5 @@
 import {Temporal} from '@js-temporal/polyfill';
+import moment from 'moment-timezone';
 
 import {getSnapshot, type DateTimePreferences, type FormattingSnapshot} from './config';
 import {parseDate} from './parseDate';
@@ -33,9 +34,11 @@ export function formatTimezone(
     return 'UTC';
   }
   return (
+    moment.tz.zone(timezone)?.abbr(epochMilliseconds) ??
     new Intl.DateTimeFormat(locale, {timeZone: timezone, timeZoneName: 'short'})
       .formatToParts(epochMilliseconds)
-      .find(part => part.type === 'timeZoneName')?.value ?? ''
+      .find(part => part.type === 'timeZoneName')?.value ??
+    ''
   );
 }
 

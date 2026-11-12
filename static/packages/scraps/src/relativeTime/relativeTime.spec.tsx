@@ -79,7 +79,7 @@ describe('RelativeTime', () => {
   it('follows the viewer timezone', () => {
     renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Australia/Sydney');
 
-    expect(screen.getByText('GMT+11')).toBeInTheDocument();
+    expect(screen.getByText('AEDT')).toBeInTheDocument();
     expect(screen.getByText('11:00 AM')).toBeInTheDocument();
     // Midnight UTC is mid-morning in Sydney, so unlike Los Angeles both rows
     // land on the same calendar date
@@ -132,7 +132,7 @@ describe('RelativeTime', () => {
   it('renders zones that have no abbreviation', () => {
     renderInTimezone(<RelativeTime date={DATE} label="Last Seen" />, 'Asia/Kathmandu');
 
-    expect(screen.getByText('GMT+5:45')).toBeInTheDocument();
+    expect(screen.getByText('+0545')).toBeInTheDocument();
     expect(screen.getByText('5:45 AM')).toBeInTheDocument();
   });
 

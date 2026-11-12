@@ -81,10 +81,10 @@ browser globals. Rendering preserves Intl's locale-specific date order, literal
 characters, and time punctuation while honoring the configured clock. French
 output includes `1 janv. 2025` and `1:05:06,123 PM`; Japanese output includes
 `2025年1月1日` and `午後1:05`. These locale conventions replace Moment's fixed
-month-first layout. UTC
-is labeled `UTC`; other timezone labels follow Intl for the configured locale.
-For example, English labels include `GMT+11` for Sydney in January and
-`GMT+5:45` for Kathmandu. These may differ from Moment's abbreviations.
+month-first layout. Timezone labels retain Moment's abbreviations, including
+`AEDT` and `AEST` for Sydney and `+0545` for Kathmandu. `moment-timezone` is
+retained only for abbreviation lookup; parsing and conversion use Temporal.
+Zones absent from its database fall back to Intl's short timezone label.
 
 Without configuration, dates use UTC and a 12-hour clock. Applications call
 `configureFormatting` before rendering with one source. Its `getSnapshot`
