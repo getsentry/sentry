@@ -61,6 +61,16 @@ describe('SubscriptionStore', () => {
     ).toBeUndefined();
   });
 
+  it('notifies subscribers when a subscription is set', () => {
+    const listener = jest.fn();
+    const unsubscribe = SubscriptionStore.subscribe(listener);
+
+    SubscriptionStore.set(organization.slug, subscription);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
   it('allows a new load after a failed load', async () => {
     const failedRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
@@ -84,6 +94,29 @@ describe('SubscriptionStore', () => {
       ...subscription,
       setAt: expect.any(Number),
     });
+  });
+
+  it('does not store an empty response as a subscription', async () => {
+    jest.spyOn(Sentry, 'captureException').mockImplementation(() => '');
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: '',
+    });
+
+    await SubscriptionStore.loadData(organization.slug);
+    expect(SubscriptionStore.errors[organization.slug]).toBeDefined();
+    expect(SubscriptionStore.getState()[organization.slug]).toBeUndefined();
+  });
+
+  it('only updates a subscription that has loaded', () => {
+    SubscriptionStore.update(organization.slug, {hasDismissedTrialEndingNotice: true});
+    expect(SubscriptionStore.getState()[organization.slug]).toBeUndefined();
+
+    SubscriptionStore.set(organization.slug, subscription);
+    SubscriptionStore.update(organization.slug, {hasDismissedTrialEndingNotice: true});
+    expect(
+      SubscriptionStore.getState()[organization.slug]!.hasDismissedTrialEndingNotice
+    ).toBe(true);
   });
 
   it('runs callbacks from a failed load after the next successful load', async () => {

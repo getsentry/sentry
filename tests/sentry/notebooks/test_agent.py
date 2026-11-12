@@ -18,12 +18,12 @@ from sentry.notebooks.agent import (
 )
 from sentry.notebooks.models import NotebookBlockExecutionStatus
 from sentry.notebooks.services.notebooks import (
-    DEFAULT_INVESTIGATION_TITLE,
-    default_investigation_title,
+    DEFAULT_NOTEBOOK_TITLE,
+    default_notebook_title,
 )
 from sentry.notebooks.telemetry import (
     record_execution_completed,
-    record_investigation_completed,
+    record_notebook_completed,
 )
 from sentry.seer.agent.client_models import (
     MemoryBlock,
@@ -105,16 +105,16 @@ def test_completion_hook_path_resolves_to_the_hook() -> None:
     assert getattr(module, class_name) is InvestigationAgentCompletionHook
 
 
-class InvestigationAgentTest(TestCase):
+class NotebookAgentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_notebook(
+        self.notebook = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Already titled",
         )
         self.block = self.create_notebook_block(
-            notebook=self.investigation,
+            notebook=self.notebook,
             kind="query",
             prompt="Count errors",
         )
@@ -343,13 +343,13 @@ class InvestigationAgentTest(TestCase):
             "2026-08-14T23:56:02+00:00"
         )
 
-    def test_start_run_categorizes_the_run_as_an_investigation(self) -> None:
+    def test_start_run_categorizes_the_run_as_an_notebook(self) -> None:
         client = MagicMock()
 
         start_execution_run(self.execution, self.organization, self.user, client)
 
         assert client.category_key == "investigation"
-        assert client.category_value == str(self.investigation.id)
+        assert client.category_value == str(self.notebook.id)
 
     def test_start_run_passes_parameter_changes_separately_from_saved_settings(self) -> None:
         saved_context = {
@@ -547,17 +547,17 @@ class InvestigationAgentTest(TestCase):
             "message": "The agent returned malformed or unsupported result JSON.",
         }
 
-    @patch("sentry.notebooks.agent.record_investigation_failed")
+    @patch("sentry.notebooks.agent.record_notebook_failed")
     @patch("sentry.notebooks.agent.record_execution_cancelled")
     @patch("sentry.notebooks.agent.interrupt_run")
     def test_failed_execution_cancels_other_active_cells(
         self,
         interrupt_run: MagicMock,
         record_cancelled: MagicMock,
-        record_investigation_failed: MagicMock,
+        record_notebook_failed: MagicMock,
     ) -> None:
         sibling_block = self.create_notebook_block(
-            notebook=self.investigation,
+            notebook=self.notebook,
             kind="text",
             prompt="Explain the spike",
             position=1,
@@ -592,8 +592,8 @@ class InvestigationAgentTest(TestCase):
         record_cancelled.assert_called_once_with(
             sibling_execution, reason="investigation_execution_failed"
         )
-        record_investigation_failed.assert_called_once_with(
-            self.investigation, reason="seer_execution_failed"
+        record_notebook_failed.assert_called_once_with(
+            self.notebook, reason="seer_execution_failed"
         )
         interrupt_run.assert_called_once_with(self.organization, 43)
 
@@ -624,14 +624,14 @@ class InvestigationAgentTest(TestCase):
             "block_kind": "query",
             "executor": "code_mode",
         }
-        investigation_attributes = {
+        notebook_attributes = {
             "reason": "seer_execution_failed",
             "source_type": "manual",
             "template": "manual",
         }
         assert metrics_count.call_args_list == [
             (("investigations.execution.failed", 1), {"attributes": execution_attributes}),
-            (("investigations.failed", 1), {"attributes": investigation_attributes}),
+            (("investigations.failed", 1), {"attributes": notebook_attributes}),
         ]
         assert metrics_incr.call_args_list == [
             (
@@ -640,7 +640,7 @@ class InvestigationAgentTest(TestCase):
             ),
             (
                 ("investigations.failed",),
-                {"tags": investigation_attributes, "sample_rate": 1.0},
+                {"tags": notebook_attributes, "sample_rate": 1.0},
             ),
         ]
         duration_attributes = {
@@ -664,10 +664,10 @@ class InvestigationAgentTest(TestCase):
             sample_rate=1.0,
         )
 
-    @patch("sentry.notebooks.agent.record_investigation_failed")
+    @patch("sentry.notebooks.agent.record_notebook_failed")
     @patch("sentry.notebooks.agent.interrupt_run")
     def test_superseded_execution_failure_does_not_cancel_current_run(
-        self, interrupt_run: MagicMock, record_investigation_failed: MagicMock
+        self, interrupt_run: MagicMock, record_notebook_failed: MagicMock
     ) -> None:
         current_run = self.create_seer_run(
             organization=self.organization,
@@ -691,7 +691,7 @@ class InvestigationAgentTest(TestCase):
         current_execution.refresh_from_db()
         assert self.execution.status == NotebookBlockExecutionStatus.FAILED
         assert current_execution.status == NotebookBlockExecutionStatus.RUNNING
-        record_investigation_failed.assert_not_called()
+        record_notebook_failed.assert_not_called()
         interrupt_run.assert_not_called()
 
     @patch("sentry.notebooks.agent.interrupt_run")
@@ -699,7 +699,7 @@ class InvestigationAgentTest(TestCase):
         self, interrupt_run: MagicMock
     ) -> None:
         sibling_block = self.create_notebook_block(
-            notebook=self.investigation,
+            notebook=self.notebook,
             kind="text",
             prompt="Explain the spike",
             position=1,
@@ -1200,14 +1200,14 @@ class InvestigationAgentTest(TestCase):
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}
         assert len(link["params"]["query"]) == 2000
 
-    @patch("sentry.notebooks.agent.record_investigation_completed")
+    @patch("sentry.notebooks.agent.record_notebook_completed")
     @patch("sentry.notebooks.agent.record_title_generation_completed")
     def test_title_uses_the_final_assistant_message(
-        self, record_title_completed: MagicMock, record_investigation_completed: MagicMock
+        self, record_title_completed: MagicMock, record_notebook_completed: MagicMock
     ) -> None:
-        self.investigation.title = "Untitled investigation"
-        self.investigation.title_generation_status = "running"
-        self.investigation.save(update_fields=["title", "title_generation_status"])
+        self.notebook.title = "Untitled investigation"
+        self.notebook.title_generation_status = "running"
+        self.notebook.save(update_fields=["title", "title_generation_status"])
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -1218,22 +1218,22 @@ class InvestigationAgentTest(TestCase):
             ]
         )
 
-        synchronize_title(self.investigation, run_state)
+        synchronize_title(self.notebook, run_state)
 
-        self.investigation.refresh_from_db()
-        assert self.investigation.title == "Daily error volume spike"
-        assert self.investigation.summary == "Error volume crossed threshold"
-        assert self.investigation.summary_description == (
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Daily error volume spike"
+        assert self.notebook.summary == "Error volume crossed threshold"
+        assert self.notebook.summary_description == (
             "One endpoint drove most errors.\nRoll back the latest endpoint change."
         )
-        assert self.investigation.title_generation_status == "completed"
-        record_title_completed.assert_called_once_with(self.investigation)
-        record_investigation_completed.assert_called_once_with(self.investigation)
+        assert self.notebook.title_generation_status == "completed"
+        record_title_completed.assert_called_once_with(self.notebook)
+        record_notebook_completed.assert_called_once_with(self.notebook)
 
     def test_title_replaces_a_derived_default_title(self) -> None:
-        self.investigation.title = default_investigation_title(self.investigation.source_type)
-        self.investigation.title_generation_status = "running"
-        self.investigation.save(update_fields=["title", "title_generation_status"])
+        self.notebook.title = default_notebook_title(self.notebook.source_type)
+        self.notebook.title_generation_status = "running"
+        self.notebook.save(update_fields=["title", "title_generation_status"])
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -1244,14 +1244,14 @@ class InvestigationAgentTest(TestCase):
             ]
         )
 
-        synchronize_title(self.investigation, run_state)
+        synchronize_title(self.notebook, run_state)
 
-        self.investigation.refresh_from_db()
-        assert self.investigation.title == "Daily error volume spike"
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Daily error volume spike"
 
     def test_title_keeps_a_user_chosen_title(self) -> None:
-        self.investigation.title_generation_status = "running"
-        self.investigation.save(update_fields=["title_generation_status"])
+        self.notebook.title_generation_status = "running"
+        self.notebook.save(update_fields=["title_generation_status"])
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -1262,22 +1262,22 @@ class InvestigationAgentTest(TestCase):
             ]
         )
 
-        synchronize_title(self.investigation, run_state)
+        synchronize_title(self.notebook, run_state)
 
-        self.investigation.refresh_from_db()
-        assert self.investigation.title == "Already titled"
-        assert self.investigation.summary == "Error volume crossed threshold"
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Already titled"
+        assert self.notebook.summary == "Error volume crossed threshold"
 
     @patch("sentry.notebooks.telemetry.metrics.distribution")
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.distribution")
-    def test_completed_investigation_records_duration_metrics(
+    def test_completed_notebook_records_duration_metrics(
         self, sdk_distribution: MagicMock, metrics_distribution: MagicMock
     ) -> None:
         completed_at = timezone.now()
-        self.investigation.date_added = completed_at - timedelta(seconds=90)
+        self.notebook.date_added = completed_at - timedelta(seconds=90)
 
         with patch("sentry.notebooks.telemetry.timezone.now", return_value=completed_at):
-            record_investigation_completed(self.investigation)
+            record_notebook_completed(self.notebook)
 
         attributes = {"source_type": "manual", "template": "manual"}
         sdk_distribution.assert_called_once_with(
@@ -1295,9 +1295,7 @@ class InvestigationAgentTest(TestCase):
         )
 
     def test_title_accepts_metadata_in_a_json_code_fence(self) -> None:
-        self.investigation.update(
-            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
-        )
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE, title_generation_status="running")
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -1311,21 +1309,19 @@ class InvestigationAgentTest(TestCase):
             ]
         )
 
-        synchronize_title(self.investigation, run_state)
+        synchronize_title(self.notebook, run_state)
 
-        self.investigation.refresh_from_db()
-        assert self.investigation.title == "Daily error volume spike"
-        assert self.investigation.summary == "Error volume crossed threshold"
-        assert self.investigation.title_generation_status == "completed"
+        self.notebook.refresh_from_db()
+        assert self.notebook.title == "Daily error volume spike"
+        assert self.notebook.summary == "Error volume crossed threshold"
+        assert self.notebook.title_generation_status == "completed"
 
     @patch("sentry.notebooks.telemetry.metrics.incr")
     @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_invalid_title_records_failure_metrics(
         self, metrics_count: MagicMock, metrics_incr: MagicMock
     ) -> None:
-        self.investigation.update(
-            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
-        )
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE, title_generation_status="running")
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -1336,7 +1332,7 @@ class InvestigationAgentTest(TestCase):
             ]
         )
 
-        synchronize_title(self.investigation, run_state)
+        synchronize_title(self.notebook, run_state)
 
         attributes = {
             "source_type": "manual",
@@ -1359,8 +1355,8 @@ class InvestigationAgentTest(TestCase):
     def test_title_prompt_uses_specific_incident_source_context(
         self, mock_client: MagicMock
     ) -> None:
-        self.investigation.title = "Untitled investigation"
-        self.investigation.source = {
+        self.notebook.title = "Untitled investigation"
+        self.notebook.source = {
             "type": "metric_open_period",
             "ref": {},
             "snapshot": {
@@ -1369,9 +1365,9 @@ class InvestigationAgentTest(TestCase):
                 "monitor": {"name": "Checkout errors", "direction": "above"},
             },
         }
-        self.investigation.save(update_fields=["title", "source"])
+        self.notebook.save(update_fields=["title", "source"])
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         prompt = mock_client.return_value.start_run.call_args.args[0]
         assert "Checkout errors breached 100 events" in prompt
@@ -1383,26 +1379,26 @@ class InvestigationAgentTest(TestCase):
         assert "Avoid headings and jargon" in prompt
 
     @patch("sentry.notebooks.agent.SeerAgentClient")
-    def test_title_generation_categorizes_the_run_as_an_investigation(
+    def test_title_generation_categorizes_the_run_as_an_notebook(
         self, mock_client: MagicMock
     ) -> None:
-        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE)
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         kwargs = mock_client.call_args.kwargs
         assert kwargs["category_key"] == "investigation"
-        assert kwargs["category_value"] == str(self.investigation.id)
+        assert kwargs["category_value"] == str(self.notebook.id)
 
-    @patch("sentry.notebooks.agent.record_investigation_completed")
+    @patch("sentry.notebooks.agent.record_notebook_completed")
     @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_waits_for_every_auto_run_block(
         self, mock_client: MagicMock, record_completed: MagicMock
     ) -> None:
-        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE)
         self.block.update(config={"autoRun": True})
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         mock_client.return_value.start_run.assert_not_called()
 
@@ -1412,47 +1408,43 @@ class InvestigationAgentTest(TestCase):
         )
         self.block.update(result_execution=self.execution, stale_at=None)
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         mock_client.return_value.start_run.assert_called_once()
         record_completed.assert_not_called()
 
     @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:
-        self.investigation.update(
-            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
-        )
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE, title_generation_status="running")
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         assert mock_client.return_value.start_run.call_count == 0
-        self.investigation.refresh_from_db()
-        assert self.investigation.title_generation_status == "running"
+        self.notebook.refresh_from_db()
+        assert self.notebook.title_generation_status == "running"
 
     @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_does_not_retry_a_failed_run(self, mock_client: MagicMock) -> None:
-        self.investigation.update(
-            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="failed"
-        )
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE, title_generation_status="failed")
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         mock_client.assert_not_called()
-        self.investigation.refresh_from_db()
-        assert self.investigation.title_generation_status == "failed"
+        self.notebook.refresh_from_db()
+        assert self.notebook.title_generation_status == "failed"
 
     @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_does_not_retry_a_legacy_completed_run(
         self, mock_client: MagicMock
     ) -> None:
-        self.investigation.update(
-            title=DEFAULT_INVESTIGATION_TITLE,
+        self.notebook.update(
+            title=DEFAULT_NOTEBOOK_TITLE,
             title_generation_status="completed",
             summary=None,
             summary_description=None,
         )
 
-        _maybe_start_title_generation(self.investigation, None)
+        _maybe_start_title_generation(self.notebook, None)
 
         mock_client.assert_not_called()
 
@@ -1460,7 +1452,7 @@ class InvestigationAgentTest(TestCase):
     def test_title_dispatch_failure_releases_the_in_flight_status(
         self, mock_client: MagicMock
     ) -> None:
-        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE)
 
         def start_run(prompt: str, **kwargs: Any) -> None:
             kwargs["on_run_created"](self.seer_run)
@@ -1469,17 +1461,15 @@ class InvestigationAgentTest(TestCase):
         mock_client.return_value.start_run.side_effect = start_run
 
         with pytest.raises(RuntimeError):
-            _maybe_start_title_generation(self.investigation, None)
+            _maybe_start_title_generation(self.notebook, None)
 
-        self.investigation.refresh_from_db()
-        assert self.investigation.title_seer_run_id == self.seer_run.id
-        assert self.investigation.title_generation_status == "failed"
+        self.notebook.refresh_from_db()
+        assert self.notebook.title_seer_run_id == self.seer_run.id
+        assert self.notebook.title_generation_status == "failed"
 
-    def test_title_increments_the_investigation_version(self) -> None:
-        self.investigation.update(
-            title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
-        )
-        version = self.investigation.version
+    def test_title_increments_the_notebook_version(self) -> None:
+        self.notebook.update(title=DEFAULT_NOTEBOOK_TITLE, title_generation_status="running")
+        version = self.notebook.version
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -1490,10 +1480,10 @@ class InvestigationAgentTest(TestCase):
             ]
         )
 
-        synchronize_title(self.investigation, run_state)
-        assert self.investigation.version == version + 1
-        self.investigation.refresh_from_db()
-        assert self.investigation.version == version + 1
+        synchronize_title(self.notebook, run_state)
+        assert self.notebook.version == version + 1
+        self.notebook.refresh_from_db()
+        assert self.notebook.version == version + 1
 
     def test_title_preview_streams_partial_metadata(self) -> None:
         assert title_generation_preview('{"title":"Checkout errors above') == (

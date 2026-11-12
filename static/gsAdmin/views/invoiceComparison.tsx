@@ -145,30 +145,24 @@ function formatCountOrNA(n: number | null | undefined) {
   return n.toLocaleString();
 }
 
-// `datetime-local` inputs use the user's local timezone with no offset
-// in the string (e.g. "2026-05-26T22:30"). Format a Date for that field.
-function toDatetimeLocalValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The window covers whole UTC days. Most invoices of both kinds are created
+// in a burst just after 00:00 UTC, and the platform one can land an hour or
+// more after the legacy one. A window that starts or ends between them shows
+// one side only, so the endpoint takes days rather than times.
+
+// The UTC day (`YYYY-MM-DD`, the value of a `date` input) that contains `ms`.
+function utcDay(ms: number): string {
+  return Number.isNaN(ms) ? '' : new Date(ms).toISOString().slice(0, 10);
 }
 
-function nowLocal(): string {
-  return toDatetimeLocalValue(new Date());
-}
-
-// Subtract elapsed time, not wall-clock hours: `setHours` across a DST
-// transition yields a 23h or 25h window.
-function hoursAgoLocal(hours: number): string {
-  return toDatetimeLocalValue(new Date(Date.now() - hours * 60 * 60 * 1000));
-}
-
-// `datetime-local` value is local time without offset; convert to a UTC ISO
-// string so the server interprets it unambiguously.
-function localInputToUtcIso(value: string): string {
-  return new Date(value).toISOString();
+// The URL carries days only. Anything else is ignored.
+function parseDayParam(value: unknown): string | undefined {
+  const day = firstQueryValue(value);
+  return day && /^\d{4}-\d{2}-\d{2}$/.test(day) && utcDay(Date.parse(day)) === day
+    ? day
+    : undefined;
 }
 
 const PAGE_SIZE_OPTIONS: readonly number[] = [25, 50, 100, 250];
@@ -191,21 +185,6 @@ function parsePageSizeParam(value: unknown): number {
   return PAGE_SIZE_OPTIONS.includes(n) ? n : DEFAULT_PAGE_SIZE;
 }
 
-// A UTC ISO string from a `datetime-local` input that's already in UTC.
-// Used to convert the URL-persisted absolute time back into a value the
-// input control will accept (which is local-tz, no offset).
-function utcIsoToDatetimeLocalValue(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) {
-    return '';
-  }
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
-}
-
 export function InvoiceComparison() {
   const cells = getCells();
   const location = useLocation();
@@ -217,55 +196,50 @@ export function InvoiceComparison() {
   // date inputs before they click Run.
   const [queryRegion, setQueryRegion] = useQueryState('region', parseAsString);
   const cell = cells.find(c => c.name === queryRegion) ?? cells[0] ?? null;
-  const queryStart = firstQueryValue(location.query.start);
-  const queryEnd = firstQueryValue(location.query.end);
+  const queryStart = parseDayParam(location.query.start);
+  const queryEnd = parseDayParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const unmatchedPage = parsePageParam(location.query.unmatched_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
 
   // Without a window in the URL (first visit, or a link that only carries
-  // pagination params) query the last 24h so the tables load without waiting
-  // on Run. Frozen at mount so paginating doesn't shift the window.
-  const [defaultWindow] = useState(() => ({
-    start: localInputToUtcIso(hoursAgoLocal(24)),
-    end: localInputToUtcIso(nowLocal()),
-  }));
+  // pagination params) query yesterday, the last complete UTC day, so the
+  // tables load without waiting on Run. Frozen at mount so paginating doesn't
+  // shift the window.
+  const [defaultDay] = useState(() => utcDay(Date.now() - DAY_MS));
   // A single bound in the URL is not a range. Filling the other side from the
   // default makes the endpoint reject `end < start`, or loads every invoice
   // since an old start (`compare_invoices` reads the whole window, then
   // paginates), so don't query until both are set.
   const urlHasBound = Boolean(queryStart || queryEnd);
-  const windowStart = urlHasBound ? queryStart : defaultWindow.start;
-  const windowEnd = urlHasBound ? queryEnd : defaultWindow.end;
-  const hasWindow = Boolean(windowStart && windowEnd);
+  const startDay = urlHasBound ? (queryStart ?? '') : defaultDay;
+  const endDay = urlHasBound ? (queryEnd ?? '') : defaultDay;
+  const hasWindow = Boolean(startDay && endDay);
 
-  const [startInput, setStartInput] = useState(() =>
-    utcIsoToDatetimeLocalValue(windowStart ?? defaultWindow.start)
-  );
-  const [endInput, setEndInput] = useState(() =>
-    utcIsoToDatetimeLocalValue(windowEnd ?? defaultWindow.end)
-  );
+  const [startInput, setStartInput] = useState(startDay);
+  const [endInput, setEndInput] = useState(endDay);
 
   // Keep the date inputs in sync with the window being shown on back/forward
   // and in-app navigation (e.g. opening a shared link). Keyed on the shown
-  // window rather than the URL, so pinning the default window into an empty
+  // days rather than the URL, so pinning the default window into an empty
   // URL doesn't clobber dates typed but not yet run.
-  useEffect(() => {
-    if (windowStart) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setStartInput(utcIsoToDatetimeLocalValue(windowStart));
+  const [shownDays, setShownDays] = useState({startDay, endDay});
+  if (shownDays.startDay !== startDay || shownDays.endDay !== endDay) {
+    setShownDays({startDay, endDay});
+    if (startDay) {
+      setStartInput(startDay);
     }
-    if (windowEnd) {
-      setEndInput(utcIsoToDatetimeLocalValue(windowEnd));
+    if (endDay) {
+      setEndInput(endDay);
     }
-  }, [windowStart, windowEnd]);
+  }
 
   // Written into every URL this page rewrites, so a refresh or shared link
   // reproduces the window being shown. Left out for a one-sided URL so the
   // bound that is there isn't replaced.
   const pinnedWindow = useMemo(
-    () => (hasWindow ? {start: windowStart, end: windowEnd} : {}),
-    [hasWindow, windowStart, windowEnd]
+    () => (hasWindow ? {start: startDay, end: endDay} : {}),
+    [hasWindow, startDay, endDay]
   );
 
   const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
@@ -273,8 +247,8 @@ export function InvoiceComparison() {
       path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
       query: {
-        start: windowStart,
-        end: windowEnd,
+        start: hasWindow ? startDay : undefined,
+        end: hasWindow ? endDay : undefined,
         rows_page: rowsPage,
         unmatched_page: unmatchedPage,
         rows_page_size: pageSize,
@@ -384,8 +358,8 @@ export function InvoiceComparison() {
       pathname: location.pathname,
       query: {
         ...location.query,
-        start: localInputToUtcIso(startInput),
-        end: localInputToUtcIso(endInput),
+        start: startInput,
+        end: endInput,
         rows_page: '1',
         unmatched_page: '1',
         page_size: String(pageSize),
@@ -398,17 +372,18 @@ export function InvoiceComparison() {
       <p>
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
-        window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). <strong>Legacy invoices</strong> (count and dollar total) are scoped to
-        orgs that have invoices on both sides — legacy-only orgs haven't been onboarded to
-        the platform yet, so counting them would inflate the parity tallies with orgs that
-        can't be expected to match. <strong>Platform invoices</strong> reflect every{' '}
-        <code>PlatformInvoice</code> in the window; in production milestone-1 those are
-        equivalent to both-sided since <code>InvoicerService</code> only generates
-        platform invoices for orgs with a <code>Contract</code> (which already have a
-        legacy counterpart). The first table compares the both-sided orgs, sorted by
-        absolute % delta (relative to legacy), largest first. The second table lists
-        one-sided orgs by absolute amount so you can see who hasn't been onboarded yet.
+        whole UTC days from the first to the last selected day (filtered on{' '}
+        <code>date_added</code>). <strong>Legacy invoices</strong> (count and dollar
+        total) are scoped to orgs that have invoices on both sides — legacy-only orgs
+        haven't been onboarded to the platform yet, so counting them would inflate the
+        parity tallies with orgs that can't be expected to match.{' '}
+        <strong>Platform invoices</strong> reflect every <code>PlatformInvoice</code> in
+        the window; in production milestone-1 those are equivalent to both-sided since{' '}
+        <code>InvoicerService</code> only generates platform invoices for orgs with a{' '}
+        <code>Contract</code> (which already have a legacy counterpart). The first table
+        compares the both-sided orgs, sorted by absolute % delta (relative to legacy),
+        largest first. The second table lists one-sided orgs by absolute amount so you can
+        see who hasn't been onboarded yet.
       </p>
 
       <Panel>
@@ -427,19 +402,19 @@ export function InvoiceComparison() {
               />
             </Stack>
             <Stack gap="xs">
-              <FieldLabel htmlFor="start">Generated since (local)</FieldLabel>
+              <FieldLabel htmlFor="start">First day (UTC)</FieldLabel>
               <Input
                 id="start"
-                type="datetime-local"
+                type="date"
                 value={startInput}
                 onChange={e => setStartInput(e.target.value)}
               />
             </Stack>
             <Stack gap="xs">
-              <FieldLabel htmlFor="end">Generated until (local)</FieldLabel>
+              <FieldLabel htmlFor="end">Last day (UTC)</FieldLabel>
               <Input
                 id="end"
-                type="datetime-local"
+                type="date"
                 value={endInput}
                 onChange={e => setEndInput(e.target.value)}
               />

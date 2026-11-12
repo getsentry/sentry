@@ -11,7 +11,7 @@ from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.testutils.cases import APITestCase
@@ -100,6 +100,15 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
     def test_out_of_quota_returns_reason(self, mock_trigger: MagicMock) -> None:
         mock_trigger.side_effect = NoSeerQuotaException()
+
+        response = self.get_error_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400
+        )
+
+        assert response.data["detail"]
+
+    def test_out_of_credits_returns_reason(self, mock_trigger: MagicMock) -> None:
+        mock_trigger.side_effect = SeerOutOfCreditsException()
 
         response = self.get_error_response(
             organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400

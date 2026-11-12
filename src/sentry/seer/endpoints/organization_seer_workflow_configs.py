@@ -25,6 +25,7 @@ from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
+from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -86,6 +87,8 @@ class SeerWorkflowConfigResponse(TypedDict):
     filters: dict[str, Any]
     outputPolicy: dict[str, Any]
     seededDefault: str | None
+    # When the automation next runs on its schedule, or None if it doesn't run on one.
+    nextRunAt: datetime | None
     dateAdded: datetime
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
@@ -189,6 +192,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(required=False)
+    name = serializers.CharField(required=False, max_length=64)
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -208,7 +212,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if not data:
-            raise serializers.ValidationError("Send projectIds, monitorIds, or enabled.")
+            raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
         return data
@@ -351,6 +355,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``name`` is the user-supplied name, omitted if unset.
         ``createdBy`` is the ID of the user who created the config, omitted if unset.
         ``updatedBy`` is the ID of the user who last changed it, omitted if unset.
+        ``nextRunAt`` is when the automation next runs on its schedule, or null if it
+        isn't scheduled to run.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -553,6 +559,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - ``monitorIds`` replaces the monitors of a metric automation and is rejected
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
+        - ``name`` renames the config. It is trimmed and must be non-empty.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -577,6 +584,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
+        name: str | None = serializer.validated_data.get("name")
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and not isinstance(workflow, BreachedMetricWorkflow):
@@ -669,6 +677,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         )
                     )
 
+                if name is not None:
+                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras.name = name
+                    update.set_extras(extras)
+
                 if update.changed:
                     user_id = acting_user_id(request.user)
                     extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
@@ -747,6 +760,7 @@ def serialize_workflow_configs(
         has_global_access=has_global_access,
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
+    next_run_times = get_next_run_times(configs)
     return {
         "configs": [
             serialize_workflow_config(
@@ -759,6 +773,7 @@ def serialize_workflow_configs(
                     if config.service_account_id
                     else None
                 ),
+                next_run_at=next_run_times.get(config.id),
             )
             for config in configs
         ]
@@ -805,6 +820,22 @@ def get_config_last_runs(
     ]
 
 
+def get_next_run_times(configs: Sequence[SeerWorkflowConfig]) -> dict[int, datetime | None]:
+    """When each config next runs on its schedule, keyed by config id."""
+    by_organization: defaultdict[int, list[int]] = defaultdict(list)
+    for config in configs:
+        by_organization[config.organization_id].append(config.id)
+    return {
+        config_id: info.next_fire_at
+        for organization_id, config_ids in by_organization.items()
+        for config_id, info in get_schedules(
+            organization_id=organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=config_ids,
+        ).items()
+    }
+
+
 def serialize_workflow_config(
     config: SeerWorkflowConfig,
     *,
@@ -812,6 +843,7 @@ def serialize_workflow_config(
     connected_monitors: list[ConnectedMonitor],
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
+    next_run_at: datetime | None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
@@ -842,6 +874,7 @@ def serialize_workflow_config(
         ),
         "outputPolicy": config.output_policy,
         "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
+        "nextRunAt": next_run_at,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }

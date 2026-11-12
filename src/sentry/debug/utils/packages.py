@@ -1,8 +1,14 @@
 import importlib.metadata
 import sys
 
+import sentry
+
 
 def get_package_version(module_name: str, app: object) -> str | None:
+    # sentry's package metadata is a static 0.0.0 (see pyproject.toml).
+    if module_name == "sentry":
+        return sentry.VERSION
+
     version: object = None
 
     # Try to pull version from importlib.metadata first

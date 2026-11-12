@@ -20,6 +20,7 @@ from sentry.agent_handoff.runbook import (
 from sentry.ratelimits import backend as ratelimiter
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
 
 _CLAIM_WINDOW = 60
@@ -33,6 +34,7 @@ def _markdown(body: str, *, status: int = 200) -> HttpResponse:
 
 
 @control_silo_view
+@ai_machine_readable
 class AgentHandoffView(View):
     http_method_names = ["get", "post", "head", "options"]
 

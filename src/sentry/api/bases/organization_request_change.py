@@ -22,3 +22,5 @@ class OrganizationRequestChangeEndpointPermission(OrganizationPermission):
 # person
 class OrganizationRequestChangeEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationRequestChangeEndpointPermission,)
+    # The email asks the owners on a person's behalf.
+    requires_user = True

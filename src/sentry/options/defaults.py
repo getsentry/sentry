@@ -1795,6 +1795,13 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Stops rate-limiting VIEW actions from group details; every view is published.
+register(
+    "issues.action_log.view_rate_limit.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
@@ -4868,6 +4875,13 @@ register(
 
 register(
     "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "buffer.split-pending-set",
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
