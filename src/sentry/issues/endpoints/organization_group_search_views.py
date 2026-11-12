@@ -43,6 +43,9 @@ class MemberPermission(OrganizationPermission):
         "POST": ["member:read", "member:write", "saved_query:write"],
     }
 
+    # saved_query:read and saved_query:write replace member:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
         if isinstance(obj, Organization):
             return super().has_object_permission(request, view, obj)
