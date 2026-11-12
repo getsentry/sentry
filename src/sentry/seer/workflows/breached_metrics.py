@@ -148,8 +148,6 @@ class MetricAlertTrigger(WorkflowTrigger[MetricBreachInputs]):
 
 
 class InvestigateBreachedMetricAction(WorkflowAction[MetricBreachInputs]):
-    """Open an investigation into the metric issue that fired."""
-
     settings_type = NoSettings
 
     def dispatch(

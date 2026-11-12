@@ -53,7 +53,6 @@ class ScheduleSettings(BaseModel):
 
 
 class PromptSettings(BaseModel):
-    # What to ask Seer to do. Unset runs the built-in prompt.
     prompt: str | None = None
 
     class Config:

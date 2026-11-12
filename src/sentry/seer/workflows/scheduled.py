@@ -31,8 +31,8 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.base import (
     lock_config,
 )
-from sentry.seer.workflows.definitions import find_definition
-from sentry.seer.workflows.schedule import ScheduledRunInputs, ScheduleTrigger, schedule_for
+from sentry.seer.workflows.definitions import get_definition, is_scheduled
+from sentry.seer.workflows.schedule import ScheduledRunInputs, schedule_for
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -106,13 +106,7 @@ def record_scheduled_automation_run(
 
 def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> ScheduledRunOutcome:
     config = SeerWorkflowConfig.objects.get_or_none(id=config_id, organization_id=organization_id)
-    definition = find_definition(config.strategy) if config is not None else None
-    if (
-        config is None
-        or definition is None
-        or not isinstance(definition.trigger, ScheduleTrigger)
-        or schedule_for(config) is None
-    ):
+    if config is None or not is_scheduled(config.strategy) or schedule_for(config) is None:
         # The config was deleted, disabled, or no longer runs on a schedule, but its
         # schedule wasn't cleared. Clear it now so it stops firing.
         clear_schedule(
@@ -140,10 +134,7 @@ def _record_scheduled_run(
             if not config.enabled:
                 return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
 
-            definition = find_definition(config.strategy)
-            if definition is None:
-                return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
-            run = definition.trigger_run(
+            run = get_definition(config.strategy).trigger_run(
                 config,
                 trigger_key=trigger_key_for(scheduled_for),
                 inputs=ScheduledRunInputs(scheduled_for=scheduled_for),

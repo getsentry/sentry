@@ -85,7 +85,6 @@ class WorkflowTrigger[Inputs: BaseModel](Protocol):
 
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
-    # The shape of a config's ``trigger_settings``.
     settings_type: type[BaseModel]
     scoped_by: Literal["projects", "monitors"]
 
@@ -109,7 +108,6 @@ class WorkflowTrigger[Inputs: BaseModel](Protocol):
 class WorkflowAction[Inputs: BaseModel](Protocol):
     """What Seer does for an admitted run."""
 
-    # The shape of a config's ``action_settings``.
     settings_type: type[BaseModel]
 
     def dispatch(
@@ -161,7 +159,6 @@ class WorkflowDefinition[Inputs: BaseModel]:
     action: WorkflowAction[Inputs]
 
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
-        """Return active project IDs in the config's scope, in ascending order."""
         return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
 
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
@@ -173,7 +170,6 @@ class WorkflowDefinition[Inputs: BaseModel]:
         )
 
     def validate_settings(self, extras: SeerWorkflowConfigExtras) -> None:
-        """Reject settings the automation's trigger or action does not take."""
         try:
             self.trigger.settings_type.parse_obj(extras.trigger_settings or {})
             self.action.settings_type.parse_obj(extras.action_settings or {})
