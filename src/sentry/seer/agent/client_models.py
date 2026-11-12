@@ -118,8 +118,6 @@ class RepoPRState(BaseModel):
     title: str | None = None
     description: str | None = None
     integration_id: str | None = None
-    # Identifies the latest push to this PR, so a retry can be told from the attempt before it.
-    # exclude=True omits it from .dict() so it's not exposed via the public chat API.
     idempotency_key: str | None = Field(default=None, exclude=True)
 
     class Config:
