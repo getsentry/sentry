@@ -103,7 +103,7 @@ def handle_range_response(
             raise MalformedRangeHeader("Too many ranges specified.")
     except (MalformedRangeHeader, UnsatisfiableRange):
         logger.warning(
-            "Malformed range request.",
+            "Replay malformed range request.",
             extra={
                 "replay_id": replay_id,
                 "segment_id": segment_id,
