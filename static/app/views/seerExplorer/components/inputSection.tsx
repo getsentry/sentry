@@ -361,7 +361,8 @@ const StyledComposer = styled(Composer, {
   max-height: 120px;
   /* The frame draws the border and the focus ring around the editor and toolbar. */
   border: none;
-  border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
+  border-radius: calc(${p => p.theme.radius.lg} - 1px)
+    calc(${p => p.theme.radius.lg} - 1px) 0 0;
 
   &:focus,
   &:focus-visible {
