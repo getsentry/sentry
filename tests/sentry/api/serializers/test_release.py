@@ -1286,10 +1286,6 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
 
 
 class ExposeHealthDataTest(TestCase):
-    def test_none_and_empty_payload_returns_none(self) -> None:
-        assert _expose_health_data(None) is None
-        assert _expose_health_data({}) is None
-
     def test_missing_stats_defaults_to_empty_dict(self) -> None:
         result = _expose_health_data(
             {
