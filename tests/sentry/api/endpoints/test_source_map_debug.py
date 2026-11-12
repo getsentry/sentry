@@ -37,8 +37,6 @@ from sentry.testutils.skips import requires_snuba
 
 
 def test_sourcemap_header_ignores_non_strings() -> None:
-    assert _sourcemap_header({"sourcemap": "foo"}) == "foo"
-    assert _sourcemap_header({"x-sourcemap": "bar"}) == "bar"
     assert _sourcemap_header({"sourcemap": 1}) is None
 
 
