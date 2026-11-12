@@ -41,7 +41,7 @@ seer: 0046_add_workflow_config_backing_workflow
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1256_artifactbundleindex_org_bundle_index
+sentry: 1257_commit_date_added_id_index
 
 service_accounts: 0007_add_service_account_token_replica
 
