@@ -41,6 +41,12 @@ import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
+  isScoreFormulaMetric,
+  isWebVitalMetricName,
+  SCORE_FORMULA_METRIC,
+  SCORE_FORMULAS,
+} from 'sentry/views/explore/metrics/scoreFormulas';
+import {
   isTraceMetricTypeValue,
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
@@ -62,6 +68,35 @@ const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
 const FIELD_OPTION_VALUE = '__field__';
+
+/**
+ * The stand-in metric the web vital score formulas hang off. It is never in
+ * the API response, so the list adds it itself.
+ */
+const SCORE_FORMULA_METRIC_OPTION: MetricSelectorOption = {
+  kind: 'metric',
+  label: SCORE_FORMULA_METRIC.name,
+  value: makeMetricSelectValue(SCORE_FORMULA_METRIC),
+  metricName: SCORE_FORMULA_METRIC.name,
+  metricType: 'distribution',
+  metricUnit: SCORE_FORMULA_METRIC.unit,
+  trailingItems: () => (
+    <MetricOptionTrailingItems
+      metricType="distribution"
+      metricUnit={SCORE_FORMULA_METRIC.unit ?? undefined}
+    />
+  ),
+};
+
+function matchesScoreFormulaMetric(search: string): boolean {
+  const needle = search.trim().toLowerCase();
+  return (
+    !needle ||
+    SCORE_FORMULA_METRIC.name.includes(needle) ||
+    SCORE_FORMULAS.some(formula => formula.key.includes(needle))
+  );
+}
+
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
 }
@@ -101,6 +136,7 @@ export function MetricSelector({
   usePortal,
   fieldOption,
   getDisabledOptionReason,
+  showScoreFormulaMetric,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
@@ -117,6 +153,8 @@ export function MetricSelector({
   // maps). Omitting it leaves every option enabled.
   getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
+  // Lists the stand-in metric that offers the web vital score formulas.
+  showScoreFormulaMetric?: boolean;
   usePortal?: boolean;
 }) {
   const theme = useTheme();
@@ -138,6 +176,21 @@ export function MetricSelector({
     projectIds,
     environments,
   });
+  // The stand-in only makes sense where web vitals are stored, so a backend
+  // project never sees it. The search narrows the list above server-side, so
+  // this reads the unfiltered list instead, which the mount already fetched
+  // and cached under the same key.
+  const {data: allMetricOptionsData} = useMetricOptions({
+    projectIds,
+    environments,
+    enabled: showScoreFormulaMetric,
+  });
+  const hasWebVitalMetrics =
+    showScoreFormulaMetric &&
+    (allMetricOptionsData?.data?.some(option =>
+      isWebVitalMetricName(option[TraceMetricKnownFieldKey.METRIC_NAME])
+    ) ??
+      false);
 
   const traceMetricDisplayUnit =
     traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
@@ -149,6 +202,7 @@ export function MetricSelector({
   const traceMetricType = isTraceMetricTypeValue(traceMetric.type)
     ? traceMetric.type
     : null;
+  const isScoreFormulaMetricSelected = isScoreFormulaMetric(traceMetric);
 
   // Build an option object from the currently selected trace metric so it
   // can be shown in the list even if the API response hasn't loaded yet or
@@ -266,14 +320,33 @@ export function MetricSelector({
     // falling back to the bare optionFromTraceMetric when the API hasn't
     // returned it (e.g. filtered by search or still loading).
     const selectedOption = traceMetric.name
-      ? (selectedApiOptions.find(o => o.value === traceMetricSelectValue) ??
-        optionFromTraceMetric)
+      ? isScoreFormulaMetricSelected
+        ? SCORE_FORMULA_METRIC_OPTION
+        : (selectedApiOptions.find(o => o.value === traceMetricSelectValue) ??
+          optionFromTraceMetric)
       : null;
 
-    const options = [
-      ...(selectedOption ? [selectedOption] : []),
-      ...selectedApiOptions.filter(o => o.value !== selectedOption?.value),
-    ];
+    // The API only searches stored metrics, so the stand-in filters itself
+    // and slots into the name-sorted list where the API would have put it
+    const showScoreFormulaOption =
+      hasWebVitalMetrics &&
+      selectedOption !== SCORE_FORMULA_METRIC_OPTION &&
+      matchesScoreFormulaMetric(debouncedSearch);
+    const remainingOptions = selectedApiOptions.filter(
+      o => o.value !== selectedOption?.value
+    );
+    if (showScoreFormulaOption) {
+      const index = remainingOptions.findIndex(
+        o => o.metricName.localeCompare(SCORE_FORMULA_METRIC.name) > 0
+      );
+      remainingOptions.splice(
+        index === -1 ? remainingOptions.length : index,
+        0,
+        SCORE_FORMULA_METRIC_OPTION
+      );
+    }
+
+    const options = [...(selectedOption ? [selectedOption] : []), ...remainingOptions];
 
     if (!fieldOption) {
       return options;
@@ -291,7 +364,10 @@ export function MetricSelector({
       ...options,
     ];
   }, [
+    debouncedSearch,
     fieldOption,
+    hasWebVitalMetrics,
+    isScoreFormulaMetricSelected,
     metricOptionsData,
     optionFromTraceMetric,
     traceMetric.name,

@@ -9,6 +9,7 @@ import {
 } from 'sentry/views/explore/constants';
 
 import type {TraceMetric} from './metricQuery';
+import {isScoreFormulaMetric} from './scoreFormulas';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -382,7 +383,8 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
  * have no meaningful value distribution to visualize.
  */
 export function doesMetricSupportHeatMapVisualization(metric: TraceMetric): boolean {
-  return metric.type === 'distribution';
+  // The score formulas' stand-in metric has no values of its own to bucket
+  return metric.type === 'distribution' && !isScoreFormulaMetric(metric);
 }
 
 export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);

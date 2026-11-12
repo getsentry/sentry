@@ -2,14 +2,17 @@ import {useMemo} from 'react';
 
 import {parseFunction} from 'sentry/utils/discover/fields';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
+import {isScoreFormulaVisualize} from 'sentry/views/explore/metrics/scoreFormulas';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 function resolveMetricReference(metricConfig: ReadableQueryParams): string {
-  if (metricConfig.query) {
+  const visualize = metricConfig.visualizes[0]!;
+  // The score formulas have no conditional form, so a filter on their row
+  // cannot carry into an equation
+  if (metricConfig.query && !isScoreFormulaVisualize(visualize)) {
     // convert the aggregate to an "if" format
-    const visualize = metricConfig.visualizes[0]!;
     const parsed = parseFunction(visualize.yAxis);
     if (parsed) {
       return `${parsed.name}_if(\`${metricConfig.query}\`,${parsed.arguments.join(',')})`;

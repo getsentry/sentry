@@ -13,6 +13,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {
+  SCORE_FORMULA_METRIC,
+  SCORE_FORMULA_METRIC_DESCRIPTION,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 import {MetricSelector} from './metricSelector';
@@ -443,6 +447,178 @@ describe('MetricSelector', () => {
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
       expect(onChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('web vital scores metric', () => {
+    // The unfiltered list decides whether the stand-in is offered
+    function setupWebVitalMetricsMock(metricNames: string[]) {
+      const {baseFixtures} = createTraceMetricFixtures(organization, project, new Date());
+      return setupEventsMock(
+        [
+          ...baseFixtures,
+          ...metricNames.map(metricName => ({
+            ...baseFixtures[0]!,
+            [TraceMetricKnownFieldKey.METRIC_NAME]: metricName,
+            [TraceMetricKnownFieldKey.METRIC_UNIT]: 'ratio',
+          })),
+        ],
+        [
+          MockApiClient.matchQuery({
+            dataset: 'tracemetrics',
+            referrer: 'api.explore.metric-options',
+          }),
+          (_url, options) => !options.query?.query,
+        ]
+      );
+    }
+
+    let unfilteredMetricsMock: jest.Mock;
+    beforeEach(() => {
+      unfilteredMetricsMock = setupWebVitalMetricsMock(['browser.web_vital.lcp.score']);
+    });
+
+    it('is not listed without the option', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: 'foo'});
+
+      expect(
+        screen.queryByRole('option', {name: SCORE_FORMULA_METRIC.name})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is not listed when no web vital metrics are stored', async () => {
+      setupWebVitalMetricsMock([]);
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          showScoreFormulaMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('option', {name: 'foo'});
+
+      expect(
+        screen.queryByRole('option', {name: SCORE_FORMULA_METRIC.name})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is sorted in with the stored metrics and selectable', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={{name: 'foo', type: 'distribution'}}
+          onChange={onChange}
+          showScoreFormulaMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'foo'}));
+      const options = await screen.findAllByRole('option');
+      // The selected metric stays first, then the rest in name order
+      expect(options.slice(0, 5).map(option => option.textContent)).toEqual([
+        expect.stringContaining('foo'),
+        expect.stringContaining('bar'),
+        expect.stringContaining(`${SCORE_FORMULA_METRIC.name}distribution`),
+        expect.stringContaining('browser.web_vital.lcp.score'),
+        expect.stringContaining('error_rate'),
+      ]);
+      // Checking for stored web vitals reuses the list request, not a second one
+      expect(unfilteredMetricsMock).toHaveBeenCalledTimes(1);
+      expect(
+        within(screen.getByRole('option', {name: SCORE_FORMULA_METRIC.name})).getByText(
+          'distribution'
+        )
+      ).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('option', {name: SCORE_FORMULA_METRIC.name})
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      });
+      expect(onChange).toHaveBeenCalledWith(SCORE_FORMULA_METRIC);
+    });
+
+    it('shows as selected without the API knowing it', async () => {
+      render(
+        <MetricSelector
+          traceMetric={SCORE_FORMULA_METRIC}
+          onChange={jest.fn()}
+          showScoreFormulaMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: SCORE_FORMULA_METRIC.name})
+      );
+
+      const options = await screen.findAllByRole('option', {
+        name: SCORE_FORMULA_METRIC.name,
+      });
+      expect(options).toHaveLength(1);
+      expect(options[0]).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('matches the search by name or formula', async () => {
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          showScoreFormulaMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      const search = await screen.findByRole('combobox');
+
+      await userEvent.type(search, 'opportunity');
+      expect(
+        await screen.findByRole('option', {name: SCORE_FORMULA_METRIC.name})
+      ).toBeInTheDocument();
+
+      await userEvent.clear(search);
+      await userEvent.type(search, 'foo');
+      await screen.findByRole('option', {name: 'foo'});
+      expect(
+        screen.queryByRole('option', {name: SCORE_FORMULA_METRIC.name})
+      ).not.toBeInTheDocument();
+    });
+
+    it('describes the formulas in the side panel', async () => {
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          showScoreFormulaMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.hover(
+        await screen.findByRole('option', {name: SCORE_FORMULA_METRIC.name})
+      );
+
+      expect(
+        await screen.findByText(SCORE_FORMULA_METRIC_DESCRIPTION)
+      ).toBeInTheDocument();
+      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Unit')).toBeInTheDocument();
+      expect(screen.getByText('performance_score')).toBeInTheDocument();
+      expect(screen.queryByText('Last seen')).not.toBeInTheDocument();
+      expect(screen.queryByText('Attributes:')).not.toBeInTheDocument();
     });
   });
 

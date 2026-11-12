@@ -23,6 +23,10 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
+  PERFORMANCE_SCORE_FIELD,
+  SCORE_FORMULA_METRIC,
+} from 'sentry/views/explore/metrics/scoreFormulas';
+import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
@@ -454,6 +458,53 @@ describe('MetricPanel', () => {
     expect(await screen.findByText('Type')).toBeInTheDocument();
     const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
     expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('queries a score formula and keeps it out of samples mode', async () => {
+    const formulaQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction(PERFORMANCE_SCORE_FIELD, {chartType: ChartType.LINE}),
+      ],
+      aggregateSortBys: [{field: PERFORMANCE_SCORE_FIELD, kind: 'desc'}],
+    });
+    const timeseriesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: PERFORMANCE_SCORE_FIELD})]},
+    });
+
+    render(
+      <MetricPanel traceMetric={SCORE_FORMULA_METRIC} queryIndex={0} queryLabel="A" />,
+      {
+        organization,
+        additionalWrapper: createWrapper({
+          queryParams: formulaQueryParams,
+          traceMetric: SCORE_FORMULA_METRIC,
+        }),
+      }
+    );
+
+    await waitFor(() => expect(timeseriesRequest).toHaveBeenCalled());
+    expect(timeseriesRequest.mock.lastCall![1].query.yAxis).toEqual([
+      PERFORMANCE_SCORE_FIELD,
+    ]);
+
+    // The stand-in metric has no samples of its own
+    expect(await screen.findByRole('tab', {name: 'Samples'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: 'Aggregates'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
   it('disables heat map visualization for non-distribution metrics', async () => {

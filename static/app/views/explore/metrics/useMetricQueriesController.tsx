@@ -23,6 +23,11 @@ import {
   type MetricQuery,
   type TraceMetric,
 } from './metricQuery';
+import {
+  DEFAULT_SCORE_FORMULA,
+  getScoreFormula,
+  isScoreFormulaMetric,
+} from './scoreFormulas';
 import {updateVisualizeYAxis} from './utils';
 
 function syncUpdatedMetricQueries(
@@ -53,7 +58,13 @@ function withTraceMetric(
         ? selectedAggregation
         : DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
 
-    let updatedVisualize = updateVisualizeYAxis(visualize, aggregation, newTraceMetric);
+    // The score formulas' stand-in metric only offers the formulas, whose
+    // y-axis is fixed rather than built from the metric
+    let updatedVisualize = isScoreFormulaMetric(newTraceMetric)
+      ? visualize.replace({
+          yAxis: (getScoreFormula(visualize.yAxis) ?? DEFAULT_SCORE_FORMULA).yAxis,
+        })
+      : updateVisualizeYAxis(visualize, aggregation, newTraceMetric);
 
     if (
       visualize.chartType === ChartType.HEATMAP &&

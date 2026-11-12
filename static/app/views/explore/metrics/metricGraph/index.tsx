@@ -40,6 +40,11 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
+  isScoreFormulaMetric,
+  isScoreFormulaVisualize,
+  SCORE_FORMULA_METRICS,
+} from 'sentry/views/explore/metrics/scoreFormulas';
+import {
   MINIMIZED_GRAPH_HEIGHT,
   STACKED_GRAPH_HEIGHT,
 } from 'sentry/views/explore/metrics/settings';
@@ -99,6 +104,9 @@ function getVisualizationTypeDisabledReason(
   }
   if (!metric) {
     return t('Select a metric to visualize it as a heatmap.');
+  }
+  if (isScoreFormulaMetric(metric)) {
+    return t('Heatmaps are not available for web vital scores.');
   }
   if (!doesMetricSupportHeatMapVisualization(metric)) {
     return t('Heatmaps can only visualize distribution metrics.');
@@ -178,8 +186,11 @@ function Graph({
       (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
     query: isVisualizeEquation(visualize)
       ? getEquationMetricsTotalFilter(visualize.expression.text)
-      : getAggregatesMetricsTotalFilter([aggregate]) ||
-        createTraceMetricEventsFilter([traceMetric]),
+      : isScoreFormulaVisualize(visualize)
+        ? // The formula reads every web vital score metric, not the stand-in
+          createTraceMetricEventsFilter([...SCORE_FORMULA_METRICS])
+        : getAggregatesMetricsTotalFilter([aggregate]) ||
+          createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
   const [interval] = useChartInterval();

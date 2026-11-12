@@ -13,6 +13,11 @@ import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceI
 import {HIDDEN_TRACEMETRIC_GROUP_BY_FIELDS_SET} from 'sentry/views/explore/metrics/constants';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
+  isScoreFormulaMetric,
+  SCORE_FORMULA_METRIC_DESCRIPTION,
+  SCORE_FORMULAS,
+} from 'sentry/views/explore/metrics/scoreFormulas';
+import {
   createTraceMetricFilter,
   hasDisplayMetricUnit,
 } from 'sentry/views/explore/metrics/utils';
@@ -30,11 +35,19 @@ export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null
     );
   }
 
+  // The stand-in metric is not stored, so it has no counts or attributes
+  const isScoreFormula = isScoreFormulaMetric({name: metric.metricName});
+
   return (
     <Stack gap="md">
       <Text bold wordBreak="break-all">
         {metric.metricName}
       </Text>
+      {isScoreFormula ? (
+        <Text variant="muted" size="md">
+          {SCORE_FORMULA_METRIC_DESCRIPTION}
+        </Text>
+      ) : null}
       <Flex gap="xs" align="center">
         <Text variant="muted" size="md">
           {t('Type')}
@@ -65,10 +78,23 @@ export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null
           <Text size="md">{metric.count.toLocaleString()}</Text>
         </Flex>
       )}
-      <MetricAttributesSection
-        metricName={metric.metricName}
-        metricType={metric.metricType}
-      />
+      {isScoreFormula ? (
+        <Stack gap="xs">
+          <Text size="md">{t('Functions')}:</Text>
+          <Flex wrap="wrap" gap="xs">
+            {SCORE_FORMULAS.map(formula => (
+              <Tag key={formula.key} variant="muted">
+                {formula.key}
+              </Tag>
+            ))}
+          </Flex>
+        </Stack>
+      ) : (
+        <MetricAttributesSection
+          metricName={metric.metricName}
+          metricType={metric.metricType}
+        />
+      )}
     </Stack>
   );
 }

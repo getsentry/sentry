@@ -5,6 +5,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  OPPORTUNITY_SCORE_FIELD,
+  SCORE_FORMULA_METRIC,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -144,6 +148,47 @@ describe('useMetricAggregatesTable', () => {
         }),
       })
     );
+  });
+
+  it('queries a score formula without counting the stand-in metric', async () => {
+    const mockQueryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        {groupBy: 'transaction'},
+        new VisualizeFunction(OPPORTUNITY_SCORE_FIELD),
+      ],
+      aggregateSortBys: [{field: OPPORTUNITY_SCORE_FIELD, kind: 'desc'}],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{transaction: '/'}], meta: {fields: {}}},
+      method: 'GET',
+    });
+
+    renderHookWithProviders(useMetricAggregatesTable, {
+      initialProps: {traceMetric: SCORE_FORMULA_METRIC, limit: 100, enabled: true},
+      additionalWrapper: ({children}) => (
+        <MockMetricQueryParamsContext
+          traceMetric={SCORE_FORMULA_METRIC}
+          metricQuery={{queryParams: mockQueryParams}}
+        >
+          {children}
+        </MockMetricQueryParamsContext>
+      ),
+    });
+
+    await waitFor(() => expect(mockRequest).toHaveBeenCalledTimes(1));
+    expect(mockRequest.mock.lastCall![1].query.field).toEqual([
+      'transaction',
+      OPPORTUNITY_SCORE_FIELD,
+    ]);
   });
 
   it('includes groupBys and all visualize yAxes in fields', async () => {

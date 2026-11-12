@@ -10,6 +10,10 @@ import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilde
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {
+  isScoreFormulaYAxis,
+  SCORE_FORMULA_METRIC,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -88,7 +92,11 @@ export function getWidgetMetricsUrl(
           ...groupByFields,
         ];
 
-        const traceMetric = extractTraceMetricFromColumn(explodeFieldString(aggregate));
+        // A score formula names no metric, so its row sits on the stand-in
+        // metric that offers the formulas
+        const traceMetric = isScoreFormulaYAxis(aggregate)
+          ? SCORE_FORMULA_METRIC
+          : extractTraceMetricFromColumn(explodeFieldString(aggregate));
         if (!traceMetric) {
           return;
         }

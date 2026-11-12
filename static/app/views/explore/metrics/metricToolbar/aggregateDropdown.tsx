@@ -4,6 +4,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {
   CompositeSelect,
   type SelectOption,
+  type SelectSection,
   TriggerLabel,
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -21,10 +22,44 @@ import {
   useMetricVisualizes,
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {
+  DEFAULT_SCORE_FORMULA,
+  getScoreFormulaByKey,
+  isScoreFormulaMetric,
+  SCORE_FORMULAS,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeFunction,
+  type VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 const MULTI_SELECT_GROUP_KEYS = new Set(['percentiles', 'stats']);
+
+/** The only functions the score formulas' stand-in metric offers. */
+const SCORE_FORMULA_GROUPS: Array<SelectSection<string>> = [
+  {
+    key: 'scores',
+    label: t('Scores'),
+    options: SCORE_FORMULAS.map(formula => ({
+      label: formula.key,
+      value: formula.key,
+      tooltip: formula.description,
+    })),
+  },
+];
+
+function withAggregate(
+  visualize: VisualizeFunction,
+  aggregate: string,
+  traceMetric: TraceMetric
+): VisualizeFunction {
+  // A formula's y-axis is fixed, so it does not get the metric spliced in
+  const formula = getScoreFormulaByKey(aggregate);
+  return formula
+    ? visualize.replace({yAxis: formula.yAxis})
+    : updateVisualizeYAxis(visualize, aggregate, traceMetric);
+}
 
 export function AggregateDropdown({
   traceMetric,
@@ -41,9 +76,15 @@ export function AggregateDropdown({
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
   const isDisabled = disabledReason !== undefined;
+  const isScoresMetric = isScoreFormulaMetric(traceMetric);
+  const defaultAggregate = isScoresMetric
+    ? DEFAULT_SCORE_FORMULA.key
+    : DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
 
   const groups = useMemo(() => {
-    const allGroups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
+    const allGroups = isScoresMetric
+      ? SCORE_FORMULA_GROUPS
+      : (GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? []);
     if (!disabledAggregates) {
       return allGroups;
     }
@@ -59,7 +100,7 @@ export function AggregateDropdown({
           : opt
       ),
     }));
-  }, [traceMetric.type, disabledAggregates]);
+  }, [traceMetric.type, disabledAggregates, isScoresMetric]);
   const selectedNames = new Set(
     visualizes.map(v => (isVisualizeFunction(v) ? (v.parsedFunction?.name ?? '') : ''))
   );
@@ -69,24 +110,17 @@ export function AggregateDropdown({
       return;
     }
     if (selectedOptions.length === 0) {
-      setMetricVisualizes([
-        updateVisualizeYAxis(
-          visualize,
-          DEFAULT_YAXIS_BY_TYPE[traceMetric.type]!,
-          traceMetric
-        ),
-      ]);
+      setMetricVisualizes([withAggregate(visualize, defaultAggregate!, traceMetric)]);
     } else {
       setMetricVisualizes(
-        selectedOptions.map(o => updateVisualizeYAxis(visualize, o.value, traceMetric))
+        selectedOptions.map(o => withAggregate(visualize, o.value, traceMetric))
       );
     }
   }
 
   const selectedList = [...selectedNames].filter(Boolean);
-  const defaultValue = DEFAULT_YAXIS_BY_TYPE[traceMetric.type];
   const isDefaultSelection =
-    selectedList.length === 1 && selectedList[0] === defaultValue;
+    selectedList.length === 1 && selectedList[0] === defaultAggregate;
 
   return (
     <CompositeSelect

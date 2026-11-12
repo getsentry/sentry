@@ -15,6 +15,7 @@ import {
   useMetricVisualize,
   useMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
+import {isScoreFormulaVisualize} from 'sentry/views/explore/metrics/scoreFormulas';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import {
@@ -24,6 +25,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {
   isVisualizeEquation,
+  isVisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -81,8 +83,12 @@ export function getMetricAggregatesFields(
   traceMetric: TraceMetric
 ): string[] {
   const fields = getMetricAggregatesGroupedFields(groupBys, visualizes);
-  const isEquation = visualizes.every(isVisualizeEquation);
-  return [...fields, ...(isEquation ? [] : [makeCountAggregate(traceMetric)])];
+  // Equations and score formulas do not read the selected metric, so a count
+  // of it would not describe the rows shown
+  const hasMetricAggregate = visualizes.some(
+    visualize => isVisualizeFunction(visualize) && !isScoreFormulaVisualize(visualize)
+  );
+  return [...fields, ...(hasMetricAggregate ? [makeCountAggregate(traceMetric)] : [])];
 }
 
 export function useMetricAggregatesTable({
@@ -95,7 +101,7 @@ export function useMetricAggregatesTable({
   const visualize = useMetricVisualize();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricAggregatesTableImp>['result']) => {
-      if (isVisualizeEquation(visualize)) {
+      if (isVisualizeEquation(visualize) || isScoreFormulaVisualize(visualize)) {
         return false;
       }
       const countAggregate = makeCountAggregate(traceMetric);

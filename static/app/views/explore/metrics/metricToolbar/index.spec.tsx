@@ -1,11 +1,22 @@
 import {type ReactNode, useCallback, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  PERFORMANCE_SCORE_FIELD,
+  SCORE_FORMULA_METRIC,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -214,6 +225,45 @@ describe('MetricToolbar', () => {
     );
 
     expect(await screen.findByRole('button', {name: /Group by/})).toBeInTheDocument();
+  });
+
+  it('offers the score formula as the aggregate of the web vital scores metric', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled', 'dashboards-web-vitals-trace-metrics'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction(PERFORMANCE_SCORE_FIELD)],
+      aggregateSortBys: [{field: PERFORMANCE_SCORE_FIELD, kind: 'desc'}],
+    });
+
+    render(<MetricToolbar traceMetric={SCORE_FORMULA_METRIC} queryLabel="A" />, {
+      organization,
+      additionalWrapper: ({children}: {children: ReactNode}) => (
+        <Wrapper queryParams={queryParams}>{children}</Wrapper>
+      ),
+    });
+
+    expect(
+      screen.getByRole('button', {name: SCORE_FORMULA_METRIC.name})
+    ).toBeInTheDocument();
+    const aggregate = screen.getByRole('button', {name: /Agg/});
+    expect(within(aggregate).getByText('performance_score')).toBeInTheDocument();
+    // The attributes are not narrowed to the stand-in metric
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: /Group by/})).toBeEnabled();
+    });
+    expect(screen.getByTestId('metrics-filter-search')).toHaveAttribute(
+      'data-disabled',
+      'false'
+    );
   });
 
   it('disables group by selector while trace item attributes are loading', async () => {

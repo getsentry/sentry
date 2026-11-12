@@ -9,6 +9,7 @@ import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -17,6 +18,10 @@ import {
   useSetTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  canUseScoreFormulas,
+  isScoreFormulaVisualize,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
@@ -53,6 +58,7 @@ export function MetricToolbar({
 }: MetricToolbarProps) {
   const breakpoints = useBreakpoints();
   const isNarrow = !breakpoints.md;
+  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
@@ -64,6 +70,9 @@ export function MetricToolbar({
   const disabledReason = isHeatmap
     ? t('Not configurable for Heatmap visualizations')
     : undefined;
+  // The formulas read every web vital score metric, so the attributes are not
+  // narrowed to the stand-in metric they sit on
+  const isScoreFormula = isScoreFormulaVisualize(visualize);
 
   const hasUnresolvedMetrics = metricQueries.some(
     q => !isVisualizeEquation(q.queryParams.visualizes[0]!) && !q.metric?.name
@@ -131,7 +140,11 @@ export function MetricToolbar({
         {isVisualizeFunction(visualize) ? (
           <Fragment>
             <Flex minWidth={0}>
-              <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+              <MetricSelector
+                traceMetric={traceMetric}
+                onChange={setTraceMetric}
+                showScoreFormulaMetric={canUseScoreFormulas(organization)}
+              />
             </Flex>
             <Flex gap="md" minWidth={0}>
               <Flex flex="2 1 0" minWidth={0}>
@@ -144,12 +157,16 @@ export function MetricToolbar({
                 <GroupBySelector
                   traceMetric={traceMetric}
                   disabledReason={disabledReason}
+                  skipTraceMetricFilter={isScoreFormula}
                 />
               </Flex>
             </Flex>
             {!isNarrow && (
               <Flex minWidth={0}>
-                <Filter traceMetric={traceMetric} />
+                <Filter
+                  traceMetric={traceMetric}
+                  skipTraceMetricFilter={isScoreFormula}
+                />
               </Flex>
             )}
           </Fragment>
@@ -192,7 +209,7 @@ export function MetricToolbar({
       {isNarrow && (
         <Filter
           traceMetric={traceMetric}
-          skipTraceMetricFilter={isVisualizeEquation(visualize)}
+          skipTraceMetricFilter={isVisualizeEquation(visualize) || isScoreFormula}
           disabled={isVisualizeEquation(visualize) && hasUnresolvedMetrics}
         />
       )}

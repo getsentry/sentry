@@ -37,6 +37,7 @@ import {
   useMetricsQueryParamsHasTransformations,
   useMultiMetricsQueryParams,
 } from './multiMetricsQueryParams';
+import {getScoreFormula, isScoreFormulaQuery} from './scoreFormulas';
 
 interface UseSaveAsMetricItemsOptions {
   interval: string;
@@ -121,8 +122,10 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
     const alertsUrls = metricQueries
       .filter(
         metricQuery =>
-          canUseMetricsEquationsInAlerts(organization) ||
-          isVisualizeFunction(metricQuery.queryParams.visualizes[0]!)
+          // Alerts have no notion of the derived score formulas
+          !isScoreFormulaQuery(metricQuery) &&
+          (canUseMetricsEquationsInAlerts(organization) ||
+            isVisualizeFunction(metricQuery.queryParams.visualizes[0]!))
       )
       .map((metricQuery, index) => {
         const visualize = metricQuery.queryParams.visualizes[0]!;
@@ -194,12 +197,20 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             : []),
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
+            const formula = isVisualizeFunction(visualize)
+              ? getScoreFormula(visualize.yAxis)
+              : undefined;
             const label = isVisualizeFunction(visualize)
-              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${formatTraceMetricsFunction(
-                  metricQuery.queryParams.aggregateFields
-                    .filter(isVisualize)
-                    .map(v => v.yAxis)
-                )}`
+              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
+                  // The formula's y-axis names no metric to format
+                  formula
+                    ? `${formula.key}(${metricQuery.metric.name})`
+                    : formatTraceMetricsFunction(
+                        metricQuery.queryParams.aggregateFields
+                          .filter(isVisualize)
+                          .map(v => v.yAxis)
+                      )
+                }`
               : (metricQuery.label ?? '');
             return {
               key: `add-to-dashboard-${index}`,

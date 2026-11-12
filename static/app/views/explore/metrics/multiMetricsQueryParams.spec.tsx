@@ -30,6 +30,11 @@ import {
   useMultiMetricsQueryParams,
   useReorderMetricQueries,
 } from './multiMetricsQueryParams';
+import {
+  OPPORTUNITY_SCORE_FIELD,
+  PERFORMANCE_SCORE_FIELD,
+  SCORE_FORMULA_METRIC,
+} from './scoreFormulas';
 
 function canonicalMetricQueryParam(name: string) {
   return encodeMetricQueryParams(
@@ -345,6 +350,85 @@ describe('MultiMetricsQueryParamsProvider', () => {
     const counterVisualize = result.current[0]!.queryParams
       .aggregateFields[0] as VisualizeFunction;
     expect(counterVisualize.chartType).not.toBe(ChartType.HEATMAP);
+  });
+
+  it('swaps to the performance score when picking the web vital scores metric', () => {
+    const metricQuery = JSON.stringify({
+      metric: {name: 'test_metric', type: 'distribution'},
+      query: 'release:1.0',
+      aggregateFields: [
+        {
+          yAxes: ['count(value,test_metric,distribution,none)'],
+          chartType: ChartType.HEATMAP,
+        },
+        {groupBy: 'transaction'},
+      ],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: [metricQuery]},
+        },
+      },
+    });
+
+    act(() => result.current[0]!.setTraceMetric(SCORE_FORMULA_METRIC));
+
+    const [query] = result.current;
+    expect(query!.metric).toEqual(SCORE_FORMULA_METRIC);
+    expect(query!.queryParams.query).toBe('release:1.0');
+    expect(query!.queryParams.aggregateFields).toEqual([
+      expect.objectContaining({yAxis: PERFORMANCE_SCORE_FIELD}),
+      {groupBy: 'transaction'},
+    ]);
+    // The stand-in metric cannot be a heat map, so the chart type falls back
+    const visualize = query!.queryParams.aggregateFields[0] as VisualizeFunction;
+    expect(visualize.chartType).not.toBe(ChartType.HEATMAP);
+  });
+
+  it('keeps the chosen formula on the web vital scores metric and resets elsewhere', () => {
+    const metricQuery = JSON.stringify({
+      metric: SCORE_FORMULA_METRIC,
+      query: '',
+      aggregateFields: [{yAxes: [OPPORTUNITY_SCORE_FIELD]}, {groupBy: 'transaction'}],
+      aggregateSortBys: [{field: OPPORTUNITY_SCORE_FIELD, kind: 'desc'}],
+      mode: 'aggregate',
+    });
+
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {metric: [metricQuery]},
+        },
+      },
+    });
+
+    // Re-selecting the stand-in metric leaves the formula alone
+    act(() => result.current[0]!.setTraceMetric(SCORE_FORMULA_METRIC));
+    expect(result.current[0]!.queryParams.aggregateFields[0]).toEqual(
+      expect.objectContaining({yAxis: OPPORTUNITY_SCORE_FIELD})
+    );
+
+    // A stored metric cannot offer the formula, so the aggregate resets
+    act(() => result.current[0]!.setTraceMetric({name: 'foo', type: 'gauge'}));
+    expect(result.current).toEqual([
+      expect.objectContaining({
+        metric: {name: 'foo', type: 'gauge'},
+        queryParams: expect.objectContaining({
+          aggregateFields: [
+            new VisualizeFunction('avg(value,foo,gauge,none)'),
+            {groupBy: 'transaction'},
+          ],
+        }),
+      }),
+    ]);
   });
 
   it('parses multiple visualizes from URL params', () => {

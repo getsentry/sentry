@@ -4,6 +4,7 @@ import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {t} from 'sentry/locale';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {isScoreFormulaVisualize} from 'sentry/views/explore/metrics/scoreFormulas';
 import {
   useQueryParamsMode,
   useSetQueryParamsMode,
@@ -30,9 +31,22 @@ export function MetricInfoTabs({
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
 
+  // Neither has a single stored metric to list samples of
+  const samplesDisabledReason = isVisualizeEquation(visualize)
+    ? t('Samples are not available for equations')
+    : isScoreFormulaVisualize(visualize)
+      ? t('Samples are not available for web vital scores')
+      : undefined;
+
+  // A URL can still ask for samples; fall back rather than select a disabled tab
+  const activeMode =
+    samplesDisabledReason && queryParamsMode === Mode.SAMPLES
+      ? Mode.AGGREGATE
+      : queryParamsMode;
+
   return (
     <TabStateProvider<Mode>
-      value={queryParamsMode}
+      value={activeMode}
       onChange={mode => {
         setAggregatesMode(mode);
       }}
@@ -51,12 +65,8 @@ export function MetricInfoTabs({
             <TabList variant="floating">
               <TabList.Item
                 key={Mode.SAMPLES}
-                disabled={isVisualizeEquation(visualize)}
-                tooltip={{
-                  title: isVisualizeEquation(visualize)
-                    ? t('Samples are not available for equations')
-                    : undefined,
-                }}
+                disabled={samplesDisabledReason !== undefined}
+                tooltip={{title: samplesDisabledReason}}
               >
                 {t('Samples')}
               </TabList.Item>

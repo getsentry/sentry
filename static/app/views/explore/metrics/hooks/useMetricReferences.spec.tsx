@@ -8,6 +8,10 @@ import {
   MultiMetricsQueryParamsProvider,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  PERFORMANCE_SCORE_FIELD,
+  SCORE_FORMULA_METRIC,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
@@ -79,5 +83,38 @@ describe('useMetricReferences', () => {
 
     // Metric B has no filter, so the yAxis is returned as-is
     expect(result.current.references.B).toBe('sum(value,metric_b,counter,none)');
+  });
+
+  it('keeps a filtered score formula in its plain form', () => {
+    const formulaWithFilter = {
+      metric: SCORE_FORMULA_METRIC,
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'transaction:/checkout',
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction(PERFORMANCE_SCORE_FIELD)],
+        aggregateSortBys: [{field: PERFORMANCE_SCORE_FIELD, kind: 'desc'}],
+      }),
+    };
+
+    const {result} = renderHookWithProviders(
+      () => useMetricReferences([{...formulaWithFilter, label: 'A'}]),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/',
+            query: {metric: [encodeMetricQueryParams(formulaWithFilter)]},
+          },
+        },
+      }
+    );
+
+    // The backend has no conditional form of the formula
+    expect(result.current.A).toBe(PERFORMANCE_SCORE_FIELD);
   });
 });

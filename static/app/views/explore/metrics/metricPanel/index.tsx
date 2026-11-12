@@ -58,6 +58,7 @@ import {
   useSetMetricVisualizes,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
+import {isScoreFormulaVisualize} from 'sentry/views/explore/metrics/scoreFormulas';
 import {STACKED_GRAPH_HEIGHT} from 'sentry/views/explore/metrics/settings';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {
@@ -161,7 +162,8 @@ export function MetricPanel({
     : isVisualizeEquation(visualize) && Boolean(visualize.expression.text);
 
   const metricSamplesTableResult = useMetricSamplesTable({
-    disabled: !areQueriesEnabled,
+    // The formulas' stand-in metric has no samples of its own
+    disabled: !areQueriesEnabled || isScoreFormulaVisualize(visualize),
     limit: RESULT_LIMIT,
     traceMetric,
     fields,

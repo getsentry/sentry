@@ -12,6 +12,11 @@ import {
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {
+  OPPORTUNITY_SCORE_FIELD,
+  PERFORMANCE_SCORE_FIELD,
+  SCORE_FORMULA_METRIC,
+} from 'sentry/views/explore/metrics/scoreFormulas';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -123,6 +128,108 @@ describe('AggregateDropdown', () => {
       'aria-selected',
       'true'
     );
+  });
+
+  describe('web vital scores metric', () => {
+    const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
+
+    function scoresQueryParams(yAxis: string) {
+      return new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: '',
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction(yAxis)],
+        aggregateSortBys: [{field: yAxis, kind: 'desc'}],
+      });
+    }
+
+    it('offers only the score formulas on the stand-in metric', async () => {
+      render(<AggregateDropdown traceMetric={SCORE_FORMULA_METRIC} />, {
+        organization,
+        additionalWrapper: createWrapper({
+          queryParams: scoresQueryParams(PERFORMANCE_SCORE_FIELD),
+          traceMetric: SCORE_FORMULA_METRIC,
+        }),
+      });
+
+      const trigger = screen.getByRole('button', {name: /Agg/});
+      expect(within(trigger).getByText('performance_score')).toBeInTheDocument();
+
+      await userEvent.click(trigger);
+
+      expect(await screen.findByText('Scores')).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'performance_score'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('option', {name: 'opportunity_score'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+      expect(screen.queryByText('Percentiles')).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'p75'})).not.toBeInTheDocument();
+    });
+
+    it('selects a formula as a fixed y-axis', async () => {
+      const setQueryParams = jest.fn();
+      render(<AggregateDropdown traceMetric={SCORE_FORMULA_METRIC} />, {
+        organization,
+        additionalWrapper: createWrapper({
+          queryParams: scoresQueryParams(PERFORMANCE_SCORE_FIELD),
+          traceMetric: SCORE_FORMULA_METRIC,
+          setQueryParams,
+        }),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+      await userEvent.click(
+        await screen.findByRole('option', {name: 'opportunity_score'})
+      );
+
+      await waitFor(() => expect(setQueryParams).toHaveBeenCalled());
+      expect(setQueryParams.mock.lastCall![0].aggregateFields).toEqual([
+        new VisualizeFunction(OPPORTUNITY_SCORE_FIELD),
+      ]);
+    });
+
+    it('treats performance_score as the default and offers Clear otherwise', async () => {
+      const setQueryParams = jest.fn();
+      render(<AggregateDropdown traceMetric={SCORE_FORMULA_METRIC} />, {
+        organization,
+        additionalWrapper: createWrapper({
+          queryParams: scoresQueryParams(OPPORTUNITY_SCORE_FIELD),
+          traceMetric: SCORE_FORMULA_METRIC,
+          setQueryParams,
+        }),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Clear'}));
+
+      await waitFor(() => expect(setQueryParams).toHaveBeenCalled());
+      expect(setQueryParams.mock.lastCall![0].aggregateFields).toEqual([
+        new VisualizeFunction(PERFORMANCE_SCORE_FIELD),
+      ]);
+    });
+
+    it('keeps the regular aggregates for stored metrics', async () => {
+      render(
+        <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+        {organization, additionalWrapper: createWrapper()}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: /Agg/}));
+
+      expect(await screen.findByText('Percentiles')).toBeInTheDocument();
+      expect(screen.queryByText('Scores')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'performance_score'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('only shows the Clear button when the selection differs from the default', async () => {
