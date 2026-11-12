@@ -1,7 +1,8 @@
 import {useState, type PointerEventHandler} from 'react';
-import {ThemeProvider} from '@emotion/react';
+import {css, ThemeProvider, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCopy} from '@sentry/icons/copy';
+import {IconOpen} from '@sentry/icons/open';
 import {IconSettings} from '@sentry/icons/settings';
 import {useStore} from 'zustand';
 
@@ -84,55 +85,64 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
     <Stack gap="md">
       <ThemeProvider theme={darkTheme}>
         <Container
-          background="secondary"
+          background="primary"
+          border="primary"
           radius="md"
-          padding="lg"
+          padding="md xl"
           paddingRight="3xl"
           position="relative"
-          onCopy={onCopy}
         >
-          <Text
-            ref={promptRef}
-            as="div"
-            monospace
-            size="sm"
-            tabIndex={tabIndex}
-            textWrap="wrap"
-            onPointerDown={handlePointerDown}
-          >
-            {tct(
-              'Follow the instructions verbatim at [guideUrl]. Your handoff code is [token].',
-              {
-                guideUrl,
-                token: (
-                  <MaskedCode
-                    monospace
-                    variant="warning"
-                    title={t('The secret code authorizes your agent on your behalf')}
-                  >
-                    sntryh_****
-                  </MaskedCode>
-                ),
-              }
-            )}
-          </Text>
-          <Container position="absolute" top="8px" right="8px">
-            <Button
-              aria-label={t('Copy agent prompt')}
-              busy={handoff.isPending}
-              disabled={copyDisabled}
-              icon={<IconCopy />}
-              size="zero"
-              variant="transparent"
-              onClick={copyPrompt}
-            />
-          </Container>
+          {promptBoxProps => (
+            <PromptBox {...promptBoxProps} onCopy={onCopy}>
+              <PromptText
+                ref={promptRef}
+                as="div"
+                monospace
+                size="sm"
+                tabIndex={tabIndex}
+                textWrap="wrap"
+                onPointerDown={handlePointerDown}
+              >
+                {tct(
+                  'Follow the instructions verbatim at [guideUrl]. Your handoff code is [token].',
+                  {
+                    guideUrl,
+                    token: (
+                      <MaskedCode
+                        monospace
+                        variant="warning"
+                        title={t('The secret code authorizes your agent on your behalf')}
+                      >
+                        sntryh_****
+                      </MaskedCode>
+                    ),
+                  }
+                )}
+              </PromptText>
+              <Container position="absolute" top="8px" right="8px">
+                <Button
+                  aria-label={t('Copy agent prompt')}
+                  busy={handoff.isPending}
+                  disabled={copyDisabled}
+                  icon={<IconCopy />}
+                  size="zero"
+                  variant="transparent"
+                  onClick={copyPrompt}
+                />
+              </Container>
+            </PromptBox>
+          )}
         </Container>
       </ThemeProvider>
 
       <Flex align="center" justify="between" gap="lg">
         <Text size="sm">
-          <ExternalLink href={previewUrl}>{t('See the full instructions')}</ExternalLink>
+          <ExternalLink href={previewUrl}>
+            <Flex as="span" align="center" gap="xs">
+              {t('See the full instructions')}
+              <IconOpen size="xs" />
+            </Flex>
+          </ExternalLink>
         </Text>
 
         <Flex align="center" gap="sm">
@@ -192,9 +202,31 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   );
 }
 
+const PromptBox = styled('div')`
+  box-shadow: inset 0 1px 0
+    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+`;
+
+const accentSelection = (p: {theme: Theme}) => css`
+  &::selection {
+    background: ${p.theme.tokens.background.accent.vibrant};
+    color: ${p.theme.tokens.content.onVibrant.light};
+  }
+`;
+
+const PromptText = styled(Text)`
+  ${accentSelection}
+
+  /* Focus is only set programmatically to select the prompt; it is not tabbable. */
+  &:focus {
+    outline: none;
+  }
+`;
+
 const MaskedCode = styled(InfoText)`
   background: ${p => p.theme.tokens.background.transparent.warning.muted};
   border-radius: ${p => p.theme.radius.sm};
   padding: 0 ${p => p.theme.space['2xs']};
   text-decoration: none;
+  ${accentSelection}
 `;
