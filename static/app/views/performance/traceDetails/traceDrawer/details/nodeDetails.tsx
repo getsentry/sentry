@@ -1,7 +1,7 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getGenAiOpType} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -22,7 +22,7 @@ const LazyEAPSpanNodeDetails = lazy(() =>
 );
 const LazyAiSpanDetails = lazy(() =>
   import('sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails').then(
-    module => ({default: module.AiSpanDetails})
+    module => ({default: module.AiSpanNodeDetails})
   )
 );
 const LazyErrorNodeDetails = lazy(() =>
@@ -60,9 +60,15 @@ export function NodeDetails(props: TraceTreeNodeDetailsProps<BaseNode>) {
   const {node} = props;
 
   if (node instanceof EapSpanNode) {
-    if (getIsAiNode(node)) {
+    const operationType = getGenAiOpType(node);
+    if (operationType) {
       return (
-        <LazyLoad LazyComponent={LazyAiSpanDetails} node={node} traceId={props.traceId} />
+        <LazyLoad
+          LazyComponent={LazyAiSpanDetails}
+          node={node}
+          operationType={operationType}
+          traceId={props.traceId}
+        />
       );
     }
     return <LazyLoad LazyComponent={LazyEAPSpanNodeDetails} {...props} node={node} />;

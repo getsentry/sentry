@@ -1,5 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {parseAsJson} from 'nuqs';
+import {z} from 'zod';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -13,10 +15,8 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
-import {
-  NEGATIVE_POLARITY_COLOR_ORDER,
-  POSITIVE_POLARITY_COLOR_ORDER,
-} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
+
+import {NEGATIVE_POLARITY_COLOR_ORDER, POSITIVE_POLARITY_COLOR_ORDER} from './constants';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
@@ -50,14 +50,35 @@ enum ThresholdMaxKeys {
   MAX_2 = 'max2',
 }
 
-type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
+type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number | null>>;
 
 export type ThresholdsConfig = {
   max_values: ThresholdMaxValues | undefined;
-  unit: string | null;
   preferredPolarity?: Polarity;
   timeWindow?: string | null;
+  unit?: string | null;
 };
+
+const thresholdMaxValueSchema = z
+  .union([z.number(), z.string().trim().nonempty().pipe(z.coerce.number())])
+  .nullish();
+
+const thresholdsConfigSchema = z.looseObject({
+  max_values: z
+    .looseObject({
+      [ThresholdMaxKeys.MAX_1]: thresholdMaxValueSchema,
+      [ThresholdMaxKeys.MAX_2]: thresholdMaxValueSchema,
+    })
+    .nullish()
+    .transform(maxValues => maxValues ?? undefined),
+  unit: z.string().nullish(),
+  preferredPolarity: z.enum(['+', '-', '']).optional().catch(undefined),
+  timeWindow: z.string().nullish(),
+});
+
+export const parseAsThresholds = parseAsJson<ThresholdsConfig>(
+  thresholdsConfigSchema.parse
+);
 
 const WIDGET_INDICATOR_SIZE = 15;
 const FIXED_THRESHOLD_TIME_WINDOW = 'fixed';

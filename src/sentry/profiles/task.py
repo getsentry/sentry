@@ -8,7 +8,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from operator import itemgetter
 from time import time
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 import msgpack
@@ -1259,10 +1259,10 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
 def get_event_id(profile: Profile) -> str:
     if "chunk_id" in profile:
-        return profile["chunk_id"]
+        return cast(str, profile["chunk_id"])
     elif "profile_id" in profile:
-        return profile["profile_id"]
-    return profile["event_id"]
+        return cast(str, profile["profile_id"])
+    return cast(str, profile["event_id"])
 
 
 @metrics.wraps("process_profile.track_outcome")

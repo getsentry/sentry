@@ -1,13 +1,14 @@
 import {useQuery} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {ReleaseStatus, type Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useProjectLatestSemverRelease({enabled}: {enabled: boolean}) {
   const organization = useOrganization();
-  const location = useLocation();
+  const [{project, environment}] = useQueryStates(pageFilterParsers);
 
   const {data, isError, isPending} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
@@ -15,8 +16,8 @@ export function useProjectLatestSemverRelease({enabled}: {enabled: boolean}) {
       query: {
         per_page: 1,
         sort: 'semver',
-        project: location.query.project,
-        environment: location.query.environment,
+        project,
+        environment,
         status: ReleaseStatus.ACTIVE,
       },
       staleTime: 0,

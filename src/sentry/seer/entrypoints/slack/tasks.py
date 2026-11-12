@@ -14,6 +14,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
+from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -160,6 +161,19 @@ def process_mention_for_slack(
             )
             return
 
+        # Check credits before fetching context or starting a run.
+        if not can_run_seer_operation(
+            organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+        ):
+            lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
+            # The webhook set "is thinking..." before queueing this task; clear it.
+            entrypoint.install.set_thread_status(
+                channel_id=channel_id,
+                thread_ts=thread_ts or ts,
+                status="",
+            )
+            return
+
         prompt = extract_prompt(text, bot_user_id)
 
         linked_result = _resolve_linked_messages(
@@ -169,7 +183,7 @@ def process_mention_for_slack(
         )
 
         # Only fetch thread context when actually in a thread.
-        messages: list[dict] = []
+        messages: list[dict[str, Any]] = []
         thread_context: str | None = None
         if thread_ts:
             messages = entrypoint.install.get_thread_history(

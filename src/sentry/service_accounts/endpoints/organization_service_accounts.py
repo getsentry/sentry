@@ -38,10 +38,12 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
+    organization_service,
 )
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
@@ -51,6 +53,7 @@ from sentry.service_accounts.models import (
 )
 
 FEATURE_FLAG = "organizations:service-accounts"
+MAX_PROJECT_IDS_PER_REQUEST = 1000
 
 DUPLICATE_NAME_ERROR = "A service account with this name already exists."
 ALL_PROJECTS_WITH_PROJECTS_ERROR = (
@@ -77,7 +80,6 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
-    isActive: bool
     dateCreated: datetime
 
 
@@ -86,7 +88,6 @@ class ServiceAccountCreateRequestData(TypedDict):
     scopes: list[str]
     projectIds: NotRequired[list[int] | None]
     allProjects: NotRequired[bool]
-    isActive: NotRequired[bool]
 
 
 class ServiceAccountUpdateRequestData(TypedDict, total=False):
@@ -94,7 +95,6 @@ class ServiceAccountUpdateRequestData(TypedDict, total=False):
     scopes: list[str]
     projectIds: list[int] | None
     allProjects: bool
-    isActive: bool
 
 
 class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
@@ -117,7 +117,6 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
-            "isActive": obj.is_active,
             "dateCreated": obj.date_added,
         }
 
@@ -128,7 +127,6 @@ def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
         "scopes": response["scopes"],
         "project_ids": response["projectIds"],
         "all_projects": response["allProjects"],
-        "is_active": response["isActive"],
     }
 
 
@@ -138,21 +136,6 @@ def _check_can_grant_all_projects(request: Request) -> None:
     role = request.access.role
     if role is None or not roles.get(role).is_global:
         raise PermissionDenied(ALL_PROJECTS_ROLE_ERROR)
-
-
-def _replace_projects(service_account: ServiceAccount, project_ids: Sequence[int]) -> None:
-    existing = set()
-    # Delete links one at a time: a queryset delete wouldn't write the account's outbox.
-    for link in ServiceAccountProject.objects.filter(service_account=service_account):
-        if link.project_id in project_ids:
-            existing.add(link.project_id)
-        else:
-            link.delete()
-    ServiceAccountProject.objects.bulk_create(
-        ServiceAccountProject(service_account=service_account, project_id=project_id)
-        for project_id in project_ids
-        if project_id not in existing
-    )
 
 
 class ServiceAccountCreateSerializer(serializers.Serializer):
@@ -166,6 +149,7 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
     )
     projectIds = serializers.ListField(
         child=serializers.IntegerField(),
+        max_length=MAX_PROJECT_IDS_PER_REQUEST,
         required=False,
         allow_null=True,
         help_text=(
@@ -181,23 +165,30 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
             " such as Manager or Owner."
         ),
     )
-    isActive = serializers.BooleanField(
-        required=False, help_text="Whether the service account can be used. Defaults to true."
-    )
 
     def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
         if not project_ids:
             return []
         access = self.context["access"]
-        grantable = {project.id for project in self.context["organization"].projects}
-        if not access.has_global_access:
-            grantable &= access.accessible_project_ids
-        ungrantable = set(project_ids) - grantable
+        requested = set(project_ids)
+        candidates = (
+            requested if access.has_global_access else requested & access.accessible_project_ids
+        )
+        grantable = (
+            set(
+                organization_service.get_active_project_ids(
+                    organization_id=self.context["organization"].id, project_ids=sorted(candidates)
+                )
+            )
+            if candidates
+            else set()
+        )
+        ungrantable = requested - grantable
         if ungrantable:
             raise serializers.ValidationError(
                 f"You can't grant access to projects: {', '.join(map(str, sorted(ungrantable)))}"
             )
-        return sorted(set(project_ids))
+        return sorted(requested)
 
     def validate_scopes(self, scopes: list[str]) -> list[str]:
         ungrantable = set(scopes) - self.context["access"].scopes
@@ -231,7 +222,7 @@ class ServiceAccountUpdateSerializer(ServiceAccountCreateSerializer):
 
 class ServiceAccountPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
+        "GET": ["service_account:read"],
         "POST": ["service_account:write"],
         "PUT": ["service_account:write"],
         "DELETE": ["service_account:write"],
@@ -278,7 +269,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
     ) -> Response:
         return self.paginate(
             request=request,
-            queryset=ServiceAccount.objects.filter(organization_id=organization.id),
+            queryset=ServiceAccount.objects.filter(organization_id=organization.id, is_active=True),
             order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
@@ -317,19 +308,14 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             _check_can_grant_all_projects(request)
 
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
-                service_account = ServiceAccount.objects.create(
-                    organization_id=organization.id,
-                    name=data["name"],
-                    scope_list=data["scopes"],
-                    is_active=data.get("isActive", True),
-                    all_projects=all_projects,
-                    created_by_id=request.user.id,
-                )
-                ServiceAccountProject.objects.bulk_create(
-                    ServiceAccountProject(service_account=service_account, project_id=project_id)
-                    for project_id in data.get("projectIds") or ()
-                )
+            service_account = ServiceAccount.create_with_projects(
+                organization_id=organization.id,
+                name=data["name"],
+                scope_list=data["scopes"],
+                project_ids=data.get("projectIds") or (),
+                all_projects=all_projects,
+                created_by_id=acting_user_id(request.user),
+            )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
             return Response({"detail": {"name": [DUPLICATE_NAME_ERROR]}}, status=400)
@@ -345,13 +331,8 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         return Response(response, status=201)
 
 
-@control_silo_endpoint
-class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
-    }
+class ServiceAccountScopedEndpointBase(OrganizationServiceAccountEndpointBase):
+    """Resolves `service_account_id` to an active account in the URL's organization."""
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -361,10 +342,20 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             kwargs["service_account"] = ServiceAccount.objects.get(
                 organization_id=kwargs["organization"].id,
                 id=kwargs.pop("service_account_id"),
+                is_active=True,
             )
         except ServiceAccount.DoesNotExist:
             raise ResourceDoesNotExist
         return args, kwargs
+
+
+@control_silo_endpoint
+class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
 
     @extend_schema(
         operation_id="Retrieve a Service Account",
@@ -426,22 +417,20 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
                 service_account = ServiceAccount.objects.select_for_update().get(
-                    id=service_account.id
+                    id=service_account.id, is_active=True
                 )
                 if "name" in data:
                     service_account.name = data["name"]
                 if "scopes" in data:
                     service_account.scope_list = data["scopes"]
-                if "isActive" in data:
-                    service_account.is_active = data["isActive"]
                 # Checked against the locked row, so keeping all projects on an account
                 # also needs the role, even when the request doesn't mention it.
                 service_account.all_projects = data.get("allProjects", service_account.all_projects)
                 if service_account.all_projects:
                     _check_can_grant_all_projects(request)
-                    _replace_projects(service_account, [])
+                    service_account.replace_projects([])
                 elif "projectIds" in data:
-                    _replace_projects(service_account, data["projectIds"] or [])
+                    service_account.replace_projects(data["projectIds"] or [])
                 service_account.save()
         except ServiceAccount.DoesNotExist:
             # Deleted by another request after convert_args loaded it.
@@ -481,8 +470,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             serialize(service_account, request.user, serializer=ServiceAccountSerializer())
         )
         service_account_id = service_account.id
-        # The tombstone cascade removes the cell replica. The project rows go with the account.
-        service_account.delete()
+        if not service_account.deactivate():
+            # Deleted by another request after convert_args loaded it.
+            raise ResourceDoesNotExist
         self.create_audit_entry(
             request,
             organization=organization,

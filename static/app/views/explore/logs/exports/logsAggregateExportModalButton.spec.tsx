@@ -19,13 +19,14 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {LogsAggregateExportModalButton} from 'sentry/views/explore/logs/exports/logsAggregateExportModalButton';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsAggregateResponseItem} from 'sentry/views/explore/logs/types';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
   LOGS_AGGREGATES_TRACE_FIELD,
 } from 'sentry/views/explore/logs/useLogsAggregatesTable';
+
+import {LogsAggregateExportModalButton} from './logsAggregateExportModalButton';
 
 const mockDownloadFromHref = jest.fn();
 jest.mock('sentry/utils/downloadFromHref', () => ({

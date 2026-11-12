@@ -4,7 +4,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
@@ -27,6 +26,7 @@ from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.plugins.interfaces.releasehook import ReleaseHook
@@ -65,7 +65,9 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         },
         examples=ReleaseExamples.RETRIEVE_RELEASE,
     )
-    def get(self, request: Request, project, version) -> Response[ReleaseSerializerResponse]:
+    def get(
+        self, request: Request, project: Project, version: str
+    ) -> Response[ReleaseSerializerResponse]:
         """
         Return details on an individual release.
         """
@@ -116,7 +118,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
         },
     )
     def put(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update a release. This can change metadata associated with the release
@@ -177,10 +179,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
                 data={"version": release.version},
                 datetime=release.date_released,
             )
-        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
-        body: ReleaseSerializerResponse = serialize(
-            release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
-        )
+        body: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
         return Response(body)
 
     @extend_schema(
@@ -198,7 +197,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, version) -> Response:
+    def delete(self, request: Request, project: Project, version: str) -> Response:
         """
         Permanently remove a release and all of its files.
         """

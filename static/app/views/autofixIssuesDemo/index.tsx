@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -14,10 +15,10 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
+
 import {
   AUTOFIX_PHASE_LABELS,
   type AutofixIssue,
@@ -25,8 +26,7 @@ import {
   DEFAULT_ISSUE_QUERY,
   REQUIRED_ISSUE_FILTER,
   useAutofixIssues,
-} from 'sentry/views/autofixIssuesDemo/useAutofixIssues';
-import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
+} from './useAutofixIssues';
 
 // Tag color per phase: neutral early, warning mid, promotion/success at PR.
 const AUTOFIX_PHASE_VARIANTS: Record<AutofixPhase, TagVariant> = {
@@ -37,13 +37,13 @@ const AUTOFIX_PHASE_VARIANTS: Record<AutofixPhase, TagVariant> = {
   pr_merged: 'success',
 };
 
+const queryParsers = {query: parseAsString, cursor: parseAsString};
+
 export default function AutofixIssuesDemo() {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const query = decodeScalar(location.query.query, DEFAULT_ISSUE_QUERY);
-  const cursor = decodeScalar(location.query.cursor);
+  const [queryParams, setQueryParams] = useQueryStates(queryParsers);
+  const query = queryParams.query || DEFAULT_ISSUE_QUERY;
+  const cursor = queryParams.cursor || undefined;
 
   const {issues, isPending, isError, refetch, pageLinks} = useAutofixIssues({
     query,
@@ -52,12 +52,9 @@ export default function AutofixIssuesDemo() {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, query: newQuery, cursor: undefined},
-      });
+      setQueryParams({query: newQuery, cursor: null}, {history: 'push'});
     },
-    [navigate, location.pathname, location.query]
+    [setQueryParams]
   );
 
   const columnOrder = useMemo<Array<GridColumnOrder<string>>>(
@@ -172,7 +169,7 @@ export default function AutofixIssuesDemo() {
               }}
               emptyMessage={t('No autofix issues found for this organization.')}
             />
-            <Pagination pageLinks={pageLinks} />
+            <Pagination {...getPaginationProps(pageLinks)} />
           </Container>
         )}
 

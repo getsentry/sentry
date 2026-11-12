@@ -15,7 +15,7 @@ from sentry_sdk import traces
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
 from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
-from sentry.auth.principal import acting_user_id, has_user
+from sentry.auth.principal import acting_user_id, has_user, require_user
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
@@ -37,6 +37,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import (
+    RpcOrganization,
     RpcOrganizationAccessContext,
     RpcOrganizationResourceIds,
     RpcTeamMember,
@@ -50,7 +51,12 @@ from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.auth import is_service_account_auth
-from sentry.service_accounts.models import ServiceAccountProjectReplica, ServiceAccountReplica
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountProjectReplica,
+    ServiceAccountReplica,
+)
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.types.request import _HttpRequestWithUser
 from sentry.users.models.user import User
@@ -825,8 +831,8 @@ class ServiceAccountAccess(DbAccess):
     A service account's access to its organization. It has no membership, so its
     scopes are the account's own. With `all_projects` it reaches every active project
     in the org. Without it, it reaches only the active projects linked to the
-    account. It never reaches teams. Open membership is a setting for people, so
-    it doesn't apply.
+    account. It never reaches teams, and it can't create projects for now. Open
+    membership is a setting for people, so it doesn't apply.
 
     `has_global_access` stays False even with `all_projects`: callers read it as
     org-wide access, including team and member actions, not only projects.
@@ -844,6 +850,11 @@ class ServiceAccountAccess(DbAccess):
         self._organization_id = organization_id
         self._all_projects = all_projects
         super().__init__(sso_is_valid=True, scopes=frozenset(scopes))
+
+    @property
+    def has_all_projects(self) -> bool:
+        """Whether the account explicitly has access to current and future active projects."""
+        return self._all_projects
 
     def has_team_access(self, team: Team) -> bool:
         return False
@@ -1233,7 +1244,9 @@ def organizationless_access(
     )
 
 
-def normalize_valid_user(user: User | RpcUser | AnonymousUser | None) -> User | RpcUser | None:
+def normalize_valid_user(
+    user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
+) -> User | RpcUser | None:
     if not user or not has_user(user) or not user.is_active:
         return None
     return user
@@ -1289,7 +1302,7 @@ def from_request(
             raise DataSecrecyError()
 
     if request.user.is_authenticated and request.user.is_sentry_app:
-        return _from_sentry_app(request.user, organization=organization)
+        return _from_sentry_app(require_user(request), organization=organization)
 
     if is_active_superuser(request):
         member: OrganizationMember | None = None
@@ -1329,6 +1342,16 @@ def from_request(
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
 
 
+def _sentry_app_scopes(
+    scope_list: Iterable[str], organization: Organization | RpcOrganization
+) -> frozenset[str]:
+    # Sentry App scopes aren't capped by member role scopes, so add granular
+    # scopes only where the organization's roles grant them too.
+    if features.has("organizations:granular-permission-scopes", organization):
+        return translate_deprecated_scopes(scope_list)
+    return frozenset(scope_list)
+
+
 # only used internally
 def _from_sentry_app(user: User, organization: Organization | None = None) -> Access:
     if not organization:
@@ -1345,7 +1368,7 @@ def _from_sentry_app(user: User, organization: Organization | None = None) -> Ac
         return NoAccess()
 
     return OrganizationGlobalMembership(
-        organization, translate_deprecated_scopes(sentry_app.scope_list), sso_is_valid=True
+        organization, _sentry_app_scopes(sentry_app.scope_list, organization), sso_is_valid=True
     )
 
 
@@ -1370,12 +1393,12 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
             ),
             permissions=[],
         ),
-        scopes=translate_deprecated_scopes(installation.sentry_app.scope_list),
+        scopes=_sentry_app_scopes(installation.sentry_app.scope_list, context.organization),
     )
 
 
 def from_user(
-    user: User | RpcUser | AnonymousUser | None,
+    user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
     organization: Organization | None = None,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
@@ -1528,15 +1551,24 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
     # Bound to the account's own org, like agent tokens.
     if auth.entity_id is None or auth.organization_id != organization_id:
         return DEFAULT
-    # The token doesn't carry `all_projects`, so read it from the replica, like the
-    # project links. An account deactivated since authentication gets no access.
-    all_projects = (
-        ServiceAccountReplica.objects.filter(
-            service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+    # The token doesn't carry `all_projects`, so read it from a replica of the account:
+    # a read replica on control, the cell replica elsewhere. An account deactivated since
+    # authentication gets no access.
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        all_projects = (
+            ServiceAccount.objects.using_replica()
+            .filter(id=auth.entity_id, organization_id=organization_id, is_active=True)
+            .values_list("all_projects", flat=True)
+            .first()
         )
-        .values_list("all_projects", flat=True)
-        .first()
-    )
+    else:
+        all_projects = (
+            ServiceAccountReplica.objects.filter(
+                service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+            )
+            .values_list("all_projects", flat=True)
+            .first()
+        )
     if all_projects is None:
         return DEFAULT
     return ServiceAccountAccess(

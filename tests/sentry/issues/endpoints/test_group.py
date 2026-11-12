@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 
 from sentry.auth.access import from_request
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
@@ -59,7 +60,7 @@ class GroupAiPermissionTest(TestCase):
         self,
         method: str,
         obj: Group,
-        auth: ApiToken | None = None,
+        auth: ApiToken | ApiKey | None = None,
         user: User | None = None,
         is_superuser: bool | None = None,
     ) -> bool:

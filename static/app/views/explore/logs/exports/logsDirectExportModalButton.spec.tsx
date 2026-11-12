@@ -19,9 +19,10 @@ import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {LogsDirectExportModalButton} from './logsDirectExportModalButton';
 
 const mockDownloadFromHref = jest.fn();
 

@@ -2,7 +2,7 @@ import {
   AI_AGENTS_GETTING_STARTED_DOCS_LINK,
   AI_INSTRUMENTATION_DOCS_LINKS,
   getAiInstrumentationDocsLink,
-} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+} from './docsLinks';
 
 describe('getAiInstrumentationDocsLink', () => {
   it.each(['javascript', 'javascript-react', 'node', 'node-express', 'bun', 'deno'])(

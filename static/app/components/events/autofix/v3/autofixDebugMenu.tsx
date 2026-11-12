@@ -1,6 +1,5 @@
 import {IconBug} from '@sentry/icons/bug';
 import {IconOpen} from '@sentry/icons/open';
-import {IconTerminal} from '@sentry/icons/terminal';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -15,15 +14,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AutofixDebugMenuProps {
   autofixState: ExplorerAutofixState | null | undefined;
-  enableBashMode?: boolean;
-  onEnableBashModeChange?: (enabled: boolean) => void;
 }
 
-export function AutofixDebugMenu({
-  autofixState,
-  enableBashMode,
-  onEnableBashModeChange,
-}: AutofixDebugMenuProps) {
+export function AutofixDebugMenu({autofixState}: AutofixDebugMenuProps) {
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
 
@@ -40,15 +33,6 @@ export function AutofixDebugMenu({
       label: t('Open agent trace'),
       leadingItems: <IconOpen />,
       externalHref: conversationHref,
-    });
-  }
-
-  if (onEnableBashModeChange) {
-    items.push({
-      key: 'force-bash-mode',
-      label: enableBashMode ? t('Turn off forced bash mode') : t('Force bash mode on'),
-      leadingItems: <IconTerminal />,
-      onAction: () => onEnableBashModeChange(!enableBashMode),
     });
   }
 

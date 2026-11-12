@@ -5,18 +5,17 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
-import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
-import {
-  issueAndEventToMarkdown,
-  useCopyIssueDetails,
-} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+
+import {formatSpanEvidenceToMarkdown} from './spanEvidenceMarkdown';
+import {issueAndEventToMarkdown, useCopyIssueDetails} from './useCopyIssueDetails';
 
 jest.mock('sentry/utils/useCopyToClipboard');
 
@@ -1416,8 +1415,8 @@ LIMIT 21`;
         dismissCodingAgentError: jest.fn(),
       } as any);
 
-      jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
-      jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
+      jest.spyOn(toast, 'success').mockImplementation(() => 'toast-id');
+      jest.spyOn(toast, 'error').mockImplementation(() => 'toast-id');
     });
 
     it('calls useCopyToClipboard hook', () => {

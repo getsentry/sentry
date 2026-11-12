@@ -4,6 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -11,7 +12,6 @@ import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
   imageMimeTypes,

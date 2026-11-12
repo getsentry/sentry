@@ -1,7 +1,5 @@
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 
 // These labels need to be exported so that they can be used in audit logs
 export const retentionPrioritiesLabels = {
@@ -18,9 +16,7 @@ type RetentionPriorityField = {
   name: DynamicSamplingBiasType;
 };
 
-export function getRetentionPriorityFields(
-  organization: Organization
-): RetentionPriorityField[] {
+export function getRetentionPriorityFields(): RetentionPriorityField[] {
   return [
     {
       name: DynamicSamplingBiasType.BOOST_LATEST_RELEASES,
@@ -48,17 +44,5 @@ export function getRetentionPriorityFields(
       label: retentionPrioritiesLabels.ignoreHealthChecks,
       hintText: t('Captures fewer of your health checks transactions'),
     },
-    ...(hasDynamicSamplingCustomFeature(organization) &&
-    organization.features.includes('dynamic-sampling-minimum-sample-rate')
-      ? [
-          {
-            name: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE,
-            label: retentionPrioritiesLabels.minimumSampleRate,
-            hintText: t(
-              'If higher than the trace sample rate, use the project sample rate for spans instead of the trace sample rate.'
-            ),
-          },
-        ]
-      : []),
   ];
 }

@@ -1,6 +1,7 @@
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';
-import {deduplicatePullRequestActivities} from 'sentry/views/issueDetails/activitySection/activityLineItem/deduplicatePullRequestActivities';
+
+import {deduplicatePullRequestActivities} from './deduplicatePullRequestActivities';
 
 type ActivityOfType<Type extends GroupActivityType> = Extract<
   GroupActivity,

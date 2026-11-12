@@ -48,8 +48,9 @@ addresses, cache policy, or automatic host selection.
 
 # Idempotent operations
 
-An operation carries `"x-sentry-idempotent": true` when its endpoint lists the
-method in `idempotent_methods`:
+Every endpoint that publishes a `POST`, `PUT`, `PATCH`, or `DELETE` must declare
+`idempotent_methods`, and the build fails if it doesn't. An operation carries
+`"x-sentry-idempotent": true` when its endpoint lists the method there:
 
 ```python
 class DifAssembleEndpoint(ProjectEndpoint):
@@ -61,8 +62,74 @@ It means a client may resend the identical request after a timeout or a 5xx
 response without changing the outcome, so generated clients can retry it like a
 `GET`. Only list methods that are not already safe (RFC 9110 §9.2.1): the build
 fails for `GET`, `HEAD`, `OPTIONS`, `TRACE`, or a method the endpoint does not
-declare in `publish_status`. A missing marker means "not known to be idempotent",
-including `PUT` and `DELETE`, whose handlers do not all live up to RFC 9110 §9.2.2.
+declare in `publish_status`. Use `idempotent_methods = frozenset()` when none of
+the endpoint's writes are safe to resend. A missing marker means "not known to be
+idempotent", including `PUT` and `DELETE`, whose handlers do not all live up to
+RFC 9110 §9.2.2.
+
+List a method only when resending the identical request after the first one
+succeeded leaves the same state, writes no new rows, audit log entries, or
+Activity, sends no email or webhook, queues no task that doesn't converge, and
+does not return an error. A `DELETE` that answers a resend with 404 does not
+qualify yet.
 
 Like routing, declarations are collected for every endpoint and reset on every
 build. The marker appears only on operations that are in the generated schema.
+
+# Response fields
+
+Every field in a public operation's success (2xx) response needs a description
+and a type. Both reach the API docs and the clients generated from the schema,
+such as `@sentry/api`.
+
+Describe a TypedDict field by wrapping its type in `Annotated`; type checkers
+see only the inner type:
+
+```python
+from typing import Annotated
+
+from sentry.apidocs.descriptions import ApiDescription
+
+
+class TeamResponse(TypedDict):
+    id: Annotated[str, ApiDescription("The team ID")]
+    isMember: Annotated[bool, ApiDescription("Whether the requesting user is a member of the team")]
+```
+
+Describe a serializer field with `help_text`. Write for any API client: say
+"the requesting user" rather than "you", and don't refer to pages in Sentry's UI.
+
+A field is untyped when its schema is `Any` (`{}`), `dict[str, Any]`, an object
+without properties, or a list of those. Replace it with a TypedDict or a
+concrete type that matches what the endpoint returns. A TypedDict without any
+fields gets `maxProperties: 0`, so it counts as typed: use one for a response
+that is always `{}`.
+
+A few fields hold data whose shape Sentry doesn't define, such as the contexts
+an SDK sent. Type those as `JsonValue` from `sentry.apidocs.formats`: the schema
+lists every JSON type, and the check counts it as typed. Don't use it for a
+field you can type.
+
+When another schema already pins a field down, such as a JSON Schema the code
+validates the data against, build the field's schema from it with
+`Annotated[T, ApiSchema(build)]` instead of copying it into a TypedDict, so the
+two can't drift. `sentry.apidocs.json_schemas` converts a JSON Schema, including
+one from sentry-kafka-schemas, and fails when a property has no description.
+
+`tests/apidocs/test_response_coverage.py` checks this after `make build-api-docs`.
+Fields that already lacked a description or a type are listed in
+`tests/apidocs/response-coverage-baseline.txt`, so the check fails only for new
+ones. Each entry names a TypedDict field by its declaring class, for example
+`missing-description sentry.api.serializers.models.team.BaseTeamSerializerResponse.slug`,
+and any other field by its path from the operation or component. Reusing a
+TypedDict in another endpoint adds no entries.
+
+When you fix a listed field, the check fails until you remove its entry. Remove
+entries with:
+
+```shell
+make build-api-docs
+python -m sentry.apidocs.response_coverage --prune
+```
+
+Don't add entries to the baseline; describe and type new fields instead.

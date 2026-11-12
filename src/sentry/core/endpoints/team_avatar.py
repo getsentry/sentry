@@ -6,6 +6,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.avatar import AvatarMixin, AvatarSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.models.avatars.team_avatar import TeamAvatar
+from sentry.models.team import Team
 
 
 class TeamAvatarSerializer(AvatarSerializer):
@@ -15,7 +16,7 @@ class TeamAvatarSerializer(AvatarSerializer):
 
 
 @cell_silo_endpoint
-class TeamAvatarEndpoint(AvatarMixin[TeamAvatar], TeamEndpoint):
+class TeamAvatarEndpoint(AvatarMixin[TeamAvatar, Team], TeamEndpoint):
     owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -25,5 +26,5 @@ class TeamAvatarEndpoint(AvatarMixin[TeamAvatar], TeamEndpoint):
     model = TeamAvatar
     serializer_cls = TeamAvatarSerializer
 
-    def get_avatar_filename(self, obj):
+    def get_avatar_filename(self, obj: Team) -> str:
         return f"{obj.slug}.png"

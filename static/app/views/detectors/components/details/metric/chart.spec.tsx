@@ -22,10 +22,8 @@ import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
-import {
-  MetricDetectorDetailsChart,
-  useMetricDetectorChart,
-} from 'sentry/views/detectors/components/details/metric/chart';
+
+import {MetricDetectorDetailsChart, useMetricDetectorChart} from './chart';
 
 describe('MetricDetectorDetailsChart', () => {
   const detector = MetricDetectorFixture();

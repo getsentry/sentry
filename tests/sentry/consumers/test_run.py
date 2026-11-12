@@ -1,7 +1,9 @@
+from collections.abc import Mapping
 from unittest.mock import patch
 
 import pytest
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
+from pytest_django.fixtures import SettingsWrapper
 
 from sentry import consumers
 from sentry.conf.types.kafka_definition import ConsumerDefinition, Topic
@@ -10,7 +12,9 @@ from sentry.utils.imports import import_string
 
 
 @pytest.mark.parametrize("consumer_def", list(consumers.KAFKA_CONSUMERS.items()))
-def test_all_importable(consumer_def, settings) -> None:
+def test_all_importable(
+    consumer_def: tuple[str, ConsumerDefinition], settings: SettingsWrapper
+) -> None:
     name: str
     defn: ConsumerDefinition
     name, defn = consumer_def
@@ -23,7 +27,7 @@ def test_all_importable(consumer_def, settings) -> None:
 
 
 @pytest.mark.parametrize("consumer_def", list(consumers.KAFKA_CONSUMERS.items()))
-def test_dlq(consumer_def) -> None:
+def test_dlq(consumer_def: tuple[str, ConsumerDefinition]) -> None:
     post_process_forwarders = [
         "post-process-forwarder-errors",
         "post-process-forwarder-transactions",
@@ -49,7 +53,11 @@ def test_dlq(consumer_def) -> None:
 def test_commit_log_consumer_config_keyed_by_own_topic() -> None:
     topics_seen: list[Topic | None] = []
 
-    def fake_cluster_options(cluster_name, override_params=None, topic=None):
+    def fake_cluster_options(
+        cluster_name: str,
+        override_params: Mapping[str, object] | None = None,
+        topic: Topic | None = None,
+    ) -> dict[str, str]:
         topics_seen.append(topic)
         return {"bootstrap.servers": "127.0.0.1:9092"}
 

@@ -12,9 +12,10 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getIsAiAgentNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {AiSpanTimeline} from './aiSpanTimeline';
 function createMockNode(id: string, attributes: Record<string, string | number>) {
   return {
     id,

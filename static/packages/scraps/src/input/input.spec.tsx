@@ -17,4 +17,21 @@ describe('Input', () => {
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveAttribute('size', '5');
   });
+
+  it('opts search inputs out of password manager autofill', () => {
+    render(
+      <div>
+        <Input type="search" />
+        <Input />
+      </div>,
+      {wrapper: ThemeWrapper}
+    );
+
+    expect(screen.getByRole('searchbox')).toHaveAttribute('data-1p-ignore');
+    expect(screen.getByRole('searchbox')).toHaveAttribute(
+      'data-protonpass-ignore',
+      'true'
+    );
+    expect(screen.getByRole('textbox')).not.toHaveAttribute('data-1p-ignore');
+  });
 });

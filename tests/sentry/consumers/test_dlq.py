@@ -10,10 +10,13 @@ from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper
+from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def make_message(payload: bytes, partition: Partition, offset: int, timestamp: datetime) -> Message:
+def make_message(
+    payload: bytes, partition: Partition, offset: int, timestamp: datetime
+) -> Message[KafkaPayload]:
     return Message(
         BrokerValue(
             KafkaPayload(None, payload, []),
@@ -26,7 +29,7 @@ def make_message(payload: bytes, partition: Partition, offset: int, timestamp: d
 
 @pytest.mark.parametrize("stale_threshold_sec", [300])
 @django_db_all
-def test_dlq_stale_messages_timestamps(factories, stale_threshold_sec) -> None:
+def test_dlq_stale_messages_timestamps(factories: Factories, stale_threshold_sec: int) -> None:
     organization = factories.create_organization()
     project = factories.create_project(organization=organization)
 

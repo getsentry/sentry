@@ -833,9 +833,9 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-    def assert_redirected_to_2fa(self):
+    def assert_redirected_to_2fa(self) -> None:
         response = self.get_success_response(self.org_2fa.slug, status_code=302)
-        assert self.path_2fa in response.url
+        assert self.path_2fa in response.headers["Location"]
 
     def test_preexisting_members_must_enable_2fa(self) -> None:
         self.login_as(self.no_2fa_user)
@@ -876,7 +876,7 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     # This is a react view, not an API endpoint
     endpoint = "sentry-organization-index"
 
-    def setup_user(self, is_superuser=False):
+    def setup_user(self, is_superuser: bool = False) -> None:
         self.organization = self.create_organization()
         self.user = self.create_user(is_superuser=is_superuser)
         self.create_member(
@@ -890,7 +890,10 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     def test_member_limit_redirect(self) -> None:
         self.setup_user()
         response = self.get_success_response(self.organization.slug, status_code=302)
-        assert f"/organizations/{self.organization.slug}/disabled-member/" in response.url
+        assert (
+            f"/organizations/{self.organization.slug}/disabled-member/"
+            in response.headers["Location"]
+        )
 
     def test_member_limit_superuser_no_redirect(self) -> None:
         self.setup_user(is_superuser=True)

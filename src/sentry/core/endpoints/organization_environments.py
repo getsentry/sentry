@@ -7,7 +7,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.helpers.environments import environment_visibility_filter_options
+from sentry.api.helpers.environments import (
+    EnvironmentVisibilitySerializer,
+    environment_visibility_filter_options,
+)
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.environment import (
     EnvironmentSerializer,
@@ -15,7 +18,7 @@ from sentry.api.serializers.models.environment import (
 )
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.environment_examples import EnvironmentExamples
-from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.organization import Organization
@@ -32,7 +35,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="listOrganizationEnvironments",
         summary="List an Organization's Environments",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, EnvironmentParams.VISIBILITY],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, EnvironmentVisibilitySerializer],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEnvironmentResponse", list[EnvironmentSerializerResponse]
@@ -48,18 +51,19 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
         """
         Lists an organization's environments.
         """
-        visibility = request.GET.get("visibility", "visible")
-        if visibility not in environment_visibility_filter_options:
+        serializer = EnvironmentVisibilitySerializer(data=request.GET)
+        if not serializer.is_valid():
             raise ParseError(
                 f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
             )
+        visibility = serializer.validated_data["visibility"]
         environment_projects = EnvironmentProject.objects.filter(
             project__in=self.get_projects(request, organization)
         )
         add_visibility_filters = environment_visibility_filter_options[visibility]
-        environment_projects = add_visibility_filters(environment_projects).values("environment")
+        environment_ids = add_visibility_filters(environment_projects).values("environment")
         queryset = (
-            Environment.objects.filter(id__in=environment_projects)
+            Environment.objects.filter(id__in=environment_ids)
             .exclude(
                 # HACK(mattrobenolt): We don't want to surface the
                 # "No Environment" environment to the UI since it

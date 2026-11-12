@@ -2,9 +2,10 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
+
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
@@ -29,47 +30,48 @@ import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/de
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
-import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {isChartType} from 'sentry/views/insights/common/components/chart';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import type {ChartSelectionQueryParam} from './components/attributeBreakdowns/chartSelectionContext';
+import type {GroupBy} from './contexts/pageParamsContext/aggregateFields';
+import {isGroupBy} from './contexts/pageParamsContext/aggregateFields';
+import {Mode} from './contexts/pageParamsContext/mode';
+import type {BaseVisualize} from './contexts/pageParamsContext/visualizes';
+import {EXPLORE_AGENTS_SUB_PATH} from './conversations/settings';
 import type {
   SavedQuery,
   RawGroupBy,
   RawVisualize,
   CombinedSavedQuery,
   DiscoverSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
+} from './hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
   isExploreSavedQuery,
   isRawVisualize,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
+} from './hooks/useGetSavedQueries';
 import type {
   TraceItemAttributeMeta,
   TraceItemDetailsMeta,
   TraceItemResponseAttribute,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
-import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
+} from './hooks/useTraceItemDetails';
+import {getLogsUrlFromSavedQueryUrl} from './logs/utils';
+import {getMetricsUrlFromSavedQueryUrl} from './metrics/utils';
 import {
   encodeCompareCaseInsensitive,
   getFieldsForConstructedQuery,
   normalizeCompareQueryParts,
   type ReadableExploreQueryParts,
-} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
-import {TraceItemDataset} from 'sentry/views/explore/types';
-import {withReadableConditionalFilter} from 'sentry/views/explore/utils/conditionalAggregate';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
-import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+} from './multiQueryMode/locationUtils';
+import type {CrossEvent} from './queryParams/crossEvent';
+import type {Visualize} from './queryParams/visualize';
+import {makeReplaysPathname} from './replays/pathnames';
+import {getTargetWithReadableQueryParams} from './spans/spansQueryParams';
+import {withReadableConditionalFilter} from './utils/conditionalAggregate';
+import {parseConditionalAggregate} from './utils/parseConditionalAggregate';
+import {TraceItemDataset} from './types';
 
 export interface GetExploreUrlArgs {
   organization: Organization;
@@ -317,7 +319,7 @@ export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {
   return 'high';
 }
 
-import {generateTargetQuery} from 'sentry/views/explore/utils/generateTargetQuery';
+import {generateTargetQuery} from './utils/generateTargetQuery';
 
 export function viewSamplesTarget({
   location,

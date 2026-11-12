@@ -2,10 +2,13 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
 from sentry.issues.grouptype import (
     AIDetectedHTTPGroupType,
     FeedbackGroup,
@@ -34,8 +37,12 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_open_periods import (
     detector_opens_new_issue_per_activation,
+)
+from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
+    GroupOpenPeriodSerializer,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -49,6 +56,10 @@ class OrganizationOpenPeriodsTest(APITestCase):
     @property
     def endpoint(self) -> str:
         return "sentry-api-0-organization-open-periods"
+
+    def priority_str(self) -> str:
+        assert self.group.priority is not None
+        return PriorityLevel(self.group.priority).to_str()
 
     def setUp(self) -> None:
         super().setUp()
@@ -82,6 +93,26 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
         assert resp.data == []
 
+    def test_history_uses_associated_issue_types_without_matching_detector_group_type(self) -> None:
+        detector = self.create_detector(type=MetricIssue.slug)
+        allowed_issue = self.create_group(type=ErrorGroupType.type_id)
+        denied_issue = self.create_group(type=MetricIssue.type_id)
+        self.create_detector_group(detector=detector, group=allowed_issue)
+        self.create_detector_group(detector=detector, group=denied_issue)
+        assert GroupOpenPeriod.objects.filter(group=denied_issue).exists()
+
+        with (
+            patch.dict(grouptype.registry._slug_lookup),
+            self.options(
+                {"workflow_engine.group.type_id.open_periods_type_denylist": [MetricIssue.type_id]}
+            ),
+        ):
+            del grouptype.registry._slug_lookup[MetricIssue.slug]
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"detectorId": detector.id}
+            )
+        assert [period["groupId"] for period in response.data] == [str(allowed_issue.id)]
+
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(
             *self.get_url_args(), qs_params={"detectorId": self.detector.id}
@@ -96,7 +127,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -176,6 +207,25 @@ class OrganizationOpenPeriodsTest(APITestCase):
         self.get_error_response(
             *self.get_url_args(),
             qs_params={"detectorId": restricted_detector.id},
+            status_code=400,
+        )
+
+    def test_detector_id_returns_400_for_other_organization_detector(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        other_detector = self.create_detector(project=other_project)
+
+        self.get_error_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": other_detector.id},
+            status_code=400,
+        )
+
+    def test_detector_id_returns_400_for_all_projects_detector(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+
+        self.get_error_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": all_projects_detector.id},
             status_code=400,
         )
 
@@ -328,7 +378,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -414,7 +464,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp["activities"][0] == {
             "id": str(opened_gopa2.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": opened_gopa2.date_added,
             "eventId": None,
         }
@@ -435,7 +485,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert resp2["activities"][0] == {
             "id": str(self.opened_gopa.id),
             "type": OpenPeriodActivityType.OPENED.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": self.opened_gopa.date_added,
             "eventId": None,
         }
@@ -669,7 +719,7 @@ class OrganizationOpenPeriodsTest(APITestCase):
         assert open_period["activities"][0] == {
             "id": str(update_gopa.id),
             "type": OpenPeriodActivityType.STATUS_CHANGE.to_str(),
-            "value": PriorityLevel(self.group.priority).to_str(),
+            "value": self.priority_str(),
             "dateCreated": update_gopa.date_added,
             "eventId": "a" * 32,
         }
@@ -734,6 +784,135 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(open_period_2.id)
+
+
+@freeze_time()
+class GroupOpenPeriodGroupingTest(APITestCase):
+    endpoint = "sentry-api-0-organization-open-periods"
+
+    def assert_activity_grouping(self, activity_count: int) -> None:
+        group = self.create_group(
+            project=self.project,
+            type=MetricIssue.type_id,
+            priority=PriorityLevel.LOW,
+            first_seen=timezone.now() - timedelta(hours=1),
+        )
+        period = GroupOpenPeriod.objects.get(group=group)
+        activities = GroupOpenPeriodActivity.objects.bulk_create(
+            [
+                GroupOpenPeriodActivity(
+                    group_open_period_id=period.id,
+                    type=OpenPeriodActivityType.STATUS_CHANGE,
+                    value=PriorityLevel.LOW,
+                    event_id=f"{index:032x}",
+                )
+                for index in reversed(range(activity_count))
+            ]
+        )
+        # date_added is auto_now_add, so restore the deliberately reversed timestamps after insert.
+        for activity, index in zip(activities, reversed(range(activity_count))):
+            activity.date_added = group.first_seen + timedelta(seconds=index)
+        GroupOpenPeriodActivity.objects.bulk_update(activities, ["date_added"])
+        # get_attrs queries fresh activities; the fixture's FK caches cannot hide N+1s.
+        serializer = GroupOpenPeriodSerializer()
+        connection = connections[router.db_for_read(GroupOpenPeriodActivity)]
+        with CaptureQueriesContext(connection) as queries:
+            attrs = serializer.get_attrs([period], self.user)
+
+        assert len(queries) == 2
+        assert [activity["id"] for activity in attrs[period]["activities"]] == [
+            str(activity.id) for activity in reversed(activities)
+        ][:100]
+
+    def test_no_activities(self) -> None:
+        self.assert_activity_grouping(0)
+
+    def test_three_activities(self) -> None:
+        self.assert_activity_grouping(3)
+
+    def test_one_hundred_and_one_activities(self) -> None:
+        self.assert_activity_grouping(101)
+
+    def test_empty_period_list(self) -> None:
+        with CaptureQueriesContext(
+            connections[router.db_for_read(GroupOpenPeriodActivity)]
+        ) as queries:
+            attrs = GroupOpenPeriodSerializer().get_attrs([], self.user)
+
+        assert attrs == {}
+        assert len(queries) == 0
+
+    def test_multiple_periods_preserve_global_pre_window_activity(self) -> None:
+        base_time = timezone.now() - timedelta(hours=1)
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        groups = [
+            self.create_group(
+                project=self.project,
+                type=MetricIssue.type_id,
+                priority=PriorityLevel.LOW,
+                first_seen=base_time + timedelta(seconds=index),
+            )
+            for index in range(3)
+        ]
+        for group in groups:
+            self.create_detector_group(detector=detector, group=group)
+        periods = [GroupOpenPeriod.objects.get(group=group) for group in groups]
+        periods[0].update(date_ended=base_time + timedelta(seconds=30))
+        activity_specs = [(0, 21), (0, 20), (1, 12), (0, 10), (1, 9), (0, 5), (0, 1)]
+        activities = GroupOpenPeriodActivity.objects.bulk_create(
+            [
+                GroupOpenPeriodActivity(
+                    group_open_period_id=periods[period_index].id,
+                    type=OpenPeriodActivityType.STATUS_CHANGE,
+                    value=PriorityLevel.LOW,
+                    event_id=f"{seconds:032x}",
+                )
+                for period_index, seconds in activity_specs
+            ]
+        )
+        for activity, (_, seconds) in zip(activities, activity_specs):
+            activity.date_added = base_time + timedelta(seconds=seconds)
+        GroupOpenPeriodActivity.objects.bulk_update(activities, ["date_added"])
+        start = base_time + timedelta(seconds=10)
+        end = base_time + timedelta(seconds=20)
+        serializer = GroupOpenPeriodSerializer()
+        connection = connections[router.db_for_read(GroupOpenPeriodActivity)]
+        with CaptureQueriesContext(connection) as queries:
+            attrs = serializer.get_attrs(periods, self.user, query_start=start, query_end=end)
+
+        assert len(queries) == 3
+
+        # Only the globally latest pre-window row (period 1 at +9s) is carried forward.
+        selected_activities = [[activities[3], activities[1]], [activities[4], activities[2]], []]
+        expected_activity_ids = [
+            [str(activity.id) for activity in period_activities]
+            for period_activities in selected_activities
+        ]
+        assert [
+            [activity["id"] for activity in attrs[period]["activities"]] for period in periods
+        ] == expected_activity_ids
+        self.login_as(self.user)
+        with CaptureQueriesContext(connection) as endpoint_queries:
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={"detectorId": detector.id, "start": start, "end": end},
+            )
+
+        assert [period["id"] for period in response.data] == [
+            str(period.id) for period in reversed(periods)
+        ]
+        assert [
+            [activity["id"] for activity in period["activities"]] for period in response.data
+        ] == list(reversed(expected_activity_ids))
+        # Only the parent page and hit count should query periods, not activity grouping.
+        parent_queries = [
+            q for q in endpoint_queries if 'FROM "sentry_groupopenperiod"' in q["sql"]
+        ]
+        assert len(parent_queries) == 2
+        activity_queries = [
+            q for q in endpoint_queries if 'FROM "sentry_groupopenperiodactivity"' in q["sql"]
+        ]
+        assert len(activity_queries) == 2
 
 
 class DetectorOpensNewIssuePerActivationTest(TestCase):

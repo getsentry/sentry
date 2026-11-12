@@ -8,6 +8,7 @@ from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_typ
 from sentry.inbox.types import (
     InboxActor,
     InboxEventData,
+    InboxEventSummary,
     InboxEventType,
     InboxItemType,
 )
@@ -17,6 +18,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -60,20 +62,39 @@ class IssuePRReadyForReviewData(InboxEventData):
 ISSUE = IssueItemType()
 inbox_item_type_registry.register(ISSUE.subject_type)(ISSUE)
 
-ISSUE_ASSIGNED = InboxEventType(
-    event_type="issue.assigned", item_type=ISSUE, data_class=IssueAssignedData
+ISSUE_USER_ASSIGNED = InboxEventType(
+    event_type="issue.user_assigned",
+    item_type=ISSUE,
+    data_class=IssueAssignedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
+)
+ISSUE_TEAM_ASSIGNED = InboxEventType(
+    event_type="issue.team_assigned",
+    item_type=ISSUE,
+    data_class=IssueAssignedData,
+    notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
 )
 ISSUE_USER_MENTIONED = InboxEventType(
-    event_type="issue.user_mentioned", item_type=ISSUE, data_class=IssueMentionedData
+    event_type="issue.user_mentioned",
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_TEAM_MENTIONED = InboxEventType(
-    event_type="issue.team_mentioned", item_type=ISSUE, data_class=IssueMentionedData
+    event_type="issue.team_mentioned",
+    item_type=ISSUE,
+    data_class=IssueMentionedData,
+    notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
-    event_type="issue.pr_ready_for_review", item_type=ISSUE, data_class=IssuePRReadyForReviewData
+    event_type="issue.pr_ready_for_review",
+    item_type=ISSUE,
+    data_class=IssuePRReadyForReviewData,
+    notification_setting=NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
 )
 
-inbox_item_event_type_registry.register(ISSUE_ASSIGNED.event_type)(ISSUE_ASSIGNED)
+inbox_item_event_type_registry.register(ISSUE_USER_ASSIGNED.event_type)(ISSUE_USER_ASSIGNED)
+inbox_item_event_type_registry.register(ISSUE_TEAM_ASSIGNED.event_type)(ISSUE_TEAM_ASSIGNED)
 inbox_item_event_type_registry.register(ISSUE_USER_MENTIONED.event_type)(ISSUE_USER_MENTIONED)
 inbox_item_event_type_registry.register(ISSUE_TEAM_MENTIONED.event_type)(ISSUE_TEAM_MENTIONED)
 inbox_item_event_type_registry.register(ISSUE_PR_READY_FOR_REVIEW.event_type)(
@@ -112,10 +133,13 @@ def record_issue_assignment(
         return
 
     is_team = isinstance(assignee, Team)
-    ISSUE_ASSIGNED.record(
+    event_type = ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED
+    event_type.record(
         subject=group,
         data=IssueAssignedData(
-            summary="Assigned to your team" if is_team else "Assigned to you",
+            summary=InboxEventSummary.ISSUE_TEAM_ASSIGNED
+            if is_team
+            else InboxEventSummary.ISSUE_USER_ASSIGNED,
             assignment_source=assignment_source,
         ),
         recipient_user_ids=_get_recipient_user_ids(
@@ -139,7 +163,9 @@ def record_issue_user_mention(
 
     ISSUE_USER_MENTIONED.record(
         subject=group,
-        data=IssueMentionedData(summary="Mentioned you in a comment", comment_id=comment_id),
+        data=IssueMentionedData(
+            summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=comment_id
+        ),
         recipient_user_ids=_get_recipient_user_ids(group, user_ids=mentioned_user_ids, team_ids=[]),
         actor=actor,
     )
@@ -157,7 +183,9 @@ def record_issue_team_mention(
 
     ISSUE_TEAM_MENTIONED.record(
         subject=group,
-        data=IssueMentionedData(summary="Mentioned your team in a comment", comment_id=comment_id),
+        data=IssueMentionedData(
+            summary=InboxEventSummary.ISSUE_TEAM_MENTIONED, comment_id=comment_id
+        ),
         recipient_user_ids=_get_recipient_user_ids(group, user_ids=[], team_ids=mentioned_team_ids),
         actor=actor,
     )
@@ -175,7 +203,9 @@ def record_issue_pr_ready_for_review(
         ISSUE_PR_READY_FOR_REVIEW.record(
             subject=group,
             data=IssuePRReadyForReviewData(
-                summary="Pull request ready for review", pr_url=pr_url, seer_run_id=seer_run_id
+                summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
+                pr_url=pr_url,
+                seer_run_id=seer_run_id,
             ),
             recipient_user_ids=recipients,
             actor=actor,

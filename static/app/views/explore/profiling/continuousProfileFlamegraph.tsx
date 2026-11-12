@@ -24,8 +24,8 @@ import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useC
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
 
+import {ProfileGroupProvider} from './profileGroupProvider';
 import {useProfiles} from './profilesProvider';
 
 function ContinuousProfileFlamegraph(): React.ReactElement {

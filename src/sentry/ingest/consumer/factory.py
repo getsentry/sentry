@@ -19,6 +19,7 @@ from sentry.processing.backpressure.arroyo import HealthChecker, create_backpres
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 from .attachment_event import decode_and_process_chunks, process_attachments_and_events
+from .processors import IngestMessage
 from .simple_event import process_simple_event_message
 
 
@@ -149,7 +150,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # later step.
 
         assert self._attachments_pool is not None
-        processing_function = partial(
+        processing_function: Callable[[Message[IngestMessage | None]], None] = partial(
             process_attachments_and_events,
             reprocess_only_stuck_events=self.reprocess_only_stuck_events,
             reprocess_only_events_not_in_nodestore=self.reprocess_only_events_not_in_nodestore,
@@ -162,7 +163,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # to avoid arroyo from needlessly dispatching `None` messages.
         # However its currently not possible to make that `| None` disappear in the type.
 
-        def filter_fn(msg):
+        def filter_fn(msg: Message[FilteredPayload | IngestMessage | None]) -> bool:
             if not bool(msg.payload):
                 return False
 

@@ -16,6 +16,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.group_index import get_group_list
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.auth.principal import acting_user_id
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -85,7 +86,9 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
             )
 
         try:
-            data = get_supergroups_by_group_ids(organization, group_ids, user_id=request.user.id)
+            data = get_supergroups_by_group_ids(
+                organization, group_ids, user_id=acting_user_id(request.user)
+            )
         except SeerApiError as exc:
             return Response({"detail": "Failed to fetch supergroups"}, status=exc.status)
 

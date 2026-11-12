@@ -5,6 +5,7 @@ from typing import Any
 from sentry.testutils.cases import APITestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.types import IncidentStatus
+from sentry.utils import json
 
 MOCK_DATETIME = datetime.now(tz=timezone.utc) - timedelta(days=1)
 
@@ -23,7 +24,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         )
         self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
-        scenarios: list[dict] = [
+        scenarios: list[dict[str, Any]] = [
             {"check_status": "success"},
             {"check_status": "success"},
             {"check_status": "success"},
@@ -39,12 +40,12 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        check_duration_us=None,
-    ):
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+        check_duration_us: int | None = None,
+    ) -> None:
         """
         Store a single uptime data row. Must be implemented by subclasses.
         """
@@ -157,7 +158,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Invalid uptime detector ids provided"
+            assert json.loads(response.content) == "Invalid uptime detector ids provided"
 
     def test_no_detector_id(self) -> None:
         """Test that not sending any detector ID produces a 400 response."""
@@ -170,7 +171,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Uptime detector ids must be provided"
+            assert json.loads(response.content) == "Uptime detector ids must be provided"
 
     def test_too_many_detector_ids(self) -> None:
         """Test that sending too many detector IDs produces a 400 response."""
@@ -183,7 +184,10 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Too many uptime detector ids provided. Maximum is 100"
+            assert (
+                json.loads(response.content)
+                == "Too many uptime detector ids provided. Maximum is 100"
+            )
 
     def test_cross_project_access_denied(self) -> None:
         """Test that cross-project access is properly restricted."""
@@ -206,7 +210,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Invalid uptime detector ids provided"
+            assert json.loads(response.content) == "Invalid uptime detector ids provided"
 
     def test_success_only_scenario(self) -> None:
         """Test scenario with only successful checks."""
@@ -287,7 +291,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
                 until=datetime.now(timezone.utc).timestamp(),
             )
             assert response.status_code == 400
-            assert response.json() == "Uptime detector ids must be provided"
+            assert json.loads(response.content) == "Uptime detector ids must be provided"
 
 
 @freeze_time(MOCK_DATETIME)
@@ -298,13 +302,13 @@ class OrganizationUptimeSummaryEAPTest(
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        check_duration_us=None,
-    ):
-        kwargs = {
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+        check_duration_us: int | None = None,
+    ) -> None:
+        kwargs: dict[str, Any] = {
             "subscription_id": uuid.UUID(subscription_id).hex,
             "guid": uuid.UUID(subscription_id).hex,
             "request_url": "https://santry.io",

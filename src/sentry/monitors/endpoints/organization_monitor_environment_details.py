@@ -15,6 +15,9 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.monitors.models import Monitor, MonitorEnvironment
 from sentry.monitors.serializers import MonitorSerializer
 
 from .base import MonitorEndpoint
@@ -48,7 +51,12 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
         },
     )
     def put(
-        self, request: Request, organization, project, monitor, monitor_environment
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        monitor: Monitor,
+        monitor_environment: MonitorEnvironment,
     ) -> Response:
         """
         Update a monitor environment.
@@ -70,6 +78,11 @@ class OrganizationMonitorEnvironmentDetailsEndpoint(
         },
     )
     def delete(
-        self, request: Request, organization, project, monitor, monitor_environment
+        self,
+        request: Request,
+        organization: Organization,
+        project: Project,
+        monitor: Monitor,
+        monitor_environment: MonitorEnvironment,
     ) -> Response:
         return self.delete_monitor_environment(request, project, monitor, monitor_environment)

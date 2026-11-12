@@ -10,10 +10,10 @@ import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,15 +24,16 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {useOpenDashboardRevisions} from 'sentry/views/dashboards/dashboardRevisions';
-import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
-import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
-import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
-import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
-import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
-import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useDuplicateDashboard} from './hooks/useDuplicateDashboard';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DashboardCreateLimitWrapper} from './createLimitWrapper';
+import {useOpenDashboardRevisions} from './dashboardRevisions';
+import {useOpenEditAccessModal} from './editAccessModal';
+import {exportDashboard} from './exportDashboard';
+import {useOpenRenameDashboardModal} from './renameDashboardModal';
+import type {DashboardDetails, DashboardPermissions} from './types';
 
 /**
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
@@ -293,10 +294,7 @@ export function DashboardBreadcrumbTitle({
   // endpoint refuses, so offering it at all would only be something to explain.
   const canDelete =
     !isPrebuiltDashboard && isPersisted && hasEditAccess && defined(onDelete);
-  const canViewRevisions =
-    Boolean(dashboard.id) &&
-    !isPrebuiltDashboard &&
-    organization.features.includes('dashboards-edit');
+  const canViewRevisions = Boolean(dashboard.id) && !isPrebuiltDashboard;
   const handleToggleFavorite = async () => {
     const nextIsFavorited = !isFavorited;
     setIsFavorited(nextIsFavorited);

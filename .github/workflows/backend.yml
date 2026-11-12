@@ -23,7 +23,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -53,21 +53,41 @@ jobs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    env:
+      DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: ./.github/actions/setup-node-pnpm
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          skip-devservices: 'true'
+
+      # Only the pytest step needs devservices (~60s to pull and get healthy in
+      # default mode), so bring them up while node is set up and the specs build.
+      - name: Start devservices in the background
+        env:
+          ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+          DEVSERVICES_WORKDIR: .
+          DEVSERVICES_LOCKFILE: uv.lock
+          DEVSERVICES_MODE: default
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          sentry init
+          python3 .github/actions/setup-sentry/devservices-bg.py start
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build and validate API docs
+        run: make validate-api-docs
+
+      - name: Wait for devservices
+        run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
       - name: Run API docs tests
-        run: |
-          make test-api-docs
+        run: python3 -b -m pytest tests/apidocs --reuse-db
 
       - name: Inspect failure
         if: failure()
@@ -86,7 +106,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     needs: files-changed
     name: select tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -169,7 +189,7 @@ jobs:
       needs.files-changed.outputs.backend == 'true'
     needs: [files-changed, select-tests]
     name: calculate test shards
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 5
     outputs:
       shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
@@ -187,10 +207,18 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
 
+      - name: Download selected tests artifact
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
       - name: Calculate test shards
         id: calculate-shards
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
+          SELECTED_TESTS_FILE: .artifacts/selected-tests.txt
           SELECTED_TEST_ITEM_COUNT: ${{ needs.select-tests.outputs.test-item-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -203,7 +231,8 @@ jobs:
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test
-    runs-on: ubuntu-26.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -279,10 +308,14 @@ jobs:
 
       - name: Download odiff binary
         run: |
+          case "$(uname -m)" in
+            aarch64) odiff=odiff-linux-arm64 ;;
+            *) odiff=odiff-linux-x64 ;;
+          esac
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
+            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
+          sudo install -m 755 "$odiff" /usr/local/bin/odiff
+          rm "$odiff"
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
@@ -407,7 +440,7 @@ jobs:
       )
     needs: files-changed
     name: backend migration tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -477,7 +510,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -507,7 +540,7 @@ jobs:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
     name: requirements check
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -521,7 +554,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
 
       - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
@@ -547,7 +580,7 @@ jobs:
     if: needs.files-changed.outputs.backend_api_urls == 'true'
     needs: files-changed
     name: api url typescript generation
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -578,7 +611,7 @@ jobs:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
 
     steps:
       - name: Checkout sentry
@@ -608,7 +641,7 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: monolith-dbs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -623,9 +656,12 @@ jobs:
         id: setup
         with:
           mode: migrations
+          early-devservices: 'true'
 
+      # The backup tests are mostly waiting on postgres, so 4 workers cut ~4m to ~1.5m.
       - name: Run test
         run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n 4 --dist=load"
           make test-monolith-dbs
 
       - name: Report failures
@@ -651,14 +687,14 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -667,10 +703,11 @@ jobs:
           cache-dependency-path: uv.lock
           install-cmd: uv sync --frozen --active
 
+      - name: install sentry
+        run: uv pip install --no-deps -e .
+
       - name: setup sentry (lite)
-        run: |
-          python3 -m tools.fast_editable --path .
-          sentry init
+        run: sentry init
 
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
@@ -738,7 +775,7 @@ jobs:
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

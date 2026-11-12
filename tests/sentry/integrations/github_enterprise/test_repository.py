@@ -3,6 +3,7 @@ from functools import cached_property
 import responses
 
 from sentry.integrations.github_enterprise.repository import GitHubEnterpriseRepositoryProvider
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -38,7 +39,9 @@ class GitHubEnterpriseRepositoryTest(TestCase):
             "external_id": "654321",
             "integration_id": self.integration.id,
         }
-        rc_data = self.provider.build_repository_config(organization, data)
+        rc_data = self.provider.build_repository_config(
+            serialize_rpc_organization(organization), data
+        )
         assert rc_data == {
             "config": {"name": "getsentry/example-repo"},
             "external_id": "654321",

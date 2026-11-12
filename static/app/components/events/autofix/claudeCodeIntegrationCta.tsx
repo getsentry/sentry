@@ -1,5 +1,5 @@
-import {makeCodingAgentIntegrationCta} from 'sentry/components/events/autofix/codingAgentIntegrationCta';
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {makeCodingAgentIntegrationCta} from './codingAgentIntegrationCta';
+import {CodingAgentProvider} from './types';
 
 export const ClaudeCodeIntegrationCta = makeCodingAgentIntegrationCta({
   provider: 'claude_code',

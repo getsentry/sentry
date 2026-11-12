@@ -10,7 +10,6 @@ import {IconPlay} from '@sentry/icons/play';
 import {IconProject} from '@sentry/icons/project';
 import {IconReleases} from '@sentry/icons/releases';
 import {IconSeer} from '@sentry/icons/seer';
-import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
 import {IconStack} from '@sentry/icons/stack';
 import {IconTag} from '@sentry/icons/tag';
@@ -23,8 +22,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
+import {getSettingsScopeIcon} from 'sentry/views/settings/settingsScope';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {getNavigationConfiguration} from './navigationConfiguration';
 
 type ProjectSettingsCommandPaletteEntry = {
   display: {
@@ -55,7 +57,7 @@ type ProjectSettingsCommandPaletteSection = {
 };
 
 export const PROJECT_SETTINGS_ICONS: Record<string, ReactNode> = {
-  '': <IconSettings />,
+  '': getSettingsScopeIcon('project'),
   'alerts/': <IconSiren />,
   'debug-symbols/': <IconFile />,
   'environments/': <IconGlobe />,
@@ -86,9 +88,11 @@ function shouldShowItem(
 export function getProjectSettingsCommandPaletteSections({
   organization,
   project,
+  settingsV3,
 }: {
   organization: Organization;
   project: Project;
+  settingsV3?: boolean;
 }): ProjectSettingsCommandPaletteSection[] {
   const context = {
     access: new Set(organization.access),
@@ -107,6 +111,7 @@ export function getProjectSettingsCommandPaletteSections({
     debugFilesNeedsReview: false,
     organization,
     project,
+    settingsV3,
   })
     .map(section => {
       const label =
@@ -184,7 +189,12 @@ export function ProjectSettingsCommandPaletteActions({
   organization: Organization;
   project: Project;
 }) {
-  const sections = getProjectSettingsCommandPaletteSections({organization, project});
+  const settingsV3 = useSettingsV3();
+  const sections = getProjectSettingsCommandPaletteSections({
+    organization,
+    project,
+    settingsV3,
+  });
 
   return (
     <Fragment>

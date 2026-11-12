@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Generator, Mapping
 from enum import StrEnum
-from typing import Any, MutableMapping, TypedDict
+from typing import Any, MutableMapping, TypedDict, cast
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -119,7 +119,7 @@ class IntegrationProxyRequestValidator:
     integration_installation: IntegrationInstallation
     client: IntegrationProxyClient
 
-    def __init__(self, request: HttpRequest):
+    def __init__(self, request: HttpRequest) -> None:
         self.request = request
         # Removes leading slashes as it can result in incorrect urls being generated
         self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
@@ -136,7 +136,7 @@ class IntegrationProxyRequestValidator:
         )
         assert self.client is not None, "Expected validated request to have a client"
 
-    def _validate(self):
+    def _validate(self) -> None:
         """
         Validates various components of the request to ensure the sender is both
         trustworthy, and the request can be authenticated using the appropriate
@@ -151,7 +151,7 @@ class IntegrationProxyRequestValidator:
         self._validate_and_set_integration_installation()
         self._validate_and_set_client()
 
-    def _validate_silo_mode(self):
+    def _validate_silo_mode(self) -> None:
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
             raise IntegrationProxyRequestValidationException(
@@ -174,7 +174,7 @@ class IntegrationProxyRequestValidator:
             "provider": integration.provider if integration else UNKNOWN_PROVIDER,
         }
 
-    def _validate_sender(self):
+    def _validate_sender(self) -> None:
         """
         Validates the sender of the request and raises an exception if the sender is not trustworthy.
         A sender is considered trustworthy if they:
@@ -210,7 +210,7 @@ class IntegrationProxyRequestValidator:
                 },
             )
 
-    def _validate_and_set_organization_integration(self):
+    def _validate_and_set_organization_integration(self) -> None:
         """
         Extracts the organization integration id from the request headers and resolves it to an
         active OrganizationIntegration, which is set on the validator.
@@ -244,7 +244,7 @@ class IntegrationProxyRequestValidator:
 
         self.organization_integration = org_integration
 
-    def _validate_and_set_integration_installation(self):
+    def _validate_and_set_integration_installation(self) -> None:
         """
         Checks that the resolved organization integration points at an active integration, then
         instantiates that integration's installation. Both are set on the validator.
@@ -272,7 +272,7 @@ class IntegrationProxyRequestValidator:
             organization_id=org_integration.organization_id
         )
 
-    def _validate_and_set_client(self):
+    def _validate_and_set_client(self) -> None:
         """
         Acquires the API client from the installation and sets it on the validator.
         Raises an exception if the client is not valid.
@@ -317,20 +317,22 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     integration on behalf of credentials stored in the control silo.
     """
 
-    def __init__(self):
+    _client: IntegrationProxyClient
+
+    def __init__(self) -> None:
         super().__init__()
         self.log_extra = dict()
         self.provider = UNKNOWN_PROVIDER
 
     @property
-    def client(self):
+    def client(self) -> IntegrationProxyClient:
         """
         We need to use a property decorator and setter here to overwrite it for tests.
         """
         return self._client
 
     @client.setter
-    def client(self, client):
+    def client(self, client: IntegrationProxyClient) -> None:
         self._client = client
 
     def _add_metric(
@@ -371,14 +373,17 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         # default timeout when the header is absent or unparseable.
         timeout = decode_proxy_timeout(request.headers.get(PROXY_TIMEOUT_HEADER))
 
-        resp: Response = self.client.request(
-            request.method,
-            self.proxy_path,
-            allow_text=True,
-            prepared_request=prepared_request,
-            raw_response=True,
-            stream=True,
-            timeout=timeout,
+        resp = cast(
+            "Response",
+            self.client.request(
+                request.method,
+                self.proxy_path,
+                allow_text=True,
+                prepared_request=prepared_request,
+                raw_response=True,
+                stream=True,
+                timeout=timeout,
+            ),
         )
 
         def iter_response(response: Response) -> Generator[bytes]:
@@ -408,7 +413,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
 
     @traces.trace(attributes={"sentry.op": "integration_proxy.http_method_not_allowed"})
-    def http_method_not_allowed(self, request):
+    def http_method_not_allowed(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
@@ -438,6 +443,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             )
 
             base_url = request.headers.get(PROXY_BASE_URL_HEADER)
+            assert base_url is not None
             base_url = base_url.rstrip("/")
 
             full_url = urljoin(f"{base_url}/", self.proxy_path)

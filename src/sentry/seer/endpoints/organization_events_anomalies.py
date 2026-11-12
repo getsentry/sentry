@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -49,7 +53,9 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
         },
         examples=OrganizationExamples.GET_HISTORICAL_ANOMALIES,
     )
-    def _format_historical_data(self, data) -> list[TimeSeriesPoint] | None:
+    def _format_historical_data(
+        self, data: Sequence[tuple[int, Mapping[str, int | None]]] | None
+    ) -> list[TimeSeriesPoint] | None:
         """
         Format EventsStatsData into the format that the Seer API expects.
         EventsStatsData is a list of lists with this format:

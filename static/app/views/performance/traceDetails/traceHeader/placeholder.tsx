@@ -1,6 +1,5 @@
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -29,15 +28,7 @@ export function PlaceHolder({
         <Flex justify="between" align="center" gap="md">
           <TraceBreadcrumbs organization={organization} traceSlug={traceSlug} />
           <Grid flow="column" align="center" gap="md">
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                feedbackOptions={traceViewFeedbackOptions}
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
+            <TopBar.Slot name="feedback" feedbackOptions={traceViewFeedbackOptions} />
           </Grid>
         </Flex>
         <TraceHeaderComponents.HeaderGrid>

@@ -6,8 +6,10 @@ import random
 import uuid
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
+from typing import cast
 from uuid import UUID
 
+from redis.client import StrictRedis
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_DISALLOWED_BY_ROBOTS,
     CHECKSTATUS_FAILURE,
@@ -15,6 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_SUCCESS,
     CheckResult,
 )
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.conf.types.kafka_definition import Topic
@@ -177,7 +180,7 @@ def create_uptime_response_capture(
     capture = UptimeResponseCapture.objects.create(
         uptime_subscription=subscription,
         file_id=file.id,
-        scheduled_check_time_ms=result["scheduled_check_time_ms"],
+        scheduled_check_time_ms=cast(int, result["scheduled_check_time_ms"]),
     )
 
     metrics.incr("uptime.response_capture.created", sample_rate=1.0)
@@ -312,7 +315,7 @@ def create_backfill_misses(
     result: CheckResult,
     last_update_ms: int,
     metric_tags: dict[str, str],
-    cluster,
+    cluster: RedisCluster[str] | StrictRedis[str],
 ) -> None:
     """
     Create synthetic missed check results for gaps in the check timeline.
@@ -407,7 +410,7 @@ def process_result_internal(
     uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
-    cluster,
+    cluster: RedisCluster[str] | StrictRedis[str],
     subscription_regions: list[UptimeSubscriptionRegion],
 ) -> None:
     """
@@ -484,7 +487,7 @@ def handle_active_result(
     uptime_subscription: UptimeSubscription,
     result: CheckResult,
     metric_tags: dict[str, str],
-):
+) -> None:
     packet = UptimePacketValue(
         check_result=result,
         subscription=uptime_subscription,
@@ -507,7 +510,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         subscription: UptimeSubscription,
         result: CheckResult,
         metric_tags: dict[str, str],
-        cluster,
+        cluster: RedisCluster[str] | StrictRedis[str],
     ) -> None:
         """
         Queue an out-of-order result for retry processing.
@@ -594,7 +597,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             if lock_ctx is not None:
                 lock_ctx.__exit__(None, None, None)
 
-    def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
+    def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult) -> None:
         if random.random() < 0.01:
             logger.info("process_result", extra=result)
 
@@ -630,6 +633,27 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 logger.exception("disallowed_by_robots.error", extra={"error": e, "result": result})
             return
 
+        try:
+            detector = _get_detector_for_subscription(subscription)
+        except Detector.DoesNotExist:
+            # Nothing to do if there's an orphaned uptime subscription
+            delete_uptime_subscription(subscription)
+            return
+
+        if not detector.enabled:
+            # A DISABLED subscription has no enabled detectors left, so any result means the
+            # checker missed the removal. Remove it again; an ACTIVE subscription may still be
+            # serving another detector. This runs before the shadow-region check so a stranded
+            # shadow config gets removed too.
+            if subscription.status == UptimeSubscription.Status.DISABLED.value:
+                send_uptime_config_deletion(result["region"], result["subscription_id"])
+                metrics.incr(
+                    "uptime.result_processor.disabled_subscription_config_removed",
+                    sample_rate=1.0,
+                    tags={"uptime_region": result.get("region", "default")},
+                )
+            return
+
         # Discard shadow mode region results
         if is_shadow_region_result(result, subscription_regions):
             metrics.incr(
@@ -639,18 +663,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             )
             return
 
-        try:
-            detector = _get_detector_for_subscription(subscription)
-        except Detector.DoesNotExist:
-            # Nothing to do if there's an orphaned uptime subscription
-            delete_uptime_subscription(subscription)
-            return
-
         organization = detector.linked_project.organization
-
-        # Nothing to do if this subscription is disabled.
-        if not detector.enabled:
-            return
 
         # Nothing to do if the feature isn't enabled
         if not features.has("organizations:uptime", organization):

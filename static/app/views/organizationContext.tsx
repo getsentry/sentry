@@ -1,5 +1,7 @@
 import {useEffect, useRef, type ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
@@ -47,11 +49,16 @@ function setRecentBootstrapTag(orgSlug: string) {
  * OrganizationStore if it is not already present.
  */
 export function OrganizationContextProvider({children}: Props) {
-  const configStore = useLegacyStore(ConfigStore);
+  const {lastOrganization, user: configUser} = useStore(
+    ConfigStore,
+    useShallow(state => ({lastOrganization: state.lastOrganization, user: state.user}))
+  );
   const {organizations} = useLegacyStore(OrganizationsStore);
-  const {organization, error} = useLegacyStore(OrganizationStore);
-  const lastOrganizationSlug =
-    configStore.lastOrganization ?? organizations[0]?.slug ?? null;
+  const {organization, error} = useStore(
+    OrganizationStore,
+    useShallow(state => ({organization: state.organization, error: state.error}))
+  );
+  const lastOrganizationSlug = lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
   const spanRef = useRef<Sentry.Span | null>(null);
 
@@ -100,7 +107,7 @@ export function OrganizationContextProvider({children}: Props) {
 
   // XXX(epurkhiser): User may be null in some scenarios at this point in app
   // boot. We should fix the types here in the future
-  const user: User | null = configStore.user;
+  const user: User | null = configUser;
 
   // It may be possible for the user to use the sudo modal to load the organization.
   useEffect(() => {

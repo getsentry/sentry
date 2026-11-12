@@ -160,7 +160,7 @@ def create_uptime_subscription(
             mode=region_config.mode,
         )
 
-    def commit_tasks():
+    def commit_tasks() -> None:
         create_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
 
@@ -180,7 +180,7 @@ def update_uptime_subscription(
     trace_sampling: bool | NotSet = NOT_SET,
     assertion: Any | NotSet = NOT_SET,
     response_capture_enabled: bool | NotSet = NOT_SET,
-):
+) -> None:
     """
     Updates an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
     config to the uptime check system.
@@ -209,8 +209,14 @@ def update_uptime_subscription(
     elif new_response_capture_enabled and not subscription.response_capture_enabled:
         new_capture_response_on_failure = True
 
+    # Editing a disabled monitor must not publish it, or the checker runs it while its detector
+    # stays disabled. enable_uptime_detector publishes the latest config on re-enable.
+    # Callers pass a cached instance, and a rolled-back disable can leave DISABLED in the cache.
+    subscription.refresh_from_db(fields=["status"])
+    is_disabled = subscription.status == UptimeSubscription.Status.DISABLED.value
+
     subscription.update(
-        status=UptimeSubscription.Status.UPDATING.value,
+        status=subscription.status if is_disabled else UptimeSubscription.Status.UPDATING.value,
         url=url,
         url_domain=result.domain,
         url_domain_suffix=result.suffix,
@@ -228,8 +234,9 @@ def update_uptime_subscription(
     # Associate active regions with this subscription
     check_and_update_regions(subscription, load_regions_for_uptime_subscription(subscription.id))
 
-    def commit_tasks():
-        update_remote_uptime_subscription.delay(subscription.id)
+    def commit_tasks() -> None:
+        if not is_disabled:
+            update_remote_uptime_subscription.delay(subscription.id)
         fetch_subscription_rdap_info.delay(subscription.id)
         if interval_updated:
             last_interval_change_key = build_last_interval_change_timestamp_key(detector)
@@ -240,7 +247,7 @@ def update_uptime_subscription(
     transaction.on_commit(commit_tasks, using=router.db_for_write(UptimeSubscription))
 
 
-def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
+def delete_uptime_subscription(uptime_subscription: UptimeSubscription) -> None:
     """
     Deletes an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
     deletion to the external system and remove the row once successful.
@@ -397,7 +404,7 @@ def update_uptime_detector(
     downtime_threshold: int | NotSet = NOT_SET,
     assertion: Any | NotSet = NOT_SET,
     response_capture_enabled: bool | NotSet = NOT_SET,
-):
+) -> None:
     """
     Updates a uptime detector and its associated uptime subscription.
     """
@@ -474,7 +481,7 @@ def update_uptime_detector(
     detector.refresh_from_db()
 
 
-def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
+def disable_uptime_detector(detector: Detector, skip_quotas: bool = False) -> None:
     """
     Disables a uptime detector. If the UptimeSubscription no longer has any active
     detectors, it will also be disabled.
@@ -510,7 +517,10 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
 
         # Are there any other detectors associated to the subscription
         # that are still enabled?
+        # source_id is only unique per data source type. Without the type filter, an enabled
+        # detector on another kind of data source with the same id keeps this subscription active.
         has_active_subscription = Detector.objects.filter(
+            data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             data_sources__source_id=str(uptime_subscription.id),
             enabled=True,
             status=ObjectStatus.ACTIVE,
@@ -520,7 +530,13 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
         # and remove the remote subscription.
         if not has_active_subscription:
             uptime_subscription.update(status=UptimeSubscription.Status.DISABLED.value)
-            delete_remote_uptime_subscription.delay(uptime_subscription.id)
+            # Callers such as billing rollover disable detectors inside a longer outer
+            # transaction. Queued before commit, the task can still read ACTIVE, skip the
+            # removal, and leave the checker running a disabled monitor indefinitely.
+            transaction.on_commit(
+                lambda: delete_remote_uptime_subscription.delay(uptime_subscription.id),
+                using=router.db_for_write(UptimeSubscription),
+            )
 
 
 def ensure_uptime_seat(detector: Detector) -> None:
@@ -537,7 +553,7 @@ def ensure_uptime_seat(detector: Detector) -> None:
 
 def enable_uptime_detector(
     detector: Detector, ensure_assignment: bool = False, skip_quotas: bool = False
-):
+) -> None:
     """
     Enable a uptime detector. If the uptime subscription was also disabled it
     will be re-activated and the remote subscription will be published.
@@ -572,11 +588,11 @@ def enable_uptime_detector(
         )
 
 
-def remove_uptime_seat(detector: Detector):
+def remove_uptime_seat(detector: Detector) -> None:
     quotas.backend.remove_seat(seat_object=detector)
 
 
-def delete_uptime_detector(detector: Detector):
+def delete_uptime_detector(detector: Detector) -> None:
     uptime_subscription = get_uptime_subscription(detector)
 
     remove_uptime_seat(detector)
@@ -662,13 +678,13 @@ def check_and_update_regions(
 
 
 class MaxUrlsForDomainReachedException(Exception):
-    def __init__(self, domain, suffix, max_urls):
+    def __init__(self, domain: str, suffix: str, max_urls: int) -> None:
         self.domain = domain
         self.suffix = suffix
         self.max_urls = max_urls
 
 
-def check_url_limits(url):
+def check_url_limits(url: str) -> None:
     """
     Determines if a URL's domain has reached the global maximum (MAX_MONITORS_PER_DOMAIN).
     In the case that it has a `MaxUrlsForDomainReachedException` will be raised.

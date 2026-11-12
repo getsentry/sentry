@@ -64,7 +64,8 @@ class IssueItemTypeTest(TestCase):
 @pytest.mark.parametrize(
     "event_type, data_class",
     [
-        ("issue.assigned", IssueAssignedData),
+        ("issue.user_assigned", IssueAssignedData),
+        ("issue.team_assigned", IssueAssignedData),
         ("issue.user_mentioned", IssueMentionedData),
         ("issue.team_mentioned", IssueMentionedData),
         ("issue.pr_ready_for_review", IssuePRReadyForReviewData),
@@ -98,7 +99,7 @@ class IssueProducerRecordingTest(TestCase):
         GroupAssignee.objects.assign(self.group, assignee, acting_user=self.user)
 
         event = InboxItemEvent.objects.get()
-        assert event.type == "issue.assigned"
+        assert event.type == "issue.user_assigned"
         assert event.inbox_item.user_id == assignee.id
         assert event.inbox_item.organization_id == self.organization.id
         assert event.inbox_item.subject_id == str(self.group.id)
@@ -122,6 +123,7 @@ class IssueProducerRecordingTest(TestCase):
         GroupAssignee.objects.assign(self.group, self.team, acting_user=self.user)
 
         event = InboxItemEvent.objects.get()
+        assert event.type == "issue.team_assigned"
         assert event.inbox_item.user_id == teammate.id
         assert event.data == {"summary": "Assigned to your team", "assignment_source": None}
 
@@ -432,7 +434,7 @@ class IssueProducerRecordingTest(TestCase):
         self.create_member(organization=self.organization, user=mentioned)
 
         with patch(
-            "sentry.inbox.types.InboxItemEvent.objects.create",
+            "sentry.inbox.types.InboxItemEvent.objects.bulk_create",
             side_effect=IntegrityError("write failed"),
         ):
             note = create_comment(

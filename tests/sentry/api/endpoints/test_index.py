@@ -1,13 +1,17 @@
+from django.test import override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 @control_silo_test
-def test_anonymous(client) -> None:
+def test_anonymous(client: APIClient) -> None:
     response = client.get(reverse("sentry-api-index"))
     assert response.status_code == 200
     assert response.data["version"] == "0"
@@ -54,4 +58,24 @@ class ApiIndexTest(APITestCase):
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 200
         # Deprecated scope translations (org:read -> dashboard:*) are not reported.
+        assert response.data["auth"]["scopes"] == ["org:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_user(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        response = self.client.get(
+            reverse("sentry-api-index"), HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["user"] is None
         assert response.data["auth"]["scopes"] == ["org:read"]

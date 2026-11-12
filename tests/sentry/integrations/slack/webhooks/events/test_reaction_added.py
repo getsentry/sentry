@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.silo import assume_test_silo_mode_of
 
@@ -22,7 +22,7 @@ AUTHORIZATIONS_DATA = {"authorizations": [{"user_id": BOT_USER_ID, "is_bot": Tru
 
 
 class ReactionAddedEventTest(BaseEventTest):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode_of(type(self.integration)):
             self.integration.metadata["bot_user_id"] = BOT_USER_ID
@@ -30,7 +30,7 @@ class ReactionAddedEventTest(BaseEventTest):
         self.link_identity(user=self.user, slack_user_id="U1234567890")
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_reaction_for_slack.apply_async")
-    def test_thumbs_reacts_dispatches_task(self, mock_process_reaction):
+    def test_thumbs_reacts_dispatches_task(self, mock_process_reaction: MagicMock) -> None:
         event_data = {**REACTION_ADDED_EVENT, "reaction": "+1"}
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=event_data, data=AUTHORIZATIONS_DATA)
@@ -57,7 +57,7 @@ class ReactionAddedEventTest(BaseEventTest):
         assert kwargs["reaction"] == "-1"
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_reaction_for_slack.apply_async")
-    def test_supports_skin_tones(self, mock_process_reaction):
+    def test_supports_skin_tones(self, mock_process_reaction: MagicMock) -> None:
         event_data = {**REACTION_ADDED_EVENT, "reaction": "+1::skin-tone-5"}
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=event_data, data=AUTHORIZATIONS_DATA)
@@ -74,7 +74,7 @@ class ReactionAddedEventTest(BaseEventTest):
         mock_process_reaction.assert_called_once()
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_reaction_for_slack.apply_async")
-    def test_unsupported_reaction_ignored(self, mock_process_reaction):
+    def test_unsupported_reaction_ignored(self, mock_process_reaction: MagicMock) -> None:
         event_data = {**REACTION_ADDED_EVENT, "reaction": "heart"}
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=event_data, data=AUTHORIZATIONS_DATA)
@@ -83,7 +83,7 @@ class ReactionAddedEventTest(BaseEventTest):
         mock_process_reaction.assert_not_called()
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_reaction_for_slack.apply_async")
-    def test_non_bot_message_ignored(self, mock_process_reaction):
+    def test_non_bot_message_ignored(self, mock_process_reaction: MagicMock) -> None:
         event_data = {**REACTION_ADDED_EVENT, "item_user": "U_ANOTHER_USER"}
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(event_data=event_data, data=AUTHORIZATIONS_DATA)
@@ -92,7 +92,7 @@ class ReactionAddedEventTest(BaseEventTest):
         mock_process_reaction.assert_not_called()
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_reaction_for_slack.apply_async")
-    def test_non_message_item_ignored(self, mock_process_reaction):
+    def test_non_message_item_ignored(self, mock_process_reaction: MagicMock) -> None:
         event_data = {
             **REACTION_ADDED_EVENT,
             "item": {"type": "file", "file": "F1234567890"},
@@ -104,7 +104,7 @@ class ReactionAddedEventTest(BaseEventTest):
         mock_process_reaction.assert_not_called()
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_reaction_for_slack.apply_async")
-    def test_no_item_user_does_not_dispatch(self, mock_process_reaction):
+    def test_no_item_user_does_not_dispatch(self, mock_process_reaction: MagicMock) -> None:
         """When item_user is absent, it won't match bot_user_id so we don't dispatch."""
         event_data = {k: v for k, v in REACTION_ADDED_EVENT.items() if k != "item_user"}
         with self.feature(SEER_EXPLORER_FEATURES):

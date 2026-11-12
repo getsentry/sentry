@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Heading} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';

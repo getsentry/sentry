@@ -1,5 +1,5 @@
 import hashlib
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -17,6 +17,7 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -33,7 +34,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -259,7 +262,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert serializer.validate_web_url("http://swarm.example.com") == "http://swarm.example.com"
 
     @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
-    def test_serializer_normalizes_schemeless_web_url_end_to_end(self, mock_safe_hostname) -> None:
+    def test_serializer_normalizes_schemeless_web_url_end_to_end(
+        self, mock_safe_hostname: MagicMock
+    ) -> None:
         """
         Exercise the full serializer, not just validate_web_url directly. With a URLField
         the field-level URLValidator rejected schemeless input before validate_web_url ran,
@@ -304,7 +309,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert url == "p4://myproject/app/services/processor.cpp"
 
     @patch("sentry.integrations.perforce.client.PerforceClient.get_depots")
-    def test_get_repositories_derives_external_id_from_depot_path(self, mock_get_depots) -> None:
+    def test_get_repositories_derives_external_id_from_depot_path(
+        self, mock_get_depots: MagicMock
+    ) -> None:
         """
         get_repositories() must return a depot-path external_id (not empty) so
         periodic repo sync can diff against stored repos. The external_id must
@@ -342,7 +349,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert self.installation.get_repo_external_id({"name": "depot"}) == "//depot"
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_absolute_depot_path(self, mock_check_file):
+    def test_check_file_absolute_depot_path(self, mock_check_file: MagicMock) -> None:
         """Test check_file with absolute depot path (//depot/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         result = self.installation._check_file(self.repo, "//depot/app/services/processor.cpp")
@@ -350,7 +357,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "//depot/app/services/processor.cpp" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_path_with_depot_name(self, mock_check_file):
+    def test_check_file_path_with_depot_name(self, mock_check_file: MagicMock) -> None:
         """Test check_file with path starting with depot name (depot/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         result = self.installation._check_file(self.repo, "depot/app/services/processor.cpp")
@@ -360,7 +367,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "depot/depot" not in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_relative_path(self, mock_check_file):
+    def test_check_file_relative_path(self, mock_check_file: MagicMock) -> None:
         """Test check_file with normal relative path (app/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         result = self.installation._check_file(self.repo, "app/services/processor.cpp")
@@ -368,7 +375,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "//depot/app/services/processor.cpp" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_with_revision_syntax_absolute(self, mock_check_file):
+    def test_check_file_with_revision_syntax_absolute(self, mock_check_file: MagicMock) -> None:
         """Test check_file with #revision syntax on absolute path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         result = self.installation._check_file(self.repo, "//depot/app/services/processor.cpp#1")
@@ -376,7 +383,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "#1" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_with_revision_syntax_depot_name(self, mock_check_file):
+    def test_check_file_with_revision_syntax_depot_name(self, mock_check_file: MagicMock) -> None:
         """Test check_file with #revision syntax on path with depot name"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         result = self.installation._check_file(self.repo, "depot/app/services/processor.cpp#1")
@@ -385,7 +392,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "depot/depot" not in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_check_file_with_revision_syntax_relative(self, mock_check_file):
+    def test_check_file_with_revision_syntax_relative(self, mock_check_file: MagicMock) -> None:
         """Test check_file with #revision syntax on relative path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         result = self.installation._check_file(self.repo, "app/services/processor.cpp#1")
@@ -393,7 +400,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
         assert "#1" in result
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_get_stacktrace_link(self, mock_check_file):
+    def test_get_stacktrace_link(self, mock_check_file: MagicMock) -> None:
         """Test get_stacktrace_link returns format_source_url result"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
         filepath = "app/services/processor.cpp#1"
@@ -411,8 +418,8 @@ class PerforceIntegrationTest(IntegrationTestCase):
     )
     @patch("sentry.integrations.source_code_management.repository.metrics.incr")
     def test_get_stacktrace_link_records_file_check_as_unavailable(
-        self, mock_incr, _mock_check_file
-    ):
+        self, mock_incr: MagicMock, _mock_check_file: MagicMock
+    ) -> None:
         result = self.installation.get_stacktrace_link(
             self.repo, "app/services/processor.cpp", "", None
         )
@@ -428,7 +435,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
         )
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
-    def test_get_stacktrace_link_changelist_not_url_encoded(self, mock_check_file):
+    def test_get_stacktrace_link_changelist_not_url_encoded(
+        self, mock_check_file: MagicMock
+    ) -> None:
         """
         A changelist arriving as `version` renders as Perforce '@<changelist>' syntax in
         the p4:// fallback. `@` is a valid path character and must survive the encode_url
@@ -534,7 +543,9 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
                 validate_p4port_transport(value)
 
     @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
-    def test_validate_p4port_transport_allows_host_port(self, mock_safe_hostname) -> None:
+    def test_validate_p4port_transport_allows_host_port(
+        self, mock_safe_hostname: MagicMock
+    ) -> None:
         for value in (
             "perforce.example.com:1666",
             "test-host.example.com:1666",
@@ -545,7 +556,9 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
             validate_p4port_transport(value)
 
     @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
-    def test_validate_p4port_transport_allows_every_transport(self, mock_safe_hostname) -> None:
+    def test_validate_p4port_transport_allows_every_transport(
+        self, mock_safe_hostname: MagicMock
+    ) -> None:
         for transport in (
             "tcp",
             "tcp4",
@@ -574,7 +587,7 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
                 validate_p4port_transport(f"{transport}:perforce.example.com:1666")
 
     @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
-    def test_serializer_accepts_valid_p4port(self, mock_safe_hostname) -> None:
+    def test_serializer_accepts_valid_p4port(self, mock_safe_hostname: MagicMock) -> None:
         serializer = PerforceInstallationSerializer(data=self._base_payload())
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["p4port"] == "ssl:perforce.example.com:1666"
@@ -641,7 +654,7 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
 
     @patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
     def test_update_organization_config_accepts_and_normalizes_p4port(
-        self, mock_safe_hostname
+        self, mock_safe_hostname: MagicMock
     ) -> None:
         installation = self._installation_for_update("perforce-update-ok")
         installation.update_organization_config({"p4port": "tcp:perforce.example.com:1666/"})
@@ -662,7 +675,9 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -724,7 +739,9 @@ class PerforceIntegrationDepotPathTest(IntegrationTestCase):
             name="Perforce",
             external_id="perforce-test",
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
 
     def test_multiple_depots(self) -> None:
         """Test handling multiple depot configurations"""
@@ -796,7 +813,9 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -1007,7 +1026,7 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
 class PerforceApiPipelineTest(APITestCase):
     endpoint = "sentry-api-0-organization-pipeline"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         patcher = patch("sentry.integrations.perforce.client.is_safe_hostname", return_value=True)
@@ -1039,7 +1058,7 @@ class PerforceApiPipelineTest(APITestCase):
         "sentry.integrations.perforce.integration.PerforceClient.get_depots",
         return_value=[{"name": "depot"}],
     )
-    def test_successful_connection(self, mock_get_depots) -> None:
+    def test_successful_connection(self, mock_get_depots: MagicMock) -> None:
         pipeline = self._init_pipeline_in_session()
         pipeline.set_api_mode()
         url = self._get_pipeline_url()
@@ -1068,7 +1087,7 @@ class PerforceApiPipelineTest(APITestCase):
         "sentry.integrations.perforce.integration.PerforceClient.get_depots",
         side_effect=ApiUnauthorized("bad credentials"),
     )
-    def test_auth_failure_returns_error(self, mock_get_depots) -> None:
+    def test_auth_failure_returns_error(self, mock_get_depots: MagicMock) -> None:
         pipeline = self._init_pipeline_in_session()
         pipeline.set_api_mode()
         url = self._get_pipeline_url()
@@ -1092,7 +1111,7 @@ class PerforceApiPipelineTest(APITestCase):
         "sentry.integrations.perforce.integration.PerforceClient.get_depots",
         side_effect=ApiError("connection refused"),
     )
-    def test_connection_failure_returns_error(self, mock_get_depots) -> None:
+    def test_connection_failure_returns_error(self, mock_get_depots: MagicMock) -> None:
         pipeline = self._init_pipeline_in_session()
         pipeline.set_api_mode()
         url = self._get_pipeline_url()

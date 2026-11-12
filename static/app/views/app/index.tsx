@@ -1,6 +1,7 @@
 import {lazy, Suspense, useCallback, useEffect} from 'react';
 import {Outlet} from 'react-router';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -16,7 +17,6 @@ import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Config} from 'sentry/types/system';
 import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
@@ -26,8 +26,9 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
-import {AppProviders} from 'sentry/views/app/appProviders';
-import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
+
+import {AppProviders} from './appProviders';
+import {useGlobalAlerts} from './globalAlerts';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -41,7 +42,7 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 function AppAlerts() {
   const {addAlert} = useGlobalAlerts();
   const api = useApi();
-  const config = useLegacyStore(ConfigStore);
+  const config = useStore(ConfigStore);
   const preloadData = shouldPreloadData(config);
 
   useEffect(() => {
@@ -165,7 +166,7 @@ function AppBody({
 export function App() {
   const api = useApi();
   const user = useUser();
-  const config = useLegacyStore(ConfigStore);
+  const config = useStore(ConfigStore);
   const preloadData = shouldPreloadData(config);
 
   /**

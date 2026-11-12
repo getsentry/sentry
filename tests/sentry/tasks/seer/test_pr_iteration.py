@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 from typing import Any, Literal
@@ -1480,7 +1481,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger: MagicMock,
     ) -> None:
         mock_fetch.return_value = self._state()
-        body = lambda: Feedback(
+        body: Callable[[], Feedback] = lambda: Feedback(
             source=GithubPrReviewBodyFeedbackSource(review_id=500, body="summary")
         )
         mock_pop.return_value = [self._queued(body()), self._queued(body())]

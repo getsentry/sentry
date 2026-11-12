@@ -68,7 +68,7 @@ class OrganizationEventsRoutingHintTest(TestCase):
 
 
 class OrganizationEventsEndpointBaseGetDatasetTest(TestCase):
-    def resolve(self, dataset_label: str, **params: str):
+    def resolve(self, dataset_label: str, **params: str) -> object:
         request = drf_request_from_request(
             RequestFactory().get("/", {"dataset": dataset_label, **params})
         )

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, get_args
+from typing import Any
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
@@ -12,7 +14,6 @@ from django.db.models import Max
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.auth.access import from_user
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -20,13 +21,16 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_kinds.base import FollowUpCommandType
+from sentry.investigations.services.actor_access import (
+    resolve_investigation_service_account,
+    user_can_investigate,
+)
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
+    resolve_investigation_source,
 )
 from sentry.models.organization import Organization
-from sentry.notebooks.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlockExecution,
@@ -35,16 +39,15 @@ from sentry.notebooks.models import (
     NotebookStatus,
 )
 from sentry.notebooks.services.notebooks import (
-    InvestigationConflictError,
-    InvestigationSourceNotFound,
-    InvestigationValidationError,
-    _create_project_links,
+    NotebookConflictError,
+    NotebookSourceNotFound,
+    NotebookValidationError,
     _validate_project_ids,
-    archive_investigation,
-    default_investigation_title,
-    update_investigation,
+    archive_notebook_row,
+    create_notebook,
+    default_notebook_title,
+    update_notebook_row,
 )
-from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.users.services.user.service import user_service
 from sentry.viewer_context import ActorId, ActorType
 
@@ -73,6 +76,7 @@ __all__ = [
     "create_agentic_breached_metric_investigation",
     "create_agentic_manual_investigation",
     "get_orchestration_projection",
+    "start_investigation",
     "update_investigation_with_orchestration",
 ]
 
@@ -149,30 +153,18 @@ def _validate_creation_actor(
         or type(creator.id) is not int
         or creator.id <= 0
     ):
-        raise InvestigationValidationError(
+        raise NotebookValidationError(
             {"creator": "A user or service account with a positive integer ID is required."}
         )
     if creator.type == ActorType.USER:
-        user = user_service.get_user(user_id=creator.id)
-        access = from_user(user, organization=organization)
-        if not any(access.has_scope(scope) for scope in INVESTIGATION_SCOPES) or not (
-            has_investigations_access(organization, actor=user)
-        ):
+        if not user_can_investigate(organization, user_service.get_user(user_id=creator.id)):
             raise PermissionDenied
+        # Open membership grants authorized human members access to every active project.
+        _validate_project_ids(organization.id, project_ids)
     else:
-        try:
-            account = ServiceAccountReplica.objects.get(
-                service_account_id=creator.id, organization_id=organization.id, is_active=True
-            )
-        except ServiceAccountReplica.DoesNotExist as error:
-            raise PermissionDenied from error
-        if not INVESTIGATION_SCOPES.intersection(
-            account.scope_list
-        ) or not has_investigations_access(organization):
-            raise PermissionDenied
-
-    # Open membership grants authorized members access to every active organization project.
-    _validate_project_ids(organization.id, project_ids)
+        resolve_investigation_service_account(
+            organization=organization, account_id=creator.id, project_ids=project_ids
+        )
 
 
 def _create_agentic_investigation(
@@ -191,20 +183,20 @@ def _create_agentic_investigation(
     """Create the notebook and its parent control-plane aggregate atomically."""
 
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        investigation = Notebook.objects.create(
+        investigation = create_notebook(
             organization=organization,
             created_by_id=creator.id if creator.type == ActorType.USER else None,
             created_by_service_account_id=(
                 creator.id if creator.type == ActorType.SERVICE_ACCOUNT else None
             ),
-            title=title or default_investigation_title(source_type),
+            title=title or default_notebook_title(source_type),
             source_type=source_type,
             source_key=source_key,
-            source=deepcopy(source),
+            source=source,
             source_revision=source_revision,
-            filters=deepcopy(filters),
+            filters=filters,
+            project_ids=project_ids,
         )
-        _create_project_links(investigation, project_ids)
         phase, status, projection = _initial_projection(
             investigation_id=investigation.id, source=orchestration_source
         )
@@ -215,9 +207,6 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
-        # Remove once dispatch can use the saved service-account identity.
-        if creator.type == ActorType.SERVICE_ACCOUNT:
-            raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
     return investigation, orchestration_run
 
@@ -260,7 +249,7 @@ def _validate_command_target(
                 "hypothesis_id": hypothesis_id if isinstance(hypothesis_id, str) else None,
             },
         )
-        raise InvestigationValidationError({"detail": "Hypothesis was not found."})
+        raise NotebookValidationError({"detail": "Hypothesis was not found."})
 
 
 def clear_command_dispatch_error(
@@ -389,7 +378,7 @@ INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
 # Commands Seer runs whatever its workflow version is. Sentry still moves the version for them.
 UNVERSIONED_COMMAND_TYPES = frozenset({"rerun_after_connection"})
 # Commands Sentry sends for an action request, which shows how they went.
-FOLLOW_UP_COMMAND_TYPES: frozenset[str] = frozenset(get_args(FollowUpCommandType))
+FOLLOW_UP_COMMAND_TYPES = frozenset({"recheck_action_requests", "rerun_after_connection"})
 
 
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:
@@ -422,7 +411,7 @@ def archive_investigation_with_orchestration(
         try:
             locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
         except Notebook.DoesNotExist:
-            raise InvestigationSourceNotFound
+            raise NotebookSourceNotFound
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation=locked_investigation)
@@ -433,10 +422,10 @@ def archive_investigation_with_orchestration(
         archive_version = expected_version
         if run is None:
             if locked_investigation.version != expected_version:
-                raise InvestigationConflictError("Investigation has changed.")
+                raise NotebookConflictError("Investigation has changed.")
         else:
             if expected_version > locked_investigation.version:
-                raise InvestigationConflictError("Investigation has changed.")
+                raise NotebookConflictError("Investigation has changed.")
             archive_version = locked_investigation.version
         if locked_investigation.status == NotebookStatus.ARCHIVED:
             return locked_investigation
@@ -482,8 +471,8 @@ def archive_investigation_with_orchestration(
                 completed_at=now,
                 date_updated=now,
             )
-        return archive_investigation(
-            investigation=locked_investigation,
+        return archive_notebook_row(
+            notebook=locked_investigation,
             expected_version=archive_version,
         )
 
@@ -500,7 +489,7 @@ def update_investigation_with_orchestration(
         try:
             locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
         except Notebook.DoesNotExist:
-            raise InvestigationSourceNotFound
+            raise NotebookSourceNotFound
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation=locked_investigation)
@@ -516,8 +505,8 @@ def update_investigation_with_orchestration(
             assert isinstance(control, dict)
             if control.get("manualTitleOverride") is not True:
                 expected_version = locked_investigation.version
-        updated = update_investigation(
-            investigation=locked_investigation,
+        updated = update_notebook_row(
+            notebook=locked_investigation,
             expected_version=expected_version,
             fields=fields,
             project_ids=project_ids,
@@ -655,7 +644,7 @@ def create_agentic_breached_metric_investigation(
 ) -> tuple[Notebook, bool]:
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     if resolved_source.project_id not in project_ids:
-        raise InvestigationValidationError({"projectIds": "The metric project must be selected."})
+        raise NotebookValidationError({"projectIds": "The metric project must be selected."})
     normalized_source = resolved_source.source
     source_key = agentic_breached_metric_source_key(normalized_source)
     # Uniqueness on the active source and revision arbitrates concurrent launches.
@@ -702,6 +691,55 @@ def create_agentic_breached_metric_investigation(
     raise AssertionError("unreachable")
 
 
+def _require_accessible_projects(
+    project_ids: list[int], accessible_project_ids: AbstractSet[int]
+) -> None:
+    if not set(project_ids).issubset(accessible_project_ids):
+        raise NotebookValidationError({"detail": "One or more projects are inaccessible."})
+
+
+def start_investigation(
+    *,
+    organization: Organization,
+    creator: Callable[[], ActorId],
+    title: str | None,
+    source: dict[str, Any],
+    project_ids: list[int],
+    accessible_project_ids: AbstractSet[int],
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """Start the engine for a validated source. The bool is False when an active metric
+    investigation is reused.
+    """
+    # creator is resolved last so a bad source or project gets its 400/404 before a 403.
+    if source["type"] == "metric_open_period":
+        resolved_source = resolve_investigation_source(
+            organization=organization,
+            source=source,
+            accessible_project_ids=accessible_project_ids,
+        )
+        requested_project_ids = sorted(set(project_ids) | {resolved_source.project_id})
+        _require_accessible_projects(requested_project_ids, accessible_project_ids)
+        return create_agentic_breached_metric_investigation(
+            organization=organization,
+            creator=creator(),
+            title=title,
+            resolved_source=resolved_source,
+            project_ids=requested_project_ids,
+            filters=filters,
+        )
+    _require_accessible_projects(project_ids, accessible_project_ids)
+    investigation, _ = create_agentic_manual_investigation(
+        organization=organization,
+        creator=creator(),
+        title=title,
+        source=source,
+        project_ids=project_ids,
+        filters=filters,
+    )
+    return investigation, True
+
+
 def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str, Any]:
     """Overlay projection JSON with the run's authoritative scalar fields."""
 
@@ -738,7 +776,7 @@ def get_orchestration_projection(investigation: Notebook) -> dict[str, Any]:
             investigation=investigation
         )
     except InvestigationOrchestrationRun.DoesNotExist:
-        raise InvestigationSourceNotFound
+        raise NotebookSourceNotFound
     return _serialize_orchestration_run(run)
 
 
@@ -777,9 +815,9 @@ def accept_orchestration_command(
         try:
             locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
         except Notebook.DoesNotExist:
-            raise InvestigationSourceNotFound
+            raise NotebookSourceNotFound
         if locked_investigation.status == NotebookStatus.ARCHIVED:
-            raise InvestigationValidationError(
+            raise NotebookValidationError(
                 {"detail": "Archived investigations do not accept commands."}
             )
         try:
@@ -787,7 +825,7 @@ def accept_orchestration_command(
                 investigation=locked_investigation
             )
         except InvestigationOrchestrationRun.DoesNotExist:
-            raise InvestigationSourceNotFound
+            raise NotebookSourceNotFound
 
         internal = command_type in INTERNAL_COMMAND_TYPES
         existing = InvestigationOrchestrationCommand.objects.filter(
@@ -799,9 +837,7 @@ def accept_orchestration_command(
                 or existing.type != command_type
                 or existing.payload != payload
             ):
-                raise InvestigationConflictError(
-                    "Request ID was already used for a different command."
-                )
+                raise NotebookConflictError("Request ID was already used for a different command.")
             if run.seer_run_id is None and _is_run_retry(existing.type, existing.payload):
                 _schedule_orchestration_create(run.id)
             elif (
@@ -819,7 +855,7 @@ def accept_orchestration_command(
             return _command_acceptance(run, existing, duplicate=True)
 
         if not internal and run.workflow_version != expected_workflow_version:
-            raise InvestigationConflictError("Workflow version does not match.")
+            raise NotebookConflictError("Workflow version does not match.")
 
         _validate_command_target(
             run, request_id=request_id, command_type=command_type, payload=payload

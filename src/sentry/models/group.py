@@ -9,11 +9,12 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from django.core.cache import cache
 from django.db import models
 from django.db.models import Q, QuerySet
+from django.db.models.base import ModelBase
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -43,7 +44,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory, GroupType, get_group_type_by_type_id
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
@@ -74,7 +75,9 @@ if TYPE_CHECKING:
     from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
+    from sentry.models.project import Project
     from sentry.models.team import Team
+    from sentry.search.events.types import SnubaParams
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -103,7 +106,7 @@ def parse_short_id(short_id_s: str) -> ShortId | None:
     return ShortId(slug, short_id)
 
 
-def looks_like_short_id(value):
+def looks_like_short_id(value: str | None) -> bool:
     return _short_id_re.match((value or "").strip()) is not None
 
 
@@ -183,6 +186,9 @@ def get_group_with_redirect(
 
 
 # TODO(dcramer): pull in enum library
+GroupTypeClass = type[GroupType]
+
+
 class GroupStatus:
     UNRESOLVED = 0
     RESOLVED = 1
@@ -526,7 +532,7 @@ def _select_event_with_existing_replay(
 class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
-    def get_queryset(self):
+    def get_queryset(self) -> BaseQuerySet[Group, Group]:
         return super().get_queryset().with_post_update_signal(True)
 
     def by_qualified_short_id(
@@ -535,7 +541,7 @@ class GroupManager(BaseManager["Group"]):
         short_id: str,
         *,
         project_ids: Collection[int] | None,
-    ):
+    ) -> Group:
         return self.by_qualified_short_id_bulk(
             organization_id, [short_id], project_ids=project_ids
         )[0]
@@ -632,7 +638,7 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_event_id(self, project, event_id):
+    def from_event_id(self, project: Project, event_id: str) -> Group:
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
@@ -649,7 +655,12 @@ class GroupManager(BaseManager["Group"]):
 
         return self.get(id=group_id)
 
-    def filter_by_event_id(self, project_ids, event_id, tenant_ids=None):
+    def filter_by_event_id(
+        self,
+        project_ids: Sequence[int],
+        event_id: str,
+        tenant_ids: dict[str, int | str] | None = None,
+    ) -> QuerySet[Group]:
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[event_id],
@@ -799,7 +810,7 @@ class GroupManager(BaseManager["Group"]):
 
         return self.get(id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1])
 
-    def filter_to_team(self, team):
+    def filter_to_team(self, team: Team) -> QuerySet[Group]:
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.project import Project
 
@@ -924,7 +935,13 @@ class Group(Model):
     def __str__(self) -> str:
         return f"({self.times_seen}) {self.title}"
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if not self.last_seen:
             self.last_seen = timezone.now()
         if not self.first_seen:
@@ -935,9 +952,14 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if self.times_seen is None:
+        if cast("int | None", self.times_seen) is None:
             self.times_seen = 1
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
     def get_absolute_url(
         self,
@@ -966,26 +988,27 @@ class Group(Model):
                 query = urlencode(params)
             return organization.absolute_url(path, query=query)
 
-    def get_absolute_api_url(self):
+    def get_absolute_api_url(self) -> str:
         path = f"/issues/{self.id}/"
         return self.organization.absolute_api_url(path=path)
 
     @property
-    def qualified_short_id(self):
+    def qualified_short_id(self) -> str | None:
         if self.short_id is not None:
             return f"{self.project.slug.upper()}-{base32_encode(self.short_id)}"
+        return None
 
-    def is_ignored(self):
+    def is_ignored(self) -> bool:
         return self.get_status() == GroupStatus.IGNORED
 
-    def is_unresolved(self):
+    def is_unresolved(self) -> bool:
         return self.get_status() == GroupStatus.UNRESOLVED
 
-    def is_resolved(self):
+    def is_resolved(self) -> bool:
         return self.get_status() == GroupStatus.RESOLVED
 
-    def has_replays(self):
-        def make_snuba_params_for_replay_count_query():
+    def has_replays(self) -> bool:
+        def make_snuba_params_for_replay_count_query() -> SnubaParams:
             return SnubaParams(
                 organization=self.project.organization,
                 projects=[self.project],
@@ -996,7 +1019,7 @@ class Group(Model):
                 teams=[],
             )
 
-        def _cache_key(issue_id) -> str:
+        def _cache_key(issue_id: int) -> str:
             return f"group:has_replays:{issue_id}"
 
         from sentry.replays.usecases.replay_counts import get_replay_counts
@@ -1046,7 +1069,7 @@ class Group(Model):
 
         return has_replays
 
-    def get_status(self):
+    def get_status(self) -> int:
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models.groupsnooze import GroupSnooze
 
@@ -1063,7 +1086,7 @@ class Group(Model):
 
         return status
 
-    def get_share_id(self):
+    def get_share_id(self) -> str | None:
         from sentry.models.groupshare import GroupShare
 
         try:
@@ -1224,7 +1247,7 @@ class Group(Model):
             use_cache=use_cache,
         )
 
-    def get_event_type(self):
+    def get_event_type(self) -> eventtypes.EventTypeStr:
         """
         Return the type of this issue.
 
@@ -1238,7 +1261,8 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data["metadata"]
+        metadata = self.data["metadata"]
+        return metadata
 
     @property
     def title(self) -> str:
@@ -1252,12 +1276,12 @@ class Group(Model):
         event_type_instance = eventtypes.get(event_type)()
         return event_type_instance.get_title(self.get_event_metadata())
 
-    def location(self):
+    def location(self) -> str | None:
         et = eventtypes.get(self.get_event_type())()
         return et.get_location(self.get_event_metadata())
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.project.organization
 
     @property
@@ -1265,18 +1289,19 @@ class Group(Model):
         """returns normalized SDK name"""
 
         try:
-            return self.get_event_metadata()["sdk"]["name_normalized"]
+            sdk_name = self.get_event_metadata()["sdk"]["name_normalized"]
         except KeyError:
             return None
+        return sdk_name
 
     def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(
         self,
-        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
+        referrer: str = Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         environment_ids: list[int] | None = None,
-    ):
+    ) -> int:
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
@@ -1315,20 +1340,22 @@ class Group(Model):
         return getattr(self, "_times_seen_pending", 0)
 
     @times_seen_pending.setter
-    def times_seen_pending(self, times_seen: int):
+    def times_seen_pending(self, times_seen: int) -> None:
         self._times_seen_pending = times_seen
 
     @property
-    def issue_type(self):
+    def issue_type(self) -> GroupTypeClass:
         return get_group_type_by_type_id(self.type)
 
     @property
-    def issue_category(self):
+    def issue_category(self) -> GroupCategory:
         return GroupCategory(self.issue_type.category)
 
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
-def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
+def pre_save_group_default_substatus(
+    instance: Group, sender: type[Group], *args: object, **kwargs: object
+) -> None:
     # TODO(snigdha): Replace the logging with a ValueError once we are confident that this is working as expected.
     if instance:
         if instance.status == GroupStatus.IGNORED:

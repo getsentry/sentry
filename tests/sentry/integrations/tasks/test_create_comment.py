@@ -13,7 +13,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 
 
-def raise_create_comment_exception(*args, **kwargs):
+def raise_create_comment_exception(*args: object, **kwargs: object) -> None:
     raise Exception("Something went wrong creating comment")
 
 
@@ -46,7 +46,7 @@ class TestCreateComment(TestCase):
             group=self.group, key="foo-1234", integration=self.example_integration
         )
 
-        def edit_during_request(*args):
+        def edit_during_request(*args: object) -> dict[str, str]:
             note = Activity.objects.get(id=self.activity.id)
             note.data = {"text": "edited during remote request", "mentions": []}
             note.save(update_fields=["data"])
@@ -68,7 +68,7 @@ class TestCreateComment(TestCase):
         )
         note_id = self.activity.id
 
-        def delete_during_request(*args):
+        def delete_during_request(*args: object) -> dict[str, str]:
             Activity.objects.get(id=note_id).delete()
             return {"id": "remote-42"}
 

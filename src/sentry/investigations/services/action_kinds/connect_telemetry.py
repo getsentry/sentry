@@ -1,28 +1,26 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.db.models import QuerySet
 from rest_framework import serializers
 
 from sentry import features
 from sentry.auth.access import Access
-from sentry.investigations.contracts import ActionPayloadSerializer
-from sentry.investigations.services.action_kinds.base import (
+from sentry.auth.principal import RequestPrincipal
+from sentry.models.organization import Organization
+from sentry.notebooks.contracts import ActionPayloadSerializer
+from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookActionRequestState
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ApplyContext,
     CannotApplyReason,
     FollowUpCommand,
 )
-from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookActionRequestState
 from sentry.seer.agent.monitoring_providers import org_monitoring_provider_registry
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 
 CONNECT_TELEMETRY_ACTION = "connect_telemetry"
 TelemetryProvider = Literal["datadog", "gcp"]
@@ -53,7 +51,7 @@ def telemetry_available(organization: Organization, provider: TelemetryProvider)
 def _provider(action_request: NotebookActionRequest) -> TelemetryProvider:
     payload = action_request.action_payload
     assert payload is not None
-    return payload["provider"]
+    return cast("TelemetryProvider", payload["provider"])
 
 
 def telemetry_provider_for_integration(integration_provider: str) -> TelemetryProvider | None:
@@ -73,22 +71,23 @@ def open_connect_requests(
     )
 
 
-class ConnectTelemetryKind(ActionKind):
+class ConnectTelemetryKind(ActionKind[ConnectTelemetryAppliedDetails]):
     kind = CONNECT_TELEMETRY_ACTION
     payload_serializer = ConnectTelemetryActionSerializer
+    applied_details = ConnectTelemetryAppliedDetails
 
     def cannot_apply_reasons(
         self,
         action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Notebook],
+        notebooks: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         can_install = access.has_scope(_INSTALL_SCOPE)
         reasons: dict[int, CannotApplyReason | None] = {}
         for item in action_requests:
-            if not features.has(TELEMETRY_FEATURE, investigations[item.notebook_id].organization):
+            if not features.has(TELEMETRY_FEATURE, notebooks[item.notebook_id].organization):
                 reasons[item.id] = CannotApplyReason.UNSUPPORTED_ACTION
             elif not can_install:
                 reasons[item.id] = CannotApplyReason.PERMISSION_DENIED

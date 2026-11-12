@@ -12,7 +12,8 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
+
+import TeamStatsIssues from './issues';
 
 jest.mock('sentry/utils/localStorage');
 jest.mock('sentry/utils/isActiveSuperuser', () => ({

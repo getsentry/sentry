@@ -1,3 +1,4 @@
+import {createContext, useContext} from 'react';
 import {createParser, useQueryState} from 'nuqs';
 
 function parseCaseInsensitive(value: string): boolean | null {
@@ -15,13 +16,17 @@ const parseAsCaseInsensitive = createParser({
   serialize: (value: boolean) => (value ? '1' : '0'),
 });
 
-export function useCaseInsensitivity() {
-  const [caseInsensitive, setCaseInsensitive] = useQueryState(
-    'caseInsensitive',
-    parseAsCaseInsensitive
-  );
+export const CaseInsensitivityDefaultContext = createContext<boolean | null>(null);
 
-  return [caseInsensitive, setCaseInsensitive] as const;
+export function useCaseInsensitivityParam() {
+  return useQueryState('caseInsensitive', parseAsCaseInsensitive);
+}
+
+export function useCaseInsensitivity() {
+  const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivityParam();
+  const defaultCaseInsensitive = useContext(CaseInsensitivityDefaultContext);
+
+  return [caseInsensitive ?? defaultCaseInsensitive, setCaseInsensitive] as const;
 }
 
 export type CaseInsensitive = ReturnType<typeof useCaseInsensitivity>[0];

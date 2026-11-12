@@ -14,6 +14,7 @@ from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -48,7 +49,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
     def get(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[list[CommitSerializerResponseWithReleases]]:
         """
         Retrieve a list of commits for a given release.

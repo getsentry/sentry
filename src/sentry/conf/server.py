@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Final, Literal, NotRequired, TypedDict, Union, overload
 from urllib.parse import urlparse
 
 import orjson
@@ -41,7 +41,7 @@ def gettext_noop(s: str) -> str:
 socket.setdefaulttimeout(5)
 
 
-_EnvTypes = Union[str, float, int, list, dict]
+_EnvTypes = Union[str, float, int, list[object], dict[str, object]]
 
 
 @overload
@@ -49,13 +49,15 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
+def env(
+    key: str, default: _EnvTypes, type: env_types.Type[_EnvTypes] | None = None
+) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: env_types.Type | None = None,
+    type: env_types.Type[_EnvTypes] | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -499,11 +501,13 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.notebooks.apps.NotebooksConfig",
     "sentry.seer_workflow_outputs.apps.SeerWorkflowOutputsConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
+    "sentry.agent_handoff.apps.AgentHandoffConfig",
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
     "sentry.seer",
     "sentry.scm",
+    "sentry.cadence",
 )
 
 # Silence internal hints from Django's system checks
@@ -709,6 +713,10 @@ VISUALSTUDIO_APP_SECRET = ""
 VISUALSTUDIO_CLIENT_SECRET = ""
 VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release"]
 
+# Linear integration (OAuth app credentials)
+LINEAR_CLIENT_ID = ""
+LINEAR_CLIENT_SECRET = ""
+
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
     "social_auth.backends.pipeline.social.social_auth_user",
@@ -805,6 +813,12 @@ VIEWER_CONTEXT_JWT_TTL: int = 900
 # First element is used to sign requests; request is accepted if signed with any element in the list.
 SCM_RPC_SHARED_SECRET: list[str] | None = None
 
+# Ed25519 public keys, as SubjectPublicKeyInfo PEM strings, that verify the grants Seer signs for
+# the SCM git endpoint. Only Seer holds a private key, so these aren't secret. A grant is accepted
+# if any listed key verifies it. To rotate, add the new public key here, switch Seer to the new
+# private key, wait 15 minutes for its old grants to expire, then remove the old public key.
+SCM_GIT_GRANT_PUBLIC_KEYS: list[str] = []
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
@@ -825,6 +839,7 @@ SENTRY_SUBNET_SECRET = os.environ.get("SENTRY_SUBNET_SECRET", None)
 
 # We prefer using crontab, as the time for timedelta will reset on each deployment.
 TIMEDELTA_ALLOW_LIST = {
+    "cadence-tick",
     "deliver-from-outbox-control",
     "deliver-webhooks-control",
     "flush-buffers",
@@ -832,6 +847,7 @@ TIMEDELTA_ALLOW_LIST = {
     "sync-options",
     "sync-options-control",
     "schedule-digests",
+    "snuba-broken-subscription-recheck",
 }
 
 BGTASKS: dict[str, BgTaskConfig] = {
@@ -878,8 +894,8 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.ai_monitoring.issues.llm_cache_detection.tasks",
     "sentry.ai_monitoring.tasks",
+    "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
@@ -896,6 +912,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
+    "sentry.inbox.event_retention",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.bitbucket_server.tasks",
@@ -928,6 +945,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.models.counter",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    "sentry.notebooks.tasks",
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
@@ -956,6 +974,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
     "sentry.seer.entrypoints.slack.tasks",
+    "sentry.seer.workflows.scheduled",
     "sentry.seer_workflow_outputs.tasks",
     "sentry.snuba.query_subscriptions.run",
     "sentry.snuba.tasks",
@@ -1027,7 +1046,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.tasks",
+    "sentry.telemetry_classifiers.poc_tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -1042,6 +1061,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "send-ping": {
         "task": "selfhosted:sentry.tasks.send_ping",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "cadence-tick": {
+        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "schedule": timedelta(seconds=10),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
@@ -1103,6 +1126,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.auto_remove_inbox",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
+    "cleanup-universal-inbox-events": {
+        "task": "notifications:sentry.inbox.event_retention.schedule_inbox_event_cleanup",
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
+    },
     "schedule-deletions": {
         "task": "deletions:sentry.deletions.tasks.run_scheduled_deletions",
         "schedule": crontab("*/15", "*", "*", "*", "*"),
@@ -1135,6 +1162,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "snuba-subscription-checker": {
         "task": "alerts:sentry.snuba.tasks.subscription_checker",
         "schedule": crontab("*/20", "*", "*", "*", "*"),
+    },
+    "snuba-broken-subscription-recheck": {
+        "task": "alerts:sentry.snuba.tasks.schedule_broken_subscription_rechecks",
+        "schedule": timedelta(minutes=15),
     },
     "uptime-subscription-checker": {
         "task": "uptime:sentry.uptime.tasks.subscription_checker",
@@ -1248,13 +1279,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
-    "llm-cache-issue-detection": {
-        "task": (
-            "issues:sentry.ai_monitoring.issues.llm_cache_detection.tasks."
-            "run_llm_cache_issue_detection"
-        ),
-        "schedule": timedelta(minutes=1),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1450,7 +1474,10 @@ REST_FRAMEWORK = {
 }
 
 
-def custom_parameter_sort(parameter: dict) -> tuple[str, int]:
+_OperationParameter = TypedDict("_OperationParameter", {"in": str, "required": NotRequired[bool]})
+
+
+def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
     """
     Sort parameters by type then if the parameter is required or not.
     It should group path parameters first, then query parameters.
@@ -1738,6 +1765,10 @@ SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 # Partnership backend
 SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
 SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
+
+# Seer credit backend
+SENTRY_SEER_CREDIT = "sentry.seer_credit.SeerCredit"
+SENTRY_SEER_CREDIT_OPTIONS: dict[str, str] = {}
 
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
@@ -2174,6 +2205,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2201,6 +2233,7 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2354,6 +2387,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "project:releases",
             "project:read",
             "org:read",
+            "service_account:read",
             "member:invite",
             "member:read",
             "team:read",
@@ -2387,6 +2421,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "event:write",
             "event:admin",
             "org:read",
+            "service_account:read",
             "member:read",
             "member:invite",
             "project:read",
@@ -2626,6 +2661,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
+    "sentry.integrations.linear.integration.LinearIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -2644,7 +2680,9 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
         "http_headers": {
             "request": {
                 "mode": "denylist",
-                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+                # "grant" keeps the SCM git endpoint's X-Scm-Git-Grant out of spans and events.
+                # It's a credential, but none of the SDK's own terms match it.
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user", "grant"],
             }
         },
         "cookies": {"mode": "off"},
@@ -3189,6 +3227,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
     "snuba-items": "default",
+    "snuba-llm-proxy-cost": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "taskworker": "default",
@@ -3386,7 +3425,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 SENTRY_GITHUB_APP_USER_ID = 39604003
 
-SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
+SEER_AUTOFIX_FORCE_USE_REPOS: list[dict[str, object]] = []
 
 # For encrypting the access token for the GHE integration
 SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
@@ -3688,6 +3727,13 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Dev only: verifies the grants a local Seer signs. Its private half is committed to Seer's
+    # .envrc, in a public repository, so anyone can sign grants this key accepts.
+    SCM_GIT_GRANT_PUBLIC_KEYS = [
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MCowBQYDK2VwAyEAq8SFj6uFiEB74zliRdruAG69shgf1FNJbj/UCnK0jFM=\n"
+        "-----END PUBLIC KEY-----\n"
+    ]
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
@@ -3755,6 +3801,18 @@ CONDUIT_PUBLISH_SECRET: str | None = os.getenv("CONDUIT_PUBLISH_SECRET")
 CONDUIT_PUBLISH_URL: str = os.getenv("CONDUIT_PUBLISH_URL", "http://127.0.0.1:9097")
 CONDUIT_PUBLISH_JWT_ISSUER: str = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "sentry.io")
 CONDUIT_PUBLISH_JWT_AUDIENCE: str = os.getenv("CONDUIT_PUBLISH_JWT_AUDIENCE", "conduit")
+
+if IS_DEV:
+    # Pair with `devservices up --mode conduit`. These credentials match the
+    # development defaults in the conduit repo (.env.default / devservices
+    # config). They are dev-only and must never be used in production.
+    CONDUIT_GATEWAY_PRIVATE_KEY = (
+        os.getenv("CONDUIT_GATEWAY_PRIVATE_KEY")
+        or "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRQ2tranZiTU1MRENCckcKNDhhQytCUGd2ZU5IQzJYc3RWYWZxaEJKYkw0cmtOZjVTTHczcWpJZHl2L240dU4rNitzbTc3dUFYZU42elFwVgo4RkZGZmoveFBVbmVmd3pEa1VJYVJvRmVsRld0NHhEOTFkOS9KeW5LMkYxZ2syTzlyaXVUaklXMFVBRTdORnRyCm1hdE5JOU5zTklWdFZMOWY5eEJOanBKV1ZzaVdNU09mNzlvQyt6N3p6YWZzV3lNQUNmaVZ1ejhEOG4wM0JsblAKN2taakdMcWVqZEpPUHFzUVF0VWJOemRiZnBsbXlVMHUxYk1UZFo5RlFrekk1Rm5tL0lhS0NOWHB0RHI1MnJFNAovRE9vT3gvNG1XSUhZQXc1RGJxVWNjMGlTQU5rVXRJNTZPckFjeHNwc0tQU0pLL1V5dGZqRnhPV0REektpS3hmCnZnRVRaV3pCQWdNQkFBRUNnZ0VBSGV1RVBGNktHa0UvOVFiMlVWdGU2YzQ4SXU5OGtXT0tveTZkRld4U3lzTGoKc1N1N0pIZXA4dWEwVGVsZktQVWxaSWZUVkF3OXpsYTIyVmIrdjU2cmEyV1VKNEo3eEphRktSZkdiM2FTZVRHKwpKaGdiTVJmaXJrRldBTGZyTzFJT0ZCNUpOTFlTOHp1YW4xNXAyWFY0KzhRMHVlTGRoRW43eWMzdzV3ZVNJbFB6Cnc3N3VxandodHp5a3JxdUU5R0lJTUt5YnllR2pNbXRUclUzU3hJTXpuVE0wMnN3RlQxRFhMNmIvTStaTzJpaWEKY2ZFTmJwalZ2akxadEpiOHFYT0FJTE1zWUVVRWdIeVMwZytDNlJmc3A4OFQrSFZoOXAzaVlEdzZ5cGkwUGlmbApsZS9TczdPQXdCbW1iK0Z6QWxWRDRQRmxYMi91ZVpOa0wrZDlINTl2RVFLQmdRRGlSdi96WjdtVjJEYmtJVExxCnNLVzczUTl4cmNic3RmaTZwdklRb3Awd1JOSkhjQytiU1hTbUgrK2Q5c2FaTFRvcnI0SDJReUdpdi93OTh3RWQKdWxicVJYVWpINUkvMUpiRmFVR2dmRS9LSmJkQVRQRDR1cVM3NWc4QkhQQkVnU3pEZkQxSTFkZnlxdFhiOW80QwoxVzRDcjhMalhxK2RIR0d2WVRtc3NudkY3UUtCZ1FDNk1FQUM4VGwwUkZiWTNUamJtaWxWUTU5UEhyLzJtaU1WCmJLSGlIMzRDTUNsMkVjRjBJTk9XUzNzd1pWb3pUckRxSTVLL0hzbVhRalJnbnhXdGVzbEpFbFpiQ0g4ckxTWWQKTnVxby9PUVptd2JWY1hDaXNkOEpWZC9CbFNmOG5rTlpFQm9DNll5RVQ4cnZMN1R6aElZbEdjYlVEQVRiZHEzMwogSk0raXdWN25wUUtCZ0FEckhOcldEdkRHd2VKSEtEZS9vOHlSWnlDay9ldTBDV0Jva1E3ME9nTWFKR2haMGplbApJcTRSN3gwTEJWOVZ5YWludTdWT0xITEdxTFZ2cVE5LzFCNTdUYkJvem1VbjdieTdZcUxPSGx6SnJtYTZhVGY1Ck9mWHhSeHBRRGNHWmJKOFdnQUV0clFTMUlNMFZ3Um5OMS9aMjFDbXNGclppaVJyM0lBN05ZcWM1QW9HQVBpczgKUkg4OWV2Z1NzNmp5Z2trd2dmcnBaK2JSbkVzTmFlcnpCdWtURHpIN3RpUHBuNWdTYm4zWHJXbzZPeVdNWnpIbgpudzl0cXFiOWpFR3lZRkcrZ2pxd1FRZE9SeUYxTjQ0TnZzMXFjSzVXRXRFbEZmNGtoaDU1YjA4Wm9mMUthYU81CnU3MDJJVHZ2ZS94SEJJVDhzY2l3bmo5QkkvSzExZThoc2F1MXY4MENnWUVBaWV1RzB4aFdvZCtsNGpwT1dHOFIKQ0pDZ2h6UGRUdGVWUldmUzlVdkJBVEEzcEh2NWFUNDZGZnZMQ1FJVHBDYWFOZk9DVUU4VDNnU1oyQ3N0SmpTYQp0SnBpWXpDbGVjb2lVRVVTVWZqQkQ2cFAxbDJNQ2dWRzlEWkxJOS9rOUtSN3k3VkJpaVdBNUNTY3p0RVhyKy82CkVjTlAvNzV3SkU5WkFDSFI5UGowYnJnPQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t"
+    )
+    CONDUIT_GATEWAY_JWT_ISSUER = os.getenv("CONDUIT_GATEWAY_JWT_ISSUER", "dev.getsentry.net")
+    CONDUIT_PUBLISH_SECRET = os.getenv("CONDUIT_PUBLISH_SECRET") or "conduit-dev-secret"
+    CONDUIT_PUBLISH_JWT_ISSUER = os.getenv("CONDUIT_PUBLISH_JWT_ISSUER", "dev.getsentry.net")
 
 SYNAPSE_HMAC_SECRET: list[str] | None = None
 if (val := os.environ.get("SYNAPSE_HMAC_SECRET")) is not None:

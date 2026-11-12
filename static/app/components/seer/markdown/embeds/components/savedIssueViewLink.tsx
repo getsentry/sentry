@@ -1,13 +1,11 @@
 import {IconStar} from '@sentry/icons/star';
 
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 export function getSavedIssueViewHref(id: string, organizationSlug: string): string {
   return normalizeUrl(`/organizations/${organizationSlug}/issues/views/${id}/`);

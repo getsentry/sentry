@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 
 import {Flex, Container} from '@sentry/scraps/layout';
 
-import {getAppSizeCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
 import {TreemapType, type TreemapElement} from 'sentry/views/preprod/types/appSizeTypes';
+
+import {getAppSizeCategoryInfo} from './appSizeTreemapTheme';
 
 interface AppSizeLegendProps {
   onToggleCategory: (category: TreemapType) => void;

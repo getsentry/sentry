@@ -1,7 +1,7 @@
 import logging
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, TypeAlias
 
 import orjson
 from django.core.exceptions import BadRequest
@@ -16,6 +16,8 @@ from sentry.search.events.types import SnubaParams
 from sentry.seer.sentry_data_models import ExecutionTreeNode
 
 logger = logging.getLogger(__name__)
+
+JsonObject: TypeAlias = dict[str, Any]
 
 
 def normalize_description(description: str) -> str:
@@ -51,8 +53,8 @@ def normalize_description(description: str) -> str:
 
 
 def _convert_profile_to_execution_tree(
-    profile_data: dict, max_depth: int = 200
-) -> tuple[list[dict], str | None]:
+    profile_data: JsonObject, max_depth: int = 200
+) -> tuple[list[JsonObject], str | None]:
     """
     Converts profile data into a hierarchical representation of code execution.
     Selects the thread with the most in_app frames. Returns empty list if no
@@ -107,15 +109,14 @@ def _convert_profile_to_execution_tree(
         # No in_app frames found, return empty tree instead of falling back to system frames
         return [], None
 
-    def _get_elapsed_since_start_ns(
-        sample: dict[str, Any], all_samples: list[dict[str, Any]]
-    ) -> int:
+    def _get_elapsed_since_start_ns(sample: JsonObject, all_samples: list[JsonObject]) -> int:
         """
         Get the elapsed time since start for a sample.
         Handles both transaction and continuous profiles.
         """
         if "elapsed_since_start_ns" in sample:
-            return sample["elapsed_since_start_ns"]
+            elapsed = sample["elapsed_since_start_ns"]
+            return elapsed
         elif "timestamp" in sample:
             min_timestamp = min(s["timestamp"] for s in all_samples)
             return int((sample["timestamp"] - min_timestamp) * 1e9)
@@ -136,7 +137,7 @@ def _convert_profile_to_execution_tree(
     else:
         sample_interval_ns = 10000000  # default 10ms
 
-    def create_frame_node(frame_index: int) -> dict[str, Any]:
+    def create_frame_node(frame_index: int) -> JsonObject:
         """Create a node representation for a single frame"""
         frame = frames[frame_index]
         return {
@@ -153,11 +154,11 @@ def _convert_profile_to_execution_tree(
             "duration_ns": None,
         }
 
-    def get_node_path(node: dict[str, Any], parent_path: str = "") -> str:
+    def get_node_path(node: JsonObject, parent_path: str = "") -> str:
         """Generate a unique path identifier for a node"""
         return f"{parent_path}/{node['function']}:{node['filename']}:{node['lineno']}"
 
-    def find_or_create_child(parent: dict[str, Any], frame_data: dict[str, Any]) -> dict[str, Any]:
+    def find_or_create_child(parent: JsonObject, frame_data: JsonObject) -> JsonObject:
         """Find existing child node or create new one"""
         for child in parent["children"]:
             if (
@@ -171,7 +172,7 @@ def _convert_profile_to_execution_tree(
         parent["children"].append(frame_data)
         return frame_data
 
-    def is_valid_frame(frame: dict[str, Any], include_all_frames: bool) -> bool:
+    def is_valid_frame(frame: JsonObject, include_all_frames: bool) -> bool:
         """Check if a frame should be included in the execution tree."""
         filename = frame.get("filename", "")
         is_generated = filename.startswith("<") and filename.endswith(">")
@@ -179,7 +180,7 @@ def _convert_profile_to_execution_tree(
             return False
         return include_all_frames or frame.get("in_app", False)
 
-    def process_stack(stack_index: int, include_all_frames: bool = False) -> list[dict[str, Any]]:
+    def process_stack(stack_index: int, include_all_frames: bool = False) -> list[JsonObject]:
         """Extract frames from a stack trace.
 
         Args:
@@ -189,7 +190,7 @@ def _convert_profile_to_execution_tree(
         """
         frame_indices = stacks[stack_index]
         if not frame_indices:
-            empty_stack: list[dict[str, Any]] = []
+            empty_stack: list[JsonObject] = []
             return empty_stack
 
         # Create nodes for frames, maintaining order (bottom to top)
@@ -207,9 +208,9 @@ def _convert_profile_to_execution_tree(
         return empty_tree_3, None
 
     # Build the execution tree and track call stacks
-    execution_tree: list[dict[str, Any]] = []
+    execution_tree: list[JsonObject] = []
     call_stack_history: list[tuple[list[str], int]] = []  # [(node_ids, timestamp), ...]
-    node_registry: dict[str, dict[str, Any]] = {}  # {node_id: node_reference}
+    node_registry: dict[str, JsonObject] = {}  # {node_id: node_reference}
 
     for sample in sorted_samples:
         if str(sample["thread_id"]) != selected_thread_id:
@@ -306,7 +307,7 @@ def _convert_profile_to_execution_tree(
                 function_periods[node_id][-1][1] = last_timestamp + sample_interval_ns
 
     # Calculate durations
-    def apply_durations(node):
+    def apply_durations(node: JsonObject) -> None:
         """Calculate and set duration for a node and its children"""
         node_id = node["node_id"]
 
@@ -353,7 +354,9 @@ def _convert_profile_to_execution_tree(
     return execution_tree, selected_thread_id
 
 
-def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeNode]:
+def convert_profile_to_execution_tree(
+    profile_data: JsonObject,
+) -> list[ExecutionTreeNode]:
     """
     Converts profile data into a hierarchical representation of code execution.
     Selects the thread with the most in_app frames. Returns empty list if no
@@ -362,7 +365,7 @@ def convert_profile_to_execution_tree(profile_data: dict) -> list[ExecutionTreeN
     """
     dict_tree, _ = _convert_profile_to_execution_tree(profile_data)
 
-    def dict_to_execution_tree_node(node_dict: dict) -> ExecutionTreeNode:
+    def dict_to_execution_tree_node(node_dict: JsonObject) -> ExecutionTreeNode:
         """Convert a dict node to an ExecutionTreeNode Pydantic object."""
         children = [dict_to_execution_tree_node(child) for child in node_dict.get("children", [])]
 
@@ -390,7 +393,7 @@ def fetch_profile_data(
     start_ts: float | None = None,
     end_ts: float | None = None,
     is_continuous: bool = False,
-) -> dict[str, Any] | None:
+) -> JsonObject | None:
     """
     Fetch raw profile data from the profiling service.
 
@@ -465,7 +468,8 @@ def fetch_profile_data(
         },
     )
     if response.status == 200:
-        return orjson.loads(response.data)
+        data = orjson.loads(response.data)
+        return data
     return None
 
 

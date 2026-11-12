@@ -38,6 +38,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         "DELETE": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
     owner = ApiOwner.INTEGRATION_PLATFORM
 
     def convert_args(

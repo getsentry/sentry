@@ -22,9 +22,10 @@ from sentry.users.models.identity import IdentityProvider
 
 
 class PipelineStep:
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: "DummyPipeline") -> HttpResponseBase:
         pipeline.dispatch_count += 1
         pipeline.bind_state("some_state", "value")
+        return HttpResponse()
 
 
 class DummyProvider(PipelineProvider["DummyPipeline"]):
@@ -41,7 +42,7 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
 
     pipeline_name = "test_pipeline"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.finished = False
         self.dispatch_count = 0
@@ -56,8 +57,9 @@ class DummyPipeline(Pipeline[Never, PipelineSessionStore]):
     def get_pipeline_views(self) -> Sequence[PipelineStep]:
         return self.provider.get_pipeline_views()
 
-    def finish_pipeline(self):
+    def finish_pipeline(self) -> HttpResponseBase:
         self.finished = True
+        return HttpResponse()
 
 
 class ChooseThingView:

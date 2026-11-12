@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 from time import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import orjson
@@ -19,6 +19,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 
 from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
+from sentry.integrations.linear.client import LINEAR_TOKEN_URL
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
@@ -31,6 +32,7 @@ from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
+from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.endpoints.seer_rpc import (
     generate_request_signature,
     get_attributes_for_span,
@@ -41,6 +43,7 @@ from sentry.seer.endpoints.seer_rpc import (
     get_repo_installation_id,
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
+    refresh_org_monitoring_provider_token,
     seer_method_registry,
 )
 from sentry.seer.models.run import SeerRunType
@@ -71,7 +74,7 @@ class TestSeerRpc(APITestCase):
             kwargs={"method_name": method_name},
         )
 
-    def auth_header(self, path: str, data: dict | str) -> str:
+    def auth_header(self, path: str, data: dict[str, object] | str) -> str:
         if isinstance(data, dict):
             data = orjson.dumps(data).decode()
         signature = generate_request_signature(path, data.encode())
@@ -222,7 +225,7 @@ class TestSeerRpcMethods(APITestCase):
         self.organization = self.create_organization(owner=self.user)
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog: pytest.LogCaptureFixture):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
     def test_get_attributes_for_span(self) -> None:
@@ -256,7 +259,7 @@ class TestSeerRpcMethods(APITestCase):
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
+    def test_get_github_enterprise_integration_config(self, mock_get_jwt: MagicMock) -> None:
         """Test when organization has github enterprise integration"""
 
         installation_id = 1234
@@ -403,7 +406,7 @@ class TestSeerRpcMethods(APITestCase):
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config_invalid_encrypt_key(
-        self, mock_get_jwt
+        self, mock_get_jwt: MagicMock
     ) -> None:
         installation_id = 1234
         private_key = "private_key_1"
@@ -455,6 +458,25 @@ class TestSeerRpcMethods(APITestCase):
             "error": "Invalid event type: seer.invalid_event_name",
         }
 
+    @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_rejects_internal_errored_event(
+        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
+    ) -> None:
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        group = self.create_group(project=self.project)
+        with patch("sentry.seer.entrypoints.operator.has_seer_access", return_value=True):
+            result = send_seer_webhook(
+                event_name="errored",
+                organization_id=self.organization.id,
+                payload={"run_id": 123, "group_id": group.id},
+            )
+
+        assert result.dict() == {"success": False, "error": "Invalid event type: seer.errored"}
+        mock_process_autofix_updates.apply_async.assert_not_called()
+        mock_broadcast.assert_not_called()
+
     def test_send_seer_webhook_organization_does_not_exist(self) -> None:
         """Test that send_seer_webhook returns error for non-existent organization"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
@@ -491,7 +513,7 @@ class TestSeerRpcMethods(APITestCase):
         }
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_success(self, mock_delay) -> None:
+    def test_send_seer_webhook_success(self, mock_delay: MagicMock) -> None:
         """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
@@ -510,16 +532,16 @@ class TestSeerRpcMethods(APITestCase):
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
+    def test_send_seer_webhook_all_valid_event_names(self, mock_delay: MagicMock) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.event_types import SentryAppEventType
+        from sentry.sentry_apps.event_types import INTERNAL_SEER_EVENT_TYPES, SentryAppEventType
 
         # Get all seer event types
         seer_events = [
             event_type.value.split(".", 1)[1]  # Remove "seer." prefix
             for event_type in SentryAppEventType
-            if event_type.value.startswith("seer.")
+            if event_type.value.startswith("seer.") and event_type not in INTERNAL_SEER_EVENT_TYPES
         ]
 
         for event_name in seer_events:
@@ -536,7 +558,7 @@ class TestSeerRpcMethods(APITestCase):
     @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
     def test_send_seer_webhook_operator_no_feature_flag(
-        self, mock_broadcast, mock_process_autofix_updates
+        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
     ) -> None:
         """Slack workflows flag should not affect broadcasting the webhooks."""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
@@ -554,7 +576,9 @@ class TestSeerRpcMethods(APITestCase):
 
     @patch("sentry.seer.endpoints.seer_rpc.process_autofix_updates")
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
-    def test_send_seer_webhook_operator(self, mock_broadcast, mock_process_autofix_updates) -> None:
+    def test_send_seer_webhook_operator(
+        self, mock_broadcast: MagicMock, mock_process_autofix_updates: MagicMock
+    ) -> None:
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
 
         group = self.create_group(project=self.project)
@@ -888,6 +912,35 @@ class TestSeerRpcMethods(APITestCase):
         assert result.repositories[0].external_id == "123"
         assert result.repositories[0].name == "sentry"
 
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_get_project_preferences_limits_automatic_repos(self) -> None:
+        project = self.create_project(organization=self.organization)
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        for i in range(MAX_SEER_REPOS_PER_PROJECT + 2):
+            repo = self.create_repo(
+                project=project,
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id=f"ext-{i}",
+                name=f"getsentry/repo-{i}",
+            )
+            self.create_project_repository(
+                project=project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+            )
+
+        result = get_project_preferences(
+            organization_id=self.organization.id, project_id=project.id
+        )
+
+        assert len(result.repositories) == MAX_SEER_REPOS_PER_PROJECT
+
     def test_get_project_preferences_returns_default_when_no_preference(self) -> None:
         project = self.create_project(organization=self.organization)
         result = get_project_preferences(
@@ -921,7 +974,7 @@ class TestSeerRpcMethods(APITestCase):
 # each test deterministic instead of iterating all 100+ registered flags.
 _ORG_FEATURES_TEST_SET = {
     "organizations:seer-agent-source-code-search": object(),
-    "organizations:seer-explorer-chat-coding": object(),
+    "organizations:seer-explorer-chat-prompts": object(),
 }
 
 
@@ -946,13 +999,13 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature(
             {
                 "organizations:seer-agent-source-code-search": True,
-                "organizations:seer-explorer-chat-coding": True,
+                "organizations:seer-explorer-chat-prompts": True,
             }
         ):
             result = get_organization_features(org_id=self.organization.id)
         # "seer-agent-..." < "seer-explorer-..." alphabetically
         assert result.dict() == {
-            "features": ["seer-agent-source-code-search", "seer-explorer-chat-coding"]
+            "features": ["seer-agent-source-code-search", "seer-explorer-chat-prompts"]
         }
 
     def test_org_not_found_returns_empty(self) -> None:
@@ -1170,6 +1223,139 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         result = refresh_monitoring_provider_token(identity_id=pat_identity.id)
 
         assert result == {"error": "refresh_not_supported"}
+
+
+@override_settings(
+    SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY,
+    LINEAR_CLIENT_ID="sentry-app-id",
+    LINEAR_CLIENT_SECRET="sentry-app-secret",
+)
+@cell_silo_test
+class TestRefreshOrgMonitoringProviderToken(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="linear",
+            external_id="linear-workspace-id",
+            metadata={"refresh_token": "linear-refresh-token"},
+        )
+
+    @responses.activate
+    def test_success_without_user_identity(self) -> None:
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            json={
+                "access_token": "new-app-token",
+                "refresh_token": "new-refresh-token",
+                "token_type": "Bearer",
+                "scope": "read write",
+                "expires_in": 3600,
+            },
+        )
+
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+
+        authorization = result["encrypted_auth_headers"]["Authorization"]
+        assert Fernet(TEST_FERNET_KEY.encode()).decrypt(authorization.encode()).decode() == (
+            "Bearer new-app-token"
+        )
+        assert result["expires"] > int(time())
+        assert "sentry-app-secret" not in str(result)
+        assert "new-refresh-token" not in str(result)
+        with assume_test_silo_mode_of(Integration):
+            self.integration.refresh_from_db()
+        assert self.integration.metadata["refresh_token"] == "new-refresh-token"
+
+    @responses.activate
+    @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+    def test_authenticated_rpc_refresh_without_user_session(self) -> None:
+        responses.add(
+            responses.POST,
+            LINEAR_TOKEN_URL,
+            json={
+                "access_token": "new-app-token",
+                "refresh_token": "new-refresh-token",
+                "token_type": "Bearer",
+                "scope": "read write",
+                "expires_in": 86400,
+            },
+        )
+        path = reverse(
+            "sentry-api-0-seer-rpc-service",
+            kwargs={"method_name": "refresh_org_monitoring_provider_token"},
+        )
+        body = orjson.dumps(
+            {
+                "args": {
+                    "organization_id": self.organization.id,
+                    "integration_id": self.integration.id,
+                },
+                "meta": {},
+            }
+        )
+        response = self.client.post(
+            path,
+            data=body,
+            content_type="application/json",
+            HTTP_AUTHORIZATION=f"rpcsignature {generate_request_signature(path, body)}",
+        )
+
+        assert response.status_code == 200
+        authorization = response.data["encrypted_auth_headers"]["Authorization"]
+        assert Fernet(TEST_FERNET_KEY.encode()).decrypt(authorization.encode()).decode() == (
+            "Bearer new-app-token"
+        )
+        assert "new-refresh-token" not in response.content.decode()
+
+    @responses.activate
+    def test_cannot_refresh_another_organizations_integration(self) -> None:
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.create_organization().id, integration_id=self.integration.id
+        )
+        assert result == {"error": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_disabled_integration(self) -> None:
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert result == {"error": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_unsupported_provider(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github-install"
+        )
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        assert result == {"error": "integration_not_found"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @override_settings(SEER_GHE_ENCRYPT_KEY=None)
+    def test_missing_encryption_key(self) -> None:
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert result == {"error": "encryption_failed"}
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_token_exchange_failure(self) -> None:
+        responses.add(responses.POST, LINEAR_TOKEN_URL, status=503)
+        result = refresh_org_monitoring_provider_token(
+            organization_id=self.organization.id, integration_id=self.integration.id
+        )
+        assert result == {"error": "refresh_failed"}
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])

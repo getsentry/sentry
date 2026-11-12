@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 
-class InvestigationParameterSerializerResponse(TypedDict):
+class NotebookParameterSerializerResponse(TypedDict):
     """
     Parameter definition and saved override. type and constraints govern accepted values;
     defaultValue and savedValue may be null. Use key in the parameter-values update request.

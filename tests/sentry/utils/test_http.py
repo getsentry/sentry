@@ -1,6 +1,7 @@
 import io
 import unittest
 from collections.abc import Generator
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -89,7 +90,7 @@ class GetOriginsTestCase(TestCase):
 
 
 class IsValidOriginTestCase(unittest.TestCase):
-    def isValidOrigin(self, origin, inputs):
+    def isValidOrigin(self, origin: str, inputs: list[str]) -> bool:
         with mock.patch("sentry.utils.http.get_origins") as get_origins:
             get_origins.return_value = inputs
             project = mock.Mock()
@@ -336,7 +337,7 @@ class TestRequestBodyStream:
         )
         request.META["wsgi.input"] = wsgi_input
 
-        assert request_body_stream(request) is wsgi_input
+        assert cast(Any, request_body_stream(request)) is wsgi_input
 
     def test_dev_server_decodes_chunked_body(self) -> None:
         request = RequestFactory().generic("POST", "/", HTTP_TRANSFER_ENCODING="chunked")
@@ -374,4 +375,4 @@ class TestRequestBodyStream:
         request.META["wsgi.input"] = wsgi_input
 
         with mock.patch("sentry.utils.http.uwsgi"):
-            assert request_body_stream(request) is wsgi_input
+            assert cast(Any, request_body_stream(request)) is wsgi_input

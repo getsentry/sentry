@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -54,10 +55,17 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
         rules = [data.rule.to_notification_origin()] if data.rule else []
 
-        return DiscordIssuesMessageBuilder(
+        message = DiscordIssuesMessageBuilder(
             group=group,
             event=group_event,
             tags=set(data.tags) if data.tags else None,
             rules=rules,
             link_decorator=link_decorator,
         ).build(notification_uuid=data.notification_uuid)
+
+        message.setdefault("embeds", []).extend(
+            discord_attachment_manager.get_additional_attachment_for_integration_id(
+                data.integration_id, group.organization
+            )
+        )
+        return message

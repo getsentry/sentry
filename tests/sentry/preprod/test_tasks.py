@@ -1,6 +1,7 @@
 from datetime import timedelta
 from hashlib import sha1
-from unittest.mock import patch
+from typing import Any, cast
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sentry_sdk
@@ -295,6 +296,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum
         )
         assert status == ChunkFileState.ERROR
+        assert details is not None
         assert "Reported checksum mismatch" in details
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum)
@@ -323,6 +325,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
+        assert details is not None
         assert "Not all chunks available for assembling" in details
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
@@ -393,7 +396,9 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
     # assemble_result.build_configuration which doesn't exist
 
     @patch("sentry.preprod.tasks.dispatch_taskbroker")
-    def test_assemble_preprod_artifact_dispatches_to_taskbroker(self, mock_dispatch) -> None:
+    def test_assemble_preprod_artifact_dispatches_to_taskbroker(
+        self, mock_dispatch: MagicMock
+    ) -> None:
         content = b"test preprod artifact content no query"
         fileobj = ContentFile(content)
         total_checksum = sha1(content).hexdigest()
@@ -486,7 +491,7 @@ class CreatePreprodArtifactTest(TestCase):
         content = b"test with size analysis quota only"
         total_checksum = sha1(content).hexdigest()
 
-        def quota_side_effect(org_id, data_category):
+        def quota_side_effect(org_id: int, data_category: int) -> bool:
             return data_category == DataCategory.SIZE_ANALYSIS
 
         with self.feature(
@@ -511,7 +516,7 @@ class CreatePreprodArtifactTest(TestCase):
         content = b"test with installable build quota only"
         total_checksum = sha1(content).hexdigest()
 
-        def quota_side_effect(org_id, data_category):
+        def quota_side_effect(org_id: int, data_category: int) -> bool:
             return data_category == DataCategory.INSTALLABLE_BUILD
 
         with self.feature(
@@ -562,8 +567,14 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         )
 
     def _run_task_and_verify_status(
-        self, content, checksum=None, chunks=None, artifact_id=None, org_id=None, project_id=None
-    ):
+        self,
+        content: bytes,
+        checksum: str | None = None,
+        chunks: list[str] | None = None,
+        artifact_id: int | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
+    ) -> tuple[Any, Any]:
         checksum = checksum or sha1(content).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(content), self.organization)
         chunks = chunks or [blob.checksum]
@@ -585,7 +596,9 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         return status, details
 
     @patch("sentry.preprod.tasks.send_build_distribution_webhook")
-    def test_assemble_preprod_artifact_installable_app_success(self, mock_send_webhook) -> None:
+    def test_assemble_preprod_artifact_installable_app_success(
+        self, mock_send_webhook: MagicMock
+    ) -> None:
         status, details = self._run_task_and_verify_status(b"test installable app content")
 
         assert status == ChunkFileState.OK
@@ -606,7 +619,9 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
         assert call_kwargs.kwargs["organization_id"] == self.organization.id
 
     @patch("sentry.preprod.tasks.send_build_distribution_webhook")
-    def test_assemble_preprod_artifact_installable_app_error_cases(self, mock_send_webhook) -> None:
+    def test_assemble_preprod_artifact_installable_app_error_cases(
+        self, mock_send_webhook: MagicMock
+    ) -> None:
         # Test nonexistent artifact
         status, details = self._run_task_and_verify_status(
             b"nonexistent artifact", artifact_id=99999
@@ -635,7 +650,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
 
         # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
-        assert self.preprod_artifact.installable_app_file_id is None
+        assert cast("object", self.preprod_artifact.installable_app_file_id) is None
 
         # Verify webhook was NOT sent for any error case
         mock_send_webhook.assert_not_called()
@@ -649,8 +664,14 @@ class AssemblePreprodArtifactSizeAnalysisTest(BaseAssembleTest):
         )
 
     def _run_task_and_verify_status(
-        self, content, checksum=None, chunks=None, artifact_id=None, org_id=None, project_id=None
-    ):
+        self,
+        content: bytes,
+        checksum: str | None = None,
+        chunks: list[str] | None = None,
+        artifact_id: int | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
+    ) -> tuple[Any, Any]:
         checksum = checksum or sha1(content).hexdigest()
         blob = FileBlob.from_file_with_organization(ContentFile(content), self.organization)
         chunks = chunks or [blob.checksum]
