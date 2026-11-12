@@ -156,7 +156,7 @@ class SeerWorkflowCreateTest(TestCase):
 
     def test_rejects_unconfigurable_strategy(self) -> None:
         with pytest.raises(WorkflowUpdateError, match="cannot be configured"):
-            SeerWorkflow.create(
+            SeerWorkflow.create(  # type: ignore[call-overload]
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 schedule=SeerWorkflowSchedule.DAILY,
@@ -167,7 +167,7 @@ class SeerWorkflowCreateTest(TestCase):
 
     def test_rejects_project_scope_for_monitor_scoped_strategy(self) -> None:
         with pytest.raises(WorkflowUpdateError, match="selected by connecting monitors"):
-            SeerWorkflow.create(
+            SeerWorkflow.create(  # type: ignore[call-overload]
                 organization_id=self.organization.id,
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 scope=SelectedProjects(()),

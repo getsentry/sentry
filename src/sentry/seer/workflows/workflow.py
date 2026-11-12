@@ -5,6 +5,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
+from typing import Literal, overload
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -26,7 +27,9 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.base import (
     ConfigUpdate,
     LockedConfig,
+    ProjectSelection,
     ScopeSelection,
+    SelectedMonitors,
     WorkflowUpdateError,
     lock_config,
     validate_project_ids,
@@ -102,6 +105,36 @@ class SeerWorkflow:
                     if strategy.value not in existing
                 ]
             )
+
+    @overload
+    @classmethod
+    def create(
+        cls,
+        *,
+        organization_id: int,
+        strategy: Literal[SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION],
+        enabled: bool = ...,
+        schedule: SeerWorkflowSchedule = ...,
+        scope: SelectedMonitors,
+        environments: Sequence[str] = ...,
+        extras: SeerWorkflowConfigExtras | None = ...,
+        service_account_grant: SeerServiceAccountGrant,
+    ) -> SeerWorkflow: ...
+
+    @overload
+    @classmethod
+    def create(
+        cls,
+        *,
+        organization_id: int,
+        strategy: Literal[SeerWorkflowStrategy.AGENTIC_TRIAGE_V2],
+        enabled: bool = ...,
+        schedule: SeerWorkflowSchedule = ...,
+        scope: ProjectSelection,
+        environments: Sequence[str] = ...,
+        extras: SeerWorkflowConfigExtras | None = ...,
+        service_account_grant: SeerServiceAccountGrant,
+    ) -> SeerWorkflow: ...
 
     @classmethod
     def create(
