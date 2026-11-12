@@ -405,6 +405,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert self.mock_post_message.call_count == 1
 
     @with_feature(FEATURES)
+    @override_options({"notifications.tracking.sources": [NotificationSource.METRIC_ALERT]})
     def test_existing_investigation_replies_in_parent_thread(self) -> None:
         self.click()
         parent_thread_ts = "1702424300.000100"
