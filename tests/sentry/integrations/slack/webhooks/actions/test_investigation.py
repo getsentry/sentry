@@ -282,6 +282,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         update_kwargs = self.mock_update.call_args.kwargs
         assert update_kwargs["channel"] == CHANNEL_ID
         assert update_kwargs["ts"] == MESSAGE_TS
+        assert update_kwargs["blocks"] is None
         (button,) = update_kwargs["attachments"][0]["blocks"][1]["elements"]
         assert button["text"]["text"] == "Open investigation"
         assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")

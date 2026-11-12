@@ -485,7 +485,6 @@ def update_investigation_alert_message(
             )
             if message_data is None:
                 return
-            parsed_blocks = [Block.parse(block) for block in message_data.get("blocks", [])]
         except (KeyError, TypeError, InvalidInvestigationAlertMessage) as e:
             lifecycle.record_failure(failure_reason=e)
             return
@@ -495,7 +494,7 @@ def update_investigation_alert_message(
                 channel_id=channel_id,
                 message_ts=message_ts,
                 renderable=SlackRenderable(
-                    blocks=[block for block in parsed_blocks if block is not None],
+                    blocks=[],
                     attachments=message_data["attachments"],
                     text=message_data["text"],
                 ),
