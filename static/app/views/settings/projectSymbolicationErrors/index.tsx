@@ -88,23 +88,15 @@ function causeSeries(stats: EventsStats | MultiSeriesEventsStats | undefined) {
     .sort(([, a], [, b]) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-// The chart palette puts its four purple tones first. This order alternates
-// the hues, so that causes next to each other in the chart look different.
-const CAUSE_COLOR_ORDER = [0, 5, 7, 10, 8, 2, 4, 6, 3, 1, 9];
-
 /**
  * The colour of each cause in the chart, so the row trends match it. A cause
  * that the chart does not show has the colour of `OTHER_CAUSES`.
  */
 function useCauseColors(stats: EventsStats | MultiSeriesEventsStats | undefined) {
   const theme = useTheme();
-  const palette = theme.chart.getColorPalette(CAUSE_COLOR_ORDER.length - 1);
-  return new Map(
-    causeSeries(stats).map(([cause], index) => [
-      cause,
-      palette[CAUSE_COLOR_ORDER[index % CAUSE_COLOR_ORDER.length]!]!,
-    ])
-  );
+  const series = causeSeries(stats);
+  const palette = theme.chart.getColorPalette(Math.max(series.length - 1, 0));
+  return new Map(series.map(([cause], index) => [cause, palette[index]!]));
 }
 
 function toTimeSeries(
