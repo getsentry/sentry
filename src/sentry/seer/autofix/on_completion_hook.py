@@ -33,7 +33,6 @@ from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
-    complete_single_run_pr_iteration,
     continue_pr_iteration,
     drain_single_run_feedback_queue,
     fail_pr_iteration,
@@ -241,7 +240,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         if state.status == "completed":
             if is_pr_feedback_turn(state):
-                complete_single_run_pr_iteration(organization, group, run_id, state)
+                _, referrer = get_current_step(state)
+                continue_pr_iteration(
+                    organization,
+                    group,
+                    run_id,
+                    state,
+                    referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+                )
                 cls._log_reaction_outcomes(
                     organization, run_id, react_to_completed_iteration(organization, run_id, state)
                 )

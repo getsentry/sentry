@@ -41,6 +41,7 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
 from sentry.seer.autofix.pr_iteration.queue import count_queued_autofix_feedback
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
+from sentry.seer.autofix.single_run import is_single_run
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
@@ -285,6 +286,7 @@ def continue_pr_iteration(
 
     if (
         state.status == "completed"
+        and not is_single_run(state)
         and outcome == PrIterationOutcome.PR_CREATION_ERRORED
         and any(
             state.repo_pr_states[repo].pr_creation_error_code == "branch_moved"
@@ -313,6 +315,7 @@ def continue_pr_iteration(
     if outcome in (
         PrIterationOutcome.ALREADY_PUSHED,
         PrIterationOutcome.NO_CODE_CHANGES,
+        PrIterationOutcome.NOT_PUSHED,
     ):
         consume_queued_feedback(log_ctx, organization, run_id)
 
@@ -333,30 +336,6 @@ def is_pr_feedback_turn(state: SeerRunState) -> bool:
     return False
 
 
-def complete_single_run_pr_iteration(
-    organization: Organization,
-    group: Group,
-    run_id: int,
-    state: SeerRunState,
-) -> None:
-    log_ctx = iteration_log_context(organization, group, state)
-    outcome = _single_run_iteration_outcome(log_ctx, state)
-    if outcome is None:
-        return
-    if outcome in (
-        PrIterationOutcome.ALREADY_PUSHED,
-        PrIterationOutcome.NO_CODE_CHANGES,
-        PrIterationOutcome.NOT_PUSHED,
-    ):
-        consume_queued_feedback(log_ctx, organization, run_id)
-    complete_pr_iteration_details(
-        log_ctx=log_ctx,
-        run_state=state,
-        organization_id=organization.id,
-        outcome=outcome.value,
-    )
-
-
 def drain_single_run_feedback_queue(
     organization: Organization, group: Group, run_id: int, state: SeerRunState
 ) -> None:
@@ -366,16 +345,7 @@ def drain_single_run_feedback_queue(
         )
 
 
-def _single_run_iteration_outcome(
-    log_ctx: PrIterationLogContext, state: SeerRunState
-) -> PrIterationOutcome | None:
-    if not state.repo_pr_states:
-        return PrIterationOutcome.NO_PULL_REQUEST
-    if not _latest_iteration_touched_files(log_ctx, state):
-        return PrIterationOutcome.NO_CODE_CHANGES
-    _, is_synced = state.has_code_changes()
-    if is_synced:
-        return PrIterationOutcome.ALREADY_PUSHED
+def _single_run_unpushed_outcome(state: SeerRunState) -> PrIterationOutcome | None:
     if any(pr.pr_creation_status == "creating" for pr in state.repo_pr_states.values()):
         return None
     if iteration_terminal_errored_repos(state):
@@ -493,6 +463,9 @@ def pr_iteration_push_outcome(
     if is_synced:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="already_synced")
         return PrIterationOutcome.ALREADY_PUSHED
+
+    if is_single_run(state):
+        return _single_run_unpushed_outcome(state)
 
     errored_repos = iteration_terminal_errored_repos(state)
     moved_branch = bool(errored_repos) and _push_failed_on_moved_branch(group, state, errored_repos)
