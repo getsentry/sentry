@@ -224,7 +224,7 @@ describe('ReplayDetailsEntityHeader', () => {
     // The title comes off the record, so it is live.
     expect(screen.getByRole('heading', {name: /Replay user/})).toBeInTheDocument();
 
-    // The counts do not. Asserting them here would show "0 Errors" before the
+    // The counts do not. Asserting them here would show "Errors 0" before the
     // error pages land, and the click stats on a replay that has none.
     expect(screen.queryByRole('link', {name: /Errors/})).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: /Dead Clicks/})).not.toBeInTheDocument();
