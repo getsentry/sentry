@@ -44,7 +44,8 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.utils.snuba import _snuba_pool
+from sentry.utils.snuba import SnubaError, _snuba_pool
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -242,6 +243,63 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.DELETING.value
 
+    def test_rejected_by_snuba(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            time_window=0,
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+        with patch("sentry.snuba.tasks.sentry_sdk.capture_exception") as capture_exception:
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        tags = {"action": "create", "dataset": "events", "error_type": "SnubaError"}
+        self.metrics.incr.assert_any_call("snuba.subscriptions.marked_broken", tags=tags)
+        error = capture_exception.call_args[0][0]
+        assert isinstance(error, SubscriptionError)
+        assert "HTTP 400" in str(error)
+
+    def test_rejected_by_snuba_rpc(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            time_window=3600,
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+        with (
+            patch(
+                "sentry.snuba.tasks.snuba_rpc.create_subscription",
+                side_effect=SnubaRPCBadRequest("invalid"),
+            ),
+            patch("sentry.snuba.tasks.sentry_sdk.capture_exception"),
+        ):
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        self.metrics.incr.assert_any_call(
+            "snuba.subscriptions.marked_broken",
+            tags={
+                "action": "create",
+                "dataset": "events_analytics_platform",
+                "error_type": "SnubaRPCBadRequest",
+            },
+        )
+
+    def test_snuba_error_not_marked_broken(self) -> None:
+        for status in (429, 500):
+            sub = self.create_subscription(
+                QuerySubscription.Status.CREATING,
+                date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+            )
+            with patch("sentry.snuba.tasks._snuba_pool") as pool:
+                pool.urlopen.return_value = Mock(status=status, data=b"")
+                with pytest.raises(SnubaError):
+                    create_subscription_in_snuba(sub.id)
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.CREATING.value
+
     def test_status_join(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
         create_subscription_in_snuba(sub.id)
@@ -428,6 +486,26 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         self.metrics.incr.assert_any_call(
             "snuba.subscriptions.marked_broken",
             tags={"action": "update", "dataset": "events", "error_type": "InvalidIssueSearchQuery"},
+        )
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.BROKEN.value
+        assert sub.subscription_id is None
+
+    def test_rejected_by_snuba(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=f"1/{uuid4().hex}",
+            time_window=0,
+            date_updated=timezone.now() - BROKEN_GRACE_PERIOD * 2,
+        )
+        with (
+            patch("sentry.snuba.tasks._delete_from_snuba"),
+            patch("sentry.snuba.tasks.sentry_sdk.capture_exception"),
+        ):
+            update_subscription_in_snuba(sub.id)
+        self.metrics.incr.assert_any_call(
+            "snuba.subscriptions.marked_broken",
+            tags={"action": "update", "dataset": "events", "error_type": "SnubaError"},
         )
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.BROKEN.value

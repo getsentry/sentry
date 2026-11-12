@@ -260,8 +260,9 @@ def _maybe_mark_broken(
     subscription: QuerySubscription, action: str, error: SubscriptionError
 ) -> bool:
     """
-    Marks a subscription whose query has failed to build for longer than
-    BROKEN_GRACE_PERIOD as BROKEN, so that `subscription_checker` stops retrying it.
+    Marks a subscription whose query has failed to build, or been rejected by Snuba,
+    for longer than BROKEN_GRACE_PERIOD as BROKEN, so that `subscription_checker` stops
+    retrying it.
     Until then, it's left as is for `subscription_checker` to retry.
     Returns whether the subscription was marked BROKEN.
     """
@@ -386,10 +387,23 @@ def _create_snql_in_snuba(
     )
     if response.status != 202:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        error = SnubaError(
+            f"HTTP {response.status} response from Snuba: {_response_text(response.data)}"
+        )
+        # Snuba rejected the subscription itself (e.g. an out-of-range time window), so
+        # retrying won't help. Rate limiting is transient, so it's retried as usual.
+        if 400 <= response.status < 500 and response.status != 429:
+            raise SubscriptionError(error) from error
+        raise error
 
     subscription_id = orjson.loads(response.data)["subscription_id"]
     return subscription_id
+
+
+def _response_text(data: bytes | str) -> str:
+    if isinstance(data, bytes):
+        data = data.decode("utf-8", errors="replace")
+    return data[:500]
 
 
 def _create_rpc_in_snuba(
@@ -406,6 +420,9 @@ def _create_rpc_in_snuba(
 
     try:
         response = snuba_rpc.create_subscription(subscription_request)
+    except snuba_rpc.SnubaRPCBadRequest as e:
+        metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
+        raise SubscriptionError(e) from e
     except snuba_rpc.SnubaRPCError:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise
@@ -418,7 +435,9 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
         "DELETE", f"/{dataset.value}/{entity_key.value}/subscriptions/{subscription_id}"
     )
     if response.status != 202:
-        raise SnubaError("HTTP %s response from Snuba!" % response.status)
+        raise SnubaError(
+            f"HTTP {response.status} response from Snuba: {_response_text(response.data)}"
+        )
 
 
 @instrumented_task(
