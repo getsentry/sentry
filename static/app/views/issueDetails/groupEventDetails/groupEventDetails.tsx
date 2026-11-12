@@ -39,7 +39,7 @@ export function GroupEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {drawer, eventId, tagKey} = useIssueDetailsParams();
+  const {drawer, eventId} = useIssueDetailsParams();
   const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
 
@@ -96,8 +96,6 @@ export function GroupEventDetails() {
             organization,
             groupId,
             drawer,
-            // The tag key may still come from a path-based route.
-            drawerParams: tagKey ? {tagKey} : undefined,
             query: location.query,
           }),
           {replace: true}
@@ -112,7 +110,6 @@ export function GroupEventDetails() {
     organization,
     drawer,
     eventId,
-    tagKey,
     groupId,
     prevEvent,
     navigate,

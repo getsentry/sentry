@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -45,23 +44,15 @@ describe('EventNavigation', () => {
     group,
   };
 
-  /**
-   * Path-based tabs are read off the deepest route's `handle`,
-   * so every tab gets a child route carrying that handle, which also lets tests
-   * navigate between tabs. The nav under test renders on the parent route, so the
-   * children render nothing of their own.
-   */
   function routerConfigForTab(tab: Tab) {
+    const slug = TabPaths[tab].replace(/\/$/, '');
+    const query: Record<string, string> = slug ? {tab: slug} : {};
     return {
       location: {
-        pathname: `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[tab]}`,
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+        query,
       },
       route: '/organizations/:orgId/issues/:groupId/',
-      children: Array.from(new Set(Object.values(TabPaths)), path => ({
-        path,
-        handle: {path},
-        element: <Fragment />,
-      })),
     };
   }
 
@@ -156,7 +147,7 @@ describe('EventNavigation', () => {
             ...initialRouterConfig,
             location: {
               ...initialRouterConfig.location,
-              query: {sort: '-title'},
+              query: {...initialRouterConfig.location.query, sort: '-title'},
             },
           },
           organization,
@@ -345,8 +336,9 @@ describe('EventNavigation', () => {
         screen.getByRole('button', {name: 'Return to event details'})
       );
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.DETAILS]}`
+        `/organizations/${organization.slug}/issues/${group.id}/`
       );
+      expect(router.location.query.tab).toBeUndefined();
       expect(screen.getByRole('tab', {name: /Events/})).toHaveAttribute(
         'aria-selected',
         'true'

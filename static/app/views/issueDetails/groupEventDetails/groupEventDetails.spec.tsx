@@ -541,9 +541,10 @@ describe('groupEventDetails', () => {
       ...props.initialRouterConfig,
       location: {
         ...props.initialRouterConfig.location,
-        pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${props.event.id}/`,
+        pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
+        query: {eventId: props.event.id},
       },
-      route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      route: '/organizations/:orgId/issues/:groupId/',
     };
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
@@ -560,18 +561,17 @@ describe('groupEventDetails', () => {
       await screen.findByRole('button', {name: 'Copy Event ID'})
     ).toBeInTheDocument();
 
-    router.navigate(`${router.location.pathname}?environment=prod`);
+    router.navigate(
+      `${router.location.pathname}?eventId=${props.event.id}&environment=prod`
+    );
 
+    // Drops the event, which isn't in the new environment
     await waitFor(() => {
-      expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
-          query: expect.objectContaining({
-            environment: 'prod',
-          }),
-        })
-      );
+      expect(router.location.query).toEqual({environment: 'prod'});
     });
+    expect(router.location.pathname).toBe(
+      `/organizations/${props.organization.slug}/issues/${props.group.id}/`
+    );
   });
 
   it('does not redirect when switching to a valid environment selection for event', async () => {
@@ -728,9 +728,10 @@ describe('groupEventDetails', () => {
         organization: props.organization,
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/${eventId}/`,
+            pathname: `/organizations/${props.organization.slug}/issues/${props.group.id}/`,
+            query: {eventId},
           },
-          route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+          route: '/organizations/:orgId/issues/:groupId/',
         },
       });
 

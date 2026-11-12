@@ -1,12 +1,12 @@
+/**
+ * Issue details page tabs. Drawers open on top of a page tab and are listed in
+ * `IssueDetailsDrawer`.
+ */
 export enum Tab {
   DETAILS = 'details',
-  ACTIVITY = 'activity',
   USER_FEEDBACK = 'user-feedback',
   ATTACHMENTS = 'attachments',
-  DISTRIBUTIONS = 'distributions', // Renamed from TAGS so the route may include feature flags.
   EVENTS = 'events',
-  MERGED = 'merged',
-  SIMILAR_ISSUES = 'similar-issues',
   REPLAYS = 'Replays',
   OPEN_PERIODS = 'open-periods',
   CHECK_INS = 'check-ins',
@@ -14,15 +14,15 @@ export enum Tab {
   AUTOFIX = 'autofix',
 }
 
+/**
+ * The path segment each page tab had before issue details moved its tab into
+ * the `tab` query param. The query param uses the same values.
+ */
 export const TabPaths: Record<Tab, string> = {
   [Tab.DETAILS]: '',
-  [Tab.ACTIVITY]: 'activity/',
   [Tab.USER_FEEDBACK]: 'feedback/',
   [Tab.ATTACHMENTS]: 'attachments/',
-  [Tab.DISTRIBUTIONS]: 'distributions/',
   [Tab.EVENTS]: 'events/',
-  [Tab.MERGED]: 'merged/',
-  [Tab.SIMILAR_ISSUES]: 'similar/',
   [Tab.REPLAYS]: 'replays/',
   [Tab.OPEN_PERIODS]: 'open-periods/',
   [Tab.CHECK_INS]: 'check-ins/',

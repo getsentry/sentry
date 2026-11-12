@@ -169,10 +169,7 @@ describe('useSeerExplorer', () => {
     });
 
     it.each([
-      '/issues/:groupId/replays/',
-      '/issues/:groupId/attachments/',
-      '/issues/:groupId/distributions/',
-      '/issues/:groupId/distributions/:tagKey/',
+      '/issues/:groupId/',
       '/explore/logs/trace/:traceSlug/',
       '/explore/replays/',
       '/explore/replays/:replaySlug/',

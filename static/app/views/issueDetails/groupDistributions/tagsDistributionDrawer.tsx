@@ -12,7 +12,10 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import {TagDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
-import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
@@ -35,7 +38,7 @@ export function TagsDistributionDrawer({
   includeFeatureFlagsTab,
 }: Props) {
   const environments = useEnvironmentsFromUrl();
-  const {tagKey} = useIssueDetailsParams();
+  const [{tagKey}] = useIssueDetailsDrawerParams(IssueDetailsDrawer.DISTRIBUTIONS);
 
   const [search, setSearch] = useState('');
 

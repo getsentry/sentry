@@ -32,23 +32,21 @@ describe('IssueDetailsEventNavigation', () => {
     event: testEvent,
     group,
   };
-  const routerConfigBase: Pick<RouterConfig, 'routes'> = {
-    routes: [
-      '/organizations/:orgId/issues/:groupId/',
-      '/organizations/:orgId/issues/:groupId/events/',
-      '/organizations/:orgId/issues/:groupId/events/:eventId/',
-    ],
+  const routerConfigBase: Pick<RouterConfig, 'route'> = {
+    route: '/organizations/:orgId/issues/:groupId/',
   };
   const latestRouterConfig: RouterConfig = {
     ...routerConfigBase,
     location: {
-      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/latest/`,
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+      query: {eventId: 'latest'},
     },
   };
   const recommendedRouterConfig: RouterConfig = {
     ...routerConfigBase,
     location: {
-      pathname: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+      query: {eventId: 'recommended'},
     },
   };
 

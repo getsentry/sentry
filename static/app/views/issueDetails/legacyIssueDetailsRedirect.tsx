@@ -8,15 +8,15 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   loadIssueDetailsQueryParams,
   makeIssueDetailsLocation,
-  type IssueDetailsPageTab,
 } from './issueDetailsQueryParams';
+import type {Tab} from './types';
 
 /**
  * The route `handle` for a legacy path, naming the page tab its last segment
  * opened.
  */
 interface LegacyIssueDetailsRouteHandle {
-  legacyIssueDetailsTab: IssueDetailsPageTab;
+  legacyIssueDetailsTab: Tab;
 }
 
 /**

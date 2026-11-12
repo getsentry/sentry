@@ -75,7 +75,7 @@ import {IssueDetailsPageTabContent} from './issueDetailsPageTabContent';
 import {
   IssueDetailsDrawer,
   makeIssueDetailsLocation,
-  type IssueDetailsPageTab,
+  useIssueDetailsDrawerParams,
 } from './issueDetailsQueryParams';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
@@ -522,7 +522,7 @@ function useTrackView({
   group: Group | null;
   hasAutofixQuota: boolean;
   organization: Organization;
-  tab: IssueDetailsPageTab;
+  tab: Tab;
   project?: Project;
 }) {
   const location = useLocation();
@@ -666,7 +666,12 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab, drawer, eventId, tagKey} = useIssueDetailsParams();
+  const {currentTab, drawer, eventId} = useIssueDetailsParams();
+  const [distributionsParams] = useIssueDetailsDrawerParams(
+    IssueDetailsDrawer.DISTRIBUTIONS
+  );
+  const tagKey =
+    drawer === IssueDetailsDrawer.DISTRIBUTIONS ? distributionsParams.tagKey : null;
   const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so

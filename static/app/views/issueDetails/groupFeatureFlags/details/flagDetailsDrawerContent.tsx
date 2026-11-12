@@ -29,10 +29,7 @@ import {
   IssueDetailsDrawer,
   useIssueDetailsDrawerParams,
 } from 'sentry/views/issueDetails/issueDetailsQueryParams';
-import {
-  useIssueDetailsLinks,
-  useIssueDetailsParams,
-} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'provider', width: 'min-content'},
@@ -47,9 +44,8 @@ interface Props {
 
 export function FlagDetailsDrawerContent({group}: Props) {
   const organization = useOrganization();
-  const {tagKey} = useIssueDetailsParams();
   const links = useIssueDetailsLinks();
-  const [{flagDrawerCursor}, setDrawerParams] = useIssueDetailsDrawerParams(
+  const [{tagKey, flagDrawerCursor}, setDrawerParams] = useIssueDetailsDrawerParams(
     IssueDetailsDrawer.DISTRIBUTIONS
   );
 

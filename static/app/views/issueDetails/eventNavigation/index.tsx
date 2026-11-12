@@ -44,7 +44,6 @@ import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import type {IssueDetailsPageTab} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -70,7 +69,7 @@ interface ContentTab {
    */
   count: React.ReactNode;
   hidden: boolean;
-  key: IssueDetailsPageTab;
+  key: Tab;
   name: string;
   hasUnread?: boolean;
 }
@@ -209,7 +208,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     });
   };
 
-  const contentLocation = (key: IssueDetailsPageTab) => links.tab(key);
+  const contentLocation = (key: Tab) => links.tab(key);
 
   const isListView = LIST_VIEW_TABS.has(currentTab);
 

@@ -6,9 +6,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   makeIssueDetailsLocation,
   type IssueDetailsDrawer,
-  type IssueDetailsPageTab,
 } from 'sentry/views/issueDetails/issueDetailsQueryParams';
-import {Tab} from 'sentry/views/issueDetails/types';
 import {
   getIssueDetailsDrawer,
   useIssueDetailsParams,
@@ -34,7 +32,7 @@ export function useIssueDetailsDrawerOptions({
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
-  const {currentTab, drawer: openDrawer, eventId} = useIssueDetailsParams();
+  const {currentTab, eventId} = useIssueDetailsParams();
 
   // The drawer keeps these options from when it opened, so read the location
   // at close time.
@@ -43,29 +41,13 @@ export function useIssueDetailsDrawerOptions({
     latestRef.current = {location, currentTab, eventId};
   }, [location, currentTab, eventId]);
 
-  // A path-based drawer route, e.g. `/activity/`, replaces the page tab, so
-  // closing it returns to the page tab open before it.
-  const tabBeforeDrawerRef = useRef<{groupId: string; tab: IssueDetailsPageTab} | null>(
-    null
-  );
-  useEffect(() => {
-    if (!openDrawer) {
-      tabBeforeDrawerRef.current = {groupId, tab: currentTab};
-    }
-  }, [openDrawer, groupId, currentTab]);
-
   const onClose = useCallback(() => {
     const latest = latestRef.current;
-    const tabBeforeDrawer = tabBeforeDrawerRef.current;
-    const returnTab =
-      latest.currentTab === Tab.DETAILS && tabBeforeDrawer?.groupId === groupId
-        ? tabBeforeDrawer.tab
-        : latest.currentTab;
     navigate(
       makeIssueDetailsLocation({
         organization,
         groupId,
-        tab: returnTab,
+        tab: latest.currentTab,
         eventId: latest.eventId,
         query: latest.location.query,
       }),

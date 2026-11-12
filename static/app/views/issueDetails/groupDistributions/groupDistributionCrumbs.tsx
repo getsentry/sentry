@@ -7,11 +7,11 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {
-  useIssueDetailsLinks,
-  useIssueDetailsParams,
-} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {useIssueDetailsLinks} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {DrawerTab} from './types';
 import {useTagExportMenuItems} from './useTagExportMenuItems';
@@ -24,13 +24,13 @@ interface Props {
 
 export function GroupDistributionCrumbs({group, project, tab}: Props) {
   const organization = useOrganization();
-  const {tagKey} = useIssueDetailsParams();
+  const [{tagKey}] = useIssueDetailsDrawerParams(IssueDetailsDrawer.DISTRIBUTIONS);
   const links = useIssueDetailsLinks();
   const exportItems = useTagExportMenuItems({
     group,
     organization,
     project,
-    tagKey: tab === DrawerTab.TAGS ? tagKey : undefined,
+    tagKey: tab === DrawerTab.TAGS ? (tagKey ?? undefined) : undefined,
   });
 
   const listLabel = tab === DrawerTab.TAGS ? t('All Tags') : t('All Feature Flags');

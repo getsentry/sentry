@@ -31,9 +31,10 @@ describe('GroupDistributionCrumbs', () => {
         organization,
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/distributions/${tagKey}/`,
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
+            query: {drawer: 'distributions', tagKey},
           },
-          route: '/organizations/:orgId/issues/:groupId/distributions/:tagKey/',
+          route: '/organizations/:orgId/issues/:groupId/',
         },
       }
     );

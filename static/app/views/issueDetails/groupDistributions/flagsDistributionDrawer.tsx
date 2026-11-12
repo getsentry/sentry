@@ -10,7 +10,10 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
 import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
-import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
@@ -25,7 +28,7 @@ interface Props {
 
 export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
   const environments = useEnvironmentsFromUrl();
-  const {tagKey} = useIssueDetailsParams();
+  const [{tagKey}] = useIssueDetailsDrawerParams(IssueDetailsDrawer.DISTRIBUTIONS);
 
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState(OrderBy.A_TO_Z);

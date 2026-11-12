@@ -1,10 +1,9 @@
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 
 import {GroupEventDetails} from './groupEventDetails/groupEventDetails';
-import type {IssueDetailsPageTab} from './issueDetailsQueryParams';
 import {Tab} from './types';
 
-const PAGE_TAB_CONTENT: Record<IssueDetailsPageTab, React.ComponentType> = {
+const PAGE_TAB_CONTENT: Record<Tab, React.ComponentType> = {
   // Details is the default tab, so it isn't lazy loaded
   [Tab.DETAILS]: GroupEventDetails,
   [Tab.EVENTS]: make(() => import('sentry/views/issueDetails/groupEvents')),
@@ -22,7 +21,7 @@ const PAGE_TAB_CONTENT: Record<IssueDetailsPageTab, React.ComponentType> = {
 /**
  * The content of a page tab. Tabs other than details load on demand.
  */
-export function IssueDetailsPageTabContent({tab}: {tab: IssueDetailsPageTab}) {
+export function IssueDetailsPageTabContent({tab}: {tab: Tab}) {
   const Content = PAGE_TAB_CONTENT[tab];
   return <Content />;
 }

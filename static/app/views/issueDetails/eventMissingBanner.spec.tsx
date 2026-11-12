@@ -8,9 +8,10 @@ describe('EventMissingBanner', () => {
     const groupId = 'group-1';
     const initialRouterConfig = {
       location: {
-        pathname: '/organizations/org-slug/issues/group-1/events/recommended/',
+        pathname: '/organizations/org-slug/issues/group-1/',
+        query: {eventId: 'recommended'},
       },
-      route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      route: '/organizations/:orgId/issues/:groupId/',
     };
 
     render(
@@ -37,9 +38,10 @@ describe('EventMissingBanner', () => {
     const groupId = 'group-1';
     const initialRouterConfig = {
       location: {
-        pathname: '/organizations/org-slug/issues/group-1/events/abc123/',
+        pathname: '/organizations/org-slug/issues/group-1/',
+        query: {eventId: 'abc123'},
       },
-      route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
+      route: '/organizations/:orgId/issues/:groupId/',
     };
 
     render(

@@ -29,15 +29,6 @@ export enum IssueDetailsDrawer {
 }
 
 /**
- * The `Tab` enum still lists the drawers for the route-based code. They are
- * not page tabs.
- */
-export type IssueDetailsPageTab = Exclude<
-  Tab,
-  Tab.ACTIVITY | Tab.DISTRIBUTIONS | Tab.SIMILAR_ISSUES | Tab.MERGED
->;
-
-/**
  * The URL value of a page tab is its old path segment, e.g. `replays` or
  * `feedback`, so legacy paths map straight onto the `tab` param.
  */
@@ -45,27 +36,13 @@ function getPageTabSlug(tab: Tab): string {
   return TabPaths[tab].replace(/\/$/, '');
 }
 
-const DRAWER_SLUGS = new Set<string>(Object.values(IssueDetailsDrawer));
-
-export function isIssueDetailsPageTab(tab: Tab): tab is IssueDetailsPageTab {
-  return !DRAWER_SLUGS.has(getPageTabSlug(tab));
-}
-
-/**
- * The drawer a legacy issue details route opens, e.g. `activity/`.
- */
-export function getDrawerForLegacyRoute(tab: Tab): IssueDetailsDrawer | null {
-  const slug = getPageTabSlug(tab);
-  return DRAWER_SLUGS.has(slug) ? (slug as IssueDetailsDrawer) : null;
-}
-
-const PAGE_TABS = Object.values(Tab).filter(isIssueDetailsPageTab);
-
-const PAGE_TABS_BY_SLUG = new Map<string, IssueDetailsPageTab>(
-  PAGE_TABS.filter(tab => tab !== Tab.DETAILS).map(tab => [getPageTabSlug(tab), tab])
+const PAGE_TABS_BY_SLUG = new Map<string, Tab>(
+  Object.values(Tab)
+    .filter(tab => tab !== Tab.DETAILS)
+    .map(tab => [getPageTabSlug(tab), tab])
 );
 
-const parseAsPageTab = createParser<IssueDetailsPageTab>({
+const parseAsPageTab = createParser<Tab>({
   parse: value => PAGE_TABS_BY_SLUG.get(value) ?? null,
   serialize: getPageTabSlug,
 });
@@ -115,7 +92,7 @@ const ISSUE_DETAILS_TAB_PARAMS = {
   [Tab.AUTOFIX]: {},
   [Tab.USER_FEEDBACK]: {cursor: parseAsScalar},
   [Tab.ATTACHMENTS]: {cursor: parseAsScalar, attachmentFilter: parseAsScalar},
-} satisfies Record<IssueDetailsPageTab, ParserMap>;
+} satisfies Record<Tab, ParserMap>;
 
 /**
  * The query params each drawer owns. They carry over only while that drawer is
@@ -145,7 +122,7 @@ type ParamValues<Parsers> = Parsers extends ParserMap
 /**
  * The params a page tab owns. Set one to `null` to remove it.
  */
-export type IssueDetailsTabParams<T extends IssueDetailsPageTab> = ParamValues<
+export type IssueDetailsTabParams<T extends Tab> = ParamValues<
   (typeof ISSUE_DETAILS_TAB_PARAMS)[T]
 >;
 
@@ -159,7 +136,7 @@ export type IssueDetailsDrawerParams<D extends IssueDetailsDrawer> = ParamValues
 /**
  * Reads and writes the params of a page tab, e.g. its pagination cursor.
  */
-export function useIssueDetailsTabParams<T extends IssueDetailsPageTab>(tab: T) {
+export function useIssueDetailsTabParams<T extends Tab>(tab: T) {
   return useQueryStates(ISSUE_DETAILS_TAB_PARAMS[tab]);
 }
 
@@ -169,16 +146,6 @@ export function useIssueDetailsTabParams<T extends IssueDetailsPageTab>(tab: T) 
  */
 export function useIssueDetailsDrawerParams<D extends IssueDetailsDrawer>(drawer: D) {
   return useQueryStates(ISSUE_DETAILS_DRAWER_PARAMS[drawer]);
-}
-
-/**
- * Reads a drawer's params from a location's query.
- */
-export function loadIssueDetailsDrawerParams<D extends IssueDetailsDrawer>(
-  drawer: D,
-  query: Location['query'] | Record<string, string | string[] | null | undefined>
-) {
-  return createLoader(ISSUE_DETAILS_DRAWER_PARAMS[drawer])(qs.stringify(query));
 }
 
 const SCOPED_QUERY_PARAMS = new Set<string>(
@@ -206,7 +173,7 @@ function applyParams(
 }
 
 interface IssueDetailsLocationOptions<
-  T extends IssueDetailsPageTab = never,
+  T extends Tab = never,
   D extends IssueDetailsDrawer = never,
 > {
   groupId: string;
@@ -243,7 +210,7 @@ export interface IssueDetailsLocation extends LocationDescriptorObject {
  * are set on top.
  */
 export function makeIssueDetailsLocation<
-  T extends IssueDetailsPageTab = never,
+  T extends Tab = never,
   D extends IssueDetailsDrawer = never,
 >({
   organization,
@@ -255,7 +222,7 @@ export function makeIssueDetailsLocation<
   drawerParams,
   query,
 }: IssueDetailsLocationOptions<T, D>): IssueDetailsLocation {
-  const pageTab: IssueDetailsPageTab = tab ?? Tab.DETAILS;
+  const pageTab: Tab = tab ?? Tab.DETAILS;
   const tabParsers: ParserMap = ISSUE_DETAILS_TAB_PARAMS[pageTab];
   const drawerParsers: ParserMap = drawer ? ISSUE_DETAILS_DRAWER_PARAMS[drawer] : {};
   const ownedParams = new Set([
@@ -297,7 +264,7 @@ export function makeIssueDetailsLocation<
  * need a string.
  */
 export function makeIssueDetailsPath<
-  T extends IssueDetailsPageTab = never,
+  T extends Tab = never,
   D extends IssueDetailsDrawer = never,
 >(options: IssueDetailsLocationOptions<T, D>): string {
   const {pathname, query} = makeIssueDetailsLocation(options);

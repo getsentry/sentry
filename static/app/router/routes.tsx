@@ -30,7 +30,6 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {isIssueDetailsPageTab} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
@@ -2956,7 +2955,7 @@ function buildRoutes(): RouteObject[] {
     [groupPath, `${groupPath}${TabPaths[Tab.EVENTS]}:eventId/`].flatMap(prefix => [
       ...(prefix === groupPath ? [] : [legacyIssueDetailsRoute(prefix, Tab.DETAILS)]),
       ...Object.values(Tab)
-        .filter(tab => tab !== Tab.DETAILS && isIssueDetailsPageTab(tab))
+        .filter(tab => tab !== Tab.DETAILS)
         .map(tab => legacyIssueDetailsRoute(`${prefix}${TabPaths[tab]}`, tab)),
     ]);
 
