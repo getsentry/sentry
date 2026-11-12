@@ -210,14 +210,16 @@ class SnubaQueryValidatorTest(TestCase):
 
     @with_feature("organizations:spans-monitor-equations")
     def test_eap_spans_equation_aggregate(self) -> None:
-        aggregate = (
-            "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)"
-        )
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data(aggregate), context=self.context
-        )
-        assert validator.is_valid(), validator.errors
-        assert validator.validated_data["aggregate"] == aggregate
+        for aggregate in [
+            "equation|sum(gen_ai.usage.cache_read.input_tokens) / sum(gen_ai.usage.input_tokens)",
+            "equation|opportunity_score(measurements.score.lcp) * 100",
+        ]:
+            with self.subTest(aggregate=aggregate):
+                validator = SnubaQueryValidator(
+                    data=self._spans_equation_data(aggregate), context=self.context
+                )
+                assert validator.is_valid(), validator.errors
+                assert validator.validated_data["aggregate"] == aggregate
 
     def test_eap_spans_equation_aggregate_without_feature(self) -> None:
         validator = SnubaQueryValidator(
@@ -232,62 +234,30 @@ class SnubaQueryValidatorTest(TestCase):
         ]
 
     @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_unsupported_function(self) -> None:
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data("equation|count_sample() / count()"),
-            context=self.context,
-        )
-        assert not validator.is_valid()
-        assert validator.errors["aggregate"] == [
-            ErrorDetail(
-                string="Invalid Metric: count_sample() is not supported in monitors.",
-                code="invalid",
-            )
-        ]
-
-    @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_without_functions(self) -> None:
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data("equation|span.duration / 1000"),
-            context=self.context,
-        )
-        assert not validator.is_valid()
-        assert validator.errors["aggregate"] == [
-            ErrorDetail(
-                string="Invalid Metric: An equation must combine aggregate functions, such as "
-                "sum(a) / sum(b).",
-                code="invalid",
-            )
-        ]
-
-    @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_mixing_functions_and_fields(self) -> None:
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data("equation|sum(span.duration) / span.self_time"),
-            context=self.context,
-        )
-        assert not validator.is_valid()
-        assert validator.errors["aggregate"] == [
-            ErrorDetail(
-                string="Invalid Metric: Cannot mix functions and fields in arithmetic",
-                code="invalid",
-            )
-        ]
-
-    @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_unparseable(self) -> None:
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data("equation|sum(span.duration) /"),
-            context=self.context,
-        )
-        assert not validator.is_valid()
-        assert validator.errors["aggregate"] == [
-            ErrorDetail(
-                string="Invalid Metric: Unable to parse your equation, make sure it is well "
-                "formed arithmetic",
-                code="invalid",
-            )
-        ]
+    def test_eap_spans_equation_invalid(self) -> None:
+        for aggregate, error in [
+            ("equation|count_sample() / count()", "count_sample() is not supported in monitors."),
+            (
+                "equation|span.duration / 1000",
+                "An equation must combine aggregate functions, such as sum(a) / sum(b).",
+            ),
+            (
+                "equation|sum(span.duration) / span.self_time",
+                "Cannot mix functions and fields in arithmetic",
+            ),
+            (
+                "equation|sum(span.duration) /",
+                "Unable to parse your equation, make sure it is well formed arithmetic",
+            ),
+            ("equation|sum(span.op) / count()", "span.op is invalid for parameter 1 in sum"),
+            ("equation|apdex(span.duration,foo) * 2", "could not convert string to float: 'foo'"),
+        ]:
+            with self.subTest(aggregate=aggregate):
+                validator = SnubaQueryValidator(
+                    data=self._spans_equation_data(aggregate), context=self.context
+                )
+                assert not validator.is_valid()
+                assert str(validator.errors["aggregate"][0]).startswith(f"Invalid Metric: {error}")
 
     @with_feature(["organizations:ourlogs-enabled", "organizations:spans-monitor-equations"])
     def test_eap_logs_equation_aggregate(self) -> None:
@@ -306,37 +276,6 @@ class SnubaQueryValidatorTest(TestCase):
                 code="invalid",
             )
         ]
-
-    @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_unresolvable_function(self) -> None:
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data("equation|sum(span.op) / count()"),
-            context=self.context,
-        )
-        assert not validator.is_valid()
-        assert "span.op is invalid for parameter 1 in sum" in str(validator.errors["aggregate"][0])
-
-    @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_invalid_number_argument(self) -> None:
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data("equation|apdex(span.duration,foo) * 2"),
-            context=self.context,
-        )
-        assert not validator.is_valid()
-        assert validator.errors["aggregate"] == [
-            ErrorDetail(
-                string="Invalid Metric: could not convert string to float: 'foo'", code="invalid"
-            )
-        ]
-
-    @with_feature("organizations:spans-monitor-equations")
-    def test_eap_spans_equation_opportunity_score(self) -> None:
-        aggregate = "equation|opportunity_score(measurements.score.lcp) * 100"
-        validator = SnubaQueryValidator(
-            data=self._spans_equation_data(aggregate), context=self.context
-        )
-        assert validator.is_valid(), validator.errors
-        assert validator.validated_data["aggregate"] == aggregate
 
     def test_eap_performance_score_aggregate(self) -> None:
         data = {
