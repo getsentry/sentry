@@ -1443,6 +1443,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
     def setUp(self) -> None:
         self.source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
         self.event_data = WorkflowEventData(event=self.source, organization=self.organization)
+        self.detector = self.create_all_projects_detector(self.organization)
         self.workflow = self.create_workflow()
         self.action_group, self.action = self.create_workflow_action(self.workflow)
 
@@ -1457,7 +1458,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             ) as environment,
         ):
             evaluation, action_groups, delayed_items = _evaluate_workflows(
-                {self.workflow}, self.event_data, FROZEN_TIME
+                {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
             )
         lookup.assert_not_called()
         environment.assert_not_called()
@@ -1472,8 +1473,8 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         assert artifact.event_id == self.source.event_id.hex
         assert artifact.group_id is None
         assert artifact.project_id is None
-        assert artifact.detector_id is None
-        assert artifact.detector_type is None
+        assert artifact.detector_id == self.detector.id
+        assert artifact.detector_type == self.detector.type
         assert artifact.triggered_action_ids == [self.action.id]
         assert artifact.error is None
         # Logging must remain usable without a project; EAP requires a real project.
@@ -1499,6 +1500,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
                 {self.workflow, foreign, environment_workflow, disabled},
                 self.event_data,
                 FROZEN_TIME,
+                detector=self.detector,
             )
         assert evaluation.evaluated_workflow_ids() == {self.workflow.id}
         assert action_groups == {self.action_group}
@@ -1524,14 +1526,14 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             )
             self.workflow.update(when_condition_group=trigger_group)
             matching, matching_action_groups, _ = _evaluate_workflows(
-                {self.workflow}, self.event_data, FROZEN_TIME
+                {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
             )
             assert matching_action_groups == {self.action_group}
             assert matching.evaluations[self.workflow.id].error is None
 
             condition.update(comparison=uuid4().hex)
             nonmatching, nonmatching_action_groups, _ = _evaluate_workflows(
-                {self.workflow}, self.event_data, FROZEN_TIME
+                {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
             )
             assert nonmatching_action_groups == set()
             assert not nonmatching.evaluations[self.workflow.id].triggered
@@ -1547,7 +1549,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         )
         self.workflow.update(when_condition_group=condition_group)
         evaluation, action_groups, _ = _evaluate_workflows(
-            {self.workflow}, self.event_data, FROZEN_TIME
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
         )
         assert action_groups == set()
         assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
@@ -1562,7 +1564,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         )
         self.workflow.update(when_condition_group=condition_group)
         evaluation, action_groups, delayed_items = _evaluate_workflows(
-            {self.workflow}, self.event_data, FROZEN_TIME
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
         )
         assert action_groups == set()
         assert delayed_items == {}
@@ -1577,7 +1579,7 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
             condition_result=True,
         )
         evaluation, action_groups, _ = _evaluate_workflows(
-            {self.workflow}, self.event_data, FROZEN_TIME
+            {self.workflow}, self.event_data, FROZEN_TIME, detector=self.detector
         )
         assert action_groups == set()
         assert evaluation.evaluations[self.workflow.id].outcome == WorkflowEvaluationOutcome.ERROR
@@ -1586,12 +1588,16 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         previous_context = WorkflowEventContext.get()
         with pytest.raises(ValueError, match="explicit organization"):
             _evaluate_workflows(
-                {self.workflow}, replace(self.event_data, organization=None), FROZEN_TIME
+                {self.workflow},
+                replace(self.event_data, organization=None),
+                FROZEN_TIME,
+                detector=self.detector,
             )
         with pytest.raises(ValueError, match="same organization"):
             _evaluate_workflows(
                 {self.workflow},
                 replace(self.event_data, organization=self.create_organization()),
                 FROZEN_TIME,
+                detector=self.detector,
             )
         assert WorkflowEventContext.get() is previous_context

@@ -437,7 +437,7 @@ def _get_environment_by_group(group_id: int) -> Environment | None:
 
 def _build_workflow_evaluations(
     *,
-    detector: Detector | None,
+    detector: Detector,
     event_data: WorkflowEventData,
     trigger_evals: dict[Workflow, DataConditionGroupEvaluation],
     filter_evals: dict[Workflow, list[DataConditionGroupEvaluation]],
@@ -465,8 +465,8 @@ def _build_workflow_evaluations(
 
         workflow_evaluations[workflow.id] = WorkflowEvaluation(
             workflow_id=workflow.id,
-            detector_id=detector.id if detector else None,
-            detector_type=detector.type if detector else None,
+            detector_id=detector.id,
+            detector_type=detector.type,
             result=result,
             triggered=trigger_eval.triggered,
             error=trigger_eval.error
@@ -659,7 +659,7 @@ def _evaluate_workflows(
     event_data: WorkflowEventData,
     event_start_time: datetime,
     *,
-    detector: Detector | None = None,
+    detector: Detector,
 ) -> tuple[ProcessWorkflowsResult, set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem]]:
     """
     Evaluate selected workflows without requiring issue lookup or action dispatch.
