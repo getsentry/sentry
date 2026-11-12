@@ -19,7 +19,6 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.issues.highlights import get_highlight_preset_for_project
-from sentry.lang.native.sources import get_scraping_config
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
@@ -61,19 +60,11 @@ class ProjectDetailsTest(APITestCase):
     def test_simple(self) -> None:
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
-
-    def test_security_token_generated_for_writer(self) -> None:
-        assert self.project.get_option("sentry:token") is None
-
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-
         assert response.data["securityToken"]
         assert response.data["securityToken"] == self.project.get_option("sentry:token")
 
     def test_security_token_hidden_from_member(self) -> None:
         self.project.update_option("sentry:token", "source-token")
-        self.project.update_option("sentry:token_header", "X-Source-Token")
-        self.project.update_option("sentry:origins", ["https://assets.example.com"])
         member = self.create_user()
         self.create_member(user=member, organization=self.organization, teams=[self.team])
         self.login_as(user=member)
@@ -81,20 +72,6 @@ class ProjectDetailsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, self.project.slug)
 
         assert "securityToken" not in response.data
-        assert "sentry:token" not in response.data["options"]
-        assert response.data["securityTokenHeader"] == "X-Source-Token"
-        assert self.project.get_option("sentry:token") == "source-token"
-        assert get_scraping_config(self.project)["headers"] == {"X-Source-Token": "source-token"}
-
-    def test_security_token_not_generated_for_member(self) -> None:
-        member = self.create_user()
-        self.create_member(user=member, organization=self.organization, teams=[self.team])
-        self.login_as(user=member)
-
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-
-        assert "securityToken" not in response.data
-        assert self.project.get_option("sentry:token") is None
 
     def test_security_token_hidden_from_read_only_owner_token(self) -> None:
         self.project.update_option("sentry:token", "source-token")
@@ -106,37 +83,6 @@ class ProjectDetailsTest(APITestCase):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
         )
 
-        assert "securityToken" not in response.data
-
-    def test_security_token_with_write_or_admin_token(self) -> None:
-        self.project.update_option("sentry:token", "source-token")
-
-        for scope in ["project:write", "project:admin"]:
-            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
-            )
-            assert response.data["securityToken"] == "source-token"
-
-    @with_feature("organizations:team-roles")
-    def test_security_token_with_team_admin(self) -> None:
-        self.project.update_option("sentry:token", "source-token")
-        member = self.create_user()
-        self.create_member(user=member, organization=self.organization, role="member")
-        self.create_team_membership(user=member, team=self.team, role="admin")
-        self.login_as(user=member)
-
-        response = self.get_success_response(self.organization.slug, self.project.slug)
-        assert response.data["securityToken"] == "source-token"
-
-        token = self.create_user_auth_token(user=member, scope_list=["project:read"])
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
-        )
         assert "securityToken" not in response.data
 
     def test_superuser_simple(self) -> None:
@@ -386,7 +332,6 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
         assert "securityToken" not in response.data
-        assert self.project.get_option("sentry:token") == "source-token"
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature("organizations:service-accounts")
@@ -436,6 +381,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200
             assert response.data["platform"] == platform
+            assert response.data["securityToken"] == self.project.get_security_token()
 
     @with_feature("organizations:team-roles")
     def test_team_admin_update_allowed_with_correct_token_scope(self) -> None:
@@ -458,6 +404,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200
             assert response.data["platform"] == platform
+            assert response.data["securityToken"] == self.project.get_security_token()
 
     def test_manager_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
