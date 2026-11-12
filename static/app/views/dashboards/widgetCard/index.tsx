@@ -118,6 +118,10 @@ type Props = {
   showContextMenu?: boolean;
   showLoadingText?: boolean;
   tableItemLimit?: number;
+  /**
+   * Rendered next to the widget title, e.g. a total for the visualized period.
+   */
+  titleSummary?: React.ReactNode;
   widgetInterval?: string;
   windowWidth?: number;
 };
@@ -416,6 +420,7 @@ function WidgetCard(props: Props) {
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+            titleSummary={props.titleSummary}
           >
             <VisualizationWidget
               widget={widget}
