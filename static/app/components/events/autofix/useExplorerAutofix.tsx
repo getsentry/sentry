@@ -543,21 +543,28 @@ function getSingleRunSections(
     },
   ];
 
+  const failed = runState.status === 'error';
   if (patches.length) {
     sections.push({
       index: 0,
       step: 'code_changes',
       blocks,
       artifacts: [patches],
-      status:
-        runState.status === 'processing' &&
-        !Object.keys(runState.repo_pr_states ?? {}).length
+      status: failed
+        ? 'error'
+        : runState.status === 'processing' &&
+            !Object.keys(runState.repo_pr_states ?? {}).length
           ? 'processing'
           : 'completed',
     });
-  }
-  if (runState.status === 'error') {
-    sections[sections.length - 1]!.status = 'error';
+  } else if (failed && rootCauses.length) {
+    sections.push({
+      index: 0,
+      step: 'code_changes',
+      blocks: [],
+      artifacts: [],
+      status: 'error',
+    });
   }
   return sections;
 }

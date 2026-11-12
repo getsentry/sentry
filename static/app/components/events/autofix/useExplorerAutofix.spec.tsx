@@ -801,7 +801,7 @@ describe('getOrderedAutofixSections', () => {
       expect(sections.map(s => s.status)).toEqual(['error']);
     });
 
-    it('shows an error on the root cause when the run failed after finding it', () => {
+    it('keeps the root cause and shows an error on code changes when the run failed after finding it', () => {
       const sections = getOrderedAutofixSections(
         makeSingleRun(
           [
@@ -812,7 +812,15 @@ describe('getOrderedAutofixSections', () => {
         )
       );
 
-      expect(sections.map(s => s.status)).toEqual(['error']);
+      expect(sections.map(s => [s.step, s.status])).toEqual([
+        ['root_cause', 'completed'],
+        ['code_changes', 'error'],
+      ]);
+      expect(getAutofixArtifactFromSection(sections[0]!)).toEqual(
+        expect.objectContaining({
+          data: {one_line_description: 'H', cause: 'C', five_whys: []},
+        })
+      );
     });
 
     it('shows an error on code changes when the run failed after editing', () => {

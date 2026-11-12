@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -18,6 +19,18 @@ export function useOpenSingleRunChat() {
     },
     [dispatch, openSeerExplorer]
   );
+}
+
+export function useRerunSingleRun(autofix: ReturnType<typeof useExplorerAutofix>) {
+  const {startStep} = autofix;
+  const openSingleRunChat = useOpenSingleRunChat();
+
+  return useCallback(async () => {
+    const run = await startStep('root_cause');
+    if (run.isSingleRun) {
+      openSingleRunChat(run.runId);
+    }
+  }, [startStep, openSingleRunChat]);
 }
 
 export function useIsSingleRunChatOpen(runId: SeerExplorerRunId | undefined) {

@@ -646,6 +646,31 @@ describe('ArtifactCard', () => {
   });
 
   describe('CodeChangesCard', () => {
+    it('starts a new single run from Re-run after a single run errored', async () => {
+      const startStepMock = jest.fn().mockResolvedValue({runId: 777, isSingleRun: true});
+      render(
+        <CodeChangesCard
+          autofix={{
+            ...mockAutofix,
+            startStep: startStepMock,
+            runState: {
+              run_id: 776,
+              feature_id: 'autofix_single_run',
+              status: 'error',
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [],
+            },
+          }}
+          groupId="1"
+          section={makeSection('code_changes', 'error', [])}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
+
+      expect(startStepMock).toHaveBeenCalledWith('root_cause');
+    });
+
     it('renders single file in single repo', () => {
       render(
         <CodeChangesCard
