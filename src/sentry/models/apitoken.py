@@ -23,7 +23,7 @@ from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.models import ApiTokenReplica
-from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
@@ -446,7 +446,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 api_token: ApiToken | None = None
                 try:
                     # Create token and delete grant atomically
-                    with transaction.atomic(router.db_for_write(cls)):
+                    with outbox_context(transaction.atomic(router.db_for_write(cls))):
                         api_token = cls.objects.create(
                             application=grant.application,
                             user=grant.user,
@@ -456,8 +456,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
                         # Remove the ApiGrant from the database to prevent reuse of the same
                         # authorization code (RFC 6749 §10.5: single-use requirement)
-                        with unguarded_write(using=router.db_for_write(ApiGrant)):
-                            grant.delete()
+                        grant.delete()
                 except (OutboxDatabaseError, OutboxFlushError):
                     # Raised by the post-commit flush; the token's outbox will replicate it later.
                     if api_token is None:
