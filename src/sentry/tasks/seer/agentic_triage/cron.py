@@ -37,7 +37,8 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
+    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -638,11 +639,11 @@ def _get_eligible_orgs_from_batch(
     if options.get("seer.night_shift.enable_for_legacy_orgs"):
         return eligible
 
-    # seat-based-seer-enabled: required for paid path, bypassed by free cohort
     paid_eligible: list[Organization] = []
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
-        if all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES):
+        has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
+        if has_seat_based_seer or is_seer_token_based_billing_onboarding_enabled(org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)
@@ -703,7 +704,7 @@ class EligibleProject:
     tweaks: AgenticTriageTweaks
     stopping_point: AutofixStoppingPoint
     connected_repos: list[str]
-    # None for seat-based orgs, regardless of the project's own setting.
+    # None for seat-based and token-billed orgs, regardless of the project's own setting.
     automation_tuning: AutofixAutomationTuningSettings | None
 
 
@@ -730,9 +731,11 @@ def _get_eligible_projects(
     if not project_map:
         return []
 
-    preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
+    preferences = bulk_read_preferences_from_sentry_db(
+        organization.id, list(project_map), limit_repos=True
+    )
 
-    is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
+    is_legacy_org = not is_seer_seat_or_token_billed_enabled(organization)
 
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():

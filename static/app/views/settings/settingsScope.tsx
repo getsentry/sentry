@@ -15,7 +15,7 @@ export function getSettingsScopeTitle(scope: SettingsScope): string {
     case 'project':
       return t('Project Settings');
     case 'org':
-      return t('Org Settings');
+      return t('Organization Settings');
     default:
       return unreachable(scope);
   }

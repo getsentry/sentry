@@ -71,7 +71,7 @@ class ProjectReplayVideoDetailsEndpoint(ProjectReplayEndpoint):
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
         if range_header := request.headers.get("Range"):
-            video_response = handle_range_response(range_header, video)
+            video_response = handle_range_response(range_header, video, replay_id, segment_id)
         else:
             video_io = BytesIO(video)
             iterator = iter(lambda: video_io.read(4096), b"")
@@ -87,7 +87,9 @@ class ProjectReplayVideoDetailsEndpoint(ProjectReplayEndpoint):
         return video_response
 
 
-def handle_range_response(range_header: str, video: bytes) -> HttpResponseBase:
+def handle_range_response(
+    range_header: str, video: bytes, replay_id: str, segment_id: str
+) -> HttpResponseBase:
     try:
         ranges = parse_range_header(range_header)
         offsets = [range.make_range(len(video) - 1) for range in ranges]
@@ -100,7 +102,15 @@ def handle_range_response(range_header: str, video: bytes) -> HttpResponseBase:
         if len(ranges) > 1:
             raise MalformedRangeHeader("Too many ranges specified.")
     except (MalformedRangeHeader, UnsatisfiableRange):
-        logger.exception("Malformed range request.")
+        logger.warning(
+            "Replay malformed range request.",
+            extra={
+                "replay_id": replay_id,
+                "segment_id": segment_id,
+                "range_header": range_header,
+                "video_size": len(video),
+            },
+        )
 
         # Malformed ranges receive an empty 416 status response which includes a
         # header to demonstrate the correct range format.

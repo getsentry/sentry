@@ -56,6 +56,32 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
         )
 
 
+class SeerAutofixStopped(NotificationData):
+    reason: str
+    suggestion: str
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_STOPPED
+
+
+@template_registry.register(NotificationSource.SEER_AUTOFIX_STOPPED)
+class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
+    category = NotificationCategory.SEER
+    example_data = SeerAutofixStopped(
+        organization_id=1,
+        reason="The error comes from an expired third-party API key.",
+        suggestion="Rotate the API key in your provider's dashboard.",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAutofixStopped) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer stopped early",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=data.reason)]),
+                ParagraphSection(blocks=[PlainTextBlock(text=f"Suggestion: {data.suggestion}")]),
+            ],
+        )
+
+
 class SeerAutofixCodeChange(TypedDict):
     repo_name: str
     diff: str

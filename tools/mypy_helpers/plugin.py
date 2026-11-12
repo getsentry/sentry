@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import os.path
 from collections.abc import Callable
 from typing import Any
 
@@ -168,18 +167,10 @@ _REQUEST_USER_TPS = (
     "django.contrib.auth.models.AnonymousUser",
     "sentry.service_accounts.principal.ServiceAccountPrincipal",
 )
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-
-
-def _is_outside_sentry(path: str) -> bool:
-    # getsentry runs this plugin through a tools symlink; its code keeps the old type
-    return os.path.relpath(os.path.realpath(path), _REPO_ROOT).startswith(os.pardir)
 
 
 def _request_user_attribute(ctx: AttributeContext) -> Type:
     # sentry.auth.principal.set_request_principal can set a ServiceAccountPrincipal
-    if _is_outside_sentry(ctx.api.path):
-        return ctx.default_attr_type
     # named_generic_type walks parent packages, which don't always list these submodules
     modules = ctx.api.modules  # type: ignore[attr-defined]
     items: list[Type] = []

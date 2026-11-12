@@ -10,27 +10,11 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-
-
-class TelemetryClassifierDataset(models.TextChoices):
-    CONVERSATION = "conversation", "Conversation"
-    TRACE_SPANS = "trace_spans", "Trace spans"
-
-
-class TelemetryClassifierOutputType(models.TextChoices):
-    # Binary question. Returns the probability of a "yes" response.
-    BINARY = "binary", "Binary"
-
-    # Selects a named option. Returns the winner, option probabilities, and confidence.
-    CHOICE = "choice", "Multiple choice"
-
-    # Rates input against an ordered rubric. Returns a probability-weighted score.
-    SCORE = "score", "Score"
-
-
-class TelemetryClassifierStatus(models.TextChoices):
-    DISABLED = "disabled", "Disabled"
-    ENABLED = "enabled", "Enabled"
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    TelemetryClassifierOutputType,
+    TelemetryClassifierStatus,
+)
 
 
 @cell_silo_model
@@ -41,10 +25,10 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     name = models.CharField(max_length=256)
 
-    # Attribute used to store classifier results.
+    # Attribute used to store classifier results, without RESULT_ATTRIBUTE_PREFIX.
     result_attribute = models.CharField(max_length=256)
 
-    dataset = models.CharField(max_length=32, choices=TelemetryClassifierDataset.choices)
+    dataset = models.CharField(max_length=32, choices=Dataset.choices)
     filter_query = models.TextField()
     status = models.CharField(
         max_length=16,

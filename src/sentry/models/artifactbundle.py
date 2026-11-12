@@ -145,7 +145,8 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    # No index of its own: the composite index in Meta leads with organization_id.
+    organization_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -153,6 +154,10 @@ class ArtifactBundleIndex(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
+
+        # URL lookups check each candidate bundle's rows within its organization. US and DE built
+        # this index by hand first, so there it's renamed instead of built (see migration 1256).
+        indexes = (models.Index(fields=("organization_id", "artifact_bundle")),)
 
 
 @cell_silo_model

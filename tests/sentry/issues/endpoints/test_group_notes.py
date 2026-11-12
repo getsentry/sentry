@@ -2,6 +2,7 @@ import datetime
 from unittest.mock import patch
 
 from django.db import connections, router
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -23,6 +24,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [requires_snuba]
 
@@ -444,6 +446,38 @@ class GroupNoteCreateTest(APITestCase):
         assert group.num_comments == initial_count
         sync.assert_not_called()
         webhook.assert_not_called()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account(self) -> None:
+        group = self.group
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["event:write"], all_projects=True
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.tasks():
+            response = self.client.post(
+                f"/api/0/issues/{group.id}/comments/",
+                data={"text": "hello from seer"},
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        activity = Activity.objects.get(id=response.data["id"])
+        assert activity.user_id is None
+        assert activity.data == {
+            "text": "hello from seer",
+            "service_account_id": service_account.id,
+        }
+        assert not GroupSubscription.objects.filter(group=group).exists()
 
     def test_simple(self) -> None:
         group = self.group

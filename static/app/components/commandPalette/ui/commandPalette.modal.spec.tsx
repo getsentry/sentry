@@ -130,7 +130,7 @@ describe('CommandPaletteModal', () => {
     );
 
     expect(closeModalSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole('textbox', {name: 'Search commands'})).toHaveAttribute(
+    expect(screen.getByRole('searchbox', {name: 'Search commands'})).toHaveAttribute(
       'placeholder',
       'Paste a DSN...'
     );
@@ -203,7 +203,7 @@ describe('CommandPaletteModal', () => {
       </CommandPaletteProvider>
     );
 
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(openSpy).toHaveBeenCalledWith('/target/', '_blank', 'noreferrer');

@@ -11,8 +11,9 @@ from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
@@ -59,10 +60,23 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         assert kwargs["referrer"] == AutofixReferrer.ADMIN
         assert kwargs["single_run"] is True
         assert kwargs["user"].id == self.user.id
+        assert kwargs.get("stopping_point") is None
         assert response.data["url"] == self.organization.absolute_url(
             f"/organizations/sentry/issues/{self.group.id}/",
             query=f"project={self.project.id}&explorerRunId=321",
         )
+
+    def test_automated_start_uses_automation_stopping_point(self, mock_trigger: MagicMock) -> None:
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=321
+        )
+
+        self.get_success_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, automated=True
+        )
+
+        assert mock_trigger.call_args.kwargs["stopping_point"] == AutofixStoppingPoint.ROOT_CAUSE
 
     def test_automated_start_has_no_owner(self, mock_trigger: MagicMock) -> None:
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=321)
@@ -100,6 +114,15 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
     def test_out_of_quota_returns_reason(self, mock_trigger: MagicMock) -> None:
         mock_trigger.side_effect = NoSeerQuotaException()
+
+        response = self.get_error_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400
+        )
+
+        assert response.data["detail"]
+
+    def test_out_of_credits_returns_reason(self, mock_trigger: MagicMock) -> None:
+        mock_trigger.side_effect = SeerOutOfCreditsException()
 
         response = self.get_error_response(
             organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400

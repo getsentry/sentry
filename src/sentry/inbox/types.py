@@ -3,17 +3,23 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
+from enum import StrEnum
+from functools import partial
+from random import random
 
 from django.db import router, transaction
 from django.db.models.functions import Greatest
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -27,6 +33,16 @@ class InboxActor:
 
 
 SYSTEM_ACTOR = InboxActor(type=InboxActorType.SYSTEM, id=None)
+
+
+def _schedule_retention(items: Sequence[InboxItem]) -> None:
+    if not options.get("cleanup.inbox-events.enabled"):
+        return
+
+    rate = options.get("cleanup.inbox-events.sample-rate")
+    for item in items:
+        if random() < rate:
+            safe_execute(cleanup_inbox_item_events.delay, item_id=item.id)
 
 
 class InboxItemType[SubjectT](ABC):
@@ -52,6 +68,18 @@ class InboxItemType[SubjectT](ABC):
         """Subject URL, independent of inbox items or events."""
 
 
+class InboxEventSummary(StrEnum):
+    ISSUE_USER_ASSIGNED = "Assigned to you"
+    ISSUE_TEAM_ASSIGNED = "Assigned to your team"
+    ISSUE_USER_MENTIONED = "Mentioned you in a comment"
+    ISSUE_TEAM_MENTIONED = "Mentioned your team in a comment"
+    ISSUE_PR_READY_FOR_REVIEW = "Pull request ready for review"
+    NOTEBOOK_COMPLETED = "Investigation completed"
+    NOTEBOOK_MENTIONED = "Mentioned you"
+    NOTEBOOK_TEAM_MENTIONED = "Mentioned your team"
+    NOTEBOOK_PARTICIPANT_ADDED = "Added you"
+
+
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
     """
@@ -59,7 +87,7 @@ class InboxEventData:
     Add fields with defaults so existing events remain readable.
     """
 
-    summary: str
+    summary: InboxEventSummary
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -69,6 +97,8 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     event_type: str
     item_type: InboxItemType[SubjectT]
     data_class: type[DataT]
+    # Personal notification setting category that controls email and Slack for this event.
+    notification_setting: NotificationSettingEnum
 
     def record(
         self,
@@ -125,6 +155,10 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                     )
                     for item in items
                 ]
+            )
+            transaction.on_commit(
+                partial(_schedule_retention, items),
+                using=router.db_for_write(InboxItem),
             )
             for item, event in zip(items, events):
                 item.last_activity_at = Greatest("last_activity_at", event.date_added)

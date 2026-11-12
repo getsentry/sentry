@@ -393,11 +393,20 @@ function DropdownMenuList({
   const showEmptyMessage = Boolean(
     searchState?.value.trim() && stateCollection.length === 0
   );
+  const availableMaxWidth =
+    typeof overlayPositionProps.style?.maxWidth === 'number'
+      ? `${overlayPositionProps.style.maxWidth}px`
+      : (overlayPositionProps.style?.maxWidth ?? '100%');
+  const positionedMaxWidth =
+    maxWidth === undefined
+      ? overlayPositionProps.style?.maxWidth
+      : `min(${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}, ${availableMaxWidth})`;
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper
         zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
         {...overlayPositionProps}
+        style={{...overlayPositionProps.style, maxWidth: positionedMaxWidth}}
       >
         <DropdownMenuContext value={contextValue}>
           <Stack>

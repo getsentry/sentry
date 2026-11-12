@@ -14,8 +14,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
 import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
+import {useIssueDetailsEventView} from './hooks/issueDetailsEventsQuery';
 import {ALL_EVENTS_EXCLUDED_TAGS} from './hooks/useEventQuery';
-import {useIssueDetailsEventView} from './hooks/useIssueDetailsDiscoverQuery';
 import {useEventColumns} from './allEventsTable';
 import {
   CURSOR_PARSERS,

@@ -47,7 +47,7 @@ function renderPalette(organization: Organization) {
 }
 
 async function search(query: string) {
-  const input = await screen.findByRole('textbox', {name: 'Search commands'});
+  const input = await screen.findByRole('searchbox', {name: 'Search commands'});
   await userEvent.type(input, query);
 }
 

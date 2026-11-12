@@ -23,6 +23,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -176,7 +177,7 @@ function PaymentHistory() {
             organization={organization}
             payments={data?.json}
           />
-          {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
+          {paymentsPageLinks && <Pagination {...getPaginationProps(paymentsPageLinks)} />}
         </Fragment>
       ) : (
         <ContactBillingMembers />

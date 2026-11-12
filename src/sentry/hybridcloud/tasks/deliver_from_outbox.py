@@ -9,6 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Max, Min
 from taskbroker_client.task import Task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import options
 from sentry.hybridcloud.models.outbox import (
@@ -259,6 +260,17 @@ def drain_outbox_shards_control(
         raise
 
 
+def _caused_by_processing_deadline(exc: BaseException) -> bool:
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        if isinstance(current, ProcessingDeadlineExceeded):
+            return True
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return False
+
+
 def process_outbox_batch(
     outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: type[OutboxBase]
 ) -> int:
@@ -274,6 +286,11 @@ def process_outbox_batch(
             processed_count += 1
             shard_outbox.drain_shard(flush_all=True)
         except Exception as e:
+            # A deadline that fires mid-transaction can leave the connection inside an open
+            # transaction while Django believes it is in autocommit. Continuing to drain on that
+            # connection nests every later shard in one uncommitted transaction.
+            if _caused_by_processing_deadline(e):
+                raise
             with sentry_sdk.isolation_scope() as scope:
                 if isinstance(e, OutboxFlushError):
                     scope.set_tag("outbox.category", e.outbox.category)

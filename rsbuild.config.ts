@@ -10,6 +10,7 @@ import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
+  RuleSetRule,
   SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
@@ -113,6 +114,17 @@ const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/se
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
 const legacyCssPath = path.join(staticPrefix, 'css');
+
+// sentry.css is emitted to entrypoints/ (entrypoints-hashed/ in SaaS), so the
+// fonts and images it references must step up to reach assets/. The layer
+// keeps these separate from the same files imported from JS, which need the
+// runtime public path.
+const legacyCssAssetRule: RuleSetRule = {
+  issuer: {and: [legacyCssPath, /\.css$/]},
+  layer: 'legacy-css-assets',
+  generator: {publicPath: '../'},
+};
+
 const typeLoaderPath = path.resolve(
   import.meta.dirname,
   'static/app/stories/typeLoader.ts'
@@ -406,23 +418,20 @@ const appConfig: Configuration = {
         type: 'css/auto',
         // Inject a <style> tag, like style-loader did
         parser: {exportType: 'style'},
-        // Resolve asset URLs against the runtime public path (set in setupStatics)
+        // Resolve asset URLs against `import.meta.rspackPublicPath` (set in setupStatics)
         generator: {runtimePublicPath: true},
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
+        // Always emit fonts as files. Inlining them as data URLs puts every
+        // unicode-range subset in sentry.css, even ones the page never needs.
+        test: /\.woff2$/,
+        type: 'asset/resource',
+        oneOf: [legacyCssAssetRule, {}],
+      },
+      {
+        test: /\.(?:svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
-        oneOf: [
-          {
-            // sentry.css is emitted to entrypoints/, so its asset URLs must
-            // step up to reach assets/. The layer keeps these separate from
-            // the same images imported from JS, which need the runtime path.
-            issuer: {and: [legacyCssPath, /\.css$/]},
-            layer: 'legacy-css-assets',
-            generator: {publicPath: '../'},
-          },
-          {},
-        ],
+        oneOf: [legacyCssAssetRule, {}],
       },
     ],
   },
@@ -1032,6 +1041,16 @@ if (env.WEBPACK_CACHE_PATH) {
       type: 'filesystem',
       directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
     },
+    // Older snapshots did not track the resolver inputs listed below.
+    version: '1',
+    // Component moves change which Scraps alias root resolves an import. Restored
+    // caches must re-resolve those imports when the package boundary changes.
+    buildDependencies: [
+      import.meta.filename,
+      path.join(import.meta.dirname, 'tsconfig.json'),
+      path.join(import.meta.dirname, 'tsconfig.base.json'),
+      path.join(import.meta.dirname, 'static/packages/scraps/package.json'),
+    ],
     // Read entries from disk instead of holding the whole cache in memory
     maxMemoryGenerations: 0,
     // Only master deploys write the cache, preview deploys restore it from
