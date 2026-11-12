@@ -35,6 +35,18 @@ def test_keeps_single_run_messages() -> None:
     assert _contents(redacted) == ["Fix issue ABC-1", "Found it.", "Nice, make a code fix"]
 
 
+def test_keeps_pr_feedback_lines_in_a_single_run() -> None:
+    state = _state(
+        _block(0, "user", "Fix issue ABC-1", "single_run"),
+        _block(1, "user", "@octo on #12: rename it", "pr_iteration"),
+    )
+    state.metadata = {"feature_id": "autofix_single_run"}
+
+    redacted = redact_autofix_prompts(state)
+
+    assert _contents(redacted) == ["Fix issue ABC-1", "@octo on #12: rename it"]
+
+
 def test_hides_every_step_prompt_in_a_step_by_step_run() -> None:
     state = _state(
         _block(0, "user", "Analyze issue ABC-1 ...", "root_cause"),
