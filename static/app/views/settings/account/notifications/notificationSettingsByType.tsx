@@ -36,6 +36,7 @@ import type {
 import {SUPPORTED_PROVIDERS} from './constants';
 import {
   ACCOUNT_NOTIFICATION_FIELDS,
+  INBOX_FIELDS,
   NOTIFICATION_SETTING_FIELDS,
   QUOTA_FIELDS,
 } from './fields';
@@ -51,6 +52,7 @@ type Props = {
 
 const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),
+  inbox: INBOX_FIELDS.map(field => field.name),
 };
 
 // Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
@@ -416,7 +418,35 @@ export function NotificationSettingsByType({notificationType}: Props) {
       <SentryDocumentTitle title={title} />
       <SettingsPageHeader title={title} />
       {description && <TextBlock>{description}</TextBlock>}
-      {notificationType !== 'reports' && (
+      {notificationType === 'inbox' && (
+        <FieldGroup title={t('Personal Notifications')}>
+          {INBOX_FIELDS.map(field => {
+            // Toggles save the same always/never values as the other settings.
+            const schema = z.object({
+              [field.name]: z.boolean().transform(on => (on ? 'always' : 'never')),
+            });
+            return (
+              <AutoSaveForm
+                key={field.name}
+                name={field.name}
+                schema={schema}
+                initialValue={initialTopOptionData[field.name] !== 'never'}
+                mutationOptions={optionMutationOptions(field.name)}
+              >
+                {fieldApi => (
+                  <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                    <fieldApi.Switch
+                      checked={fieldApi.state.value}
+                      onChange={fieldApi.handleChange}
+                    />
+                  </fieldApi.Layout.Row>
+                )}
+              </AutoSaveForm>
+            );
+          })}
+        </FieldGroup>
+      )}
+      {notificationType !== 'reports' && notificationType !== 'inbox' && (
         <FieldGroup
           title={
             isGroupedByProject(notificationType)
@@ -500,7 +530,8 @@ export function NotificationSettingsByType({notificationType}: Props) {
             deleteNotificationMutation.mutate(option)
           }
         />
-      ) : (
+      ) : notificationType === 'inbox' ? null : (
+        // Inbox settings only allow user scope, so there are no org or project overrides.
         <NotificationSettingsByEntity
           notificationType={notificationType}
           notificationOptions={notificationOptionData}
