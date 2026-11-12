@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
@@ -14,7 +13,6 @@ export type AvatarColorsResult =
   | {type: 'none'};
 
 export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
-  const theme = useTheme();
   const avatarDefinition = useAvatar({
     identifier: avatar?.identifier ?? '',
     name: avatar?.name ?? '',
@@ -30,7 +28,7 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
     avatarDefinition.type === 'image' ? avatarDefinition.configuration.src : null;
 
   const {data: imageResult} = useQuery({
-    queryKey: ['avatar-button-chonk', imageUrl, theme.type],
+    queryKey: ['avatar-image-analysis', imageUrl],
     queryFn:
       avatar && imageUrl && avatarDefinition.type === 'image'
         ? () => resolveImageAvatarColors(imageUrl)

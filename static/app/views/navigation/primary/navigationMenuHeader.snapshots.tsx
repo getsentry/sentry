@@ -30,13 +30,10 @@ function sampledQueryClient(avatarUrl?: string, sampledColor?: string): QueryCli
   // No garbage collection timers, so Jest can exit once the snapshots are taken.
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
   if (avatarUrl && sampledColor) {
-    for (const themeType of ['light', 'dark']) {
-      queryClient.setQueryData(['avatar-button-chonk', avatarUrl, themeType], {
-        chonk: sampledColor,
-        dominant: sampledColor,
-        style: 'fill',
-      });
-    }
+    queryClient.setQueryData(['avatar-image-analysis', avatarUrl], {
+      dominant: sampledColor,
+      style: 'fill',
+    });
   }
   return queryClient;
 }
