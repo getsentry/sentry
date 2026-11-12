@@ -26,6 +26,7 @@ class Referrer(StrEnum):
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
     API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
+    API_CLASSIFIERS_DETAIL_INSTANCES_CHART = "api.classifiers.detail.instances-chart"
 
     # ** Dashboards **
 
