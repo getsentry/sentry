@@ -56,6 +56,11 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
+from sentry.seer.autofix.single_run import (
+    SINGLE_RUN_ROOT_CAUSE_KEY,
+    is_single_run,
+    single_run_relevant_repos,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
@@ -619,6 +624,13 @@ def generate_autofix_handoff_prompt(
 
     artifacts = state.get_artifacts()
 
+    single_run_root_cause = artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)
+    if single_run_root_cause and single_run_root_cause.data:
+        parts.append("## Root Cause Analysis")
+        for field in ("headline", "cause"):
+            if single_run_root_cause.data.get(field):
+                parts.append(single_run_root_cause.data[field])
+
     # Add root cause if present
     root_cause = artifacts.get("root_cause")
     if root_cause and root_cause.data:
@@ -654,10 +666,15 @@ def _get_relevant_repo(
     run_id: int,
     group: Group,
 ) -> SeerRepoDefinition:
-    root_cause_artifact = state.get_artifacts().get("root_cause")
-    relevant_repo: str | None = (
-        (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
-    )
+    relevant_repo: str | None
+    if is_single_run(state):
+        # Coding agents launch against one repo, so take the most relevant.
+        relevant_repo = next(iter(single_run_relevant_repos(state)), None)
+    else:
+        root_cause_artifact = state.get_artifacts().get("root_cause")
+        relevant_repo = (
+            (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
+        )
     warning_extras = {
         "organization_id": group.organization.id,
         "run_id": run_id,

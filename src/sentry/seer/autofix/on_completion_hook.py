@@ -32,6 +32,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
     continue_pr_iteration,
     drain_single_run_feedback_queue,
@@ -53,7 +54,9 @@ from sentry.seer.autofix.pr_ready_for_review import (
 )
 from sentry.seer.autofix.single_run import (
     SingleRunStop,
+    hands_off_to_coding_agent,
     is_single_run,
+    single_run_relevant_repos,
     single_run_root_cause_payload,
     single_run_stop_payload,
 )
@@ -129,6 +132,9 @@ def get_run_stopping_point(
 
 SingleRunStage = Literal["root_cause", "coding", "pr_created", "stopped"]
 SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+# Set once the completion hook has launched a single run's coding agent, so later
+# completions (replies) don't launch it again.
+SINGLE_RUN_HANDED_OFF_KEY = "single_run_handed_off"
 
 
 def _single_run_referrer(state: SeerRunState) -> AutofixReferrer | None:
@@ -295,10 +301,24 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         reconcile_milestones(seer_run, state)
 
+        # The coding agent writes the fix once Seer names a root cause and a repo for it.
+        # A stopped run (transient, ambiguous, not a code fix) never hands off.
+        agent_run = SeerAgentRun.objects.filter(run=seer_run, source=SINGLE_RUN_FEATURE_ID).first()
+        ready_to_hand_off = (
+            not paused
+            and stop is None
+            and agent_run is not None
+            and hands_off_to_coding_agent(agent_run)
+            and bool(single_run_relevant_repos(state))
+        )
+
         with record_run_extras(seer_run) as extras:
             announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
             new_stages = [stage for stage in reached if stage not in announced]
             extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
+            hand_off = ready_to_hand_off and not extras.get(SINGLE_RUN_HANDED_OFF_KEY)
+            if hand_off:
+                extras[SINGLE_RUN_HANDED_OFF_KEY] = True
 
         cls._announce_single_run(
             organization=organization,
@@ -312,6 +332,31 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             stop=stop,
             referrer=_single_run_referrer(state) or run_referrer,
         )
+        if hand_off:
+            cls._hand_off_single_run(
+                organization,
+                run_id,
+                group,
+                _single_run_referrer(state) or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+    @classmethod
+    def _hand_off_single_run(
+        cls,
+        organization: Organization,
+        run_id: int,
+        group: Group,
+        referrer: AutofixReferrer,
+    ) -> None:
+        handoff_config = get_automation_handoff(group.project.get_option)
+        if handoff_config is None:
+            # The project dropped its coding agent after the run started.
+            logger.info(
+                "autofix.on_completion_hook.single_run_handoff_unconfigured",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+        cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config, referrer)
 
     @classmethod
     def _announce_single_run(
