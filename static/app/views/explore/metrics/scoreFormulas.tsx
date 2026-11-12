@@ -12,7 +12,7 @@ import type {BaseMetricQuery, TraceMetric} from './metricQuery';
 export const PERFORMANCE_SCORE_FIELD = 'performance_score(measurements.score.total)';
 export const OPPORTUNITY_SCORE_FIELD = 'opportunity_score(measurements.score.total)';
 
-export type ScoreFormulaKey = 'performance_score' | 'opportunity_score';
+type ScoreFormulaKey = 'performance_score' | 'opportunity_score';
 
 /**
  * A derived web vital score the backend computes from every
@@ -59,7 +59,7 @@ export const SCORE_FORMULA_METRIC_DESCRIPTION = t(
 );
 
 /** Every stored web vital metric starts with this, whichever vital it is for. */
-export const WEB_VITAL_METRIC_PREFIX = 'browser.web_vital.';
+const WEB_VITAL_METRIC_PREFIX = 'browser.web_vital.';
 
 export function isWebVitalMetricName(name: string): boolean {
   return name.startsWith(WEB_VITAL_METRIC_PREFIX);
