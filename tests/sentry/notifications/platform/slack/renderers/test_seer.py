@@ -358,7 +358,7 @@ def assert_configure_auto_reload_button(
     assert isinstance(blocks[1], ActionsBlock)
     assert len(blocks[1].elements) == 1
     button = blocks[1].elements[0]
-    assert isinstance(button, LinkButtonElement)
+    assert isinstance(button, ButtonElement)
     assert button.text is not None
     assert button.text.text == "Configure auto-reload"
     assert button.url is not None
@@ -376,7 +376,7 @@ def assert_contact_admin_button(renderable: SlackRenderable, *, organization_id:
     assert len(blocks[1].elements) == 1
     button = blocks[1].elements[0]
     assert isinstance(button, ButtonElement)
-    assert not isinstance(button, LinkButtonElement)
+    assert button.url is None
     assert button.text is not None
     assert button.text.text == "Contact Admin"
     assert button.action_id is not None

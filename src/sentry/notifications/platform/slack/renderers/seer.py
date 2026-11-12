@@ -219,48 +219,43 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         message = data.message
         blocks: list[Block] = [SectionBlock(text=message)]
-        if not data.has_billing_access:
-            # TODO(alexsohn): the click does nothing until the handler emails the admins.
-            blocks.append(
-                ActionsBlock(
-                    elements=[
-                        ButtonElement(
-                            text="Contact Admin",
-                            action_id=encode_action_id(
-                                action=SlackAction.SEER_REQUEST_CREDITS.value,
-                                organization_id=data.organization_id,
-                                project_id=None,
-                            ),
-                        )
-                    ]
-                )
-            )
-            return SlackRenderable(blocks=blocks, text=message)
 
-        try:
-            organization = Organization.objects.get_from_cache(id=data.organization_id)
-        except Organization.DoesNotExist:
-            organization = None
-        if organization is not None:
-            billing_url = organization.absolute_url(
-                f"/settings/{organization.slug}/billing/overview/"
+        style: str | None
+        url: str | None
+        if data.has_billing_access:
+            try:
+                organization = Organization.objects.get_from_cache(id=data.organization_id)
+            except Organization.DoesNotExist:
+                return SlackRenderable(blocks=blocks, text=message)
+            text = "Configure auto-reload"
+            action = SlackAction.SEER_VIEW_BILLING
+            style = "primary"
+            url = link_decorator.decorate_url(
+                organization.absolute_url(f"/settings/{organization.slug}/billing/overview/")
             )
-            blocks.append(
-                ActionsBlock(
-                    elements=[
-                        LinkButtonElement(
-                            text="Configure auto-reload",
-                            style="primary",
-                            url=link_decorator.decorate_url(billing_url),
-                            action_id=encode_action_id(
-                                action=SlackAction.SEER_VIEW_BILLING.value,
-                                organization_id=data.organization_id,
-                                project_id=None,
-                            ),
-                        )
-                    ]
-                )
+        else:
+            # TODO(alexsohn): this click does nothing until the handler emails the admins.
+            text = "Contact Admin"
+            action = SlackAction.SEER_REQUEST_CREDITS
+            style = None
+            url = None
+
+        blocks.append(
+            ActionsBlock(
+                elements=[
+                    ButtonElement(
+                        text=text,
+                        style=style,
+                        url=url,
+                        action_id=encode_action_id(
+                            action=action.value,
+                            organization_id=data.organization_id,
+                            project_id=None,
+                        ),
+                    )
+                ]
             )
+        )
         return SlackRenderable(blocks=blocks, text=message)
 
     @classmethod
