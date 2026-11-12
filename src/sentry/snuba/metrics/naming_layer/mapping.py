@@ -13,13 +13,10 @@ from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
     MRI_EXPRESSION_REGEX,
     SessionMRI,
-    SpanMRI,
-    TransactionMRI,
     parse_mri,
 )
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
-    SpanMetricKey,
 )
 
 
@@ -36,13 +33,8 @@ def create_name_mapping_layers() -> None:
         }
     )
 
-    for MetricKey, MRI in (
-        (SessionMetricKey, SessionMRI),
-        (SpanMetricKey, SpanMRI),
-    ):
-        # Adds new names at the end, so that when the reverse mapping is created
-        for metric_key in MetricKey:
-            NAME_TO_MRI[metric_key.value] = MRI[metric_key.name]
+    for metric_key in SessionMetricKey:
+        NAME_TO_MRI[metric_key.value] = SessionMRI[metric_key.name]
 
     MRI_TO_NAME.update({v.value: k for k, v in NAME_TO_MRI.items()})
 
@@ -67,7 +59,7 @@ def get_mri(external_name: Enum | str) -> str:
         )
 
 
-def get_public_name_from_mri(internal_name: TransactionMRI | SessionMRI | str) -> str:
+def get_public_name_from_mri(internal_name: SessionMRI | str) -> str:
     """
     Returns the public name from a MRI if it has a mapping to a public metric name, otherwise return the internal
     name.
@@ -94,10 +86,7 @@ def _extract_name_from_custom_metric_mri(mri: str) -> str | None:
 
     # Custom metrics are fully custom metrics that the sdks can emit.
     is_custom_metric = parsed_mri.namespace == "custom"
-    # Custom measurements are a special kind of custom metrics that are more limited and were existing
-    # before fully custom metrics.
-    is_custom_measurement = parsed_mri.entity == "d" and parsed_mri.namespace == "transactions"
-    if is_custom_metric or is_custom_measurement:
+    if is_custom_metric:
         return parsed_mri.name
 
     return None

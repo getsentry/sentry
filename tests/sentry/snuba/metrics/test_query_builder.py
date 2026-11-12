@@ -185,14 +185,7 @@ def get_entity_of_metric_mocked(_: object, metric_name: str, use_case_id: UseCas
             'transaction:"/bar/:orgId/"',
             lambda: [
                 Condition(
-                    Function(
-                        function="transform",
-                        parameters=[
-                            Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
-                            [""],
-                            [resolve_tag_value(USE_CASE_ID, ORG_ID, "<< unparameterized >>")],
-                        ],
-                    ),
+                    Column(name=resolve_tag_key(USE_CASE_ID, ORG_ID, "transaction")),
                     Op.EQ,
                     rhs=resolve_tag_value(USE_CASE_ID, ORG_ID, "/bar/:orgId/"),
                 )
@@ -1164,8 +1157,7 @@ def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock)
 
 def test_translate_meta_results() -> None:
     meta = [
-        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
-        {"name": "team_key_transaction", "type": "UInt8"},
+        {"name": "p50(d:sessions/duration@second)", "type": "Float64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "metric_id", "type": "UInt64"},
@@ -1176,28 +1168,20 @@ def test_translate_meta_results() -> None:
     assert translate_meta_results(
         meta,
         {
-            "p50(span.duration)": MetricField(
+            "p50(sentry.sessions.session.duration)": MetricField(
                 op="p50",
-                metric_mri="d:spans/duration@millisecond",
-                alias="p50(span.duration)",
+                metric_mri="d:sessions/duration@second",
+                alias="p50(sentry.sessions.session.duration)",
             ),
         },
         {
             "transaction": MetricGroupByField("transaction"),
-            "team_key_transaction": MetricGroupByField(
-                field=MetricField(
-                    op="team_key_transaction",
-                    metric_mri="c:transactions/count_per_root_project@none",
-                    alias="team_key_transaction",
-                )
-            ),
             "project.id": MetricGroupByField(field="project_id"),
             "time": MetricGroupByField(field="bucketed_time"),
         },
     ) == sorted(
         [
-            {"name": "p50(span.duration)", "type": "Float64"},
-            {"name": "team_key_transaction", "type": "boolean"},
+            {"name": "p50(sentry.sessions.session.duration)", "type": "Float64"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
             {"name": "metric_id", "type": "UInt64"},
@@ -1211,8 +1195,8 @@ def test_translate_meta_results() -> None:
 
 def test_translate_meta_results_with_duplicates() -> None:
     meta = [
-        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
-        {"name": "p50(d:spans/duration@millisecond)", "type": "Float64"},
+        {"name": "p50(d:sessions/duration@second)", "type": "Float64"},
+        {"name": "p50(d:sessions/duration@second)", "type": "Float64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
@@ -1221,16 +1205,16 @@ def test_translate_meta_results_with_duplicates() -> None:
     assert translate_meta_results(
         meta,
         {
-            "p50(span.duration)": MetricField(
+            "p50(sentry.sessions.session.duration)": MetricField(
                 op="p50",
-                metric_mri="d:spans/duration@millisecond",
-                alias="p50(span.duration)",
+                metric_mri="d:sessions/duration@second",
+                alias="p50(sentry.sessions.session.duration)",
             )
         },
         {"transaction": MetricGroupByField("transaction")},
     ) == sorted(
         [
-            {"name": "p50(span.duration)", "type": "Float64"},
+            {"name": "p50(sentry.sessions.session.duration)", "type": "Float64"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
         ],
@@ -1241,37 +1225,37 @@ def test_translate_meta_results_with_duplicates() -> None:
 @mock.patch(
     "sentry.snuba.metrics.query_builder.get_metric_object_from_metric_field",
     return_value=SingularEntityDerivedMetric(
-        metric_mri="e:transactions/failure_rate@ratio",
+        metric_mri="e:sessions/crash_rate@ratio",
         metrics=[
-            "e:transactions/failure_count@none",
-            "e:transactions/all@none",
+            "e:sessions/crashed@none",
+            "e:sessions/all@none",
         ],
-        unit="transactions",
-        snql=lambda failure_count, tx_count, org_id, metric_ids, alias=None: division_float(
-            failure_count, tx_count, alias=alias
+        unit="sessions",
+        snql=lambda crashed_count, session_count, org_id, metric_ids, alias=None: division_float(
+            crashed_count, session_count, alias=alias
         ),
         meta_type="ratio",
     ),
 )
 def test_translate_meta_result_type_singular_entity_derived_metric(_: mock.MagicMock) -> None:
     meta = [
-        {"name": "transaction.failure_rate", "type": "Array(Float64)"},
+        {"name": "session.crash_rate", "type": "Array(Float64)"},
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
         meta,
         {
-            "transaction.failure_rate": MetricField(
+            "session.crash_rate": MetricField(
                 op=None,
-                metric_mri="e:transactions/failure_rate@ratio",
-                alias="transaction.failure_rate",
+                metric_mri="e:sessions/crash_rate@ratio",
+                alias="session.crash_rate",
             )
         },
         {"transaction": MetricGroupByField("transaction")},
     ) == sorted(
         [
-            {"name": "transaction.failure_rate", "type": "ratio"},
+            {"name": "session.crash_rate", "type": "ratio"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
         ],
@@ -1337,66 +1321,14 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
         ),
         pytest.param(
             [
-                MetricField("count", "d:transactions/duration@millisecond"),
-            ],
-            [
-                MetricGroupByField(MetricField("count", "d:transactions/duration@millisecond")),
-            ],
-            UseCaseID.TRANSACTIONS,
-            re.escape("Cannot group by metrics expression count(transaction.duration)"),
-            id="invalid grouping by metric expression - performance",
-            marks=pytest.mark.skip(
-                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-            ),
-        ),
-        pytest.param(
-            [
-                MetricField(None, "e:transactions/failure_rate@ratio"),
-            ],
-            [
-                MetricGroupByField(MetricField(None, "e:transactions/failure_rate@ratio")),
-            ],
-            UseCaseID.TRANSACTIONS,
-            "Cannot group by metric transaction.failure_rate",
-            id="invalid grouping by derived metric - release_health",
-            marks=pytest.mark.skip(
-                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-            ),
-        ),
-        pytest.param(
-            [
                 MetricField(None, SessionMRI.ERRORED.value),
             ],
             [
                 MetricGroupByField(MetricField(None, SessionMRI.ERRORED.value)),
             ],
-            UseCaseID.TRANSACTIONS,
+            UseCaseID.SESSIONS,
             "Cannot group by metric session.errored",
             id="invalid grouping by composite entity derived metric - release_health",
-        ),
-        pytest.param(
-            [
-                MetricField(
-                    "team_key_transaction",
-                    "d:transactions/duration@millisecond",
-                    params={"team_key_condition_rhs": [(1, "foo")]},
-                ),
-            ],
-            [
-                MetricGroupByField(
-                    MetricField(
-                        "team_key_transaction",
-                        "d:transactions/duration@millisecond",
-                        params={"team_key_condition_rhs": [(1, "foo")]},
-                    )
-                ),
-            ],
-            UseCaseID.TRANSACTIONS,
-            "",
-            id="valid grouping by metrics expression",
-            marks=pytest.mark.skip(
-                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-            ),
         ),
     ],
 )
@@ -1444,72 +1376,14 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
         pytest.param(
             [
-                MetricField("count", "d:transactions/duration@millisecond"),
-            ],
-            [
-                MetricConditionField(
-                    MetricField("count", "d:transactions/duration@millisecond"), Op.LT, 2
-                ),
-            ],
-            UseCaseID.TRANSACTIONS,
-            re.escape("Cannot filter by metrics expression count(transaction.duration)"),
-            id="invalid filtering by metric expression - performance",
-            marks=pytest.mark.skip(
-                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-            ),
-        ),
-        pytest.param(
-            [
-                MetricField(None, "e:transactions/failure_rate@ratio"),
-            ],
-            [
-                MetricConditionField(
-                    MetricField(None, "e:transactions/failure_rate@ratio"), Op.EQ, 0.5
-                ),
-            ],
-            UseCaseID.TRANSACTIONS,
-            "Cannot filter by metric transaction.failure_rate",
-            id="invalid filtering by derived metric - release_health",
-            marks=pytest.mark.skip(
-                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-            ),
-        ),
-        pytest.param(
-            [
                 MetricField(None, SessionMRI.ERRORED.value),
             ],
             [
                 MetricConditionField(MetricField(None, SessionMRI.ERRORED.value), Op.EQ, 7),
             ],
-            UseCaseID.TRANSACTIONS,
+            UseCaseID.SESSIONS,
             "Cannot filter by metric session.errored",
             id="invalid filtering by composite entity derived metric - release_health",
-        ),
-        pytest.param(
-            [
-                MetricField(
-                    "team_key_transaction",
-                    "d:transactions/duration@millisecond",
-                    params={"team_key_condition_rhs": [(1, "foo")]},
-                ),
-            ],
-            [
-                MetricConditionField(
-                    MetricField(
-                        "team_key_transaction",
-                        "d:transactions/duration@millisecond",
-                        params={"team_key_condition_rhs": [(1, "foo")]},
-                    ),
-                    Op.EQ,
-                    1,
-                ),
-            ],
-            UseCaseID.TRANSACTIONS,
-            "",
-            id="valid filtering by metrics expression",
-            marks=pytest.mark.skip(
-                reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-            ),
         ),
     ],
 )
@@ -1610,16 +1484,16 @@ class QueryDefinitionTestCase(TestCase):
 class ResolveTagsTestCase(TestCase):
     def setUp(self) -> None:
         self.org_id = ORG_ID
-        self.use_case_id = UseCaseID.TRANSACTIONS
+        self.use_case_id = UseCaseID.SESSIONS
 
     def test_resolve_tags_with_unary_tuple(self) -> None:
-        transactions = ["/foo", "/bar"]
+        releases = ["1.0", "2.0"]
 
-        for transaction in ["transaction"] + transactions:
+        for release in ["release"] + releases:
             indexer.record(
                 use_case_id=self.use_case_id,
                 org_id=self.org_id,
-                string=transaction,
+                string=release,
             )
 
         resolved_query = resolve_tags(
@@ -1630,14 +1504,14 @@ class ResolveTagsTestCase(TestCase):
                     function="tuple",
                     parameters=[
                         Column(
-                            name="tags[transaction]",
+                            name="tags[release]",
                         )
                     ],
                 ),
                 op=Op.IN,
                 rhs=Function(
                     function="tuple",
-                    parameters=[(transaction,) for transaction in transactions],
+                    parameters=[(release,) for release in releases],
                 ),
             ),
             [],
@@ -1646,41 +1520,26 @@ class ResolveTagsTestCase(TestCase):
         assert resolved_query == Condition(
             lhs=Function(
                 function="tuple",
-                parameters=[
-                    Function(
-                        function="transform",
-                        parameters=[
-                            Column(
-                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
-                            ),
-                            [""],
-                            [
-                                resolve_tag_value(
-                                    self.use_case_id, self.org_id, "<< unparameterized >>"
-                                )
-                            ],
-                        ],
-                    )
-                ],
+                parameters=[Column(name=resolve_tag_key(self.use_case_id, self.org_id, "release"))],
             ),
             op=Op.IN,
             rhs=Function(
                 function="tuple",
                 parameters=[
-                    (resolve_tag_value(self.use_case_id, self.org_id, transaction),)
-                    for transaction in transactions
+                    (resolve_tag_value(self.use_case_id, self.org_id, release),)
+                    for release in releases
                 ],
             ),
         )
 
     def test_resolve_tags_with_binary_tuple(self) -> None:
-        tags = [("/foo", "ios"), ("/bar", "android")]
+        tags = [("1.0", "ios"), ("2.0", "android")]
 
-        for transaction, platform in [("transaction", "platform")] + tags:
+        for release, platform in [("release", "platform")] + tags:
             indexer.record(
                 use_case_id=self.use_case_id,
                 org_id=self.org_id,
-                string=transaction,
+                string=release,
             )
             indexer.record(
                 use_case_id=self.use_case_id,
@@ -1696,7 +1555,7 @@ class ResolveTagsTestCase(TestCase):
                     function="tuple",
                     parameters=[
                         Column(
-                            name="tags[transaction]",
+                            name="tags[release]",
                         ),
                         Column(
                             name="tags[platform]",
@@ -1706,7 +1565,7 @@ class ResolveTagsTestCase(TestCase):
                 op=Op.IN,
                 rhs=Function(
                     function="tuple",
-                    parameters=[(transaction, platform) for transaction, platform in tags],
+                    parameters=[(release, platform) for release, platform in tags],
                 ),
             ),
             [],
@@ -1716,20 +1575,7 @@ class ResolveTagsTestCase(TestCase):
             lhs=Function(
                 function="tuple",
                 parameters=[
-                    Function(
-                        function="transform",
-                        parameters=[
-                            Column(
-                                name=resolve_tag_key(self.use_case_id, self.org_id, "transaction")
-                            ),
-                            [""],
-                            [
-                                resolve_tag_value(
-                                    self.use_case_id, self.org_id, "<< unparameterized >>"
-                                )
-                            ],
-                        ],
-                    ),
+                    Column(name=resolve_tag_key(self.use_case_id, self.org_id, "release")),
                     Column(
                         name=resolve_tag_key(self.use_case_id, self.org_id, "platform"),
                     ),
@@ -1740,16 +1586,16 @@ class ResolveTagsTestCase(TestCase):
                 function="tuple",
                 parameters=[
                     (
-                        resolve_tag_value(self.use_case_id, self.org_id, transaction),
+                        resolve_tag_value(self.use_case_id, self.org_id, release),
                         resolve_tag_value(self.use_case_id, self.org_id, platform),
                     )
-                    for transaction, platform in tags
+                    for release, platform in tags
                 ],
             ),
         )
 
     def test_resolve_tags_with_has(self) -> None:
-        tag_key = "transaction"
+        tag_key = "release"
 
         indexer.record(
             use_case_id=self.use_case_id,
@@ -1767,7 +1613,7 @@ class ResolveTagsTestCase(TestCase):
                         Column(
                             name="tags.key",
                         ),
-                        "transaction",
+                        "release",
                     ],
                 ),
                 op=Op.EQ,
@@ -1958,7 +1804,7 @@ class ResolveTagsTestCase(TestCase):
                             Column(
                                 name="tags[project]",
                             ),
-                            "transaction",
+                            "release",
                         ],
                     ),
                     op=Op.EQ,
@@ -1984,7 +1830,7 @@ class ResolveTagsTestCase(TestCase):
                             Column(
                                 name="tags[project]",
                             ),
-                            "transaction",
+                            "release",
                         ],
                     ),
                     op=Op.EQ,

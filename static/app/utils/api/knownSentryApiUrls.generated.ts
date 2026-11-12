@@ -254,7 +254,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/members/$memberId/teams/$teamIdOrSlug/'
   | '/organizations/$organizationIdOrSlug/metrics-compatibility-sums/'
   | '/organizations/$organizationIdOrSlug/metrics-compatibility/'
-  | '/organizations/$organizationIdOrSlug/metrics-estimation-stats/'
   | '/organizations/$organizationIdOrSlug/metrics/data/'
   | '/organizations/$organizationIdOrSlug/missing-members/'
   | '/organizations/$organizationIdOrSlug/monitoring-providers/'

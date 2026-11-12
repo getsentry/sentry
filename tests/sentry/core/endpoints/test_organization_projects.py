@@ -4,9 +4,11 @@ import pytest
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry.core.endpoints.organization_projects import get_dataset
 from sentry.models.apikey import ApiKey
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
+from sentry.snuba import discover
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -14,6 +16,11 @@ from sentry.testutils.skips import requires_snuba
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+
+
+@pytest.mark.parametrize("dataset", ["", "discover", "metrics", "metricsEnhanced"])
+def test_error_stats_dataset_aliases(dataset: str) -> None:
+    assert get_dataset(dataset) is discover
 
 
 class OrganizationProjectsTestBase(APITestCase):

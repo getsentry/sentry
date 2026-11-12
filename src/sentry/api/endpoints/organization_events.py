@@ -54,12 +54,9 @@ from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
-    metrics_enhanced_performance,
-    metrics_performance,
     transactions,
     uptime_results,
 )
-from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
@@ -71,6 +68,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import (
     DATASET_LABELS,
+    LEGACY_METRICS_DATASET_LABELS,
     RPC_DATASETS,
     dataset_split_decision_inferred_from_query,
     get_dataset,
@@ -186,8 +184,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         feature_names = [
             "organizations:profiling",
             "organizations:dynamic-sampling",
-            "organizations:on-demand-metrics-extraction",
-            "organizations:on-demand-metrics-extraction-widgets",
             "organizations:events-endpoint-transactions-discover-blocked",
             "organizations:measured-ingestion-delay-metadata",
         ]
@@ -286,27 +282,11 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         batch_features = self.get_features(organization, request)
 
-        try:
-            use_on_demand_metrics, on_demand_metrics_type = self.handle_on_demand(request)
-        except ValueError:
-            metric_type_values = [e.value for e in MetricSpecType]
-            metric_types = ",".join(metric_type_values)
-            return Response(
-                {"detail": f"On demand metric type must be one of: {metric_types}"}, status=400
-            )
-
-        on_demand_metrics_enabled = (
-            batch_features.get("organizations:on-demand-metrics-extraction", False)
-            or batch_features.get("organizations:on-demand-metrics-extraction-widgets", False)
-        ) and use_on_demand_metrics
-
         save_discover_dataset_decision = True
 
         dataset = self.get_dataset(request, organization)
-        metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-
-        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
-        sentry_sdk.set_attribute("performance.metrics_enhanced", metrics_enhanced)
+        # Older dashboard clients use these labels to request dataset splitting.
+        legacy_metrics_request = request.GET.get("dataset") in LEGACY_METRICS_DATASET_LABELS
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
@@ -333,7 +313,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         # request. Logging allowlisted (unblocked) orgs too lets us see who
         # still relies on these datasets before shrinking the allowlist.
         is_external_api_request = request.auth and referrer == Referrer.API_AUTH_TOKEN_EVENTS
-        is_legacy_dataset = dataset in {transactions, discover, metrics_enhanced_performance}
+        is_legacy_dataset = dataset in {transactions, discover}
         is_blocked = batch_features.get(
             "organizations:events-endpoint-transactions-discover-blocked", False
         )
@@ -401,8 +381,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     transform_alias_to_input_format=True,
                     # Whether the flag is enabled or not, regardless of the referrer
                     has_metrics=True,
-                    on_demand_metrics_enabled=on_demand_metrics_enabled,
-                    on_demand_metrics_type=on_demand_metrics_type,
                     fallback_to_transactions=True,
                     query_source=query_source,
                 ),
@@ -429,7 +407,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
                         dataset_query = errors.query
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        # We can't add event.type:transaction for now because of on-demand.
                         dataset_query = scoped_dataset_query
                     else:
                         dataset_query = discover.query
@@ -793,7 +770,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         scoped_dataset.query, offset, limit, scoped_query, discover_saved_query_id
                     )
 
-                if not (metrics_enhanced and dashboard_widget_id):
+                if not (legacy_metrics_request and dashboard_widget_id):
                     return _data_fn(scoped_dataset.query, offset, limit, scoped_query)
 
                 return _dashboards_data_fn(

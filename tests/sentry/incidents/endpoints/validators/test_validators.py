@@ -132,16 +132,7 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
         ]
 
 
-# on-demand-metrics-extraction excluded from base features so it does not
-# change transaction-dataset deprecation test behavior.
-_VALIDATOR_BASE_FEATURES = {
-    k: v
-    for k, v in METRIC_SUBSCRIPTION_FEATURE_FLAGS.items()
-    if k != "organizations:on-demand-metrics-extraction"
-}
-
-
-@with_feature(_VALIDATOR_BASE_FEATURES)
+@with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class TestMetricAlertsDetectorValidator(BaseValidatorTest):
     def setUp(self) -> None:
         super().setUp()

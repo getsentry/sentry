@@ -14,21 +14,14 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
-from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.models.user import User
 from sentry.utils.samples import load_data
 
-pytestmark = [
-    pytest.mark.sentry_metrics,
-    pytest.mark.skip(
-        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
-    ),
-]
 
-
-class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+class DashboardWidgetDatasetSplitTestCase(TestCase, SnubaTestCase):
     @property
     def now(self) -> datetime:
         return before_now(minutes=10)
@@ -89,46 +82,6 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             if self.dry_run
             else error_widget.discover_widget_split == 100
         )
-
-    def test_metrics_compatible_query(self) -> None:
-        metrics_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            order=0,
-            title="widget",
-            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
-            interval="1d",
-            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
-        )
-        metrics_query = DashboardWidgetQuery.objects.create(
-            widget=metrics_widget,
-            fields=["transaction", "count()"],
-            columns=[],
-            aggregates=[],
-            conditions="",
-            order=0,
-        )
-
-        self.store_performance_metric(
-            name="d:transactions/duration@millisecond",
-            project_id=self.project.id,
-            tags={"transaction": "/sentry/scripts/views.js"},
-            value=30,
-            org_id=self.dashboard.organization.id,
-            hours_before_now=2,
-        )
-
-        with self.feature({"organizations:dynamic-sampling": True}):
-            _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
-                metrics_query, self.dry_run
-            )
-        metrics_widget.refresh_from_db()
-        assert (
-            metrics_widget.discover_widget_split is None
-            if self.dry_run
-            else metrics_widget.discover_widget_split == 101
-        )
-        assert queried_snuba
 
     def test_metrics_compatible_query_no_data(self) -> None:
         metrics_widget = DashboardWidget.objects.create(

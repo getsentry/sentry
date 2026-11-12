@@ -39,6 +39,26 @@ class EntitySubscriptionTestCase(TestCase):
         ]:
             indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=self.organization.id, string=tag)
 
+    def test_performance_metrics_subscriptions_are_unsupported(self) -> None:
+        with pytest.raises(UnsupportedQuerySubscription):
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.PERFORMANCE,
+                dataset=Dataset.PerformanceMetrics,
+                aggregate="count()",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            )
+
+    def test_performance_subscriptions_on_session_metrics_are_unsupported(self) -> None:
+        with pytest.raises(UnsupportedQuerySubscription):
+            get_entity_subscription(
+                query_type=SnubaQuery.Type.PERFORMANCE,
+                dataset=Dataset.Metrics,
+                aggregate="count()",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            )
+
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
         with pytest.raises(UnsupportedQuerySubscription):

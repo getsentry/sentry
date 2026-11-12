@@ -10,10 +10,7 @@ from sentry.snuba import (
     errors,
     functions,
     issue_platform,
-    metrics_enhanced_performance,
-    metrics_performance,
     profiles,
-    spans_metrics,
     transactions,
 )
 from sentry.snuba.enrichment_attributes_rpc import EnrichmentAttributes
@@ -30,14 +27,16 @@ from sentry.snuba.uptime_results import UptimeResults
 
 logger = logging.getLogger(__name__)
 
-# Doesn't map 1:1 with real datasets, but rather what we present to users
-# ie. metricsEnhanced is not a real dataset
+# Legacy performance metrics requests query indexed transactions.
+LEGACY_METRICS_DATASET_LABELS = {"metrics", "metricsEnhanced"}
+
+# Doesn't map 1:1 with real datasets, but rather what we present to users.
 DATASET_OPTIONS = {
     "discover": discover,
     SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value: EnrichmentAttributes,
     "errors": errors,
-    "metricsEnhanced": metrics_enhanced_performance,
-    "metrics": metrics_performance,
+    "metricsEnhanced": transactions,
+    "metrics": transactions,
     SupportedTraceItemType.OCCURRENCES.value: Occurrences,
     # ourlogs is deprecated, please use logs instead
     "ourlogs": OurLogs,
@@ -50,7 +49,6 @@ DATASET_OPTIONS = {
     SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
     SupportedTraceItemType.REPLAYS.value: Replays,
     SupportedTraceItemType.SPANS.value: Spans,
-    "spansMetrics": spans_metrics,
     SupportedTraceItemType.TRACEMETRICS.value: TraceMetrics,
     SupportedTraceItemType.PROCESSING_ERRORS.value: ProcessingErrors,
     "transactions": transactions,

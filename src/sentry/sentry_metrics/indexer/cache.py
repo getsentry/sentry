@@ -84,10 +84,10 @@ class StringIndexerCache:
         """
         Takes in keys formatted like "use_case_id:org_id:string", and results that have the
         internally used hashed key such as:
-            {"indexer:org:str:transactions:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
+            {"indexer:org:str:sessions:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
         and returns results that replace the hashed internal key with the externally
         used key:
-            {"transactions:3:a": 2}
+            {"sessions:3:a": 2}
         """
         formatted: MutableMapping[str, int | None] = {}
         for key in keys:
@@ -104,10 +104,10 @@ class StringIndexerCache:
         """
         Takes in keys formatted like "use_case_id:org_id:string", and results that have the
         internally used hashed key such as:
-            {"indexer:org:str:transactions:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
+            {"indexer:org:str:sessions:b0a0e436f6fa42b9e33e73befbdbb9ba": 2}
         and returns results that replace the hashed internal key with the externally
         used key:
-            {"transactions:3:a": 2}
+            {"sessions:3:a": 2}
         """
         formatted: MutableMapping[str, int | None] = {}
         for key in keys:

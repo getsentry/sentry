@@ -23,7 +23,7 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.snuba import metrics_enhanced_performance
+from sentry.snuba import transactions
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import is_measurement
 
@@ -217,7 +217,7 @@ def compare_tables_for_dashboard_widget_queries(
     has_eap_error = False
 
     try:
-        metrics_query_result = metrics_enhanced_performance.query(
+        metrics_query_result = transactions.query(
             selected_columns,
             query,
             snuba_params,
@@ -227,7 +227,6 @@ def compare_tables_for_dashboard_widget_queries(
             limit=1,
             referrer="dashboards.transactions_spans_comparison",
             transform_alias_to_input_format=True,
-            fallback_to_transactions=True,
         )
 
     except Exception as e:
