@@ -10,6 +10,7 @@ import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
+  RuleSetRule,
   SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
@@ -112,6 +113,17 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+
+// sentry.css is emitted to entrypoints/ (entrypoints-hashed/ in SaaS), so the
+// fonts and images it references must step up to reach assets/. The layer
+// keeps these separate from the same files imported from JS, which need the
+// runtime public path.
+const legacyCssAssetRule: RuleSetRule = {
+  issuer: /\.less$/,
+  layer: 'legacy-css-assets',
+  generator: {publicPath: '../'},
+};
+
 const typeLoaderPath = path.resolve(
   import.meta.dirname,
   'static/app/stories/typeLoader.ts'
@@ -412,21 +424,12 @@ const appConfig: Configuration = {
         // unicode-range subset in sentry.css, even ones the page never needs.
         test: /\.woff2$/,
         type: 'asset/resource',
+        oneOf: [legacyCssAssetRule, {}],
       },
       {
         test: /\.(?:svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
-        oneOf: [
-          {
-            // sentry.css is emitted to entrypoints/, so its asset URLs must
-            // step up to reach assets/. The layer keeps these separate from
-            // the same images imported from JS, which need the runtime path.
-            issuer: /\.less$/,
-            layer: 'legacy-css-assets',
-            generator: {publicPath: '../'},
-          },
-          {},
-        ],
+        oneOf: [legacyCssAssetRule, {}],
       },
     ],
   },
