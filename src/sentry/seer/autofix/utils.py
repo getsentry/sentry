@@ -30,7 +30,11 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
+from sentry.models.projectrepository import (
+    SOURCE_PRIORITY,
+    ProjectRepository,
+    ProjectRepositorySource,
+)
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
@@ -549,15 +553,38 @@ def build_seer_repo_definition(
     )
 
 
+# Automatic links only fill a project up to this many repos. Links a user made are never cut.
+MAX_SEER_REPOS_PER_PROJECT = 8
+USER_CREATED_LINK_PRIORITY = SOURCE_PRIORITY[ProjectRepositorySource.MANUAL]
+
+
+def _get_link_priority(project_repo: ProjectRepository) -> int:
+    # Someone configured this repo in Seer, so treat it like a link they made.
+    if get_seer_project_repo(project_repo) is not None:
+        return USER_CREATED_LINK_PRIORITY
+    return SOURCE_PRIORITY.get(ProjectRepositorySource(project_repo.source), 0)
+
+
 def _get_repo_definitions_by_project(
-    organization: Organization, project_ids: Sequence[int]
+    organization: Organization, project_ids: Sequence[int], *, limit_repos: bool = False
 ) -> dict[int, list[SeerRepoDefinition]]:
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     if is_seer_token_based_billing_onboarding_enabled(organization):
-        for project_repo in get_token_based_billing_project_repos(organization, project_ids):
+        project_repos = sorted(
+            get_token_based_billing_project_repos(organization, project_ids),
+            key=lambda project_repo: (-_get_link_priority(project_repo), project_repo.id),
+        )
+        for project_repo in project_repos:
+            repo_defs = repo_definitions_by_project[project_repo.project_id]
+            if (
+                limit_repos
+                and len(repo_defs) >= MAX_SEER_REPOS_PER_PROJECT
+                and _get_link_priority(project_repo) < USER_CREATED_LINK_PRIORITY
+            ):
+                continue
             repo_def = build_seer_repo_definition(project_repo, get_seer_project_repo(project_repo))
             if repo_def is not None:
-                repo_definitions_by_project[project_repo.project_id].append(repo_def)
+                repo_defs.append(repo_def)
     else:
         for seer_project_repo in (
             SeerProjectRepository.objects.filter(
@@ -598,11 +625,13 @@ def get_automation_handoff(
     )
 
 
-def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
+def read_preference_from_sentry_db(
+    project: Project, *, limit_repos: bool = False
+) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
-    repo_definitions = _get_repo_definitions_by_project(project.organization, [project.id]).get(
-        project.id, []
-    )
+    repo_definitions = _get_repo_definitions_by_project(
+        project.organization, [project.id], limit_repos=limit_repos
+    ).get(project.id, [])
     return SeerProjectPreference(
         organization_id=project.organization_id,
         project_id=project.id,
@@ -614,7 +643,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
 
 
 def bulk_read_preferences_from_sentry_db(
-    organization_id: int, project_ids: list[int]
+    organization_id: int, project_ids: list[int], *, limit_repos: bool = False
 ) -> dict[int, SeerProjectPreference]:
     """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
@@ -627,7 +656,7 @@ def bulk_read_preferences_from_sentry_db(
     organization = Organization.objects.get_from_cache(id=organization_id)
 
     repo_definitions_by_project = _get_repo_definitions_by_project(
-        organization, [project.id for project in projects]
+        organization, [project.id for project in projects], limit_repos=limit_repos
     )
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option

@@ -627,6 +627,17 @@ function getActivityItemContent({
         details,
       };
     }
+    case GroupActivityType.SEER_STOPPED:
+      return {
+        title: t('Seer stopped early'),
+        details: (
+          <Fragment>
+            {activity.data.reason}
+            {activity.data.suggestion &&
+              ` ${t('Suggestion: %s', activity.data.suggestion)}`}
+          </Fragment>
+        ),
+      };
     case GroupActivityType.TRIGGER_AUTOFIX:
       switch (activity.data.referrer) {
         case 'slack':

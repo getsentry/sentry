@@ -76,7 +76,6 @@ describe('IssueDetailsSidebar', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       },
     });

@@ -163,7 +163,7 @@ describe('OrganizationTeamProjects', () => {
 
     await userEvent.click(await screen.findByText('Add Project'));
 
-    await userEvent.type(screen.getByRole('textbox'), 'a');
+    await userEvent.type(screen.getByRole('searchbox'), 'a');
 
     expect(filteredMock).toHaveBeenCalledTimes(1);
   });

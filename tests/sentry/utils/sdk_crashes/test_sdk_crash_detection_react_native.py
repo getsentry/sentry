@@ -388,11 +388,82 @@ def test_sentry_wrapped_not_detected(
             "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
             False,
         ),
+        # pnpm layout — should be ignored
+        (
+            "<anonymous>",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        (
+            "fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # Nested @sentry/core copies — should be ignored
+        (
+            "<anonymous>",
+            "@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
+        (
+            "fetch",
+            "@sentry/browser/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/browser/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        (
+            "fetch",
+            "@sentry/react/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/react/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # Bundler-prefixed module — should be ignored
+        (
+            "<anonymous>",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
+        # Older SDKs shipped the fetch instrumentation in @sentry/utils — should be ignored
+        (
+            "fetch",
+            "@sentry/utils/esm/instrument/fetch",
+            "node_modules/@sentry/utils/esm/instrument/fetch.js",
+            False,
+        ),
+        (
+            "<anonymous>",
+            "@sentry/utils/esm/instrument/fetch",
+            "node_modules/@sentry/utils/esm/instrument/fetch.js",
+            False,
+        ),
         # Different function in the same module — should be detected
         (
             "instrumentFetch",
             "@sentry/core/build/esm/instrument/fetch",
             "node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            True,
+        ),
+        (
+            "instrumentFetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            True,
+        ),
+        (
+            "parseFetchArgs",
+            "@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/react-native/node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            True,
+        ),
+        # XHR instrumentation in a pnpm layout — should be detected
+        (
+            "fetch",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/xhr",
+            "node_modules/.pnpm/@sentry+core@10.76.2/node_modules/@sentry/core/build/esm/instrument/xhr.js",
             True,
         ),
         # XHR instrumentation — should be detected (not covered by the ignore pattern)

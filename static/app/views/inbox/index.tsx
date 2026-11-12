@@ -8,6 +8,7 @@ import {
   type UseInfiniteQueryResult,
 } from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -55,25 +56,33 @@ function useMarkInboxItemReadOnView({
   const {mutate: updateInboxItems} = useMutation(
     updateInboxItemsMutationOptions({organization, queryClient})
   );
-  // Last activity seen per subject when it was marked read, so a failed request is not
-  // retried in a loop. Undefined means it was marked before its item was loaded.
-  const attemptedRef = useRef(new Map<string, string | undefined>());
+  // Last activity seen during the current visit, so a failed request is not retried
+  // in a loop. Undefined means it was marked before its item was loaded.
+  const attemptedRef = useRef<{
+    lastActivityAt: string | undefined;
+    subjectKey: string;
+  } | null>(null);
 
   const isUnread = item?.isUnread;
   const lastActivityAt = item?.lastActivityAt;
 
   useEffect(() => {
-    if (!subject || isPending || isUnread === false) {
+    const subjectKey = subject ? `${subject.subjectType}:${subject.subjectId}` : null;
+    if (attemptedRef.current?.subjectKey !== subjectKey) {
+      attemptedRef.current = null;
+    }
+    if (!subject || !subjectKey || isPending) {
       return;
     }
-    const subjectKey = `${subject.subjectType}:${subject.subjectId}`;
-    const attemptedActivity = attemptedRef.current.get(subjectKey);
+    const attemptedActivity = attemptedRef.current?.lastActivityAt;
     const alreadyAttempted =
-      attemptedRef.current.has(subjectKey) &&
+      attemptedRef.current !== null &&
       (attemptedActivity === undefined || attemptedActivity === lastActivityAt);
 
-    attemptedRef.current.set(subjectKey, lastActivityAt);
-    if (!alreadyAttempted) {
+    attemptedRef.current = {subjectKey, lastActivityAt};
+    // Remember already-read items too, so explicitly marking the open item unread
+    // does not immediately mark it read again without new activity.
+    if (!alreadyAttempted && isUnread !== false) {
       updateInboxItems({subject, update: {isRead: true}});
     }
   }, [subject, isPending, isUnread, lastActivityAt, updateInboxItems]);
@@ -262,7 +271,17 @@ export default function Inbox() {
 
   return (
     <SentryDocumentTitle title={t('Inbox')} orgSlug={organization.slug}>
-      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: t('Inbox')}} />
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('Inbox'),
+          trailingActions: {
+            type: 'badge',
+            element: <FeatureBadge type="alpha" />,
+          },
+        }}
+      />
       <Stack flex={1} minHeight={0} background="primary" overflow="hidden" contain="size">
         <InboxContent />
       </Stack>

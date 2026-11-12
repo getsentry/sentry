@@ -282,6 +282,20 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_ignores_id_in_payload(self) -> None:
+        original_id = self.workflow.id
+        unused_id = original_id + 1000
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "id": str(unused_id), "name": "Updated Workflow"},
+        )
+
+        assert response.data["id"] == str(original_id)
+        assert Workflow.objects.get(id=original_id).name == "Updated Workflow"
+        assert not Workflow.objects.filter(id=unused_id).exists()
+
     def test_update_rejects_non_object_actions(self) -> None:
         self.valid_workflow["actionFilters"] = [
             {
