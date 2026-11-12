@@ -98,7 +98,7 @@ const SeerLoader = styled(Flex)`
 `;
 
 const SeerButton = styled(Button)`
-  > span:last-child {
+  && > [data-button-label] {
     overflow: visible;
   }
 `;

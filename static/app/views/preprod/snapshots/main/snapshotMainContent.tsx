@@ -626,7 +626,7 @@ const NavGutter = styled('div')`
     &::after {
       transform: translateY(0px);
     }
-    > span:last-child {
+    > [data-button-label] {
       transform: translateY(0px);
     }
   }

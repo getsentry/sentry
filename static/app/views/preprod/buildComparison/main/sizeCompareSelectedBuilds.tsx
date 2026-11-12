@@ -153,7 +153,7 @@ const StyledLinkButton = styled(LinkButton)`
   align-self: stretch;
 
   /* Override ButtonLabel overflow to allow close button to extend beyond */
-  > span:last-child {
+  && > [data-button-label] {
     overflow: visible;
   }
 `;

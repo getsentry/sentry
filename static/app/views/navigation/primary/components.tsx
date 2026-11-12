@@ -359,7 +359,7 @@ function PrimaryNavigationButtonContainer(props: React.ComponentProps<typeof Fle
 const ButtonWithOverflowVisible = styled(OverlayTrigger.IconButton)<
   Pick<ButtonProps, 'onClick'>
 >`
-  > span:last-child {
+  && > [data-button-label] {
     overflow: initial;
   }
 `;
