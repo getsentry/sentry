@@ -257,7 +257,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             report_fatal_errors=False,
             # used by the JS/RN SDKs
             # https://github.com/getsentry/sentry-javascript/blob/dafd51054d8b2ab2030fa0b16ad0fd70493b6e08/packages/core/src/integrations/captureconsole.ts#L60
-            ignore_mechanism_type={"console"},
+            # The Supabase integration intentionally reports failed Supabase responses via
+            # captureException with an Error constructed inside SDK code, so the stack trace only
+            # contains SDK frames. Hermes infers the frame's function name from the build (e.g.
+            # `Reflect.apply.then$argument_0` or `Proxy$argument_1.apply`), so we ignore these
+            # captures by their explicit mechanism type instead of by stack frame.
+            # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+            ignore_mechanism_type={
+                "console",
+                "auto.db.supabase.auth",
+                "auto.db.supabase.postgres",
+            },
             allow_mechanism_type=set(),
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
@@ -302,13 +312,25 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # The `fetch` wrapper rethrows synchronously, while the `<anonymous>` promise
                 # rejection handler rethrows the error asynchronously (surfacing via
                 # onunhandledrejection), so both pass-through frames must be ignored.
+                # The leading `*` matches the module wherever it sits in the path: pnpm
+                # (`.pnpm/@sentry+core@x/node_modules/@sentry/core/...`), nested copies
+                # (`@sentry/react-native/node_modules/@sentry/core/...`), and bundler prefixes.
+                # Older SDKs shipped the same instrumentation in @sentry/utils.
                 # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    module_pattern="*@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
                 ),
                 FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    module_pattern="*@sentry/core/*/instrument/fetch*",
+                    function_pattern="<anonymous>",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*@sentry/utils/*/instrument/fetch*",
+                    function_pattern="fetch",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="*@sentry/utils/*/instrument/fetch*",
                     function_pattern="<anonymous>",
                 ),
             },

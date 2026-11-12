@@ -172,4 +172,26 @@ describe('ProjectAddRepoModal', () => {
       expect.objectContaining({data: expect.objectContaining({integrationId: '123'})})
     );
   });
+
+  it('tells token-billed orgs that Seer uses linked repositories', async () => {
+    openAddRepoModal(
+      OrganizationFixture({
+        features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+      })
+    );
+
+    expect(
+      await screen.findByText(/Seer uses the repositories linked to your project/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Autofix requires you to attach/)).not.toBeInTheDocument();
+  });
+
+  it('tells other orgs to attach repositories for Autofix', async () => {
+    openAddRepoModal();
+
+    expect(await screen.findByText(/Autofix requires you to attach/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Seer uses the repositories linked to your project/)
+    ).not.toBeInTheDocument();
+  });
 });

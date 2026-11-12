@@ -1023,6 +1023,66 @@ class ProjectSeerReposPutTest(APITestCase):
             == 0
         )
 
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_token_based_billing_keeps_config_of_repos_left_out(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        Repository.objects.filter(id__in=[self.repo1.id, self.repo2.id]).update(
+            integration_id=integration.id
+        )
+        self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="release"
+        )
+
+        with outbox_runner():
+            self.get_success_response(
+                repos=[{"repositoryId": self.repo2.id, "branchName": "develop"}],
+                status_code=204,
+            )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_UPDATE"),
+            ).exists()
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            ).exists()
+
+        kept_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
+        )
+        assert kept_repo.branch_name == "release"
+        new_repo = SeerProjectRepository.objects.get(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo2,
+        )
+        assert new_repo.branch_name == "develop"
+
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_token_based_billing_empty_list_keeps_config(self) -> None:
+        self.create_seer_project_repository(self.project, repository=self.repo1)
+
+        self.get_success_response(repos=[], status_code=204)
+
+        assert SeerProjectRepository.objects.filter(
+            project_repository__project=self.project,
+            project_repository__repository=self.repo1,
+        ).exists()
+
     def test_replace_invalid_repo_returns_400(self) -> None:
         self.get_error_response(repos=[{"repositoryId": 99999}], status_code=400)
 

@@ -1,3 +1,7 @@
+import pytest
+
+from sentry.models.activity import Activity
+from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action, WorkflowFireHistory
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import WorkflowEventData
@@ -35,3 +39,25 @@ class TestWorkflowFireHistory(BaseWorkflowTest):
             ).count()
             == 1
         )
+
+    def test_activity_source_identity(self) -> None:
+        activity = Activity(
+            project=self.project, group=self.group, type=ActivityType.SET_RESOLVED.value
+        )
+        activity.save()
+        event_data = WorkflowEventData(
+            event=activity, group=self.group, organization=self.organization
+        )
+        assert event_data.get_organization() == self.organization
+        assert event_data.project_id == self.project.id
+        histories = create_workflow_fire_histories(
+            Action.objects.filter(id=self.action.id), event_data
+        )
+        assert histories[0].event_id == str(activity.id)
+
+    def test_rejects_mismatched_organization(self) -> None:
+        event_data = WorkflowEventData(
+            event=self.group_event, group=self.group, organization=self.create_organization()
+        )
+        with pytest.raises(ValueError, match="same organization"):
+            event_data.get_organization()

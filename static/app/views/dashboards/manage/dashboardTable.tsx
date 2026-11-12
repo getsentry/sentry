@@ -11,6 +11,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -22,7 +23,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {showDashboardPermissionsError} from 'sentry/actionCreators/dashboards';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
   DataGrid,

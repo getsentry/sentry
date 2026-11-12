@@ -14,11 +14,13 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Navigation} from 'sentry/views/navigation';
 
 import {
+  NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
   getSettingsLastProjectKey,
 } from './constants';
@@ -399,11 +401,33 @@ describe('desktop navigation', () => {
         })
       );
 
-      expect(screen.getByText('Org Settings')).toBeInTheDocument();
+      expect(screen.getByText('Organization Settings')).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
       expect(
         screen.queryByRole('link', {name: 'Personal Tokens'})
       ).not.toBeInTheDocument();
+    });
+
+    it('keeps the settings sidebar expanded when the app sidebar is collapsed', () => {
+      localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+        })
+      );
+
+      expect(screen.queryByTestId('collapsed-secondary-sidebar')).not.toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Collapse'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+      expect(localStorage.getItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY)).toBe(
+        'true'
+      );
     });
 
     it('shows account settings under the account scope', async () => {
@@ -643,7 +667,7 @@ describe('desktop navigation', () => {
       expect(
         await screen.findByRole('link', {name: 'Organizations'})
       ).toBeInTheDocument();
-      expect(screen.queryByText('Org Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('Organization Settings')).not.toBeInTheDocument();
     });
   });
 
@@ -1106,6 +1130,60 @@ describe('desktop navigation', () => {
     });
   });
 
+  describe('command palette', () => {
+    it('renders the command palette button first in the footer', async () => {
+      const toggleCommandPalette = jest
+        .spyOn(modal, 'toggleCommandPalette')
+        .mockResolvedValue(undefined);
+
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+
+      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+      const button = within(primaryNav).getByRole('button', {name: 'Command Palette'});
+      expect(button).toHaveAttribute('aria-keyshortcuts', 'Control+K');
+
+      const buttons = within(primaryNav).getAllByRole('button');
+      expect(buttons.indexOf(button)).toBe(
+        buttons.indexOf(within(primaryNav).getByRole('button', {name: "What's New"})) - 1
+      );
+
+      await userEvent.hover(button);
+      expect(await screen.findByText('Ctrl', {selector: 'kbd'})).toBeInTheDocument();
+
+      await userEvent.click(button);
+      expect(toggleCommandPalette).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({slug: 'org-slug'}),
+        expect.anything(),
+        expect.any(Function),
+        'button',
+        undefined
+      );
+      toggleCommandPalette.mockRestore();
+    });
+
+    it('does not render the command palette button without an organization', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        {
+          organization: null,
+          initialRouterConfig: {location: {pathname: '/settings/account/details/'}},
+        }
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Command Palette'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('interactions', () => {
     describe('secondary Navigation', () => {
       it('shows content for the active primary group', () => {
@@ -1425,6 +1503,78 @@ describe('desktop navigation', () => {
               'false'
             );
           });
+        });
+
+        it('hides the sidebar on mouse leave when a collapsible section is expanded', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+            })
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+          expect(screen.getByRole('button', {name: 'Autofix'})).toHaveAttribute(
+            'aria-expanded',
+            'true'
+          );
+
+          await userEvent.unhover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'false'
+            );
+          });
+        });
+
+        it('keeps the sidebar open on mouse leave while a popup is open', async () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
+
+          await screen.findByTestId('collapsed-secondary-sidebar');
+
+          const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
+          await userEvent.hover(primaryNav);
+          await waitFor(() => {
+            expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+              'data-visible',
+              'true'
+            );
+          });
+
+          const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+          await userEvent.click(whatsNewButton);
+          expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
+
+          await userEvent.unhover(primaryNav);
+          // Wait past the collapse delay so a close would have happened.
+          await new Promise(resolve =>
+            setTimeout(resolve, NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS + 100)
+          );
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
         });
 
         it('shows the sidebar when a nav element receives keyboard focus while collapsed', async () => {

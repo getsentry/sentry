@@ -342,7 +342,6 @@ describe('InboxPage', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });

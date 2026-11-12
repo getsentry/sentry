@@ -22,6 +22,7 @@ import type {Client} from 'sentry/api';
 import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -1299,7 +1300,7 @@ export function ResultGrid({
       {hasPagination && results.pageLinks && (
         <Container marginBottom="2xl">
           <Pagination
-            pageLinks={results.pageLinks}
+            {...getPaginationProps(results.pageLinks)}
             onCursor={useQueryString ? undefined : onCursor}
           />
         </Container>

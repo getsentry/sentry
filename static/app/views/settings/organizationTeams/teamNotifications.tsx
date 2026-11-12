@@ -4,13 +4,13 @@ import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {LoadingError} from 'sentry/components/loadingError';

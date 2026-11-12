@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 # Markdown labels and shell blocks are escaped for their respective contexts below.
-_ENVIRONMENT = Environment(
+MARKDOWN_JINJA_ENV = Environment(
     loader=PackageLoader("sentry", "templates"),
     autoescape=False,
     undefined=StrictUndefined,
@@ -102,7 +102,7 @@ def render_agent_runbook(
         f"{setup_environment} sentry auth bootstrap --url {shlex.quote(sentry_url)}"
     )
 
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/runbook.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/runbook.md").render(
         {
             "sentry_url": _escape_label(sentry_url),
             "user_email": _escape_label(user_email),
@@ -150,7 +150,11 @@ def render_claim_runbook(*, claim_url: str) -> str:
             "}",
         ]
     )
-    return _ENVIRONMENT.get_template("sentry/agent_handoff/claim.md").render(
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/claim.md").render(
         unix_claim_command=_code_block(unix_claim_command),
         windows_claim_command=_code_block(windows_claim_command, "powershell"),
     )
+
+
+def render_ip_mismatch_runbook() -> str:
+    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/ip_mismatch.md").render()

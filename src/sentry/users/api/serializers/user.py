@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Literal, TypedDict, cast
+from typing import Annotated, Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -86,13 +86,36 @@ class _SerializedStacktraceOrder(int, Enum):
 
 
 class _UserOptions(TypedDict):
-    theme: str  # TODO: enum/literal for theme options
-    language: str
-    stacktraceOrder: _SerializedStacktraceOrder
-    defaultIssueEvent: str
-    timezone: str
-    clock24Hours: bool
-    prefersIssueDetailsStreamlinedUI: bool | None
+    theme: Annotated[  # TODO: enum/literal for theme options
+        str, ApiDescription('UI theme: "light", "dark" or "system". Defaults to "system"')
+    ]
+    language: Annotated[str, ApiDescription("UI language code, such as `en`")]
+    stacktraceOrder: Annotated[
+        _SerializedStacktraceOrder,
+        ApiDescription(
+            "Stack trace frame order: -1 for the default (most recent first), 1 for most recent last, 2 for most recent first"
+        ),
+    ]
+    defaultIssueEvent: Annotated[
+        str,
+        ApiDescription(
+            'Event shown by default on issue details: "recommended", "latest" or "oldest"'
+        ),
+    ]
+    timezone: Annotated[str, ApiDescription("Time zone for displayed dates, such as `UTC`")]
+    clock24Hours: Annotated[bool, ApiDescription("Whether times are shown in 24-hour format")]
+    prefersIssueDetailsStreamlinedUI: Annotated[
+        bool | None,
+        ApiDescription(
+            "Whether the user prefers the streamlined issue details UI, or null if they haven't chosen"
+        ),
+    ]
+
+
+class _UserFlags(TypedDict):
+    newsletter_consent_prompt: Annotated[
+        bool, ApiDescription("Whether to ask the user for newsletter consent")
+    ]
 
 
 class _AuthenticatorSerializerResponse(TypedDict):
@@ -171,8 +194,8 @@ class UserSerializerResponse(UserSerializerResponseOptional):
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):
-    options: _UserOptions
-    flags: Any  # TODO
+    options: Annotated[_UserOptions, ApiDescription("Preferences of the user")]
+    flags: Annotated[_UserFlags, ApiDescription("Account flags of the user")]
 
 
 @register(User)
@@ -396,7 +419,24 @@ class DetailedUserSerializer(UserSerializer):
 
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
-    permissions: Sequence[str]
+    permissions: Annotated[
+        Sequence[str],
+        ApiDescription(
+            "Sentry staff permissions granted to the user, such as users.admin. Empty for most users"
+        ),
+    ]
+    options: NotRequired[
+        Annotated[
+            _UserOptions,
+            ApiDescription("The user's preferences. Only included for the requesting user"),
+        ]
+    ]
+    flags: NotRequired[
+        Annotated[
+            _UserFlags,
+            ApiDescription("Account flags. Only included for the requesting user"),
+        ]
+    ]
 
 
 class UserSerializerWithOrgMembershipsResponse(UserSerializerResponse):

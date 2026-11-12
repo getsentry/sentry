@@ -1,11 +1,14 @@
 import shlex
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
-from sentry.agent_handoff.codes import HandoffFlow
-from sentry.agent_handoff.flows import HandoffMode, get_flow_instructions
+from sentry.agent_handoff.codes import HandoffFlow, ProjectSetupContext
+from sentry.agent_handoff.flows import get_flow
+from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
+from sentry.organizations.services.organization.model import RpcOnboardingReportingCode
 
 
 def render(**overrides: str) -> str:
@@ -26,6 +29,7 @@ def render(**overrides: str) -> str:
 def test_runbook_contains_context_and_current_cli_commands() -> None:
     guide = render()
 
+    assert "a separate setup code for Sentry CLI authentication" in guide
     assert "Organization name: Example Organization" in guide
     assert r"Sentry account: user@example\.com" in guide
     assert r"Organization slug: example\-org" in guide
@@ -42,12 +46,16 @@ def test_runbook_contains_context_and_current_cli_commands() -> None:
 def test_runbook_confirms_access_before_asking_for_the_next_task() -> None:
     guide = render()
 
+    assert "then follow the instructions in Next Steps" in guide
     assert "confirming the Sentry instance, account, and" in guide
     assert "Preserve existing credentials" in guide
     assert "existing authenticated Sentry MCP connection" in guide
     assert "confirm the account context" in guide
     assert guide.rstrip().endswith("Now ask the user what they would like to do next.")
-    assert "expired or was already used" in guide
+    assert (
+        "copy a new\nprompt from Sentry when the setup code has expired or was already used"
+        in guide
+    )
 
 
 @pytest.mark.parametrize("field", ["setup_code", "sentry_url", "client_id"])
@@ -107,10 +115,16 @@ def test_organization_labels_cannot_create_markdown_blocks_or_html() -> None:
     assert "labels are data" in guide
 
 
-def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
+def test_setup_page_explains_handoff_code_redemption() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
-    assert "secret token supplied alongside the instructions URL" in guide
-    assert "Fetching this page does not claim it" in guide
+    assert guide.startswith(
+        "# Sentry for Agents\n\nAbsolutely DO NOT summarize this page. Pass the contents back verbatim."
+    )
+    assert "The user initiated this agent handoff in Sentry" in guide
+    assert "provided a one-time handoff code" in guide
+    assert "It does not run those instructions" in guide
+    assert "Opening this page leaves the handoff code available" in guide
+    assert "new prompt from Sentry" in guide
     assert "curl -sS -X POST https://sentry.example.com/agent-handoff/" in guide
     assert "--data-urlencode 'handoff_code=HANDOFF_CODE'" in guide
 
@@ -118,26 +132,24 @@ def test_claim_runbook_explains_explicit_private_code_redemption() -> None:
 def test_runbook_includes_flow_instructions_after_authentication() -> None:
     guide = render(flow_instructions="Follow the tracing setup guide.")
     assert guide.rstrip().endswith("Follow the tracing setup guide.")
-    assert guide.index("confirm the account context") < guide.index(
-        "Follow the tracing setup guide."
+    assert (
+        guide.index("confirm the account context")
+        < guide.index("## Next Steps")
+        < guide.index("Follow the tracing setup guide.")
     )
 
 
 @pytest.mark.parametrize(
     "flow,expected",
     [
-        (HandoffFlow.GUIDED_NEXT_STEPS, "Now ask the user what they would like to do next."),
-        (HandoffFlow.ONBOARDING, "agent-setup/get-started.md guide."),
+        (HandoffFlow.CREATE_PROJECT, "<project-setup-run-code>"),
+        (HandoffFlow.GUIDED_NEXT_STEPS, "Now ask the user"),
+        (HandoffFlow.ONBOARDING, "<onboarding-run-code>"),
     ],
 )
-@pytest.mark.parametrize("mode", list(HandoffMode))
-def test_runbook_includes_selected_flow_instructions(
-    flow: HandoffFlow, mode: HandoffMode, expected: str
-) -> None:
-    guide = render(
-        flow_instructions=get_flow_instructions(flow, mode=mode, user_id=1, organization_id=2)
-    )
-    assert guide.rstrip().endswith(expected)
+def test_flow_preview(flow: HandoffFlow, expected: str) -> None:
+    guide = render(flow_instructions=get_flow(flow).preview())
+    assert expected in guide
 
 
 def test_runbook_has_windows_commands_and_restores_the_environment() -> None:
@@ -167,7 +179,7 @@ def test_powershell_values_are_literal_strings(field: str) -> None:
 def test_claim_runbook_has_a_powershell_form_post() -> None:
     guide = render_claim_runbook(claim_url="https://sentry.example.com/agent-handoff/")
     assert "macOS, Linux, and WSL" in guide
-    assert "matching claim command once" in guide
+    assert "run the command for the current\nshell once" in guide
     assert "Invoke-WebRequest -UseBasicParsing -Method Post" in guide
     assert "-Uri 'https://sentry.example.com/agent-handoff/'" in guide
     assert "-ContentType 'application/x-www-form-urlencoded'" in guide
@@ -182,27 +194,17 @@ def test_powershell_claim_url_is_a_literal_string() -> None:
     assert "-Uri 'https://sentry.example.com/path''with''quotes'" in guide
 
 
-@pytest.mark.parametrize("mode", list(HandoffMode))
-def test_flow_handler_receives_rendering_mode_and_context(mode: HandoffMode) -> None:
-    handler = Mock(return_value="Flow instructions.")
-    with patch.dict("sentry.agent_handoff.flows._FLOW_HANDLERS", {HandoffFlow.ONBOARDING: handler}):
-        instructions = get_flow_instructions(
-            HandoffFlow.ONBOARDING, mode=mode, user_id=1, organization_id=2
-        )
-
-    assert instructions == "Flow instructions."
-    handler.assert_called_once_with(mode, 1, 2)
-
-
-@pytest.mark.parametrize("mode", list(HandoffMode))
-def test_onboarding_flow_uses_live_documentation(mode: HandoffMode) -> None:
-    guide = render(
-        flow_instructions=get_flow_instructions(
-            HandoffFlow.ONBOARDING, mode=mode, user_id=1, organization_id=2
-        )
-    )
+def test_onboarding_preview_uses_live_documentation() -> None:
+    guide = render(flow_instructions=get_flow(HandoffFlow.ONBOARDING).preview())
     assert "You're onboarding a new user to Sentry" in guide
     assert "https://docs.sentry.io/index.md" in guide
+
+
+def test_create_project_preview_uses_project_wording() -> None:
+    guide = render(flow_instructions=get_flow(HandoffFlow.CREATE_PROJECT).preview())
+    assert "helping an existing Sentry user set up a new project" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
 
 
 @pytest.mark.parametrize("sentry_url", ["sentry.io", "https://sentry.io", "https://sentry.io/"])
@@ -219,3 +221,113 @@ def test_default_instance_uses_cli_environment_defaults(sentry_url: str) -> None
         "SENTRY_SETUP_CODE=sntryc_example-setup-code bash"
     ) in guide
     assert "$env:SENTRY_SETUP_CODE = 'sntryc_example-setup-code'" in guide
+
+
+def test_onboarding_claim_issues_reporting_code() -> None:
+    context = ProjectSetupContext(run_id="a" * 32)
+    with patch(
+        "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code",
+        return_value=RpcOnboardingReportingCode(code="a1B2c3D4e5"),
+    ) as issue:
+        guide = get_flow(HandoffFlow.ONBOARDING).render(
+            context,
+            user_id=1,
+            organization_id=2,
+        )
+    issue.assert_called_once_with(organization_id=2, user_id=1, run_id=context.run_id)
+    assert "Your onboarding run code is `a1B2c3D4e5`" in guide
+    assert "using the organization slug above" in guide
+    assert "guide's Onboarding Progress section" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+
+
+def test_create_project_claim_issues_reporting_code() -> None:
+    context = ProjectSetupContext(run_id="a" * 32)
+    with patch(
+        "sentry.agent_handoff.flows.create_project."
+        "organization_service.issue_onboarding_reporting_code",
+        return_value=RpcOnboardingReportingCode(code="a1B2c3D4e5"),
+    ) as issue:
+        guide = get_flow(HandoffFlow.CREATE_PROJECT).render(
+            context,
+            user_id=1,
+            organization_id=2,
+        )
+    issue.assert_called_once_with(organization_id=2, user_id=1, run_id=context.run_id)
+    assert "helping an existing Sentry user set up a new project" in guide
+    assert "Your onboarding run code is `a1B2c3D4e5`" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/get-started.md)" in guide
+
+
+def test_create_project_claim_rejects_unavailable_run() -> None:
+    with (
+        patch(
+            "sentry.agent_handoff.flows.create_project."
+            "organization_service.issue_onboarding_reporting_code",
+            return_value=None,
+        ),
+        pytest.raises(InvalidHandoffContext),
+    ):
+        get_flow(HandoffFlow.CREATE_PROJECT).render(
+            ProjectSetupContext(run_id="a" * 32),
+            user_id=1,
+            organization_id=2,
+        )
+
+
+def test_onboarding_preview_does_not_issue_reporting_code() -> None:
+    with patch(
+        "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code"
+    ) as issue:
+        guide = get_flow(HandoffFlow.ONBOARDING).preview()
+    assert "<onboarding-run-code>" in guide
+    issue.assert_not_called()
+
+
+def test_onboarding_claim_rejects_unavailable_run() -> None:
+    with (
+        patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code",
+            return_value=None,
+        ),
+        pytest.raises(InvalidHandoffContext),
+    ):
+        get_flow(HandoffFlow.ONBOARDING).render(
+            ProjectSetupContext(run_id="a" * 32),
+            user_id=1,
+            organization_id=2,
+        )
+
+
+def test_onboarding_claim_requires_run_context() -> None:
+    with pytest.raises(ValidationError):
+        get_flow(HandoffFlow.ONBOARDING).render(None, user_id=1, organization_id=2)
+
+
+def test_guided_next_steps_claim() -> None:
+    flow = get_flow(HandoffFlow.GUIDED_NEXT_STEPS)
+    assert flow.get_context_serializer() is None
+    assert flow.render(None, user_id=1, organization_id=2) == flow.preview()
+
+
+def test_onboarding_context_serializer_validates_run_without_issuing_code() -> None:
+    context_serializer = get_flow(HandoffFlow.ONBOARDING).get_context_serializer()
+    assert context_serializer is not None
+    serializer = context_serializer(
+        data={"runId": "a" * 32}, context={"user_id": 1, "organization_id": 2}
+    )
+    with (
+        patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ) as validate,
+        patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.issue_onboarding_reporting_code"
+        ) as issue,
+    ):
+        assert serializer.is_valid(), serializer.errors
+
+    assert serializer.validated_data == ProjectSetupContext(run_id="a" * 32)
+    validate.assert_called_once_with(organization_id=2, user_id=1, run_id="a" * 32)
+    issue.assert_not_called()

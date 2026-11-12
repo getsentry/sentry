@@ -1,14 +1,12 @@
 # this must import first
 
-import importlib.metadata
 import os
 import os.path
 from subprocess import check_output
 
-try:
-    VERSION = importlib.metadata.version("sentry")
-except importlib.metadata.PackageNotFoundError:
-    VERSION = "unknown"
+# Bumped by scripts/bump-version.sh. Not read from package metadata, so that
+# pyproject.toml and uv.lock don't change on every release.
+VERSION = "26.11.0.dev0"
 
 
 def _get_git_revision(path: str) -> str | None:
