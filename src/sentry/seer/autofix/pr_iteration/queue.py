@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -15,14 +13,12 @@ from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
 
-drain_list = load_redis_script("utils/drain_list.lua")
+drain_list_into = load_redis_script("utils/drain_list_into.lua")
 
 _QUEUE_TTL_SECONDS = 60 * 60 * 24
-# As long as the consume task's processing deadline: the task is gone by then.
+# As long as the consume task's processing deadline: Seer has the feedback, or
+# the task is gone, by then. Each drain restarts it for the whole list.
 _IN_FLIGHT_TTL_SECONDS = 60
-# Long enough for a poll that read Seer before the drain finished to also read
-# the in-flight copy.
-_IN_FLIGHT_GRACE_SECONDS = 5
 _REDIS_CLUSTER = "default"
 
 
@@ -39,7 +35,9 @@ def _feedback_queue_key(run_id: int) -> str:
 
 
 def _in_flight_key(run_id: int) -> str:
-    return f"autofix:feedback:inflight:{run_id}"
+    # The hash tag puts this key in the queue key's cluster slot, so one script
+    # can move items between them.
+    return f"{{{_feedback_queue_key(run_id)}}}:inflight"
 
 
 def enqueue_autofix_feedback(
@@ -141,44 +139,22 @@ def peek_in_flight_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     return _read_list(_in_flight_key(run_id))
 
 
-def _hold_in_flight(client: Any, run_id: int, raw_items: Sequence[str]) -> None:
-    key = _in_flight_key(run_id)
-    with client.pipeline() as pipe:
-        pipe.delete(key)
-        if raw_items:
-            pipe.rpush(key, *raw_items)
-            pipe.expire(key, _IN_FLIGHT_TTL_SECONDS)
-        pipe.execute()
-
-
 def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
-    """Drain the queue, keeping a copy for the UI while Seer is told about it.
+    """Drain the queue, moving its items to the in-flight list for the UI.
 
-    Without the copy, feedback is in neither the queue nor a Seer block between
+    Without that list, feedback is in neither the queue nor a Seer block between
     this pop and Seer recording the iteration. A poll landing there sees an idle
     run with nothing queued, so the UI hides the item and slows its polling.
 
-    The copy is written first because the two keys may not share a cluster slot,
-    so one script can't move items between them.
+    The move is one script, so a poll never sees the items in neither list. The
+    in-flight list is only appended to and left to expire: once Seer has an
+    item, the UI state stops showing it (see ``ui_state``).
     """
     client = redis_clusters.get(_REDIS_CLUSTER)
-    key = _feedback_queue_key(run_id)
-
-    copied = client.lrange(key, 0, -1)
-    _hold_in_flight(client, run_id, copied)
-    raw_items = drain_list([key], [], client)
-    # Feedback can arrive between the copy and the drain.
-    if raw_items != copied:
-        _hold_in_flight(client, run_id, raw_items)
+    raw_items = drain_list_into(
+        [_feedback_queue_key(run_id), _in_flight_key(run_id)],
+        [_IN_FLIGHT_TTL_SECONDS],
+        client,
+    )
 
     return [item for item in (_parse_queued_item(raw) for raw in raw_items) if item is not None]
-
-
-def release_in_flight_autofix_feedback(run_id: int) -> None:
-    """Let the in-flight copy expire now that the drain is over.
-
-    Not deleted outright: a poll may have read Seer just before the iteration
-    was recorded and be about to read this. Once a poll can see the iteration,
-    the UI state drops the copy (see ``ui_state``).
-    """
-    redis_clusters.get(_REDIS_CLUSTER).expire(_in_flight_key(run_id), _IN_FLIGHT_GRACE_SECONDS)

@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration import queue as feedback_queue
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.details_store import open_iterations
 from sentry.seer.autofix.pr_iteration.emit import (
@@ -59,6 +60,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     enqueue_autofix_feedback,
+    peek_in_flight_autofix_feedback,
     peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
 )
@@ -83,6 +85,7 @@ from sentry.tasks.seer.pr_iteration import (
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils.redis import redis_clusters
 
 FEEDBACK_PATH = "sentry.seer.autofix.pr_iteration.feedback"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
@@ -1718,6 +1721,20 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         state = self._state(blocks=[self._check_suite_block("2024-01-01T00:00:00Z")])
 
         assert self._queued_suite_updated_ats(state) == []
+
+    def test_a_later_drain_keeps_earlier_in_flight_items(self) -> None:
+        self._enqueue_ui_feedback("first")
+        pop_queued_autofix_feedback(67890)
+        self._enqueue_ui_feedback("second")
+        pop_queued_autofix_feedback(67890)
+
+        assert peek_queued_autofix_feedback(67890) == []
+        assert [item.feedback.text for item in peek_in_flight_autofix_feedback(67890)] == [
+            "first",
+            "second",
+        ]
+        in_flight_ttl = redis_clusters.get("default").ttl(feedback_queue._in_flight_key(67890))
+        assert 0 < in_flight_ttl <= 60
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

@@ -68,6 +68,9 @@ def get_pr_iteration_state_fields(
 
     ``run`` is the run's SeerRun row, or None for a legacy run that has none.
     """
+    # Read the queue before the in-flight list. A drain moves items from the
+    # queue to the in-flight list in one step, so reading in this order can't
+    # miss an item that a drain moves between the two reads.
     queued_items = peek_queued_autofix_feedback(state.run_id)
 
     missing_perms = get_blocked_pr_iteration_permissions(

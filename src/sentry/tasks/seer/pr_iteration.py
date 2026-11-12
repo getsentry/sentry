@@ -113,7 +113,6 @@ from sentry.seer.autofix.pr_iteration.queue import (
     count_queued_autofix_feedback,
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
-    release_in_flight_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
@@ -551,8 +550,6 @@ def consume_queued_autofix_feedback(
                 error_type=type(e).__name__,
             )
             raise
-        finally:
-            release_in_flight_autofix_feedback(run_id)
 
 
 def _dropped_drain_reason(dropped: list[dict[str, Any]]) -> str:
