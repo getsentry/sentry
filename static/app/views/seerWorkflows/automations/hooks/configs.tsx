@@ -17,7 +17,10 @@ import type {
   SeerWorkflowConfigsResponse,
   SeerWorkflowConfigUpdateRequest,
 } from 'sentry/views/seerWorkflows/types';
-import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
+import {
+  AUTO_REFRESH_INTERVAL,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
 
 function useConfigUrls(configId = '') {
   const organization = useOrganization();
@@ -61,6 +64,7 @@ export function useFetchConfigs({
     ),
     select: data => selectJson(data).configs,
     placeholderData: keepPrevious ? keepPreviousData : undefined,
+    refetchInterval: AUTO_REFRESH_INTERVAL,
   });
 }
 

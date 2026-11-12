@@ -293,8 +293,8 @@ function RunRow({
 }
 
 const RunTableRow = styled(SimpleTable.Row)`
-  > [role='cell']:hover {
-    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  &:hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 `;
 

@@ -36,6 +36,7 @@ import type {
   SeerWorkflowConfigResponse,
 } from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
@@ -201,6 +202,7 @@ export function MetricAutomationForm(props: Props) {
   const monitorsQuery = useQuery({
     ...monitorsQueryOptions,
     enabled: monitorIds.length > 0,
+    refetchInterval: AUTO_REFRESH_INTERVAL,
     // Show monitors already fetched by the picker or an earlier lookup while
     // the by-ID fetch runs, so a newly connected monitor appears right away
     placeholderData: previous => {

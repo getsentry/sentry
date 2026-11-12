@@ -2,6 +2,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import {AUTO_REFRESH_INTERVAL} from 'sentry/views/seerWorkflows/utils';
 
 /**
  * Fetches the given monitors in one request, keyed by monitor id.
@@ -16,5 +17,6 @@ export function useMonitorsById(ids: Array<string | number>, limit = 100) {
     enabled: monitorIds.length > 0,
     select: ({json}) => new Map(json.map(monitor => [monitor.id, monitor])),
     placeholderData: keepPreviousData,
+    refetchInterval: AUTO_REFRESH_INTERVAL,
   });
 }

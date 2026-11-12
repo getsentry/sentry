@@ -204,6 +204,7 @@ function AutomationCard({
           </Text>
           {isMetricStrategy ? (
             <Tooltip
+              skipWrapper
               disabled={!monitorsById || config.monitorIds.length === 0}
               title={
                 <Text as="div" align="left">
@@ -237,7 +238,7 @@ function AutomationCard({
                 </Text>
               }
             >
-              <Flex align="center" gap="sm">
+              <Flex align="center" gap="sm" alignSelf="start">
                 <IconSiren size="sm" variant="muted" />
                 <Text size="sm" variant="muted">
                   {config.monitorIds.length === 0
