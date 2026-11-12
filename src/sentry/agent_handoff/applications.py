@@ -11,7 +11,7 @@ def get_handoff_application(scope_list: Sequence[str]) -> ApiApplication | None:
 
     application = ApiApplication.objects.filter(
         client_id=client_id, status=ApiApplicationStatus.active
-    ).first()
+    ).first()  # noqa: S034
     if (
         application is None
         or not application.is_public

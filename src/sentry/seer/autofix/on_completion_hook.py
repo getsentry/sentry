@@ -109,7 +109,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
             source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values_list("extras__stopping_point", flat=True)
-        .first()
+        .first()  # noqa: S034
     )
 
 
@@ -244,7 +244,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S034
         if seer_run is None:
             logger.warning(
                 "autofix.on_completion_hook.single_run_missing_seer_run",
@@ -516,7 +516,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id,
             seer_run_state_id=run_id,
-        ).first()
+        ).first()  # noqa: S034
 
         sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
         webhook_payload: dict[str, object] = {

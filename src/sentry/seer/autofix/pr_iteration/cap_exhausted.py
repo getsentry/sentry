@@ -159,7 +159,7 @@ def assign_user_for_exhausted_cap(
 
     seer_run = SeerRun.objects.filter(
         seer_run_state_id=resolved.run_state.run_id, organization=organization
-    ).first()
+    ).first()  # noqa: S034
     if seer_run is None:
         # Legacy runs predating SeerRun mirroring have no row to hold the marker.
         _skip("no_seer_run", log_extra)

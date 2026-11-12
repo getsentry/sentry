@@ -46,7 +46,7 @@ class SeerWorkflowActionHandler(ActionHandler):
         binding = SeerWorkflowTriggerBinding.objects.filter(
             workflow_config__organization_id=group.project.organization_id,
             trigger_action=invocation.action,
-        ).first()
+        ).first()  # noqa: S034
         if binding is None:
             _record_trigger_outcome("ignored", extra, reason="missing_binding")
             return

@@ -182,7 +182,7 @@ def get_latest_issue_event(
     else:
         group = Group.objects.filter(
             id=int(group_id), project__organization_id=organization_id
-        ).first()
+        ).first()  # noqa: S034
 
     if not group or not caller_can_access_project(group.project):
         logger.warning(

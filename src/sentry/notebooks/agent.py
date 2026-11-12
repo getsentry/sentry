@@ -1219,12 +1219,12 @@ class InvestigationAgentCompletionHook(AgentOnCompletionHook):
         execution = NotebookBlockExecution.objects.filter(
             seer_run__seer_run_state_id=run_id,
             block__notebook__organization=organization,
-        ).first()
+        ).first()  # noqa: S034
         if execution is not None:
             synchronize_execution(execution, state)
             return
         notebook = Notebook.objects.filter(
             organization=organization, title_seer_run__seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S034
         if notebook is not None:
             synchronize_title(notebook, state)

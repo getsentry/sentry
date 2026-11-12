@@ -141,7 +141,7 @@ def outcome_for_failed_run(run_state: SeerRunState) -> str:
 
 
 def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
+    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()  # noqa: S034
 
 
 def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
@@ -179,7 +179,7 @@ def bootstrap_iteration(
         project_id = (
             Group.objects.filter(id=group_id, project__organization_id=organization_id)
             .values_list("project_id", flat=True)
-            .first()
+            .first()  # noqa: S034
         )
         if project_id is None:
             raise ValueError(f"No group {group_id} in organization {organization_id}")

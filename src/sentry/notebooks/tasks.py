@@ -27,7 +27,7 @@ def dispatch_notebook_execution(execution_id: int) -> None:
     execution = (
         NotebookBlockExecution.objects.select_related("block__notebook__organization")
         .filter(id=execution_id)
-        .first()
+        .first()  # noqa: S034
     )
     if execution is None:
         return

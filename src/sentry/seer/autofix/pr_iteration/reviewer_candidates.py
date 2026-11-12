@@ -222,7 +222,7 @@ def _suspect_commit_author_logins(organization: Organization, group_id: int) -> 
     commit = (
         Commit.objects.filter(id=group_owner.context["commitId"], organization_id=organization.id)
         .select_related("author")
-        .first()
+        .first()  # noqa: S034
     )
     if commit is not None and commit.author is not None:
         login = commit.author.get_username_from_external_id()

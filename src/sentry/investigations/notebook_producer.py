@@ -68,7 +68,7 @@ def _queue_follow_up(
             ),
         )
         .values_list("request_id", flat=True)
-        .first()
+        .first()  # noqa: S034
     )
     if queued is not None:
         return queued
@@ -157,7 +157,7 @@ def _failed_follow_up(
         orchestration_run__investigation_id=action_request.notebook_id,
         request_id=action_request.followup_request_id,
         status=InvestigationOrchestrationCommandStatus.FAILED,
-    ).first()
+    ).first()  # noqa: S034
 
 
 class OrchestrationProducerRun(NotebookProducerRun):

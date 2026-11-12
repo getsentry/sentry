@@ -14,7 +14,7 @@ from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
 
 def get_iteration(seer_run: SeerRun, iteration_id: int) -> SeerRunPrIteration | None:
-    return SeerRunPrIteration.objects.filter(seer_run=seer_run, id=iteration_id).first()
+    return SeerRunPrIteration.objects.filter(seer_run=seer_run, id=iteration_id).first()  # noqa: S034
 
 
 def open_iterations(seer_run: SeerRun) -> list[SeerRunPrIteration]:

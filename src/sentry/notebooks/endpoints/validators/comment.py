@@ -42,7 +42,7 @@ class CommentCreateValidator(CommentValidator):
     def validate_block_id(self, value: int) -> NotebookBlock:
         block = NotebookBlock.objects.filter(
             id=value, notebook=self.context["notebook"], deleted_at__isnull=True
-        ).first()
+        ).first()  # noqa: S034
         if block is None:
             raise serializers.ValidationError("Block not found.")
         return block

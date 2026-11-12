@@ -255,7 +255,7 @@ def get_similarity_data_from_seer(
                     grouphash__project_id=project_id, grouphash__hash=parent_hash
                 )
                 .values_list("date_added", flat=True)
-                .first()
+                .first()  # noqa: S034
             )
 
             if parent_grouphash_date_added:
@@ -302,7 +302,7 @@ def get_similarity_data_from_seer(
                 grouphash__project_id=project_id, grouphash__hash=parent_hash
             )
             .values_list("date_added", flat=True)
-            .first()
+            .first()  # noqa: S034
         )
 
         if parent_grouphash_date_added:

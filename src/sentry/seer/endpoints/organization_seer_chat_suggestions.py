@@ -196,7 +196,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         if dashboard_id := _to_valid_int_id("dashboardId", route_params.get("dashboardId")):
             dashboard = Dashboard.objects.filter(
                 id=dashboard_id, organization_id=organization.id
-            ).first()
+            ).first()  # noqa: S034
             if dashboard and OrganizationDashboardsPermission().has_object_permission(
                 request, self, dashboard
             ):
@@ -207,7 +207,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 id=workflow_id,
                 organization_id=organization.id,
                 type=Workflow.Type.ALERT,
-            ).first()
+            ).first()  # noqa: S034
             if workflow:
                 try:
                     enforce_workflow_access(workflow, organization, request)

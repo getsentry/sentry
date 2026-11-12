@@ -148,7 +148,7 @@ def deliver_agentic_triage_result(
             seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
         .select_related("run", "run__organization", "seer_run")
-        .first()
+        .first()  # noqa: S034
     )
     if shard is None:
         logger.warning(

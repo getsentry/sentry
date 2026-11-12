@@ -26,7 +26,7 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
 
     seer_run_id = data.get("run_id")
     run = (
-        SeerAgentRun.objects.filter(run_id=seer_run_id).first() if seer_run_id is not None else None
+        SeerAgentRun.objects.filter(run_id=seer_run_id).first() if seer_run_id is not None else None  # noqa: S034
     )
     # We need someone who actually resolves to a Sentry user, so pick one further
     # down the list of suggestions if necessary.

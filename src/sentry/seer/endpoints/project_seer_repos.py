@@ -346,7 +346,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
             if is_seer_token_based_billing_onboarding_enabled(project.organization)
             else _get_seat_based_billing_project_repos(project)
         )
-        project_repo = project_repos_qs.filter(repository_id=repo_id).first()
+        project_repo = project_repos_qs.filter(repository_id=repo_id).first()  # noqa: S034
         if project_repo is None:
             return Response(status=404)
 

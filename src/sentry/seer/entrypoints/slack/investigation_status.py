@@ -277,7 +277,7 @@ def _build_next_step(run: InvestigationOrchestrationRun) -> SeerInvestigationNex
         producer_revision=_report_revision(run),
         primary=True,
         state__in=LIVE_STATES,
-    ).first()
+    ).first()  # noqa: S034
     if request is None:
         return None
     return SeerInvestigationNextStep(
