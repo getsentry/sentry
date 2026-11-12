@@ -103,7 +103,12 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == assignee.id
         assert event.inbox_item.organization_id == self.organization.id
         assert event.inbox_item.subject_id == str(self.group.id)
-        assert event.data == {"assignment_source": None}
+        assert event.data == {
+            "activity_id": Activity.objects.get(
+                group=self.group, type=ActivityType.ASSIGNED.value
+            ).id,
+            "assignment_source": None,
+        }
         assert event.actor_type == InboxActorType.USER
         assert event.actor_id == self.user.id
         assert (
@@ -125,7 +130,12 @@ class IssueProducerRecordingTest(TestCase):
         event = InboxItemEvent.objects.get()
         assert event.type == "issue.team_assigned"
         assert event.inbox_item.user_id == teammate.id
-        assert event.data == {"assignment_source": None}
+        assert event.data == {
+            "activity_id": Activity.objects.get(
+                group=self.group, type=ActivityType.ASSIGNED.value
+            ).id,
+            "assignment_source": None,
+        }
 
     def test_assignment_integrations(self) -> None:
         for integration in ActivityIntegration:
@@ -293,6 +303,9 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == self.user.id
         assert event.type == "issue.pr_ready_for_review"
         assert event.data == {
+            "activity_id": Activity.objects.get(
+                group=self.group, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value
+            ).id,
             "pr_url": "https://github.com/example/repo/pull/1",
             "seer_run_id": 123,
         }
@@ -338,7 +351,10 @@ class IssueProducerRecordingTest(TestCase):
 
         with (
             self.options({"issues.record-seer-actions-as-activities": True}),
-            patch("sentry.seer.entrypoints.operator.Activity.objects.create_group_activity"),
+            patch(
+                "sentry.seer.entrypoints.operator.Activity.objects.create_group_activity",
+                return_value=Activity(id=456, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value),
+            ),
         ):
             record_seer_activity(
                 group=self.group,

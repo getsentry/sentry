@@ -21,10 +21,16 @@ class IssueSubscribersActivityStrategy(NotificationStrategy):
     activity: Activity
 
     def get_targets(self) -> list[NotificationTarget]:
+        from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
+
         group = self.activity.group
         if not group:
             return []
-        participant_map = get_participants_for_group(group=group, user_id=self.activity.user_id)
+        participant_map = get_participants_for_group(
+            group=group,
+            user_id=self.activity.user_id,
+            exclude_user_ids=get_inbox_notified_user_ids(self.activity),
+        )
         return get_targets_from_participant_map(
             participant_map, organization_id=group.project.organization_id, project=group.project
         )

@@ -228,7 +228,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             )
             data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
 
-            Activity.objects.create_group_activity(
+            activity = Activity.objects.create_group_activity(
                 group,
                 ActivityType.ASSIGNED,
                 user=acting_user,
@@ -248,6 +248,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                     event_type=ISSUE_TEAM_ASSIGNED if is_team else ISSUE_USER_ASSIGNED,
                     subject=group,
                     data=IssueAssignedData(
+                        activity_id=activity.id,
                         assignment_source=inbox_assignment_source,
                     ),
                     user_ids=[] if is_team else [assigned_to.id],

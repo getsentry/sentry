@@ -34,6 +34,7 @@ class IssueItemType(InboxItemType[Group]):
 
 @dataclass(frozen=True, kw_only=True)
 class IssueAssignedData(InboxEventData):
+    activity_id: int
     assignment_source: ActivityIntegration | None
 
 
@@ -44,6 +45,7 @@ class IssueMentionedData(InboxEventData):
 
 @dataclass(frozen=True, kw_only=True)
 class IssuePRReadyForReviewData(InboxEventData):
+    activity_id: int
     pr_url: str
     seer_run_id: int  # Seer DbRunState ID.
 

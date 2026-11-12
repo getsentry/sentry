@@ -792,7 +792,7 @@ def _create_seer_activity(
     elif event_type == SentryAppEventType.SEER_STOPPED:
         activity_data.update(event_payload.get("stop") or {})
 
-    Activity.objects.create_group_activity(
+    activity = Activity.objects.create_group_activity(
         group,
         activity_type,
         user_id=actor_user_id,
@@ -815,6 +815,7 @@ def _create_seer_activity(
                     event_type=ISSUE_PR_READY_FOR_REVIEW,
                     subject=group,
                     data=IssuePRReadyForReviewData(
+                        activity_id=activity.id,
                         pr_url=pr_url,
                         seer_run_id=event_payload["run_id"],
                     ),

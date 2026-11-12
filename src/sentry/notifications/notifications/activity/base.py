@@ -105,7 +105,13 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         """This is overridden by the activity subclasses."""
-        return get_participants_for_group(self.group, self.activity.user_id)
+        from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
+
+        return get_participants_for_group(
+            self.group,
+            self.activity.user_id,
+            exclude_user_ids=get_inbox_notified_user_ids(self.activity),
+        )
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return UnsubscribeContext(

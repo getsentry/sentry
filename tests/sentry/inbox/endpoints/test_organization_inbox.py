@@ -96,6 +96,7 @@ class OrganizationInboxIndexTest(APITestCase):
             ISSUE_PR_READY_FOR_REVIEW.record(
                 subject=self.group,
                 data=IssuePRReadyForReviewData(
+                    activity_id=456,
                     pr_url="https://github.com/example/repo/pull/1",
                     seer_run_id=123,
                 ),
