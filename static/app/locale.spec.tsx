@@ -5,6 +5,7 @@ import {getDuration} from '@sentry/scraps/duration';
 import {getRelativeDate, useRelativeTimeFormatter} from '@sentry/scraps/relativeTime';
 
 import {formatChartDateTime} from './components/charts/formatChartDateTime';
+import {getAbsoluteSummary} from './components/timeRangeSelector/utils';
 import {DEFAULT_LOCALE_DATA, getLocaleSnapshot, setLocale, t, tct, tn} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
@@ -139,6 +140,18 @@ describe('shared formatter translations', () => {
       jest.useRealTimers();
       act(() => setLocale(DEFAULT_LOCALE_DATA));
     }
+  });
+
+  it('keeps full-day ranges date-only with localized digits', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
+    });
+    render(
+      <div>{getAbsoluteSummary('2025-01-01T00:00:00', '2025-01-02T23:59:59', true)}</div>
+    );
+    expect(screen.getByText('۱ ژانویه ۲۰۲۵')).toBeInTheDocument();
+    expect(screen.getByText('۲ ژانویه ۲۰۲۵')).toBeInTheDocument();
   });
 
   it('keeps plural count formatting and catalog bindings consistent', () => {

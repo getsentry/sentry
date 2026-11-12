@@ -63,7 +63,6 @@ function getFuzzyDuration(
     anchor = earlier.add({months: --wholeMonths});
   }
   const remainder = later.epochMilliseconds - anchor.epochMilliseconds;
-  // Match the existing calendar-month rounding, including month-end clamping.
   const months = wholeMonths + (remainder / 86400000) * (4800 / 146097);
   const roundedMonths = Math.round(months);
   return roundedMonths < 11
