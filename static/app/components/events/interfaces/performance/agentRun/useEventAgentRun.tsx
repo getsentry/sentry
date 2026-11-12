@@ -22,6 +22,10 @@ import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDeta
 export type EventAgentRun =
   | {type: 'none'}
   /**
+   * The trace is still being fetched, so it is not known yet whether there is an agent run.
+   */
+  | {type: 'loading'}
+  /**
    * The error was raised inside an AI span. `failingNode` is the closest AI span
    * above the error, and `runNode` is the agent span that contains it, if any.
    */
@@ -111,7 +115,10 @@ export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
     disableUrlSync: true,
   });
 
-  return useMemo(() => {
+  return useMemo((): EventAgentRun => {
+    if (trace.isLoading) {
+      return {type: 'loading'};
+    }
     if (!trace.data) {
       return NO_AGENT_RUN;
     }
@@ -120,5 +127,5 @@ export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
     } catch {
       return NO_AGENT_RUN;
     }
-  }, [trace.data, event.eventID, organization]);
+  }, [trace.isLoading, trace.data, event.eventID, organization]);
 }

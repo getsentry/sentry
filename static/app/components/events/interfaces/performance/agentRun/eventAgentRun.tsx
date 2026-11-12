@@ -135,7 +135,7 @@ export function EventAgentActivity({agentRun, event}: AgentRunProps) {
   const navigate = useNavigate();
   const getAgentActivityLink = useAgentActivityLink(event);
 
-  if (agentRun.type === 'none') {
+  if (agentRun.type === 'none' || agentRun.type === 'loading') {
     return null;
   }
 

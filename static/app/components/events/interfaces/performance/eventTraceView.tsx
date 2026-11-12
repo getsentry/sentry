@@ -1,8 +1,9 @@
 import {useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {type Event} from 'sentry/types/event';
 import {type Group} from 'sentry/types/group';
@@ -13,6 +14,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {EventAgentActivity, OpenAgentActivityButton} from './agentRun/eventAgentRun';
 import {useEventAgentRun} from './agentRun/useEventAgentRun';
+import {TraceLinkedIssues} from './traceLinkedIssues';
 import {TracePreview, TracePreviewFullTraceButton} from './tracePreview';
 import {eventHasSyntheticTrace} from './utils';
 
@@ -40,10 +42,25 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     return null;
   }
 
-  const hasAgentActivity = agentRun.type !== 'none';
+  const hasAgentActivity = agentRun.type === 'inside' || agentRun.type === 'elsewhere';
   const view: TraceView = hasAgentActivity
     ? (selectedView ?? (agentRun.type === 'inside' ? 'agent-activity' : 'waterfall'))
     : 'waterfall';
+
+  let content: React.ReactNode;
+  if (agentRun.type === 'loading') {
+    // Wait for the agent run so the preview does not open on one view and then switch.
+    content = <Placeholder height="200px" />;
+  } else if (view === 'agent-activity') {
+    content = (
+      <Stack gap="md">
+        <TraceLinkedIssues event={event} />
+        <EventAgentActivity agentRun={agentRun} event={event} />
+      </Stack>
+    );
+  } else {
+    content = <TracePreview event={event} organization={organization} source="issues" />;
+  }
 
   return (
     <FoldSection
@@ -78,11 +95,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         </Flex>
       }
     >
-      {view === 'agent-activity' ? (
-        <EventAgentActivity agentRun={agentRun} event={event} />
-      ) : (
-        <TracePreview event={event} organization={organization} source="issues" />
-      )}
+      {content}
     </FoldSection>
   );
 }

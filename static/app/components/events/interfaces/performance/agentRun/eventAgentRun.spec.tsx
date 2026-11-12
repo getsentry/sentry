@@ -1,7 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   makeEAPError,
@@ -138,6 +143,20 @@ describe('useEventAgentRun', () => {
 
     expect(result.current).toEqual({type: 'none'});
     expect(traceRequest).not.toHaveBeenCalled();
+  });
+  it('reports loading until the trace is fetched', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: makeTrace({errorInsideTool: true}),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useEventAgentRun(event, {enabled: true}),
+      {organization}
+    );
+
+    expect(result.current).toEqual({type: 'loading'});
+    await waitFor(() => expect(result.current.type).toBe('inside'));
   });
 });
 
