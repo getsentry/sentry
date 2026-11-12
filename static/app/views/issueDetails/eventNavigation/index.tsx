@@ -10,7 +10,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {Feature} from 'sentry/components/acl/feature';
@@ -247,7 +247,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       {showContentTabs ? (
         <Container maxWidth="100%">
           {props => (
-            <Tabs
+            <LinkTabs
               size="sm"
               value={selectedContentTab}
               onChange={trackContentSelected}
@@ -276,7 +276,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   ))}
                 </TabList>
               )}
-            </Tabs>
+            </LinkTabs>
           )}
         </Container>
       ) : (

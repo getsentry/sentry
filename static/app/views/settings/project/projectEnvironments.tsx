@@ -2,14 +2,13 @@ import {Fragment, useDeferredValue, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import noop from 'lodash/noop';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -277,7 +276,7 @@ export default function ProjectEnvironments() {
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
-        <Tabs onChange={noop} value={isHidden ? 'hidden' : 'environments'}>
+        <LinkTabs value={isHidden ? 'hidden' : 'environments'}>
           {({TabList}) => (
             <TabList>
               <TabList.Item
@@ -294,7 +293,7 @@ export default function ProjectEnvironments() {
               </TabList.Item>
             </TabList>
           )}
-        </Tabs>
+        </LinkTabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
       <Flex paddingBottom="xl">

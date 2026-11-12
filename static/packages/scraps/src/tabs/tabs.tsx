@@ -6,23 +6,26 @@ import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import {Flex} from '@sentry/scraps/layout';
 
 import {TabsContext} from './context';
-import type {TabListItemProps, TabPanelItemProps} from './item';
+import type {LinkTabListItemProps, TabListItemProps, TabPanelItemProps} from './item';
 import type {TabProps} from './tab';
 import {TabList, type TabListProps} from './tabList';
 import {TabPanels, type TabPanelsProps} from './tabPanels';
 
 export type TabKey = string;
 
-export interface TabsComponents<T extends TabKey> {
+interface Components<T extends TabKey, I> {
   TabList: {
     (props: TabListProps): JSX.Element;
-    Item: (props: TabListItemProps<T>) => JSX.Element;
+    Item: (props: I) => JSX.Element;
   };
   TabPanels: {
     (props: TabPanelsProps): JSX.Element | null;
     Item: (props: TabPanelItemProps<T>) => JSX.Element;
   };
 }
+
+export type TabsComponents<T extends TabKey> = Components<T, TabListItemProps<T>>;
+export type LinkTabsComponents<T extends TabKey> = Components<T, LinkTabListItemProps<T>>;
 
 interface BaseTabsProps
   extends
@@ -48,21 +51,35 @@ interface BaseTabsProps
   size?: TabProps['size'];
 }
 
+type SelectionProps<T extends TabKey> =
+  | {onChange: (key: NoInfer<T>) => void; value: T; defaultValue?: never}
+  | {defaultValue: NoInfer<T>; onChange?: (key: T) => void; value?: never};
+
 export type TabsProps<T extends TabKey = TabKey> = BaseTabsProps &
-  (
+  SelectionProps<T> & {
+    children: (components: TabsComponents<NoInfer<T>>) => ReactNode;
+    disabledKeys?: Iterable<NoInfer<T>>;
+  };
+
+export type LinkTabsProps<T extends TabKey = TabKey> = Omit<
+  BaseTabsProps,
+  'keyboardActivation'
+> & {
+  children: (components: LinkTabsComponents<NoInfer<T>>) => ReactNode;
+  value: T;
+  defaultValue?: never;
+  disabledKeys?: Iterable<NoInfer<T>>;
+  /** Reports link activation, including modified clicks, rather than selection or URL changes. */
+  onChange?: (key: NoInfer<T>) => void;
+};
+
+export type InternalTabsProps = BaseTabsProps & {children: ReactNode} & (
+    | ({kind: 'selection'} & SelectionProps<TabKey>)
     | {
-        children: (components: TabsComponents<NoInfer<T>>) => ReactNode;
-        onChange: (key: NoInfer<T>) => void;
-        value: T;
+        kind: 'links';
+        value: TabKey;
         defaultValue?: never;
-        disabledKeys?: Iterable<NoInfer<T>>;
-      }
-    | {
-        children: (components: TabsComponents<NoInfer<T>>) => ReactNode;
-        defaultValue: NoInfer<T>;
-        disabledKeys?: Iterable<NoInfer<T>>;
-        onChange?: (key: T) => void;
-        value?: never;
+        onChange?: (key: TabKey) => void;
       }
   );
 
@@ -71,7 +88,7 @@ function TabStateProvider({
   orientation = 'horizontal',
   size = 'md',
   ...props
-}: Omit<TabsProps, 'children'> & {children: ReactNode}) {
+}: InternalTabsProps) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
@@ -90,7 +107,7 @@ function TabsRoot({
   className,
   orientation = 'horizontal',
   ...props
-}: TabsProps) {
+}: InternalTabsProps) {
   return (
     <TabStateProvider orientation={orientation} {...props}>
       <Flex
@@ -103,13 +120,32 @@ function TabsRoot({
         height={orientation === 'vertical' ? '100%' : undefined}
         align={orientation === 'vertical' ? 'stretch' : undefined}
       >
-        {children(components)}
+        {children}
       </Flex>
     </TabStateProvider>
   );
 }
 
 // Bind the key type without wrapping the collection items or changing their identity.
-export const Tabs = TabsRoot as <T extends TabKey = TabKey>(
+function SelectionTabsRoot({children, ...props}: TabsProps) {
+  return (
+    <TabsRoot kind="selection" {...props}>
+      {children(components)}
+    </TabsRoot>
+  );
+}
+
+function LinkTabsRoot({children, ...props}: LinkTabsProps) {
+  return (
+    <TabsRoot kind="links" {...props}>
+      {children(components)}
+    </TabsRoot>
+  );
+}
+
+export const Tabs = SelectionTabsRoot as <T extends TabKey = TabKey>(
   props: TabsProps<T>
+) => JSX.Element;
+export const LinkTabs = LinkTabsRoot as <T extends TabKey = TabKey>(
+  props: LinkTabsProps<T>
 ) => JSX.Element;

@@ -1,12 +1,11 @@
 import {useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import styled from '@emotion/styled';
-import noop from 'lodash/noop';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
@@ -97,7 +96,7 @@ export default function TeamDetails() {
           </h3>
 
           <TabsContainer>
-            <Tabs onChange={noop} value={activeTab}>
+            <LinkTabs value={activeTab}>
               {({TabList}) => (
                 <TabList>
                   <TabList.Item key="members" to={`${routePrefix}members/`}>
@@ -114,7 +113,7 @@ export default function TeamDetails() {
                   </TabList.Item>
                 </TabList>
               )}
-            </Tabs>
+            </LinkTabs>
           </TabsContainer>
 
           <TeamDetailsOutlet team={team} />

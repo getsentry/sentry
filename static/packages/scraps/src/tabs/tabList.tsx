@@ -25,7 +25,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {TabsContext} from './context';
-import type {TabListItemProps} from './item';
+import type {InternalTabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {TabProps} from './tab';
@@ -102,7 +102,7 @@ function useOverflowTabs({
    * available to the tabs and is unaffected by the list overflowing.
    */
   outerWrapRef: RefObject<HTMLDivElement | null>;
-  tabItems: TabListItemProps[];
+  tabItems: InternalTabListItemProps[];
   tabItemsRef: RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: RefObject<HTMLUListElement | null>;
 }) {
@@ -271,14 +271,15 @@ function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
 }
 
 export interface TabListProps {
-  children: TabListStateOptions<TabListItemProps>['children'];
+  children: TabListStateOptions<InternalTabListItemProps>['children'];
   className?: string;
   outerWrapStyles?: CSSProperties;
   variant?: TabProps['variant'];
 }
 
-interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabListProps {
-  items: TabListItemProps[];
+interface BaseTabListProps
+  extends AriaTabListOptions<InternalTabListItemProps>, TabListProps {
+  items: InternalTabListItemProps[];
   variant?: TabProps['variant'];
 }
 
@@ -299,6 +300,7 @@ function BaseTabList({
     orientation,
     size,
     keyboardActivation = 'manual',
+    kind,
     ...otherRootProps
   } = rootProps;
 
@@ -306,9 +308,10 @@ function BaseTabList({
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: (key: Key) => onChange?.(String(key)),
+    onSelectionChange:
+      kind === 'selection' ? (key: Key) => onChange?.(String(key)) : undefined,
     isDisabled: disabled,
-    keyboardActivation,
+    keyboardActivation: kind === 'links' ? 'manual' : keyboardActivation,
     ...otherRootProps,
     ...props,
   };
@@ -345,13 +348,16 @@ function BaseTabList({
         return [];
       }
 
-      const itemProps: TabListItemProps = item.props;
+      const itemProps: InternalTabListItemProps = item.props;
 
       return {
         key: String(key),
-        to: itemProps.to,
+        to: kind === 'links' ? itemProps.to : undefined,
         isSelected: state.selectedKey === key,
-        onAction: itemProps.to ? undefined : () => state.setSelectedKey(key),
+        onAction:
+          kind === 'links'
+            ? () => onChange?.(String(key))
+            : () => state.setSelectedKey(key),
         label: (
           <Flex align="center" gap="md">
             {itemProps.children}
@@ -363,7 +369,7 @@ function BaseTabList({
         textValue: item.textValue,
       } satisfies MenuItemProps;
     });
-  }, [state, overflowTabs]);
+  }, [state, overflowTabs, kind, onChange]);
 
   return (
     <Container
@@ -386,7 +392,7 @@ function BaseTabList({
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            tooltipProps={(item.props as TabListItemProps).tooltip}
+            tooltipProps={(item.props as InternalTabListItemProps).tooltip}
             ref={element => {
               tabItemsRef.current[item.key] = element;
             }}
@@ -402,7 +408,7 @@ function BaseTabList({
   );
 }
 
-const collectionFactory = (nodes: Iterable<Node<TabListItemProps>>) =>
+const collectionFactory = (nodes: Iterable<Node<InternalTabListItemProps>>) =>
   new ListCollection(nodes);
 
 /**
@@ -415,7 +421,7 @@ export function TabList({variant, ...props}: TabListProps) {
    */
   const collection = useCollection(props, collectionFactory);
 
-  const parsedItems: TabListItemProps[] = useMemo(
+  const parsedItems: InternalTabListItemProps[] = useMemo(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     () => Array.from(collection, ({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]

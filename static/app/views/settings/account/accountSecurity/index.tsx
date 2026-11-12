@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {useMutation} from '@tanstack/react-query';
-import noop from 'lodash/noop';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {Grid, Container} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
 import {openEmailVerification} from 'sentry/actionCreators/modal';
@@ -95,7 +94,7 @@ export default function AccountSecurity() {
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader title={t('Security')} />
       <Container marginBottom="xl">
-        <Tabs onChange={noop} value={activeTab}>
+        <LinkTabs value={activeTab}>
           {({TabList}) => (
             <TabList>
               <TabList.Item key="settings" to={routePrefix}>
@@ -106,7 +105,7 @@ export default function AccountSecurity() {
               </TabList.Item>
             </TabList>
           )}
-        </Tabs>
+        </LinkTabs>
       </Container>
 
       {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
