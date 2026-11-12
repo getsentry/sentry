@@ -1,7 +1,8 @@
 import {useEffect, useLayoutEffect, useRef} from 'react';
 import type {RefObject} from 'react';
 import {css, keyframes} from '@emotion/react';
-import {useReducedMotion} from 'framer-motion';
+
+import {useMedia} from '@sentry/scraps/useMedia';
 
 /**
  * Imperative streaming decode animation for Markdown.
@@ -37,7 +38,7 @@ export function useStreamingAnimation(
   containerRef: RefObject<HTMLElement | null>,
   enabled: boolean
 ): void {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   useEffect(() => {
     if (!enabled) {
       return;
@@ -104,20 +105,24 @@ export function useStreamingAnimation(
  * replaces the element's text node with per-glyph spans, so React must remount
  * the element on change rather than patch the now-mutated text node.
  *
- * The initial mount is skipped so the effect only fires on subsequent changes.
+ * The initial mount is skipped unless `pending` keeps the glyphs shuffling
+ * until the key changes, without revealing the placeholder text.
  * Requires `streamingAnimationStyles` to be present in the tree.
  */
 export function useTextDecodeAnimation(
   ref: RefObject<HTMLElement | null>,
-  key: unknown
+  key: unknown,
+  {pending = false}: {pending?: boolean} = {}
 ): void {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   const isInitial = useRef(true);
 
   useLayoutEffect(() => {
     if (isInitial.current) {
       isInitial.current = false;
-      return;
+      if (!pending) {
+        return;
+      }
     }
     if (prefersReducedMotion) {
       return;
@@ -126,10 +131,10 @@ export function useTextDecodeAnimation(
     if (!element) {
       return;
     }
-    const animation = animateElement(element);
+    const animation = animateElement(element, 0, pending);
     return () => animation.destroy();
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [ref, key, prefersReducedMotion]);
+  }, [ref, key, pending, prefersReducedMotion]);
 }
 
 const STAGGER_MS = 8;
@@ -141,7 +146,6 @@ const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
 
 const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'});
-const DUMMY_WRAPPER = document.createElement('span');
 
 function isSimpleChar(grapheme: string): boolean {
   return grapheme.length === 1 && !/\s/.test(grapheme);
@@ -224,7 +228,7 @@ function prepareTextNode(
   if (globalOffset + graphemes.length <= skipChars) {
     return {
       original,
-      wrapper: DUMMY_WRAPPER,
+      wrapper: document.createElement('span'),
       spans: [],
       graphemes,
       active: [],
@@ -352,7 +356,11 @@ interface Animation {
 
 const NOOP_ANIMATION: Animation = {settle() {}, destroy() {}};
 
-function animateElement(element: HTMLElement, charOffset = 0): Animation {
+function animateElement(
+  element: HTMLElement,
+  charOffset = 0,
+  pending = false
+): Animation {
   const skipChars = Number.parseInt(element.dataset.skip ?? '0', 10);
   delete element.dataset.skip;
 
@@ -384,6 +392,16 @@ function animateElement(element: HTMLElement, charOffset = 0): Animation {
 
   if (runs.length === 0) {
     return NOOP_ANIMATION;
+  }
+
+  if (pending) {
+    for (const run of runs) {
+      for (const span of run.spans) {
+        span.classList.add('visible');
+      }
+    }
+    const restore = () => restoreRuns(runs);
+    return {settle: restore, destroy: restore};
   }
 
   // Only hide ancestors exclusive to active runs — shared ancestors
