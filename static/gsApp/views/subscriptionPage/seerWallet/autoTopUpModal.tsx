@@ -1,6 +1,8 @@
 import {Fragment, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStripe} from '@stripe/react-stripe-js';
+import type {PaymentIntentResult} from '@stripe/stripe-js';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -22,6 +24,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
+import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
@@ -44,6 +47,17 @@ type AutoTopUpFormProps = AutoTopUpModalProps & {
   balanceCredits: number;
   creditPriceCents: number;
   purchased: SeerWalletBalance['purchased'];
+};
+
+type PaymentVerification = {
+  clientSecret: string;
+  paymentIntentId: string;
+  required: boolean;
+};
+
+type PaymentRequiredResponse = {
+  invoiceGuid?: string;
+  verification?: PaymentVerification;
 };
 
 function parseWholeNumber(value: string) {
@@ -144,6 +158,21 @@ function AutoTopUpForm({
     toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
+  const [verification, setVerification] = useState<
+    (PaymentVerification & {invoiceGuid: string}) | null
+  >(null);
+
+  const refreshWallet = () => {
+    queryClient.invalidateQueries({
+      queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
+    });
+    // Turning on can bill credits right away, so refresh the balance as well.
+    queryClient.invalidateQueries({
+      queryKey: seerWalletBalanceOptions(organization).queryKey,
+    });
+    // Turning on auto-load can unblock Seer, so let gated buttons recheck.
+    queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+  };
 
   const {mutate: save, isPending} = useMutation({
     mutationFn: (data: SeerWalletAutoTopUp) =>
@@ -155,15 +184,7 @@ function AutoTopUpForm({
         data,
       }),
     onSuccess: data => {
-      queryClient.invalidateQueries({
-        queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
-      });
-      // Turning on can bill credits right away, so refresh the balance as well.
-      queryClient.invalidateQueries({
-        queryKey: seerWalletBalanceOptions(organization).queryKey,
-      });
-      // Turning on auto-load can unblock Seer, so let gated buttons recheck.
-      queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+      refreshWallet();
       if (!data.enabled) {
         toast.success(t('Auto-load turned off'));
       } else if (isTurningOn) {
@@ -174,10 +195,12 @@ function AutoTopUpForm({
       closeModal();
     },
     onError: err => {
-      const fieldErrors =
-        err instanceof RequestError
-          ? (err.responseJSON as Record<string, string[]> | undefined)
-          : undefined;
+      const paymentRequired = getPaymentVerification(err);
+      if (paymentRequired) {
+        setVerification(paymentRequired);
+        return;
+      }
+      const fieldErrors = err instanceof RequestError ? err.responseJSON : undefined;
       setIsConfirmingTurnOff(false);
       setError(
         fieldErrors
@@ -186,6 +209,36 @@ function AutoTopUpForm({
       );
     },
   });
+
+  if (verification) {
+    return (
+      <Fragment>
+        <Header closeButton>
+          <Heading as="h2" size="xl">
+            {t('Verify payment')}
+          </Heading>
+        </Header>
+        <Body>
+          <StripeWrapper>
+            <AutoTopUpPaymentVerification
+              organization={organization}
+              verification={verification}
+              onCancel={() => setVerification(null)}
+              onError={message => {
+                setVerification(null);
+                setError(message);
+              }}
+              onSuccess={() => {
+                refreshWallet();
+                toast.success(t('Auto-load turned on'));
+                closeModal();
+              }}
+            />
+          </StripeWrapper>
+        </Body>
+      </Fragment>
+    );
+  }
 
   if (isConfirmingTurnOff) {
     return (
@@ -377,6 +430,116 @@ function AutoTopUpForm({
         </Flex>
       </Footer>
     </Fragment>
+  );
+}
+
+function getPaymentVerification(error: unknown) {
+  if (!(error instanceof RequestError)) {
+    return null;
+  }
+  const response = error.responseJSON as PaymentRequiredResponse | undefined;
+  const verification = response?.verification;
+  if (
+    !verification?.required ||
+    !verification.clientSecret ||
+    !verification.paymentIntentId ||
+    !response.invoiceGuid
+  ) {
+    return null;
+  }
+  return {...verification, invoiceGuid: response.invoiceGuid};
+}
+
+function AutoTopUpPaymentVerification({
+  organization,
+  verification,
+  onCancel,
+  onError,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onError: (message: string) => void;
+  onSuccess: () => void;
+  organization: Organization;
+  verification: PaymentVerification & {invoiceGuid: string};
+}) {
+  const stripe = useStripe();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {mutateAsync: confirmPayment} = useMutation({
+    mutationFn: (paymentIntentId: string) =>
+      fetchMutation<{paid: boolean; failureCode?: string | null}>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/payments/$paymentId/confirm/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              paymentId: verification.invoiceGuid,
+            },
+          }
+        ),
+        method: 'POST',
+        data: {paymentIntentId},
+      }),
+  });
+
+  const verify = async () => {
+    if (!stripe) {
+      onError(t('Cannot complete your payment at this time, please try again later.'));
+      return;
+    }
+    setIsSubmitting(true);
+
+    let result: PaymentIntentResult;
+    try {
+      result = await stripe.handleCardAction(verification.clientSecret);
+    } catch {
+      onError(
+        t('That verification did not go through. Please try again or use another card.')
+      );
+      return;
+    }
+    if (result.error) {
+      onError(
+        result.error.message ??
+          t('That verification did not go through. Please try again or use another card.')
+      );
+      return;
+    }
+
+    try {
+      const response = await confirmPayment(result.paymentIntent.id);
+      if (!response.paid) {
+        onError(
+          response.failureCode?.includes('declined')
+            ? t('Your bank declined the payment. Please try a different card.')
+            : t('We could not complete the payment. Please try again.')
+        );
+        return;
+      }
+    } catch (err) {
+      const detail = (err as RequestError)?.responseJSON?.detail;
+      onError(typeof detail === 'string' ? detail : t('Could not complete the payment.'));
+      return;
+    }
+
+    onSuccess();
+  };
+
+  return (
+    <Stack gap="xl">
+      <Text as="p">
+        {t(
+          'Your bank needs to verify this payment before it can be completed. No new card details are needed.'
+        )}
+      </Text>
+      <Flex justify="end" gap="md">
+        <Button onClick={onCancel}>{t('Cancel')}</Button>
+        <Button variant="primary" busy={isSubmitting} disabled={!stripe} onClick={verify}>
+          {t('Verify with your bank')}
+        </Button>
+      </Flex>
+    </Stack>
   );
 }
 
