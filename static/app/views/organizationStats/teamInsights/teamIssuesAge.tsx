@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -15,9 +16,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getTitle} from 'sentry/utils/events';
-import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {TeamInsightsTable} from './styles';
 
@@ -58,18 +58,14 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     isPending: isOldestIssuesLoading,
     isError: isOldestIssuesError,
     refetch: refetchOldestIssues,
-  } = useApiQuery<Group[]>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
-      {
-        query: {
-          limit: 7,
-        },
+  } = useQuery(
+    apiOptions.as<Group[]>()('/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/', {
+      path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
+      query: {
+        limit: 7,
       },
-    ],
-    {staleTime: 5000}
+      staleTime: 5000,
+    })
   );
 
   const {
@@ -77,13 +73,14 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
     isPending: isUnresolvedIssueAgeLoading,
     isError: isUnresolvedIssueAgeError,
     refetch: refetchUnresolvedIssueAge,
-  } = useApiQuery<Record<string, number>>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/unresolved-issue-age/', {
+  } = useQuery(
+    apiOptions.as<Record<string, number>>()(
+      '/teams/$organizationIdOrSlug/$teamIdOrSlug/unresolved-issue-age/',
+      {
         path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   const isLoading = isOldestIssuesLoading || isUnresolvedIssueAgeLoading;

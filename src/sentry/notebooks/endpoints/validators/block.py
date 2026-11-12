@@ -247,7 +247,7 @@ class BlockExecutionStartValidator(StrictCamelSnakeValidator):
 
 
 @extend_schema_field(OpenApiTypes.ANY)
-class InvestigationInputResponseField(serializers.JSONField):
+class NotebookInputResponseField(serializers.JSONField):
     pass
 
 
@@ -255,7 +255,7 @@ class BlockExecutionResumeValidator(StrictCamelSnakeValidator):
     input_id = serializers.CharField(
         help_text="ID of the pending user input returned by execution polling."
     )
-    response_data = InvestigationInputResponseField(
+    response_data = NotebookInputResponseField(
         allow_null=True,
         help_text="Answer to the pending input. Any JSON value is accepted, including strings, arrays, objects, and null.",
     )

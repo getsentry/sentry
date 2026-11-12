@@ -23,7 +23,6 @@ import {toast} from '@sentry/scraps/toast';
 import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -459,28 +458,14 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         sectionKey="triggered_condition"
         actions={
-          <Flex gap="xs">
-            <FeedbackButton
-              variant="secondary"
-              aria-label={t('Give feedback on metric issues')}
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('Tell us what you think about this metric issue.'),
-                tags: {
-                  'feedback.source': 'metric_issue_details',
-                  'feedback.owner': 'aci',
-                },
-              }}
+          isOpenPeriodLoading ? null : (
+            <OpenInDestinationButton
+              snubaQuery={snubaQuery}
+              projectId={projectId}
+              start={startDate}
+              end={endDate}
             />
-            {!isOpenPeriodLoading && (
-              <OpenInDestinationButton
-                snubaQuery={snubaQuery}
-                projectId={projectId}
-                start={startDate}
-                end={endDate}
-              />
-            )}
-          </Flex>
+          )
         }
       >
         <KeyValueTableCard

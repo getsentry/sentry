@@ -3,6 +3,7 @@ from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
@@ -33,6 +34,7 @@ from sentry.workflow_engine.endpoints.organization_workflow_index import (
 )
 from sentry.workflow_engine.endpoints.utils.test_fire_action import test_fire_action
 from sentry.workflow_engine.endpoints.validators.base.action import BaseActionValidator
+from sentry.workflow_engine.endpoints.validators.utils import ORGANIZATION_WORKFLOW_WRITE_SCOPES
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 
@@ -114,13 +116,24 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         if project_slug:
             qs = qs.filter(slug=project_slug)
 
-        project = qs.first()
-
-        if not project:
+        projects = list(qs)
+        if not projects:
             return Response(
                 {"detail": "No projects found for this organization that the user has access to"},
                 status=HTTP_400_BAD_REQUEST,
             )
+
+        # Test firing sends real notifications, so require the same write access as editing alerts.
+        project = next(
+            (
+                p
+                for p in projects
+                if request.access.has_any_project_scope(p, ORGANIZATION_WORKFLOW_WRITE_SCOPES)
+            ),
+            None,
+        )
+        if not project:
+            raise PermissionDenied
 
         with action_context_scope(
             source=resolve_action_source(request), actor=resolve_action_actor(request)
@@ -142,6 +155,7 @@ def test_fire_actions(actions: list[dict[str, Any]], project: Project) -> tuple[
     workflow_event_data = WorkflowEventData(
         event=test_event,
         group=test_event.group,
+        organization=project.organization,
     )
 
     for action_data in actions:

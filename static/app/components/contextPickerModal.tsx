@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
+import {useStore} from 'zustand';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -460,7 +461,7 @@ export function ContextPickerModalContainer({
   ...sharedProps
 }: ContainerProps) {
   const {organizations} = useLegacyStore(OrganizationsStore);
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
   return (

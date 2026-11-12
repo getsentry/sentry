@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
@@ -11,16 +12,26 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.types import SnubaParams
+from sentry.telemetry_classifiers.datasets import compile_filter
+from sentry.telemetry_classifiers.definitions import (
+    InvalidClassifierDefinition,
+    resolve_prebuilt_definition,
+)
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    PrebuiltClassifier,
     TelemetryClassifierStatus,
 )
-from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS, PrebuiltClassifier
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
+
+RESULT_ATTRIBUTE_PATTERN = re.compile(r"\A[a-z0-9_]+(\.[a-z0-9_]+)*\Z")
 
 
 class TelemetryClassifierResponse(TypedDict):
@@ -120,11 +131,18 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         help_text="The ID or slug of the project the classifier runs on.",
     )
     name = serializers.CharField(max_length=256)
-    result_attribute = serializers.CharField(
+    result_attribute = serializers.RegexField(
+        RESULT_ATTRIBUTE_PATTERN,
         max_length=256,
-        help_text="The attribute the classifier writes its result to. Must be unique per project.",
+        help_text=(
+            "The attribute the classifier writes its result to, without the enrichment prefix. "
+            "Must be unique per project."
+        ),
+        error_messages={
+            "invalid": "Use lowercase letters, numbers, and underscores, separated by dots."
+        },
     )
-    dataset = serializers.ChoiceField(choices=TelemetryClassifierDataset.choices)
+    dataset = serializers.ChoiceField(choices=Dataset.choices)
     filter_query = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -145,12 +163,18 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         if {"natural_language_prompt", "output_type"} & self.initial_data.keys():
             raise serializers.ValidationError("Custom classifiers aren't supported yet.")
 
-        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]].dataset != attrs["dataset"]:
-            raise serializers.ValidationError(
-                {
-                    "prebuilt_classifier_key": "This prebuilt classifier doesn't support this dataset."
-                }
-            )
+        try:
+            resolve_prebuilt_definition(attrs["prebuilt_classifier_key"], attrs["dataset"])
+        except InvalidClassifierDefinition as error:
+            raise serializers.ValidationError({"prebuilt_classifier_key": str(error)})
+
+        snuba_params = SnubaParams(
+            projects=[attrs["project"]], organization=self.context["organization"]
+        )
+        try:
+            compile_filter(attrs["dataset"], attrs["filter_query"], snuba_params)
+        except InvalidSearchQuery as error:
+            raise serializers.ValidationError({"filter_query": str(error)})
 
         if TelemetryClassifier.objects.filter(
             project=attrs["project"], result_attribute=attrs["result_attribute"]

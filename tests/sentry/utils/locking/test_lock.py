@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.locking import LockNotOwned, UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock
 
@@ -14,35 +14,85 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         lock.acquire()
-        backend.acquire.assert_called_once_with(key, duration, routing_key)
+        acquired = lock.token
+        assert acquired is not None
+        backend.acquire.assert_called_once_with(key, duration, acquired)
 
         lock.locked()
-        backend.locked.assert_called_once_with(key, routing_key)
-
-        lock.release()
-        backend.release.assert_called_once_with(key, routing_key)
+        backend.locked.assert_called_once_with(key)
 
         backend.acquire.side_effect = Exception("Boom!")
         with pytest.raises(UnableToAcquireLock):
             lock.acquire()
+        # A direct assert on lock.token would narrow it to str for the rest of
+        # the test, so the later check that release cleared it is unreachable.
+        held = lock.token
+        assert held == acquired
+        backend.acquire.side_effect = None
+
+        lock.release()
+        backend.release.assert_called_once_with(key, acquired)
+        assert lock.token is None
+
+        lock.release()
+        backend.release.assert_called_once_with(key, acquired)
 
     def test_context_manager_interface(self) -> None:
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         with lock.acquire():
-            backend.acquire.assert_called_once_with(key, duration, routing_key)
+            token = lock.token
+            backend.acquire.assert_called_once_with(key, duration, token)
+            assert token is not None
 
-        backend.release.assert_called_once_with(key, routing_key)
+        backend.release.assert_called_once_with(key, token)
+        assert lock.token is None
+
+    def test_release_without_acquire_does_not_call_backend(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        Lock(backend, "lock", 60).release()
+        backend.release.assert_not_called()
+
+    def test_release_swallows_lock_not_owned(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        lock = Lock(backend, "lock", 60)
+        lock.token = "holder"
+        backend.release.side_effect = LockNotOwned("NOLOCK No lock at key exists at key: x")
+
+        lock.release()
+
+        backend.release.assert_called_once_with("lock", "holder")
+        # The release did not succeed, so a retry still has the token to send.
+        assert lock.token == "holder"
+
+    def test_each_acquire_uses_a_fresh_token(self) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        lock = Lock(backend, "lock", 60)
+
+        lock.acquire()
+        first = lock.token
+        lock.release()
+        lock.acquire()
+        second = lock.token
+
+        assert first is not None
+        assert second is not None
+        assert first != second
+        assert backend.acquire.call_args_list == [
+            call("lock", 60, first),
+            call("lock", 60, second),
+        ]
+        assert backend.release.call_args_list == [
+            call("lock", first),
+        ]
 
     @patch("sentry.utils.locking.lock.random.random", return_value=0.5)
     @patch("sentry.utils.locking.lock.Lock.acquire", side_effect=UnableToAcquireLock)
@@ -50,9 +100,8 @@ class LockTestCase(unittest.TestCase):
         backend = mock.Mock(spec=LockBackend)
         key = "lock"
         duration = 60
-        routing_key = None
 
-        lock = Lock(backend, key, duration, routing_key)
+        lock = Lock(backend, key, duration)
 
         class MockTime:
             time: float = 0

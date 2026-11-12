@@ -6,8 +6,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import JSONField
-from django.db.models.functions import Cast
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -54,27 +52,18 @@ from sentry.constants import (
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     ROLLBACK_ENABLED_DEFAULT,
-    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
-    TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.dynamic_sampling.utils import (
-    get_org_sample_rate,
-    has_custom_dynamic_sampling,
-    has_dynamic_sampling,
-    is_organization_mode_sampling,
-    is_project_mode_sampling,
-)
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
@@ -674,23 +663,11 @@ class _OrganizationSerializerResponseOptional(OrganizationSummarySerializerRespo
     # TODO: replace with enum/literal
     role: Annotated[str, ApiDescription("Deprecated, use orgRole")]
     orgRole: Annotated[str, ApiDescription("The requesting user's role in the organization")]
-    targetSampleRate: Annotated[
-        float, ApiDescription("Target sample rate for dynamic sampling, from 0 to 1")
-    ]
-    samplingMode: Annotated[
-        str, ApiDescription("Where dynamic sampling target rates are set: organization or project")
-    ]
     planSampleRate: Annotated[
-        float,
-        ApiDescription(
-            "Sample rate of the organization's plan, or its target sample rate in organization sampling mode, from 0 to 1"
-        ),
+        float, ApiDescription("Sample rate of the organization's plan, from 0 to 1")
     ]
     desiredSampleRate: Annotated[
-        float,
-        ApiDescription(
-            "Sample rate dynamic sampling aims for, from 0 to 1. Not set in project sampling mode"
-        ),
+        float, ApiDescription("Sample rate dynamic sampling aims for, from 0 to 1")
     ]
     ingestThroughTrustedRelaysOnly: bool
     enabledConsolePlatforms: list[str]
@@ -945,24 +922,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 
         is_dynamically_sampled = False
         sample_rate = None
-        if has_custom_dynamic_sampling(obj):
-            if is_organization_mode_sampling(obj):
-                sample_rate = obj.get_option(
-                    "sentry:target_sample_rate",
-                    quotas.backend.get_blended_sample_rate(organization_id=obj.id),
-                )
-                is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
-            elif is_project_mode_sampling(obj):
-                is_dynamically_sampled = (
-                    ProjectOption.objects.filter(
-                        project__organization=obj,
-                        key="sentry:target_sample_rate",
-                    )
-                    .annotate(value_as_json=Cast("value", output_field=JSONField(null=True)))
-                    .filter(value_as_json__lt=1.0)
-                    .exists()
-                )
-        elif has_dynamic_sampling(obj):
+        if has_dynamic_sampling(obj):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
 
@@ -1098,14 +1058,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             },
         )
 
-        if has_custom_dynamic_sampling(obj, actor=user):
-            context["targetSampleRate"] = float(
-                obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
-            )
-            context["samplingMode"] = str(
-                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            )
-
         context["ingestThroughTrustedRelaysOnly"] = obj.get_option(
             "sentry:ingest-through-trusted-relays-only",
             INGEST_THROUGH_TRUSTED_RELAYS_ONLY_DEFAULT,
@@ -1132,16 +1084,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
 
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
-
-        if is_project_mode_sampling(obj):
-            desired_sample_rate = None
-        else:
-            desired_sample_rate, _ = get_org_sample_rate(
-                org_id=obj.id, default_sample_rate=sample_rate
-            )
-
-        if desired_sample_rate is not None:
-            context["desiredSampleRate"] = desired_sample_rate
+            context["desiredSampleRate"] = sample_rate
 
         return context
 
