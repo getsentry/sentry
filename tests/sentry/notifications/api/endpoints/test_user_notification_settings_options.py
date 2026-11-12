@@ -110,7 +110,7 @@ class UserNotificationSettingsOptionsPutTest(UserNotificationSettingsOptionsBase
             NotificationSettingEnum.INBOX,
             NotificationSettingEnum.INBOX_ASSIGNMENTS,
             NotificationSettingEnum.INBOX_MENTIONS,
-            NotificationSettingEnum.INBOX_PR_READY_FOR_REVIEW,
+            NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
             NotificationSettingEnum.INBOX_COMPLETION_STATUS,
         ]
 

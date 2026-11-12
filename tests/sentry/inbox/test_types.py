@@ -129,7 +129,7 @@ def test_registered_event_notification_settings() -> None:
         "issue.team_assigned": NotificationSettingEnum.INBOX_ASSIGNMENTS,
         "issue.user_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
         "issue.team_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
-        "issue.pr_ready_for_review": NotificationSettingEnum.INBOX_PR_READY_FOR_REVIEW,
+        "issue.pr_ready_for_review": NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
         "notebook.completed": NotificationSettingEnum.INBOX_COMPLETION_STATUS,
         "notebook.user_mentioned": NotificationSettingEnum.INBOX_MENTIONS,
         "notebook.team_mentioned": NotificationSettingEnum.INBOX_MENTIONS,

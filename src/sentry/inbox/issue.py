@@ -90,7 +90,7 @@ ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     event_type="issue.pr_ready_for_review",
     item_type=ISSUE,
     data_class=IssuePRReadyForReviewData,
-    notification_setting=NotificationSettingEnum.INBOX_PR_READY_FOR_REVIEW,
+    notification_setting=NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
 )
 
 inbox_item_event_type_registry.register(ISSUE_USER_ASSIGNED.event_type)(ISSUE_USER_ASSIGNED)

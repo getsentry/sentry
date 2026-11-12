@@ -112,7 +112,7 @@ class NotificationSettingEnum(ValueEqualityEnum):
     INBOX = "inbox"
     INBOX_ASSIGNMENTS = "inboxAssignments"
     INBOX_MENTIONS = "inboxMentions"
-    INBOX_PR_READY_FOR_REVIEW = "inboxPrReadyForReview"
+    INBOX_PULL_REQUESTS_READY = "inboxPullRequestsReady"
     INBOX_COMPLETION_STATUS = "inboxCompletionStatus"
 
 
@@ -122,7 +122,7 @@ INBOX_NOTIFICATION_SETTINGS = frozenset(
         NotificationSettingEnum.INBOX,
         NotificationSettingEnum.INBOX_ASSIGNMENTS,
         NotificationSettingEnum.INBOX_MENTIONS,
-        NotificationSettingEnum.INBOX_PR_READY_FOR_REVIEW,
+        NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
         NotificationSettingEnum.INBOX_COMPLETION_STATUS,
     }
 )

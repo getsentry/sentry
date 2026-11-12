@@ -40,7 +40,7 @@ class NotificationDefaultTest(APITestCase):
                 "inbox": "always",
                 "inboxAssignments": "always",
                 "inboxMentions": "always",
-                "inboxPrReadyForReview": "always",
+                "inboxPullRequestsReady": "always",
                 "inboxCompletionStatus": "always",
             },
         }

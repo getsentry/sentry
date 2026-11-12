@@ -38,7 +38,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.INBOX: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.INBOX_ASSIGNMENTS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.INBOX_MENTIONS: NotificationSettingsOptionEnum.ALWAYS,
-    NotificationSettingEnum.INBOX_PR_READY_FOR_REVIEW: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.INBOX_PULL_REQUESTS_READY: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.INBOX_COMPLETION_STATUS: NotificationSettingsOptionEnum.ALWAYS,
 }
 
