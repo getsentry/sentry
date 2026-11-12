@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import html
 import re
+from collections.abc import Mapping
+from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -22,13 +26,28 @@ from sentry.services import eventstore
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
-map_issue_args = make_type_coercer(
+coerce_issue_args = make_type_coercer(
     {
         "issue_id": int,
         "event_id": str,
         "org_slug": str,
     }
 )
+
+_event_id_re = re.compile(r"^\w+$")
+
+
+def map_issue_args(url: str, args: Mapping[str, str | None]) -> Mapping[str, Any]:
+    """
+    Issue details links name the event in the path, `/issues/1/events/abc/`, or
+    in the `eventId` query param, `/issues/1/?eventId=abc`.
+    """
+    mapped = dict(coerce_issue_args(url, args))
+    if mapped.get("event_id") is None:
+        event_ids = parse_qs(urlparse(html.unescape(url)).query).get("eventId")
+        if event_ids and _event_id_re.match(event_ids[0]):
+            mapped["event_id"] = event_ids[0]
+    return mapped
 
 
 def unfurl_issues(

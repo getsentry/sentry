@@ -49,6 +49,22 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
+            "https://sentry.io/organizations/org1/issues/12345/events/abc123/",
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": "abc123"}),
+        ),
+        (
+            "https://sentry.io/organizations/org1/issues/12345/?eventId=abc123&referrer=slack",
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": "abc123"}),
+        ),
+        (
+            "https://org1.sentry.io/issues/12345/?project=1&amp;eventId=abc123",
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": "abc123"}),
+        ),
+        (
+            "https://org1.sentry.io/issues/12345/?eventId=../abc",
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
+        ),
+        (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
             (None, None),
         ),
