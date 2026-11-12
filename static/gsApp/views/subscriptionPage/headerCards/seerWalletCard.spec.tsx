@@ -131,7 +131,9 @@ describe('SeerWalletCard', () => {
     expect(await screen.findByText('50,320')).toBeInTheDocument();
     expect(screen.getByText('credits remaining')).toBeInTheDocument();
     expect(screen.getByText('Auto-reload • On')).toBeInTheDocument();
-    expect(screen.getByText('Adds 50,000 credits when below 1,000')).toBeInTheDocument();
+    expect(
+      screen.getByText('Adds 50,000 credits when at or below 1,000')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Manage'})).toBeInTheDocument();
   });
 
@@ -184,7 +186,9 @@ describe('SeerWalletCard', () => {
     expect(saveMock).toHaveBeenCalled();
     expect(await screen.findByText('Auto-reload • On')).toBeInTheDocument();
     expect(await screen.findByText('1,320')).toBeInTheDocument();
-    expect(screen.getByText('Adds 1,500 credits when below 500')).toBeInTheDocument();
+    expect(
+      screen.getByText('Adds 1,500 credits when at or below 500')
+    ).toBeInTheDocument();
   });
 
   it('shows an error when the wallet fails to load', async () => {

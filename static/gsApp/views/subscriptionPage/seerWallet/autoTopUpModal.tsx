@@ -268,7 +268,7 @@ function AutoTopUpForm({
               </Text>
               <Text>
                 {tct(
-                  'Whenever your credits drop below [threshold], purchase this amount',
+                  'Whenever your credits are at or below [threshold], purchase this amount',
                   {
                     threshold: displayPrice({
                       cents: autoTopUp.thresholdCredits * creditPriceCents,

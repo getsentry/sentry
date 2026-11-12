@@ -87,7 +87,9 @@ describe('openSeerAutoTopUpModal', () => {
     openAutoTopUpModal();
 
     expect(
-      await screen.findByText('Whenever your credits drop below $5, purchase this amount')
+      await screen.findByText(
+        'Whenever your credits are at or below $5, purchase this amount'
+      )
     ).toBeInTheDocument();
     // The saved $10 isn't a preset, so turning on starts from the first one.
     expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
