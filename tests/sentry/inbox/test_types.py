@@ -11,11 +11,7 @@ from openapi_schema_validator import OAS30Validator
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
 from sentry.inbox.event_retention import cleanup_inbox_item_events
-from sentry.inbox.issue import (
-    ISSUE_USER_MENTIONED,
-    IssueMentionedData,
-    record_issue_user_mention,
-)
+from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import (
     InboxCountResponse,
@@ -249,10 +245,12 @@ class InboxEventRetentionTest(TestCase):
             patch("sentry.inbox.event_retention.MAX_EVENTS_PER_ITEM", 1),
             BurstTaskRunner() as drain,
         ):
-            record_issue_user_mention(
-                group=self.group,
-                comment_id=123,
-                mentioned_user_ids=[self.user.id],
+            ISSUE_USER_MENTIONED.record(
+                subject=self.group,
+                data=IssueMentionedData(
+                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
+                ),
+                recipient_user_ids=[self.user.id],
                 actor=SYSTEM_ACTOR,
             )
             drain()
@@ -293,10 +291,12 @@ class RecordTest(TestCase):
             patch.object(cleanup_inbox_item_events, "delay") as enqueue,
         ):
             with transaction.atomic(using=router.db_for_write(InboxItem)):
-                record_issue_user_mention(
-                    group=group,
-                    comment_id=123,
-                    mentioned_user_ids=[first, second],
+                ISSUE_USER_MENTIONED.record(
+                    subject=group,
+                    data=IssueMentionedData(
+                        summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
+                    ),
+                    recipient_user_ids=[first, second],
                     actor=SYSTEM_ACTOR,
                 )
                 enqueue.assert_not_called()
@@ -313,10 +313,12 @@ class RecordTest(TestCase):
             pytest.raises(RuntimeError, match="rollback"),
             transaction.atomic(using=router.db_for_write(InboxItem)),
         ):
-            record_issue_user_mention(
-                group=group,
-                comment_id=123,
-                mentioned_user_ids=[user.id],
+            ISSUE_USER_MENTIONED.record(
+                subject=group,
+                data=IssueMentionedData(
+                    summary=InboxEventSummary.ISSUE_USER_MENTIONED, comment_id=123
+                ),
+                recipient_user_ids=[user.id],
                 actor=SYSTEM_ACTOR,
             )
             raise RuntimeError("rollback")
