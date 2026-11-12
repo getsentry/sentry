@@ -238,7 +238,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer[dict[str, Any]]):
     stopping_point = serializers.ChoiceField(
         required=False,
         choices=["root_cause", "solution", "code_changes", "open_pr"],
-        help_text="Where the issue fix process should stop. If not provided, step runs stop at root cause and single runs at code changes.",
+        help_text="Where the issue fix process should stop. If not provided, will run to root cause.",
     )
     run_id = serializers.IntegerField(
         required=False,
