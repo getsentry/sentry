@@ -51,6 +51,20 @@ describe('SeerExplorerHeader', () => {
   // New Chat buttons) are always in the DOM here. These tests assert presence and
   // behavior; which variant is actually visible at a given width is a CSS concern
   // verified visually.
+  function mockChatHistory() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/runs/`,
+      method: 'GET',
+      body: [{id: 1, title: 'Flaky deploy', lastTriggeredAt: '2026-11-11T00:00:00Z'}],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/runs/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'nothing'})],
+    });
+  }
+
   async function renderHeader(props = {}, org = orgWith()) {
     const result = render(
       <SeerExplorerSessionsProvider>
@@ -239,6 +253,7 @@ describe('SeerExplorerHeader', () => {
     });
 
     it('opens a searchable chat history dropdown', async () => {
+      mockChatHistory();
       await renderHeader();
 
       // Both the inline and overflow variants mount a chat history trigger.
@@ -254,10 +269,12 @@ describe('SeerExplorerHeader', () => {
 
       const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
       await userEvent.click(chatHistory!);
-      expect(await screen.findByText('No chats yet.')).toBeInTheDocument();
+      expect(await screen.findByText('No chats yet')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search chats\u2026')).not.toBeInTheDocument();
     });
 
     it('shows a no-results state when a search matches nothing', async () => {
+      mockChatHistory();
       await renderHeader();
 
       const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
